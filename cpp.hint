@@ -1,0 +1,2 @@
+#define DYCORE_API __declspec(dllexport)
+#define DYCORE_API __declspec(dllimport)
