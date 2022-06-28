@@ -5,8 +5,7 @@
 #include "framework.h"
 #include "DyCore.h"
 
-
 DYCORE_API const char* DyCore_Init() {
-
+	
 	return "success";
 }

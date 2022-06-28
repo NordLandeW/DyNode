@@ -12,5 +12,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include "json.hpp"
+using json = nlohmann::json;
 
 #endif //PCH_H
