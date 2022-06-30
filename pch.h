@@ -13,6 +13,6 @@
 #include <string>
 #include <map>
 #include "json.hpp"
-using json = nlohmann::json;
+#include "pugixml.hpp"
 
 #endif //PCH_H
