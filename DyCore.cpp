@@ -4,65 +4,38 @@
 #include "framework.h"
 #include "DyCore.h"
 
-ChartInstance chart;
-
-// For DyNode
-vector<int> notePointers;
-
-DYCORE_API double DyCore_note_iterator_new() {
-	notePointers.push_back(0);
-	return notePointers.size() - 1;
-}
-
-DYCORE_API double DyCore_note_iterator_clear() {
-	notePointers.clear();
-	return true;
-}
-
-DYCORE_API double DyCore_note_iterator_read_real(double id, char* type) {
-	string nType(type);
-	NoteInstance inst = chart.get_note_at(id);
-
-	if (nType == "side") {
-		return (int)inst.side;
-	}
-	else if (nType == "width") {
-		return inst.width;
-	}
-	else if (nType == "position") {
-		return inst.position;
-	}
-	else if (nType == "time") {
-		return inst.time;
-	}
-	else if (nType == "type") {
-		return (int)inst.noteType;
-	}
-}
-
-DYCORE_API const char * DyCore_note_iterator_read_string(double id, char* type) {
-	string nType(type);
-	NoteInstance inst = chart.get_note_at(id);
-
-	if (nType == "nid") {
-		return inst.noteId.c_str();
-	}
-	else if (nType == "sid") {
-		return inst.subId.c_str();
-	}
-}
-
-DYCORE_API double DyCore_note_iterator_add(double id) {
-	notePointers[id] ++;
-	return true;
-}
+const int RETURN_BUFFER_SIZE = 10 * 1024 * 1024;
+char _return_buffer[RETURN_BUFFER_SIZE];
 
 DYCORE_API const char* DyCore_init() {
 
 	return "success";
 }
 
-DYCORE_API double DyCore_chart_load(char* filePath) {
+DYCORE_API const char* DyCore_delaunator(char* in_struct) {
+	json j = json::parse(in_struct);
 
+	if (!j.is_array())
+		return "Error!in_struct must be an array.";
+
+	auto coords = j.get<std::vector<double>>();
+
+	delaunator::Delaunator d(coords);
+	
+	json r = json::array();
+
+    for (std::size_t i = 0; i < d.triangles.size(); i += 3) {
+        r.push_back(
+            {
+                {"p1", {d.coords[2 * d.triangles[i]], d.coords[2 * d.triangles[i] + 1]}},
+                {"p2", {d.coords[2 * d.triangles[i + 1]], d.coords[2 * d.triangles[i + 1] + 1]}},
+				{"p3", {d.coords[2 * d.triangles[i + 2]], d.coords[2 * d.triangles[i + 2] + 1]}}
+            }
+        );
+    }
+
+	strcpy_s(_return_buffer, r.dump().c_str());
+
+
+	return _return_buffer;
 }
-

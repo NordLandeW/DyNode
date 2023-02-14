@@ -36,6 +36,12 @@
     <ClInclude Include="pugixml.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="delaunator.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="delaunator_ho.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DyCore.cpp">
@@ -45,6 +51,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pugixml.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="delaunator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -14,5 +14,6 @@
 #include <map>
 #include "json.hpp"
 #include "pugixml.hpp"
+#include "delaunator.hpp"
 
 #endif //PCH_H
