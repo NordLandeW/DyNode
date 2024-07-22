@@ -33,8 +33,109 @@ DYCORE_API const char* DyCore_delaunator(char* in_struct) {
 		);
 	}
 
-	strcpy(_return_buffer, r.dump().c_str());
+	strcpy_s(_return_buffer, r.dump().c_str());
 
 
 	return _return_buffer;
+}
+
+double executeCmdScript(const std::string& workDir) {
+    std::string script = R"(
+    @echo off
+    echo Starting update process...
+    set workDir=)"+ workDir + R"(
+    echo Working directory is set to %workDir%
+    :waitLoop
+    tasklist | find /i "DyNode.exe" >nul
+    if %ERRORLEVEL% equ 0 (
+        echo DyNode.exe is still running, waiting...
+        timeout /t 5 /nobreak >nul
+        goto waitLoop
+    )
+    echo DyNode.exe is not running, proceeding with file operations...
+    xcopy /e /i /y "%workDir%tmp\" "%workDir%"
+    if %ERRORLEVEL% neq 0 (
+        echo Error copying files from tmp directory
+        pause
+        exit /b 1
+    )
+    echo Files copied successfully
+    rmdir /s /q "%workDir%tmp"
+    if %ERRORLEVEL% neq 0 (
+        echo Error deleting tmp directory
+        pause
+        exit /b 1
+    )
+    echo tmp directory deleted successfully
+    del "%workDir%update.zip"
+    if %ERRORLEVEL% neq 0 (
+        echo Error deleting update.zip
+        pause
+        exit /b 1
+    )
+    echo update.zip deleted successfully
+    echo Update script completed successfully
+    echo Exiting in 2 seconds...
+    timeout /t 2 /nobreak >nul
+    exit
+    )";
+
+    std::string filename = workDir + "update_script.bat";
+    std::ofstream file(filename);
+    if (file.is_open()) {
+        file << script;
+        file.close();
+    } else {
+        std::cerr << "Unable to create script file" << std::endl;
+        return -1;
+    }
+
+    std::string command = "cmd /c start " + filename;
+    int result = std::system(command.c_str());
+    if (result != 0) {
+        std::cerr << "Failed to execute script" << std::endl;
+        return -2;
+    }
+    return 0;
+}
+
+
+DYCORE_API double DyCore_update(char* workDir) {
+	return executeCmdScript(workDir);
+}
+
+namespace fs = std::filesystem;
+double cleanupTempFiles(const std::string& workDir) {
+    try {
+        for (const auto& entry : fs::directory_iterator(workDir)) {
+            if (entry.path().extension() == ".zip" && entry.path().filename().string().find("DyNode") == 0) {
+                fs::remove(entry.path());
+                std::cout << "Deleted: " << entry.path() << std::endl;
+            }
+        }
+
+        fs::path tmpDir = workDir + "tmp";
+        if (fs::exists(tmpDir) && fs::is_directory(tmpDir)) {
+            fs::remove_all(tmpDir);
+            std::cout << "Deleted directory: " << tmpDir << std::endl;
+        }
+
+        fs::path batFile = workDir + "update_script.bat";
+        if (fs::exists(batFile)) {
+            fs::remove(batFile);
+            std::cout << "Deleted: " << batFile << std::endl;
+        }
+
+        return 0.0;
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return -1.0;
+    } catch (const std::exception& e) {
+        std::cerr << "General error: " << e.what() << std::endl;
+        return -1.0;
+    }
+}
+
+DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
+	return cleanupTempFiles(workDir);
 }

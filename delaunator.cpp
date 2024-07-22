@@ -1,13 +1,11 @@
 #include "delaunator.hpp"
 
-#include <iostream>
 
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 #include <limits>
 #include <stdexcept>
-#include <tuple>
 #include <vector>
 #include <cassert>
 

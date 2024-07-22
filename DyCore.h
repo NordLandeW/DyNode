@@ -6,6 +6,10 @@
 #include "pugixml.hpp"
 #include "delaunator.hpp"
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <string>
+#include <filesystem>
 
 #if !defined( _MSC_VER)
 #define EXPORTED_FN __attribute__((visibility("default")))
