@@ -7,43 +7,44 @@ const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
 DYCORE_API const char* DyCore_init() {
-
-	return "success";
+    return "success";
 }
 
 DYCORE_API const char* DyCore_delaunator(char* in_struct) {
-	json j = json::parse(in_struct);
+    json j = json::parse(in_struct);
 
-	if (!j.is_array())
-		return "Error!in_struct must be an array.";
+    if (!j.is_array())
+        return "Error!in_struct must be an array.";
 
-	auto coords = j.get<std::vector<double>>();
+    auto coords = j.get<std::vector<double>>();
 
-	delaunator::Delaunator d(coords);
+    delaunator::Delaunator d(coords);
 
-	json r = json::array();
+    json r = json::array();
 
-	for (std::size_t i = 0; i < d.triangles.size(); i += 3) {
-		r.push_back(
-			{
-				{"p1", {d.coords[2 * d.triangles[i]], d.coords[2 * d.triangles[i] + 1]}},
-				{"p2", {d.coords[2 * d.triangles[i + 1]], d.coords[2 * d.triangles[i + 1] + 1]}},
-				{"p3", {d.coords[2 * d.triangles[i + 2]], d.coords[2 * d.triangles[i + 2] + 1]}}
-			}
-		);
-	}
+    for (std::size_t i = 0; i < d.triangles.size(); i += 3) {
+        r.push_back(
+            {{"p1",
+              {d.coords[2 * d.triangles[i]], d.coords[2 * d.triangles[i] + 1]}},
+             {"p2",
+              {d.coords[2 * d.triangles[i + 1]],
+               d.coords[2 * d.triangles[i + 1] + 1]}},
+             {"p3",
+              {d.coords[2 * d.triangles[i + 2]],
+               d.coords[2 * d.triangles[i + 2] + 1]}}});
+    }
 
-	strcpy_s(_return_buffer, r.dump().c_str());
+    strcpy_s(_return_buffer, r.dump().c_str());
 
-
-	return _return_buffer;
+    return _return_buffer;
 }
 
 double executeCmdScript(const std::string& workDir) {
     std::string script = R"(
     @echo off
     echo Starting update process...
-    set workDir=)"+ workDir + R"(
+    set workDir=)" + workDir +
+                         R"(
     echo Working directory is set to %workDir%
     :waitLoop
     tasklist | find /i "DyNode.exe" >nul
@@ -99,16 +100,16 @@ double executeCmdScript(const std::string& workDir) {
     return 0;
 }
 
-
 DYCORE_API double DyCore_update(char* workDir) {
-	return executeCmdScript(workDir);
+    return executeCmdScript(workDir);
 }
 
 namespace fs = std::filesystem;
 double cleanupTempFiles(const std::string& workDir) {
     try {
         for (const auto& entry : fs::directory_iterator(workDir)) {
-            if (entry.path().extension() == ".zip" && entry.path().filename().string().find("DyNode") == 0) {
+            if (entry.path().extension() == ".zip" &&
+                entry.path().filename().string().find("DyNode") == 0) {
                 fs::remove(entry.path());
                 std::cout << "Deleted: " << entry.path() << std::endl;
             }
@@ -137,18 +138,18 @@ double cleanupTempFiles(const std::string& workDir) {
 }
 
 DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
-	return cleanupTempFiles(workDir);
+    return cleanupTempFiles(workDir);
 }
 
-DYCORE_API double DyCore_compress_string(const char* str, char * targetBuffer) {
+DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer) {
     size_t fSize = strlen(str);
     size_t cBuffSize = ZSTD_compressBound(fSize);
-    char * const cBuff = new char[cBuffSize];
+    char* const cBuff = new char[cBuffSize];
 
     size_t const cSize = ZSTD_compress(cBuff, cBuffSize, str, fSize, 10);
     try {
         CHECK_ZSTD(cSize);
-    } catch(...) {
+    } catch (...) {
         delete[] cBuff;
         return -1;
     };
@@ -161,23 +162,25 @@ DYCORE_API double DyCore_compress_string(const char* str, char * targetBuffer) {
     return (double)cSize;
 }
 
-bool check_compressed(const char *str, size_t sSize) {
+bool check_compressed(const char* str, size_t sSize) {
     unsigned long long const rSize = ZSTD_getFrameContentSize(str, sSize);
     return rSize != ZSTD_CONTENTSIZE_ERROR && rSize != ZSTD_CONTENTSIZE_UNKNOWN;
 }
 
-DYCORE_API double DyCore_is_compressed(const char *str, size_t sSize) {
+DYCORE_API double DyCore_is_compressed(const char* str, size_t sSize) {
     return check_compressed(str, sSize) ? 0.0 : -1.0;
 }
 
-DYCORE_API const char * DyCore_decompress_string(const char* str, size_t sSize) {
-    if(!check_compressed(str, sSize)) return "failed";
+DYCORE_API const char* DyCore_decompress_string(const char* str, size_t sSize) {
+    if (!check_compressed(str, sSize))
+        return "failed";
 
     unsigned long long const rSize = ZSTD_getFrameContentSize(str, sSize);
-    char * const rBuff = new char[rSize];
+    char* const rBuff = new char[rSize];
     size_t const dSize = ZSTD_decompress(rBuff, rSize, str, sSize);
 
-    if(dSize != rSize) return "failed";
+    if (dSize != rSize)
+        return "failed";
 
     // Success
     memcpy_s(_return_buffer, RETURN_BUFFER_SIZE, rBuff, rSize);

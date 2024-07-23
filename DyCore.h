@@ -1,7 +1,6 @@
 ﻿#pragma once
-#include "delaunator.hpp"
-#include "json.hpp"
-#include "pugixml.hpp"
+#include <zstd.h>
+
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -9,8 +8,10 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zstd.h>
 
+#include "delaunator.hpp"
+#include "json.hpp"
+#include "pugixml.hpp"
 
 #if !defined(_MSC_VER)
 #define EXPORTED_FN __attribute__((visibility("default")))
@@ -30,22 +31,23 @@ using std::vector;
 /*! CHECK
  * Check that the condition holds. If it doesn't print a message and die.
  */
-#define CHECK(cond, ...)                                                       \
-  do {                                                                         \
-    if (!(cond)) {                                                             \
-      fprintf(stderr, "%s:%d CHECK(%s) failed: ", __FILE__, __LINE__, #cond);  \
-      fprintf(stderr, "" __VA_ARGS__);                                         \
-      fprintf(stderr, "\n");                                                   \
-      throw;                                                                   \
-    }                                                                          \
-  } while (0)
+#define CHECK(cond, ...)                                                    \
+    do {                                                                    \
+        if (!(cond)) {                                                      \
+            fprintf(stderr, "%s:%d CHECK(%s) failed: ", __FILE__, __LINE__, \
+                    #cond);                                                 \
+            fprintf(stderr, "" __VA_ARGS__);                                \
+            fprintf(stderr, "\n");                                          \
+            throw;                                                          \
+        }                                                                   \
+    } while (0)
 
 /*! CHECK_ZSTD
  * Check the zstd error code and die if an error occurred after printing a
  * message.
  */
-#define CHECK_ZSTD(fn)                                                         \
-  do {                                                                         \
-    size_t const err = (fn);                                                   \
-    CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
-  } while (0)
+#define CHECK_ZSTD(fn)                                           \
+    do {                                                         \
+        size_t const err = (fn);                                 \
+        CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err)); \
+    } while (0)
