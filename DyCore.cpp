@@ -3,7 +3,7 @@
 
 #include "DyCore.h"
 
-const int RETURN_BUFFER_SIZE = 10 * 1024 * 1024;
+const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
 DYCORE_API const char* DyCore_init() {
@@ -138,4 +138,51 @@ double cleanupTempFiles(const std::string& workDir) {
 
 DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
 	return cleanupTempFiles(workDir);
+}
+
+DYCORE_API double DyCore_compress_string(const char* str, char * targetBuffer) {
+    size_t fSize = strlen(str);
+    size_t cBuffSize = ZSTD_compressBound(fSize);
+    char * const cBuff = new char[cBuffSize];
+
+    size_t const cSize = ZSTD_compress(cBuff, cBuffSize, str, fSize, 10);
+    try {
+        CHECK_ZSTD(cSize);
+    } catch(...) {
+        delete[] cBuff;
+        return -1;
+    };
+
+    // Success
+    memcpy_s(targetBuffer, cSize, cBuff, cSize);
+
+    delete[] cBuff;
+
+    return (double)cSize;
+}
+
+bool check_compressed(const char *str, size_t sSize) {
+    unsigned long long const rSize = ZSTD_getFrameContentSize(str, sSize);
+    return rSize != ZSTD_CONTENTSIZE_ERROR && rSize != ZSTD_CONTENTSIZE_UNKNOWN;
+}
+
+DYCORE_API double DyCore_is_compressed(const char *str, size_t sSize) {
+    return check_compressed(str, sSize) ? 0.0 : -1.0;
+}
+
+DYCORE_API const char * DyCore_decompress_string(const char* str, size_t sSize) {
+    if(!check_compressed(str, sSize)) return "failed";
+
+    unsigned long long const rSize = ZSTD_getFrameContentSize(str, sSize);
+    char * const rBuff = new char[rSize];
+    size_t const dSize = ZSTD_decompress(rBuff, rSize, str, sSize);
+
+    if(dSize != rSize) return "failed";
+
+    // Success
+    memcpy_s(_return_buffer, RETURN_BUFFER_SIZE, rBuff, rSize);
+
+    delete[] rBuff;
+
+    return _return_buffer;
 }
