@@ -8,6 +8,9 @@ project ("DyCore")
 # 添加生成 compile_commands.json 的设置
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# 设置Release模式下的优化选项
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
+
 # 将源代码添加到此项目的可执行文件。
 add_library (DyCore SHARED "DyCore.cpp" "DyCore.h" "delaunator.cpp" "delaunator.hpp" "json.hpp")
 
