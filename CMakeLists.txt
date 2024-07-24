@@ -12,17 +12,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
 
 # 将源代码添加到此项目的可执行文件。
-add_library (DyCore SHARED "DyCore.cpp" "DyCore.h" "delaunator.cpp" "delaunator.hpp" "json.hpp")
+add_library (DyCore SHARED "DyCore.cpp" "delaunator.cpp")
 
 # Add libraries.
 include_directories ("${CMAKE_SOURCE_DIR}/lib/zstd")
+include_directories ("${CMAKE_SOURCE_DIR}/lib/lua")
+include_directories ("${CMAKE_SOURCE_DIR}/lib")
 file(GLOB ZSTD_SOURCES "${CMAKE_SOURCE_DIR}/lib/zstd/*/*.c")
+file(GLOB LUA_SOURCES "${CMAKE_SOURCE_DIR}/lib/lua/*.c")
 
 # 添加Zstd库
 add_library(zstd STATIC ${ZSTD_SOURCES})
+add_library(lua STATIC ${LUA_SOURCES})
 
 # 链接Zstd库
 target_link_libraries(DyCore PRIVATE zstd)
+target_link_libraries(DyCore PRIVATE lua)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET DyCore PROPERTY CXX_STANDARD 20)

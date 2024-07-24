@@ -7,6 +7,7 @@ const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
 DYCORE_API const char* DyCore_init() {
+
     return "success";
 }
 

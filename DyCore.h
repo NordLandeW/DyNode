@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sol/sol.hpp>
 #include <string>
 #include <vector>
 
