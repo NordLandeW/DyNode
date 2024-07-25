@@ -6,8 +6,11 @@
 const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
-DYCORE_API const char* DyCore_init() {
+void print_debug_message(std::string str) {
+    std::cout << "[DyCore] " << str << std::endl;
+}
 
+DYCORE_API const char* DyCore_init() {
     return "success";
 }
 
@@ -88,14 +91,14 @@ double executeCmdScript(const std::string& workDir) {
         file << script;
         file.close();
     } else {
-        std::cerr << "Unable to create script file" << std::endl;
+        std::cout << "Unable to create script file" << std::endl;
         return -1;
     }
 
     std::string command = "cmd /c start " + filename;
     int result = std::system(command.c_str());
     if (result != 0) {
-        std::cerr << "Failed to execute script" << std::endl;
+        std::cout << "Failed to execute script" << std::endl;
         return -2;
     }
     return 0;
@@ -130,10 +133,10 @@ double cleanupTempFiles(const std::string& workDir) {
 
         return 0.0;
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        std::cout << "Filesystem error: " << e.what() << std::endl;
         return -1.0;
     } catch (const std::exception& e) {
-        std::cerr << "General error: " << e.what() << std::endl;
+        std::cout << "General error: " << e.what() << std::endl;
         return -1.0;
     }
 }
@@ -211,7 +214,7 @@ DYCORE_API const char* DyCore_decompress_string(const char* str,
     // Success
     memcpy(_return_buffer, rBuff, rSize);
 
-    std::cout << "[DyCore] No error found. Sucess." << std::endl;
+    print_debug_message("No error found. Sucess.");
 
     delete[] rBuff;
 
@@ -221,4 +224,34 @@ DYCORE_API const char* DyCore_decompress_string(const char* str,
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
     memcpy(dst, src, (size_t)size);
     return 0;
+}
+
+std::string get_file_modification_time(const std::string& file_path) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    auto ftime = fs::last_write_time(file_path, ec);
+
+    if (ec) {
+        std::cout << "Error reading file time: " << file_path << std::endl;
+        return "failed";
+    }
+
+    auto sctp =
+        std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+            ftime - fs::file_time_type::clock::now() +
+            std::chrono::system_clock::now());
+
+    std::time_t tt = std::chrono::system_clock::to_time_t(sctp);
+    std::tm tm = *std::localtime(&tt);
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y_%m_%d_%H_%M_%S");
+    return oss.str();
+}
+
+DYCORE_API const char* DyCore_get_file_modification_time(char* filePath) {
+    static std::string ret;
+    ret = get_file_modification_time(filePath);
+
+    return ret.c_str();
 }
