@@ -43,12 +43,13 @@ DYCORE_API const char* DyCore_delaunator(char* in_struct) {
     return _return_buffer;
 }
 
-double executeCmdScript(const std::string& workDir) {
+double executeCmdScript(const std::string& _workDir) {
+    const std::string workDir = _workDir;
     std::string script = R"(
     @echo off
     echo Starting update process...
-    set workDir=")" + workDir +
-                         R"("
+    set workDir=)" + workDir +
+                         R"(
     echo Working directory is set to %workDir%
     :waitLoop
     tasklist | find /i "DyNode.exe" >nul
@@ -58,7 +59,7 @@ double executeCmdScript(const std::string& workDir) {
         goto waitLoop
     )
     echo DyNode.exe is not running, proceeding with file operations...
-    xcopy /e /i /y "%workDir%tmp\" "%workDir%"
+    xcopy /e /i /y "%workDir%tmp\\" "%workDir%"
     if %ERRORLEVEL% neq 0 (
         echo Error copying files from tmp directory
         pause
@@ -95,7 +96,7 @@ double executeCmdScript(const std::string& workDir) {
         return -1;
     }
 
-    std::string command = "cmd /c start " + filename;
+    std::string command = "cmd /c start \"Updater\" \"" + filename + "\"";
     int result = std::system(command.c_str());
     if (result != 0) {
         std::cout << "Failed to execute script" << std::endl;
