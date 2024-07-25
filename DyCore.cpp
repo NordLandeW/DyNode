@@ -47,8 +47,8 @@ double executeCmdScript(const std::string& workDir) {
     std::string script = R"(
     @echo off
     echo Starting update process...
-    set workDir=)" + workDir +
-                         R"(
+    set workDir=")" + workDir +
+                         R"("
     echo Working directory is set to %workDir%
     :waitLoop
     tasklist | find /i "DyNode.exe" >nul
