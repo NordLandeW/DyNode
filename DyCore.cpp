@@ -226,10 +226,10 @@ DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
     return 0;
 }
 
-std::string get_file_modification_time(const std::string& file_path) {
+std::string get_file_modification_time(char* file_path) {
     namespace fs = std::filesystem;
     std::error_code ec;
-    auto ftime = fs::last_write_time(file_path, ec);
+    auto ftime = fs::last_write_time(fs::u8path(file_path), ec);
 
     if (ec) {
         std::cout << "Error reading file time: " << file_path << std::endl;
