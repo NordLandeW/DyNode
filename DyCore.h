@@ -8,6 +8,7 @@
 #include <map>
 #include <sol/sol.hpp>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "delaunator.hpp"
@@ -26,6 +27,34 @@ using json = nlohmann::json;
 using std::map;
 using std::string;
 using std::vector;
+
+// Notes Information
+
+namespace dyn {
+
+struct Note {
+    double time;
+    int side;
+    double width;
+    double position;
+    double lastTime;
+    int noteType;
+    string inst;
+    double beginTime;
+};
+
+inline void from_json(const json &j, Note &n) {
+    j.at("time").get_to(n.time);
+    j.at("side").get_to(n.side);
+    j.at("width").get_to(n.width);
+    j.at("position").get_to(n.position);
+    j.at("lastTime").get_to(n.time);
+    j.at("noteType").get_to(n.time);
+    j.at("inst").get_to(n.inst);
+    j.at("beginTime").get_to(n.beginTime);
+}
+
+}  // namespace dyn
 
 // ZSTD Stuff
 
