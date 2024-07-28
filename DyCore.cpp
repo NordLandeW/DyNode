@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "json.hpp"
+
 const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
@@ -281,6 +283,7 @@ int insert_note(Note note) {
     }
 
     currentNoteMap[note.inst] = note;
+    // print_debug_message("Insert note at:" + std::to_string(note.time));
     return 0;
 }
 
@@ -292,6 +295,7 @@ int delete_note(Note note) {
     }
 
     currentNoteMap.erase(note.inst);
+    // print_debug_message("Delete note at:" + std::to_string(note.time));
     return 0;
 }
 
@@ -372,3 +376,32 @@ DYCORE_API double DyCore_modify_note(const char* prop) {
     return modify_note(note);
 }
 }  // namespace dyn
+
+// Insert the notes array into the project property.
+DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
+                                            char* targetBuffer,
+                                            double compressionLevel) {
+    using namespace dyn;
+    json js;
+    try {
+        js = json::parse(projectProp);
+    } catch (json::exception& e) {
+        print_debug_message("Parse failed:" + string(e.what()));
+        return -1;
+    }
+
+    // Get the final notes array.
+    std::vector<Note> notes;
+    for (auto note : currentNoteMap)
+        if (note.second.noteType != 3)
+            notes.push_back(note.second);
+
+    js["charts"]["notes"] = notes;
+
+    string project = nlohmann::to_string(js);
+
+    // print_debug_message("Final project json:\n" + project);
+
+    return DyCore_compress_string(project.c_str(), targetBuffer,
+                                  compressionLevel);
+}

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <zstd.h>
 
 #include <cstdlib>
@@ -54,6 +54,11 @@ inline void from_json(const json &j, Note &n) {
     j.at("beginTime").get_to(n.beginTime);
 }
 
+inline void to_json(json &j, const Note &n) {
+    j = json{{"time", n.time},         {"side", n.side},
+             {"width", n.width},       {"position", n.position},
+             {"lastTime", n.lastTime}, {"noteType", n.noteType}};
+}
 }  // namespace dyn
 
 // ZSTD Stuff
