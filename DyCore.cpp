@@ -390,7 +390,6 @@ DYCORE_API double DyCore_modify_note(const char* prop) {
 
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
-    std::lock_guard<std::mutex> lock(mtxSaveProject);
 
     bool _err = false;
 
@@ -439,6 +438,7 @@ DYCORE_API double DyCore_save_project(const char* projectProp,
 }  // namespace dyn
 
 // Insert the notes array into the project property.
+// Might be called asynchronously.
 DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
                                             char* targetBuffer,
                                             double compressionLevel) {
@@ -452,10 +452,12 @@ DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
     }
 
     // Get the final notes array.
+    mtxSaveProject.lock();
     std::vector<Note> notes;
     for (auto note : currentNoteMap)
         if (note.second.noteType != 3)
             notes.push_back(note.second);
+    mtxSaveProject.unlock();
 
     js["charts"]["notes"] = notes;
 
