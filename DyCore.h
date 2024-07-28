@@ -1,19 +1,25 @@
 ﻿#pragma once
+#include <windows.h>
 #include <zstd.h>
 
+#include <codecvt>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <locale>
 #include <map>
+#include <mutex>
 #include <sol/sol.hpp>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
 #include "delaunator.hpp"
 #include "json.hpp"
 #include "pugixml.hpp"
+
 
 #if !defined(_MSC_VER)
 #define EXPORTED_FN __attribute__((visibility("default")))
@@ -28,7 +34,7 @@ using std::map;
 using std::string;
 using std::vector;
 
-// Notes Information
+/// Notes Management
 
 namespace dyn {
 
@@ -61,7 +67,46 @@ inline void to_json(json &j, const Note &n) {
 }
 }  // namespace dyn
 
-// ZSTD Stuff
+/// Async Event Management
+
+enum ASYNC_EVENT_TYPE { PROJECT_SAVING };
+
+struct AsyncEvent {
+    ASYNC_EVENT_TYPE type;
+    int status;
+};
+inline void to_json(json &j, const AsyncEvent &a) {
+    j = json{{"type", a.type}, {"status", a.status}};
+}
+
+extern std::vector<AsyncEvent> asyncEventStack;
+extern std::mutex mtxSaveProject;
+
+DYCORE_API double DyCore_has_async_event();
+
+DYCORE_API const char *DyCore_get_async_event();
+
+/// Project Management
+
+namespace dyn {
+
+struct SaveProjectParams {
+    std::string projectProp;
+    std::string filePath;
+    int compressionLevel;
+};
+
+void __async_save_project(SaveProjectParams params);
+
+void save_project(const char *projectProp, const char *filePath,
+                  double compressionLevel);
+
+DYCORE_API double DyCore_save_project(const char *projectProp,
+                                      const char *filePath,
+                                      double compressionLevel);
+}  // namespace dyn
+
+/// ZSTD Stuff
 
 /*! CHECK
  * Check that the condition holds. If it doesn't print a message and die.
@@ -86,3 +131,13 @@ inline void to_json(json &j, const Note &n) {
         size_t const err = (fn);                                 \
         CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err)); \
     } while (0)
+
+/// Main Functions
+
+DYCORE_API const char *DyCore_init();
+
+DYCORE_API const char *DyCore_delaunator(char *in_struct);
+
+DYCORE_API double DyCore_get_project_buffer(const char *projectProp,
+                                            char *targetBuffer,
+                                            double compressionLevel);

@@ -10,7 +10,12 @@
 #include "json.hpp"
 
 const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
+const int CHART_BUFFER_SIZE = 100 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
+
+// Async event variables
+std::vector<AsyncEvent> asyncEventStack;
+std::mutex mtxSaveProject;
 
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
@@ -273,7 +278,9 @@ bool note_exists(const Note& note) {
 }
 
 void clear_notes() {
+    mtxSaveProject.lock();
     currentNoteMap.clear();
+    mtxSaveProject.unlock();
 }
 
 int insert_note(Note note) {
@@ -282,7 +289,9 @@ int insert_note(Note note) {
         return -1;
     }
 
+    mtxSaveProject.lock();
     currentNoteMap[note.inst] = note;
+    mtxSaveProject.unlock();
     // print_debug_message("Insert note at:" + std::to_string(note.time));
     return 0;
 }
@@ -294,7 +303,9 @@ int delete_note(Note note) {
         return -1;
     }
 
+    mtxSaveProject.lock();
     currentNoteMap.erase(note.inst);
+    mtxSaveProject.unlock();
     // print_debug_message("Delete note at:" + std::to_string(note.time));
     return 0;
 }
@@ -305,8 +316,9 @@ int modify_note(Note note) {
                             note.inst);
         return -1;
     }
-
+    mtxSaveProject.lock();
     currentNoteMap[note.inst] = note;
+    mtxSaveProject.unlock();
     return 0;
 }
 
@@ -375,6 +387,55 @@ DYCORE_API double DyCore_modify_note(const char* prop) {
     Note note = j.template get<Note>();
     return modify_note(note);
 }
+
+void __async_save_project(SaveProjectParams params) {
+    namespace fs = std::filesystem;
+    std::lock_guard<std::mutex> lock(mtxSaveProject);
+
+    bool _err = false;
+
+    char* chartBuffer = new char[CHART_BUFFER_SIZE];
+
+    size_t cSize = DyCore_get_project_buffer(
+        params.projectProp.c_str(), chartBuffer, params.compressionLevel);
+
+    // Write to file using std::ofstream
+    print_debug_message("Open file at:" + params.filePath);
+    std::ofstream file(fs::u8path(params.filePath), std::ios::binary);
+    if (!file) {
+        print_debug_message("Error opening file.");
+        _err = true;
+    } else {
+        file.write(chartBuffer, cSize);
+        if (!file) {
+            print_debug_message("Warning! Save project to file occurs error.");
+            _err = true;
+        } else {
+            print_debug_message("Project save completed.");
+        }
+        file.close();
+    }
+
+    delete[] chartBuffer;
+
+    asyncEventStack.push_back({PROJECT_SAVING, _err ? -1 : 0});
+}
+
+void save_project(const char* projectProp, const char* filePath,
+                  double compressionLevel) {
+    std::thread t(
+        __async_save_project,
+        (SaveProjectParams){projectProp, filePath, (int)compressionLevel});
+    t.detach();
+    return;
+}
+
+DYCORE_API double DyCore_save_project(const char* projectProp,
+                                      const char* filePath,
+                                      double compressionLevel) {
+    save_project(projectProp, filePath, compressionLevel);
+    return 0;
+}
 }  // namespace dyn
 
 // Insert the notes array into the project property.
@@ -404,4 +465,16 @@ DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
 
     return DyCore_compress_string(project.c_str(), targetBuffer,
                                   compressionLevel);
+}
+
+DYCORE_API double DyCore_has_async_event() {
+    return asyncEventStack.size() > 0;
+}
+
+DYCORE_API const char* DyCore_get_async_event() {
+    static string result = "";
+    json j = asyncEventStack.back();
+    asyncEventStack.pop_back();
+    result = nlohmann::to_string(j);
+    return result.c_str();
 }
