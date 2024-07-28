@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <zstd.h>
 
 #include <cstdlib>
@@ -48,8 +48,8 @@ inline void from_json(const json &j, Note &n) {
     j.at("side").get_to(n.side);
     j.at("width").get_to(n.width);
     j.at("position").get_to(n.position);
-    j.at("lastTime").get_to(n.time);
-    j.at("noteType").get_to(n.time);
+    j.at("lastTime").get_to(n.lastTime);
+    j.at("noteType").get_to(n.noteType);
     j.at("inst").get_to(n.inst);
     j.at("beginTime").get_to(n.beginTime);
 }
