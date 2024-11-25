@@ -54,13 +54,30 @@ DYCORE_API const char* DyCore_delaunator(char* in_struct) {
     return _return_buffer;
 }
 
-double executeCmdScript(const std::string& _workDir) {
-    const std::string workDir = _workDir;
-    std::string script = R"(
+std::string wstringToUtf8(const std::wstring& wstr) {
+    int len = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0,
+                                  nullptr, nullptr);
+    if (len == 0) {
+        return "";
+    }
+    std::string str(len, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], len, nullptr,
+                        nullptr);
+    str.resize(len - 1);  // 移除末尾的 '\0'
+    return str;
+}
+
+// 核心函数
+double executeCmdScript(const std::wstring& _workDir) {
+    const std::wstring workDir = _workDir;
+    std::wstring script =
+        LR"(
     @echo off
+    chcp 65001 >nul
     echo Starting update process...
-    set workDir=)" + workDir +
-                         R"(
+    set workDir=)" +
+        workDir +
+        LR"(
     echo Working directory is set to %workDir%
     :waitLoop
     tasklist | find /i "DyNode.exe" >nul
@@ -97,27 +114,41 @@ double executeCmdScript(const std::string& _workDir) {
     exit
     )";
 
-    std::string filename = workDir + "update_script.bat";
+    std::wstring filename = workDir + L"update_script.bat";
+
+    // 将脚本转换为 UTF-8 并写入文件
+    std::string utf8Script = wstringToUtf8(script);
+
     std::ofstream file(filename);
     if (file.is_open()) {
-        file << script;
+        file << utf8Script;
         file.close();
     } else {
-        std::cout << "Unable to create script file" << std::endl;
+        std::wcerr << L"Unable to create script file" << std::endl;
         return -1;
     }
 
-    std::string command = "cmd /c start \"Updater\" \"" + filename + "\"";
-    int result = std::system(command.c_str());
+    // 执行脚本
+    std::wstring command = L"cmd /c start \"Updater\" \"" + filename + L"\"";
+    int result = _wsystem(command.c_str());
     if (result != 0) {
-        std::cout << "Failed to execute script" << std::endl;
+        std::wcerr << L"Failed to execute script" << std::endl;
         return -2;
     }
     return 0;
 }
 
+std::wstring s2ws(const std::string& str) {
+    int size_needed =
+        MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring wstrTo(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0],
+                        size_needed);
+    return wstrTo;
+}
+
 DYCORE_API double DyCore_update(char* workDir) {
-    return executeCmdScript(workDir);
+    return executeCmdScript(s2ws(workDir));
 }
 
 namespace fs = std::filesystem;
