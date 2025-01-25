@@ -11,7 +11,6 @@
 #include "json.hpp"
 
 const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
-const int CHART_BUFFER_SIZE = 100 * 1024 * 1024;
 char _return_buffer[RETURN_BUFFER_SIZE];
 
 // Async event variables
@@ -430,15 +429,21 @@ DYCORE_API double DyCore_modify_note(const char* prop) {
     return modify_note(note);
 }
 
+size_t compress_bound(size_t size) {
+    return ZSTD_compressBound(size);
+}
+
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
 
     bool _err = false;
 
-    char* chartBuffer = new char[CHART_BUFFER_SIZE];
+    string projectString = get_project_string(params.projectProp);
 
-    size_t cSize = DyCore_get_project_buffer(
-        params.projectProp.c_str(), chartBuffer, params.compressionLevel);
+    char* chartBuffer = new char[compress_bound(projectString.size())];
+
+    size_t cSize =
+        get_project_buffer(projectString, chartBuffer, params.compressionLevel);
 
     // Write to file using std::ofstream
     print_debug_message("Open file at:" + params.filePath);
@@ -480,18 +485,14 @@ DYCORE_API double DyCore_save_project(const char* projectProp,
 }
 }  // namespace dyn
 
-// Insert the notes array into the project property.
-// Might be called asynchronously.
-DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
-                                            char* targetBuffer,
-                                            double compressionLevel) {
+string get_project_string(string projectProp) {
     using namespace dyn;
     json js;
     try {
         js = json::parse(projectProp);
     } catch (json::exception& e) {
         print_debug_message("Parse failed:" + string(e.what()));
-        return -1;
+        return "";
     }
 
     // Get the final notes array.
@@ -503,13 +504,23 @@ DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
     mtxSaveProject.unlock();
 
     js["charts"]["notes"] = notes;
+    return nlohmann::to_string(js);
+}
 
-    string project = nlohmann::to_string(js);
-
-    // print_debug_message("Final project json:\n" + project);
-
-    return DyCore_compress_string(project.c_str(), targetBuffer,
+double get_project_buffer(string projectString, char* targetBuffer,
+                          double compressionLevel) {
+    return DyCore_compress_string(projectString.c_str(), targetBuffer,
                                   compressionLevel);
+}
+
+// Insert the notes array into the project property.
+// Might be called asynchronously.
+DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
+                                            char* targetBuffer,
+                                            double compressionLevel) {
+    string project = get_project_string(projectProp);
+
+    return get_project_buffer(project, targetBuffer, compressionLevel);
 }
 
 DYCORE_API double DyCore_has_async_event() {

@@ -138,6 +138,11 @@ DYCORE_API const char *DyCore_init();
 
 DYCORE_API const char *DyCore_delaunator(char *in_struct);
 
+string get_project_string(string projectProp);
+
+double get_project_buffer(string projectString, char *targetBuffer,
+                          double compressionLevel);
+
 DYCORE_API double DyCore_get_project_buffer(const char *projectProp,
                                             char *targetBuffer,
                                             double compressionLevel);
