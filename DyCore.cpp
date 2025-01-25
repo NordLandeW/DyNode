@@ -3,6 +3,7 @@
 
 #include "DyCore.h"
 
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -190,6 +191,16 @@ DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
 
 DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer,
                                          double compressionLevel) {
+    compressionLevel = std::clamp((int)compressionLevel, 0, 22);
+    // Skip the compression if the compression level is 0.
+    if ((int)compressionLevel == 0) {
+        size_t fSize = strlen(str);
+        memcpy(targetBuffer, str, fSize);
+        std::cout << "[DyCore] Compression level set to 0. Skip compression."
+                  << std::endl;
+        return fSize;
+    }
+
     size_t fSize = strlen(str);
     size_t cBuffSize = ZSTD_compressBound(fSize);
 
@@ -454,7 +465,8 @@ void __async_save_project(SaveProjectParams params) {
 void save_project(const char* projectProp, const char* filePath,
                   double compressionLevel) {
     std::thread t([=]() {
-        __async_save_project(SaveProjectParams{projectProp, filePath, (int)compressionLevel});
+        __async_save_project(
+            SaveProjectParams{projectProp, filePath, (int)compressionLevel});
     });
     t.detach();
     return;
