@@ -453,9 +453,9 @@ void __async_save_project(SaveProjectParams params) {
 
 void save_project(const char* projectProp, const char* filePath,
                   double compressionLevel) {
-    std::thread t(
-        __async_save_project,
-        (SaveProjectParams){projectProp, filePath, (int)compressionLevel});
+    std::thread t([=]() {
+        __async_save_project(SaveProjectParams{projectProp, filePath, (int)compressionLevel});
+    });
     t.detach();
     return;
 }
