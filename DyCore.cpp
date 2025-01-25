@@ -225,7 +225,7 @@ DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer,
     };
 
     std::cout << "[DyCore] No error found. Success. " << fSize << "->" << cSize
-              << std::endl;
+              << "(" << ((double)cSize / fSize * 100.0) << "%)" << std::endl;
 
     // Success
     memcpy(targetBuffer, cBuff, cSize);
