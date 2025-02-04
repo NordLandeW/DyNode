@@ -20,7 +20,6 @@
 #include "json.hpp"
 #include "pugixml.hpp"
 
-
 #if !defined(_MSC_VER)
 #define EXPORTED_FN __attribute__((visibility("default")))
 #else
@@ -69,7 +68,7 @@ inline void to_json(json &j, const Note &n) {
 
 /// Async Event Management
 
-enum ASYNC_EVENT_TYPE { PROJECT_SAVING };
+enum ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR };
 
 struct AsyncEvent {
     ASYNC_EVENT_TYPE type;
@@ -77,7 +76,7 @@ struct AsyncEvent {
     string message;
 };
 inline void to_json(json &j, const AsyncEvent &a) {
-    j = json{{"type", a.type}, {"status", a.status}};
+    j = json{{"type", a.type}, {"status", a.status}, {"message", a.message}};
 }
 
 extern std::vector<AsyncEvent> asyncEventStack;
@@ -134,6 +133,8 @@ DYCORE_API double DyCore_save_project(const char *projectProp,
     } while (0)
 
 /// Main Functions
+
+void throw_error_event(std::string error_info);
 
 DYCORE_API const char *DyCore_init();
 

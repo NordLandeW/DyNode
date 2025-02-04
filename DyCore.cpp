@@ -19,6 +19,9 @@ std::mutex mtxSaveProject;
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
 }
+void throw_error_event(std::string error_info) {
+    asyncEventStack.push_back({GENERAL_ERROR, -1, error_info});
+}
 
 DYCORE_API const char* DyCore_init() {
     return "success";
