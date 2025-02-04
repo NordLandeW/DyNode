@@ -74,6 +74,7 @@ enum ASYNC_EVENT_TYPE { PROJECT_SAVING };
 struct AsyncEvent {
     ASYNC_EVENT_TYPE type;
     int status;
+    string message;
 };
 inline void to_json(json &j, const AsyncEvent &a) {
     j = json{{"type", a.type}, {"status", a.status}};

@@ -10,8 +10,7 @@
 
 #include "json.hpp"
 
-const int RETURN_BUFFER_SIZE = 50 * 1024 * 1024;
-char _return_buffer[RETURN_BUFFER_SIZE];
+string returnBuffer;
 
 // Async event variables
 std::vector<AsyncEvent> asyncEventStack;
@@ -49,9 +48,9 @@ DYCORE_API const char* DyCore_delaunator(char* in_struct) {
                d.coords[2 * d.triangles[i + 2] + 1]}}});
     }
 
-    strcpy_s(_return_buffer, r.dump().c_str());
+    returnBuffer = r.dump();
 
-    return _return_buffer;
+    return returnBuffer.c_str();
 }
 
 std::string wstringToUtf8(const std::wstring& wstr) {
@@ -265,13 +264,13 @@ DYCORE_API const char* DyCore_decompress_string(const char* str,
         return "failed";
 
     // Success
-    memcpy(_return_buffer, rBuff, rSize);
+    returnBuffer.assign(rBuff, rSize);
 
     print_debug_message("No error found. Sucess.");
 
     delete[] rBuff;
 
-    return _return_buffer;
+    return returnBuffer.c_str();
 }
 
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
@@ -436,35 +435,53 @@ size_t compress_bound(size_t size) {
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
 
-    bool _err = false;
-
-    string projectString = get_project_string(params.projectProp);
+    bool err = false;
+    string errInfo = "";
+    string projectString = "";
+    try {
+        projectString = get_project_string(params.projectProp);
+    } catch (const std::exception& e) {
+        print_debug_message("Encounter unknown errors. Details:" +
+                            string(e.what()));
+        asyncEventStack.push_back({PROJECT_SAVING, -1});
+        return;
+    }
 
     char* chartBuffer = new char[compress_bound(projectString.size())];
 
-    size_t cSize =
-        get_project_buffer(projectString, chartBuffer, params.compressionLevel);
+    try {
+        size_t cSize = get_project_buffer(projectString, chartBuffer,
+                                          params.compressionLevel);
 
-    // Write to file using std::ofstream
-    print_debug_message("Open file at:" + params.filePath);
-    std::ofstream file(fs::u8path(params.filePath), std::ios::binary);
-    if (!file) {
-        print_debug_message("Error opening file.");
-        _err = true;
-    } else {
-        file.write(chartBuffer, cSize);
+        // Write to file using std::ofstream
+        print_debug_message("Open file at:" + params.filePath);
+        std::ofstream file(fs::u8path(params.filePath), std::ios::binary);
         if (!file) {
-            print_debug_message("Warning! Save project to file occurs error.");
-            _err = true;
+            print_debug_message("Error opening file.");
+            err = true;
+            errInfo = "Error opening file.";
         } else {
-            print_debug_message("Project save completed.");
+            file.write(chartBuffer, cSize);
+            if (!file) {
+                print_debug_message(
+                    "Warning! Save project to file occurs error.");
+                err = true;
+                errInfo = "Error writing to file.";
+            } else {
+                print_debug_message("Project save completed.");
+            }
+            file.close();
         }
-        file.close();
+    } catch (const std::exception& e) {
+        print_debug_message("Encounter unknown errors. Details:" +
+                            string(e.what()));
+        err = true;
+        errInfo = e.what();
     }
 
     delete[] chartBuffer;
 
-    asyncEventStack.push_back({PROJECT_SAVING, _err ? -1 : 0});
+    asyncEventStack.push_back({PROJECT_SAVING, err ? -1 : 0, errInfo});
 }
 
 void save_project(const char* projectProp, const char* filePath,
