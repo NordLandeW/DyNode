@@ -4,10 +4,12 @@
 #include "DyCore.h"
 
 #include <algorithm>
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "delaunator.hpp"
 #include "json.hpp"
 
 string returnBuffer;

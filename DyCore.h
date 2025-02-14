@@ -2,21 +2,12 @@
 #include <windows.h>
 #include <zstd.h>
 
-#include <codecvt>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <locale>
 #include <map>
 #include <mutex>
 #include <sol/sol.hpp>
 #include <string>
-#include <thread>
-#include <unordered_map>
 #include <vector>
 
-#include "delaunator.hpp"
 #include "json.hpp"
 #include "pugixml.hpp"
 
