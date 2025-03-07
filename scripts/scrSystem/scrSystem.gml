@@ -945,7 +945,7 @@ function project_save_as(_file = "") {
 	}
 
 	// Trigger an async saving project event.
-	DyCore_save_project(SnapToJSON(_contents, false, true, true), _file, DYCORE_COMPRESSION_LEVEL);
+	DyCore_save_project(json_stringify(_contents), _file, DYCORE_COMPRESSION_LEVEL);
 	
 	return 1;
 }
