@@ -504,7 +504,10 @@ void __async_save_project(SaveProjectParams params) {
         projectString = get_project_string(params.projectProp);
         if (verify_project(projectString) != 0) {
             print_debug_message("Invalid project property.");
-            push_async_event({PROJECT_SAVING, -1, "Invalid project format."});
+            push_async_event(
+                {PROJECT_SAVING, -1,
+                 "Invalid project format. projectString: " + projectString +
+                     "\nprojectProp: " + params.projectProp});
             return;
         }
     } catch (const std::exception& e) {
