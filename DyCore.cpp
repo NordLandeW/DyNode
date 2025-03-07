@@ -4,7 +4,11 @@
 #include "DyCore.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
+#include <mutex>
+#include <random>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,12 +21,18 @@ string returnBuffer;
 // Async event variables
 std::vector<AsyncEvent> asyncEventStack;
 std::mutex mtxSaveProject;
+std::mutex mtxAsyncEvents;
 
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
 }
 void throw_error_event(std::string error_info) {
+    std::lock_guard<std::mutex> lock(mtxAsyncEvents);
     asyncEventStack.push_back({GENERAL_ERROR, -1, error_info});
+}
+void push_async_event(AsyncEvent asyncEvent) {
+    std::lock_guard<std::mutex> lock(mtxAsyncEvents);
+    asyncEventStack.push_back(asyncEvent);
 }
 
 DYCORE_API const char* DyCore_init() {
@@ -194,6 +204,10 @@ DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
 
 DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer,
                                          double compressionLevel) {
+    if (!str || !targetBuffer) {
+        print_debug_message("Error: Null pointer passed to compress_string.");
+        return -1;
+    }
     compressionLevel = std::clamp((int)compressionLevel, 0, 22);
     // Skip the compression if the compression level is 0.
     if ((int)compressionLevel == 0) {
@@ -207,23 +221,21 @@ DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer,
     size_t fSize = strlen(str);
     size_t cBuffSize = ZSTD_compressBound(fSize);
 
-    char* const fBuff = new char[fSize];
-    char* const cBuff = new char[cBuffSize];
+    auto fBuff = std::make_unique<char[]>(fSize);
+    auto cBuff = std::make_unique<char[]>(cBuffSize);
 
-    memcpy(fBuff, str, fSize);
+    memcpy(fBuff.get(), str, fSize);
 
     std::cout << "[DyCore] Start compressing..." << std::endl;
 
-    size_t const cSize =
-        ZSTD_compress(cBuff, cBuffSize, fBuff, fSize, (int)compressionLevel);
+    size_t const cSize = ZSTD_compress(cBuff.get(), cBuffSize, fBuff.get(),
+                                       fSize, (int)compressionLevel);
 
     std::cout << "[DyCore] Finish compressing, checking..." << std::endl;
 
     try {
         CHECK_ZSTD(cSize);
     } catch (...) {
-        delete[] cBuff;
-        delete[] fBuff;
         return -1;
     };
 
@@ -231,10 +243,7 @@ DYCORE_API double DyCore_compress_string(const char* str, char* targetBuffer,
               << "(" << ((double)cSize / fSize * 100.0) << "%)" << std::endl;
 
     // Success
-    memcpy(targetBuffer, cBuff, cSize);
-
-    delete[] cBuff;
-    delete[] fBuff;
+    memcpy(targetBuffer, cBuff.get(), cSize);
 
     return (double)cSize;
 }
@@ -250,8 +259,7 @@ DYCORE_API double DyCore_is_compressed(const char* str, double _sSize) {
     return check_compressed(str, sSize) ? 0.0 : -1.0;
 }
 
-DYCORE_API const char* DyCore_decompress_string(const char* str,
-                                                double _sSize) {
+string decompress_string(const char* str, double _sSize) {
     size_t sSize = (size_t)_sSize;
     if (!check_compressed(str, sSize)) {
         std::cout << "[DyCore] Not a zstd file!" << std::endl;
@@ -262,18 +270,28 @@ DYCORE_API const char* DyCore_decompress_string(const char* str,
     std::cout << "[DyCore] Start decompressing..." << std::endl;
 
     size_t const rSize = ZSTD_getFrameContentSize(str, sSize);
-    char* const rBuff = new char[rSize];
-    size_t const dSize = ZSTD_decompress(rBuff, rSize, str, sSize);
+    auto rBuff = std::make_unique<char[]>(rSize);
+    size_t const dSize = ZSTD_decompress(rBuff.get(), rSize, str, sSize);
 
     if (dSize != rSize)
         return "failed";
 
     // Success
-    returnBuffer.assign(rBuff, rSize);
+    print_debug_message("Decompression success.");
+    return std::string(rBuff.get(), rSize);
+}
 
-    print_debug_message("No error found. Sucess.");
+string decompress_string(string str) {
+    return decompress_string(str.c_str(), str.size());
+}
 
-    delete[] rBuff;
+DYCORE_API const char* DyCore_decompress_string(const char* str,
+                                                double _sSize) {
+    returnBuffer = decompress_string(str, _sSize);
+
+    if (returnBuffer == "failed") {
+        throw_error_event("Decompression failed.");
+    }
 
     return returnBuffer.c_str();
 }
@@ -307,7 +325,7 @@ std::string get_file_modification_time(char* file_path) {
 }
 
 DYCORE_API const char* DyCore_get_file_modification_time(char* filePath) {
-    static std::string ret;
+    thread_local static std::string ret;
     ret = get_file_modification_time(filePath);
 
     return ret.c_str();
@@ -384,6 +402,7 @@ DYCORE_API double DyCore_sync_notes_array(const char* notesArray) {
 
     print_debug_message(string("Sync notes successfully. ") +
                         std::to_string(array.size()));
+    clear_notes();
     for (auto note : array)
         insert_note(note);
     return 0;
@@ -437,6 +456,44 @@ size_t compress_bound(size_t size) {
     return ZSTD_compressBound(size);
 }
 
+int verify_project(string projectStr) {
+    try {
+        json j = json::parse(projectStr);
+        if (!j.contains("charts") || !j["charts"].contains("notes") ||
+            !j.contains("version") || !j["version"].is_string()) {
+            print_debug_message("Invalid project property: " + projectStr);
+            return -1;
+        }
+    } catch (json::exception& e) {
+        print_debug_message("Parse failed:" + string(e.what()));
+        return -1;
+    }
+    return 0;
+}
+
+int verify_project_buffer(const char* buffer, size_t size) {
+    if (!check_compressed(buffer, size)) {
+        return verify_project(buffer);
+    }
+    return verify_project(decompress_string(buffer, size));
+}
+
+string random_string(int length) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    static std::uniform_int_distribution<> dis(0, sizeof(charset) - 2);
+
+    std::string str(length, 0);
+    for (int i = 0; i < length; ++i) {
+        str[i] = charset[dis(gen)];
+    }
+    return str;
+}
+
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
 
@@ -445,48 +502,75 @@ void __async_save_project(SaveProjectParams params) {
     string projectString = "";
     try {
         projectString = get_project_string(params.projectProp);
-    } catch (const std::exception& e) {
-        print_debug_message("Encounter unknown errors. Details:" +
-                            string(e.what()));
-        asyncEventStack.push_back({PROJECT_SAVING, -1});
-        return;
-    }
-
-    char* chartBuffer = new char[compress_bound(projectString.size())];
-
-    try {
-        size_t cSize = get_project_buffer(projectString, chartBuffer,
-                                          params.compressionLevel);
-
-        // Write to file using std::ofstream
-        print_debug_message("Open file at:" + params.filePath);
-        std::ofstream file(fs::u8path(params.filePath), std::ios::binary);
-        if (!file) {
-            print_debug_message("Error opening file.");
-            err = true;
-            errInfo = "Error opening file.";
-        } else {
-            file.write(chartBuffer, cSize);
-            if (!file) {
-                print_debug_message(
-                    "Warning! Save project to file occurs error.");
-                err = true;
-                errInfo = "Error writing to file.";
-            } else {
-                print_debug_message("Project save completed.");
-            }
-            file.close();
+        if (verify_project(projectString) != 0) {
+            print_debug_message("Invalid project property.");
+            push_async_event({PROJECT_SAVING, -1, "Invalid project format."});
+            return;
         }
     } catch (const std::exception& e) {
         print_debug_message("Encounter unknown errors. Details:" +
                             string(e.what()));
+        push_async_event({PROJECT_SAVING, -1});
+        return;
+    }
+
+    auto chartBuffer =
+        std::make_unique<char[]>(compress_bound(projectString.size()));
+    fs::path finalPath, tempPath;
+
+    try {
+        size_t cSize = get_project_buffer(projectString, chartBuffer.get(),
+                                          params.compressionLevel);
+
+        // Write to file using std::ofstream
+        print_debug_message("Open file at:" + params.filePath);
+        finalPath = fs::u8path(params.filePath);
+        tempPath = finalPath.parent_path() /
+                   (finalPath.filename().string() + random_string(8) + ".tmp");
+        std::ofstream file(tempPath, std::ios::binary);
+        if (!file.is_open()) {
+            throw std::runtime_error("Error opening file: " +
+                                     tempPath.string());
+        } else {
+            file.write(chartBuffer.get(), cSize);
+            if (file.fail()) {
+                throw std::runtime_error("Error writing to file: " +
+                                         tempPath.string());
+            }
+            file.close();
+        }
+
+        print_debug_message("Verifying...");
+
+        // Read the saved file.
+        std::ifstream vfile(tempPath, std::ios::binary);
+        if (!vfile.is_open()) {
+            throw std::runtime_error(
+                "Error opening saved file for verification: " +
+                tempPath.string());
+        } else {
+            std::string buffer((std::istreambuf_iterator<char>(vfile)),
+                               std::istreambuf_iterator<char>());
+            vfile.close();
+
+            if (verify_project_buffer(buffer.c_str(), buffer.size()) != 0) {
+                throw std::exception("Saved file is corrupted.");
+            }
+        }
+
+        fs::rename(tempPath, finalPath);
+        print_debug_message("Project save completed.");
+
+    } catch (const std::exception& e) {
+        if (fs::exists(tempPath))
+            fs::remove(tempPath);
+
+        print_debug_message("Encounter errors. Details:" + string(e.what()));
         err = true;
         errInfo = e.what();
     }
 
-    delete[] chartBuffer;
-
-    asyncEventStack.push_back({PROJECT_SAVING, err ? -1 : 0, errInfo});
+    push_async_event({PROJECT_SAVING, err ? -1 : 0, errInfo});
 }
 
 void save_project(const char* projectProp, const char* filePath,
@@ -502,6 +586,21 @@ void save_project(const char* projectProp, const char* filePath,
 DYCORE_API double DyCore_save_project(const char* projectProp,
                                       const char* filePath,
                                       double compressionLevel) {
+    namespace fs = std::filesystem;
+
+    if (!filePath || strlen(filePath) == 0) {
+        throw_error_event("File path is empty.");
+        return -1;
+    }
+
+    fs::path path = fs::u8path(filePath);
+    fs::path parentDir = path.parent_path();
+    if (!parentDir.empty() && !fs::exists(parentDir)) {
+        throw_error_event("Parent directory does not exist: " +
+                          parentDir.string());
+        return -1;
+    }
+
     save_project(projectProp, filePath, compressionLevel);
     return 0;
 }
@@ -546,10 +645,14 @@ DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
 }
 
 DYCORE_API double DyCore_has_async_event() {
+    std::lock_guard<std::mutex> lock(mtxAsyncEvents);
     return asyncEventStack.size() > 0;
 }
 
 DYCORE_API const char* DyCore_get_async_event() {
+    std::lock_guard<std::mutex> lock(mtxAsyncEvents);
+    if (asyncEventStack.size() == 0)
+        return "";
     static string result = "";
     json j = asyncEventStack.back();
     asyncEventStack.pop_back();
