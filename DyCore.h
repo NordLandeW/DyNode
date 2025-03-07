@@ -28,6 +28,10 @@ using std::vector;
 
 namespace dyn {
 
+struct Note;
+inline void from_json(const json &j, Note &n);
+inline void to_json(json &j, const Note &n);
+
 struct Note {
     double time;
     int side;
@@ -37,6 +41,16 @@ struct Note {
     int noteType;
     string inst;
     double beginTime;
+
+    string dump() {
+        return json(*this).dump();
+    }
+    string full_dump() {
+        json ret = json(*this);
+        ret["inst"] = inst;
+        ret["beginTime"] = beginTime;
+        return ret.dump();
+    }
 };
 
 inline void from_json(const json &j, Note &n) {
@@ -139,3 +153,23 @@ double get_project_buffer(string projectString, char *targetBuffer,
 DYCORE_API double DyCore_get_project_buffer(const char *projectProp,
                                             char *targetBuffer,
                                             double compressionLevel);
+
+DYCORE_API double DyCore_compress_string(const char *src, char *dst,
+                                         double compressionLevel);
+
+DYCORE_API double DyCore_is_compressed(const char *str, double _sSize);
+
+string decompress_string(const char *str, double _sSize);
+string decompress_string(string str);
+
+DYCORE_API const char *DyCore_decompress_string(const char *str, double _sSize);
+std::string get_file_modification_time(char *file_path);
+DYCORE_API double DyCore_clear_notes();
+DYCORE_API double DyCore_sync_notes_array(const char *notesArray);
+DYCORE_API double DyCore_modify_note(const char *prop);
+DYCORE_API double DyCore_delete_note(const char *prop);
+DYCORE_API double DyCore_insert_note(const char *prop);
+DYCORE_API double DyCore_buffer_copy(void *dst, void *src, double size);
+DYCORE_API double DyCore_save_project(const char *projectProp,
+                                      const char *filePath,
+                                      double compressionLevel);
