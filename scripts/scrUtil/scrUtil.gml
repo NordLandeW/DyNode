@@ -307,7 +307,12 @@ function difficulty_num_to_char(_number) {
 	return string_char_at(global.difficultyString, _number + 1);
 }
 function difficulty_char_to_num(_char) {
-	return string_last_pos(_char, global.difficultyString) - 1;
+    var _pos = string_last_pos(_char, global.difficultyString);
+    if(_pos == 0) {
+        show_debug_message($"Warning: Undefined difficulty string - {_char}");
+        _pos = string_length(global.difficultyString);
+    }
+	return _pos - 1;
 }
 function difficulty_num_to_name(_number) {
 	return global.difficultyName[_number];
