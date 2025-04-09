@@ -1,5 +1,5 @@
 {
-  "$GMProject":"",
+  "$GMProject":"v1",
   "%Name":"DyNode",
   "AudioGroups":[
     {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
@@ -22,6 +22,7 @@
     {"$GMFolder":"","%Name":"Batches","folderPath":"folders/Extensions/Clean Shapes/Batches.yy","name":"Batches","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Shapes","folderPath":"folders/Extensions/Clean Shapes/Shapes.yy","name":"Shapes","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Transform","folderPath":"folders/Extensions/Clean Shapes/Transform.yy","name":"Transform","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"window_command_hook","folderPath":"folders/Extensions/window_command_hook.yy","name":"window_command_hook","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Fonts","folderPath":"folders/Fonts.yy","name":"Fonts","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Google Analytics","folderPath":"folders/Google Analytics.yy","name":"Google Analytics","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"(System)","folderPath":"folders/Google Analytics/(System).yy","name":"(System)","resourceType":"GMFolder","resourceVersion":"2.0",},
@@ -92,6 +93,7 @@
     {"$GMFolder":"","%Name":"Tile Sets","folderPath":"folders/Tile Sets.yy","name":"Tile Sets","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Timelines","folderPath":"folders/Timelines.yy","name":"Timelines","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
+  "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"NotoSansCJKkr-Black.otf","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"NotoSansCJKkr-Black.otf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"inigo quilez 2d sdf license.txt","CopyToMask":-1,"filePath":"datafiles","name":"inigo quilez 2d sdf license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -107,7 +109,7 @@
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.11.0.179",
+    "IDEVersion":"2024.13.0.190",
   },
   "name":"DyNode",
   "resources":[
@@ -363,6 +365,7 @@
     {"id":{"name":"scrTrianglify","path":"scripts/scrTrianglify/scrTrianglify.yy",},},
     {"id":{"name":"scrUtil","path":"scripts/scrUtil/scrUtil.yy",},},
     {"id":{"name":"scrVideo","path":"scripts/scrVideo/scrVideo.yy",},},
+    {"id":{"name":"scrWCH","path":"scripts/scrWCH/scrWCH.yy",},},
     {"id":{"name":"Snap2DArrayToStructArray","path":"scripts/Snap2DArrayToStructArray/Snap2DArrayToStructArray.yy",},},
     {"id":{"name":"SnapBufferRead2DArray","path":"scripts/SnapBufferRead2DArray/SnapBufferRead2DArray.yy",},},
     {"id":{"name":"SnapBufferReadBinary","path":"scripts/SnapBufferReadBinary/SnapBufferReadBinary.yy",},},

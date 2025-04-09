@@ -505,6 +505,42 @@ dllx double window_set_taskbar_button_visible_raw(void* _in_ptr, double _in_ptr_
 	return window_set_taskbar_button_visible(_arg_hwnd, _arg_show_button);
 }
 
+extern bool window_get_clickthrough(GAME_HWND hwnd);
+dllx double window_get_clickthrough_raw(void* _in_ptr, double _in_ptr_size) {
+	gml_istream _in(_in_ptr);
+	GAME_HWND _arg_hwnd;
+	_arg_hwnd = (GAME_HWND)_in.read<uint64_t>();
+	return window_get_clickthrough(_arg_hwnd);
+}
+
+extern bool window_set_clickthrough(GAME_HWND hwnd, bool enable_clickthrough);
+dllx double window_set_clickthrough_raw(void* _in_ptr, double _in_ptr_size) {
+	gml_istream _in(_in_ptr);
+	GAME_HWND _arg_hwnd;
+	_arg_hwnd = (GAME_HWND)_in.read<uint64_t>();
+	bool _arg_enable_clickthrough;
+	_arg_enable_clickthrough = _in.read<bool>();
+	return window_set_clickthrough(_arg_hwnd, _arg_enable_clickthrough);
+}
+
+extern bool window_get_noactivate(GAME_HWND hwnd);
+dllx double window_get_noactivate_raw(void* _in_ptr, double _in_ptr_size) {
+	gml_istream _in(_in_ptr);
+	GAME_HWND _arg_hwnd;
+	_arg_hwnd = (GAME_HWND)_in.read<uint64_t>();
+	return window_get_noactivate(_arg_hwnd);
+}
+
+extern bool window_set_noactivate(GAME_HWND hwnd, bool disable_activation);
+dllx double window_set_noactivate_raw(void* _in_ptr, double _in_ptr_size) {
+	gml_istream _in(_in_ptr);
+	GAME_HWND _arg_hwnd;
+	_arg_hwnd = (GAME_HWND)_in.read<uint64_t>();
+	bool _arg_disable_activation;
+	_arg_disable_activation = _in.read<bool>();
+	return window_set_noactivate(_arg_hwnd, _arg_disable_activation);
+}
+
 extern bool window_set_visible_w(GAME_HWND hwnd, bool visible);
 dllx double window_set_visible_w_raw(void* _in_ptr, double _in_ptr_size) {
 	gml_istream _in(_in_ptr);
@@ -677,9 +713,9 @@ int window_command_acc_active(HWND hwnd, WPARAM wcmd, int _val) {
     auto set = _val > 0;
     switch (wcmd) {
         case SC_MOVE: case SC_SIZE: case SC_MOUSEMENU: {
-            if (get) return window_commands_blocked.contains(wcmd);
+            if (get) return !window_commands_blocked.contains(wcmd);
             if (set) window_command_proc_ensure(hwnd);
-            window_commands_blocked.set(wcmd, set);
+            window_commands_blocked.set(wcmd, !set);
             return 1;
         }; break;
         case SC_CLOSE: {
@@ -716,6 +752,7 @@ dllg bool window_set_background_redraw(GAME_HWND hwnd, bool enable) {
     return true;
 }
 
+//
 dllg bool window_get_topmost(GAME_HWND hwnd) {
     return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
 }
@@ -724,6 +761,7 @@ dllg bool window_set_topmost(GAME_HWND hwnd, bool enable) {
     return true;
 }
 
+// todo: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-itaskbarlist-addtab
 dllg bool window_get_taskbar_button_visible(GAME_HWND hwnd) {
     return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) == 0;
 }
@@ -732,6 +770,33 @@ dllg bool window_set_taskbar_button_visible(GAME_HWND hwnd, bool show_button) {
     if (show_button) {
         exStyle &= ~WS_EX_TOOLWINDOW;
     } else exStyle |= WS_EX_TOOLWINDOW;
+    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+    return true;
+}
+
+// https://stackoverflow.com/a/50245502
+constexpr LONG MY_GWL_CLICKTHROUGH = (WS_EX_TRANSPARENT | WS_EX_LAYERED);
+dllg bool window_get_clickthrough(GAME_HWND hwnd) {
+    return (GetWindowLong(hwnd, GWL_EXSTYLE) & MY_GWL_CLICKTHROUGH) == MY_GWL_CLICKTHROUGH;
+}
+dllg bool window_set_clickthrough(GAME_HWND hwnd, bool enable_clickthrough) {
+    auto exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    if (enable_clickthrough) {
+        exStyle |= MY_GWL_CLICKTHROUGH;
+    } else exStyle &= ~MY_GWL_CLICKTHROUGH;
+    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+    return true;
+}
+
+//
+dllg bool window_get_noactivate(GAME_HWND hwnd) {
+    return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_NOACTIVATE) == WS_EX_NOACTIVATE;
+}
+dllg bool window_set_noactivate(GAME_HWND hwnd, bool disable_activation) {
+    auto exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    if (disable_activation) {
+        exStyle |= WS_EX_NOACTIVATE;
+    } else exStyle &= ~WS_EX_NOACTIVATE;
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
     return true;
 }

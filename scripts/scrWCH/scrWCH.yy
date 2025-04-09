@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scrWCH",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scrWCH",
+  "parent":{
+    "name":"window_command_hook",
+    "path":"folders/Extensions/window_command_hook.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
