@@ -28,7 +28,7 @@
   "physicsShapePoints":[],
   "physicsStartAwake":true,
   "properties":[
-    {"$GMObjectProperty":"v1","%Name":"colors","filters":[],"listItems":[],"multiselect":false,"name":"colors","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resource":null,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"[c_aqua, 0x442A20, c_aqua]","varType":4,},
+    {"$GMObjectProperty":"v1","%Name":"colors","filters":[],"listItems":[],"multiselect":false,"name":"colors","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"[c_aqua, 0x442A20, c_aqua]","varType":4,},
   ],
   "resourceType":"GMObject",
   "resourceVersion":"2.0",

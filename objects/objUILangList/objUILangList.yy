@@ -8,8 +8,8 @@
   "managed":true,
   "name":"objUILangList",
   "overriddenProperties":[
-    {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objUIListInput","path":"objects/objUIListInput/objUIListInput.yy",},"propertyId":{"name":"lists","path":"objects/objUIListInput/objUIListInput.yy",},"resource":null,"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"[\"zh-cn\", \"en-us\"]",},
-    {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objUIParentInput","path":"objects/objUIParentInput/objUIParentInput.yy",},"propertyId":{"name":"title","path":"objects/objUIParentInput/objUIParentInput.yy",},"resource":null,"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"Language",},
+    {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objUIListInput","path":"objects/objUIListInput/objUIListInput.yy",},"propertyId":{"name":"lists","path":"objects/objUIListInput/objUIListInput.yy",},"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"[\"zh-cn\", \"en-us\"]",},
+    {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objUIParentInput","path":"objects/objUIParentInput/objUIParentInput.yy",},"propertyId":{"name":"title","path":"objects/objUIParentInput/objUIParentInput.yy",},"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"Language",},
   ],
   "parent":{
     "name":"UI_OLD",
