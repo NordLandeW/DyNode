@@ -160,6 +160,7 @@ depth = 0;
     showStats = 0;
     showBar = false;
     fadeOtherNotes = false;
+    bgBlured = false;
     
     statCount = undefined;
     stat_reset();

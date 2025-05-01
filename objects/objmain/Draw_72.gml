@@ -20,12 +20,14 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 
 	// Draw bottom blured bg
     
-    var _surf = kawase_get_surface(kawaseArr);
-    surface_set_target(_surf);
-    	draw_surface(application_surface, 0, targetLineBelow - _nh);
-    surface_reset_target();
-    kawase_blur(kawaseArr);
-    draw_surface(_surf, 0, _nh - targetLineBelow);
+    if(bgBlured) {
+        var _surf = kawase_get_surface(kawaseArr);
+        surface_set_target(_surf);
+            draw_surface(application_surface, 0, targetLineBelow - _nh);
+        surface_reset_target();
+        kawase_blur(kawaseArr);
+        draw_surface(_surf, 0, _nh - targetLineBelow);
+    }
     
     // Dim background
 	    draw_set_color(c_black);
