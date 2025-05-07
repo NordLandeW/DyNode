@@ -304,7 +304,7 @@ DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
 std::string get_file_modification_time(char* file_path) {
     namespace fs = std::filesystem;
     std::error_code ec;
-    auto ftime = fs::last_write_time(fs::u8path(file_path), ec);
+    auto ftime = fs::last_write_time(fs::path((char8_t*)file_path), ec);
 
     if (ec) {
         std::cout << "Error reading file time: " << file_path << std::endl;
@@ -457,6 +457,7 @@ size_t compress_bound(size_t size) {
 }
 
 int verify_project(string projectStr) {
+    print_debug_message("Verifying project property...");
     try {
         json j = json::parse(projectStr);
         if (!j.contains("charts") || !j["charts"].contains("notes") ||
@@ -502,8 +503,8 @@ void __async_save_project(SaveProjectParams params) {
     string projectString = "";
     try {
         projectString = get_project_string(params.projectProp);
-        if (verify_project(projectString) != 0) {
-            print_debug_message("Invalid project property.");
+        if (projectString == "" || verify_project(projectString) != 0) {
+            print_debug_message("Invalid saving project property.");
             push_async_event(
                 {PROJECT_SAVING, -1,
                  "Invalid project format. projectString: " + projectString +
@@ -525,9 +526,15 @@ void __async_save_project(SaveProjectParams params) {
         size_t cSize = get_project_buffer(projectString, chartBuffer.get(),
                                           params.compressionLevel);
 
+        print_debug_message("filePath in hex:");
+        for (size_t i = 0; i < params.filePath.size(); i++) {
+            std::cout << std::hex << (int)params.filePath[i] << " ";
+        }
+        std::cout << std::endl;
+
         // Write to file using std::ofstream
         print_debug_message("Open file at:" + params.filePath);
-        finalPath = fs::u8path(params.filePath);
+        finalPath = fs::path(std::u8string((char8_t*)params.filePath.c_str()));
         tempPath = finalPath.parent_path() /
                    (finalPath.filename().string() + random_string(8) + ".tmp");
         std::ofstream file(tempPath, std::ios::binary);
@@ -578,10 +585,11 @@ void __async_save_project(SaveProjectParams params) {
 
 void save_project(const char* projectProp, const char* filePath,
                   double compressionLevel) {
-    std::thread t([=]() {
-        __async_save_project(
-            SaveProjectParams{projectProp, filePath, (int)compressionLevel});
-    });
+    SaveProjectParams params;
+    params.projectProp.assign(projectProp);
+    params.filePath.assign(filePath);
+    params.compressionLevel = (int)compressionLevel;
+    std::thread t([=]() { __async_save_project(params); });
     t.detach();
     return;
 }
@@ -596,7 +604,7 @@ DYCORE_API double DyCore_save_project(const char* projectProp,
         return -1;
     }
 
-    fs::path path = fs::u8path(filePath);
+    fs::path path = fs::path((char8_t*)filePath);
     fs::path parentDir = path.parent_path();
     if (!parentDir.empty() && !fs::exists(parentDir)) {
         throw_error_event("Parent directory does not exist: " +
@@ -616,6 +624,7 @@ string get_project_string(string projectProp) {
         js = json::parse(projectProp);
     } catch (json::exception& e) {
         print_debug_message("Parse failed:" + string(e.what()));
+        print_debug_message("Project property: " + projectProp);
         return "";
     }
 
