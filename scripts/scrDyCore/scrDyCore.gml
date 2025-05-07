@@ -5,8 +5,17 @@ function DyCoreManager() constructor {
     // DyCore Step function.
     static step = function() {
         // Manage async events.
-        if(DyCore_has_async_event())
-            do_async_events(json_parse(DyCore_get_async_event()));
+        if(DyCore_has_async_event()) {
+            var _async_event = DyCore_get_async_event();
+            if(_async_event == "") {
+                show_debug_message("!Warning: DyCore async event is empty.");
+                announcement_error("DyCore async events prased failed.");
+                return;
+            }
+            else {
+                do_async_events(json_parse(_async_event));
+            }
+        }
     }
 
     static do_async_events = function(event) {
