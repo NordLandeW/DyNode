@@ -161,6 +161,31 @@ std::wstring s2ws(const std::string& str) {
     return wstrTo;
 }
 
+std::string gb2312ToUtf8(const std::string& gbStr) {
+    if (gbStr.empty())
+        return "";
+
+    int wlen = MultiByteToWideChar(936, 0, gbStr.c_str(), (int)gbStr.size(),
+                                   nullptr, 0);
+    if (wlen == 0)
+        return "";
+
+    std::wstring wstr(wlen, 0);
+    MultiByteToWideChar(936, 0, gbStr.c_str(), (int)gbStr.size(), &wstr[0],
+                        wlen);
+
+    int utf8len = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), wlen, nullptr,
+                                      0, nullptr, nullptr);
+    if (utf8len == 0)
+        return "";
+
+    std::string utf8str(utf8len, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), wlen, &utf8str[0], utf8len,
+                        nullptr, nullptr);
+
+    return utf8str;
+}
+
 DYCORE_API double DyCore_update(char* workDir) {
     return executeCmdScript(s2ws(workDir));
 }
@@ -575,9 +600,10 @@ void __async_save_project(SaveProjectParams params) {
         if (fs::exists(tempPath))
             fs::remove(tempPath);
 
-        print_debug_message("Encounter errors. Details:" + string(e.what()));
+        print_debug_message("Encounter errors. Details:" +
+                            gb2312ToUtf8(e.what()));
         err = true;
-        errInfo = e.what();
+        errInfo = gb2312ToUtf8(e.what());
     }
 
     push_async_event({PROJECT_SAVING, err ? -1 : 0, errInfo});
@@ -666,8 +692,17 @@ DYCORE_API const char* DyCore_get_async_event() {
     if (asyncEventStack.size() == 0)
         return "";
     static string result = "";
-    json j = asyncEventStack.back();
-    asyncEventStack.pop_back();
-    result = nlohmann::to_string(j);
-    return result.c_str();
+    try {
+        json j = asyncEventStack.back();
+        asyncEventStack.pop_back();
+        result = nlohmann::to_string(j);
+        return result.c_str();
+    } catch (json::exception& e) {
+        print_debug_message("Async events stringify failed:" +
+                            string(e.what()));
+        return "";
+    } catch (std::exception& e) {
+        print_debug_message("Async events unknown error:" + string(e.what()));
+        return "";
+    }
 }
