@@ -16,7 +16,7 @@ sprite = sprHoldEdge2;
 
 subFading = false;		// Whether the hold is reaching its sub.
 
-_prop_init();
+_prop_init(true);
 
 // In-Function
 

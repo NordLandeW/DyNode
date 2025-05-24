@@ -120,7 +120,7 @@ depth = 0;
     chartFile = "";
     
     chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
-    /// @type {Array<Id.Instance.objNote>} Activated notes in a step.
+    /// @type {Array<Real>} Activated notes' arrayPos in a step.
     chartNotesArrayActivated = [];
     chartNotesArrayAt = 0;
     chartNotesCount = 0;

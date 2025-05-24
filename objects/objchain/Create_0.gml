@@ -18,4 +18,4 @@ lFromLeft = 7;
 rFromRight = 7;
 
 sprite = sprChain;
-_prop_init();
+_prop_init(true);

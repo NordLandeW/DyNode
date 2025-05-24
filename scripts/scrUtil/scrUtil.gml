@@ -514,6 +514,7 @@ function lerp_lim_a(from, to, amount, limit) {
 }
 
 function lerp_a(from, to, amount) {
+	if(from == to) return from;
 	var fix_parameter = 60 / 165;
 	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, delta_time / 1000000 * 165));
 }

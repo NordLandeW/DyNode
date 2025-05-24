@@ -106,7 +106,7 @@ function build_note(_id, _type, _time, _position, _width,
         _inst.position += _inst.width/2;
     
     with(_inst) {
-    	_prop_init();
+    	_prop_init(true);
     	if(noteType == 2) _prop_hold_update();
     	if(_selecting) state = stateSelected;
     }

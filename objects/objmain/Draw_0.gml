@@ -100,38 +100,34 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 // Draw Notes
 	
 	var _l = array_length(chartNotesArrayActivated);
+	var _insts = [[], [], []];
+	for(var i=0; i<_l; i++) {
+		/// @type {Id.Instance.objNote} 
+		var _inst = chartNotesArray[chartNotesArrayActivated[i]].inst;
+		array_push(_insts[_inst.noteType], _inst);
+	}
 	// Draw Holds
-	for(var i=0; i<_l; i++)
-		with(chartNotesArrayActivated[i])
-			if(noteType == 2) {
-				draw_event(false);		// Draw background
-			}
-	for(var i=0; i<_l; i++)
-		with(chartNotesArrayActivated[i])
-			if(noteType == 2) {
-				draw_event(true);		// Draw Edge
-			}
+	for(var i=0, _cl = array_length(_insts[2]); i<_cl; i++)
+		_insts[2][i].draw_event(false);	// Draw Hold
+	for(var i=0, _cl = array_length(_insts[2]); i<_cl; i++)
+		_insts[2][i].draw_event(true);	// Draw Edge
 	// Draw Notes
-	for(var i=0; i<_l; i++)
-		with(chartNotesArrayActivated[i])
-			if(noteType == 0) {
-				draw_event();
-			}
+	for(var i=0, _cl = array_length(_insts[0]); i<_cl; i++)
+		_insts[0][i].draw_event();	
 	// Draw Chains
-	for(var i=0; i<_l; i++)
-		with(chartNotesArrayActivated[i])
-			if(noteType == 1) {
-				draw_event();
-			}
+	for(var i=0, _cl = array_length(_insts[1]); i<_cl; i++)
+		_insts[1][i].draw_event();	
 	
 	// Draw Attaching Notes
-	with(objNote)
-		if(attaching) {
-			if(noteType < 2)
-				draw_event();
-			else if(noteType == 2) {
-				draw_event(false);
-				draw_event(true);
-			}
-		}
+	if(is_array(objEditor.editorNoteAttaching))
+		for(var i=0; i<array_length(objEditor.editorNoteAttaching); i++)
+			with(objEditor.editorNoteAttaching[i])
+				if(attaching) {
+					if(noteType < 2)
+						draw_event();
+					else if(noteType == 2) {
+						draw_event(false);
+						draw_event(true);
+					}
+				}
 	

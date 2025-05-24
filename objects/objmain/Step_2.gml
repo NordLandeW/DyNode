@@ -27,7 +27,7 @@
 	array_resize(chartNotesArrayActivated, 0);
 	with(objNote) {
 		if(noteType <= 2 && !attaching)
-			array_push(objMain.chartNotesArrayActivated, self);
+			array_push(objMain.chartNotesArrayActivated, arrayPos);
     }
     // Sort by array position
-    array_sort(chartNotesArrayActivated, function(_a, _b) { return _a.arrayPos - _b.arrayPos; });
+    array_sort(chartNotesArrayActivated, true);

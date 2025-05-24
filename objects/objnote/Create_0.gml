@@ -84,25 +84,27 @@ image_yscale = global.scaleYAdjust;
 
 // In-Functions
 
-    function _prop_init() {
-    	priority = -20000000;
-    	if(noteType == 1) priority = priority * 2;
-    	else if(noteType == 2) priority = priority / 2;
-    	if(side != 0) priority += 5000000;
-    	
-    	if(attaching) priority = -100000000;
-        originalWidth = sprite_get_width(sprite);
-        
-        // Properties Limitation
-        width = max(width, 0.01);
-        
-        pWidth = width * 300 / (side == 0 ? 1:2) - 30 + lFromLeft + rFromRight;
-        pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
-        image_xscale = pWidth / originalWidth;
-        image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
-        priority = priority - arrayPos*16;
-        if(noteType == 3 && instance_exists(finst))
-        	priority = finst.priority;
+    function _prop_init(forced = false) {
+        if(editor_get_editmode() != 5 || forced) {
+            priority = -20000000;
+            if(noteType == 1) priority = priority * 2;
+            else if(noteType == 2) priority = priority / 2;
+            if(side != 0) priority += 5000000;
+            
+            if(attaching) priority = -100000000;
+            originalWidth = sprite_get_width(sprite);
+            
+            // Properties Limitation
+            width = max(width, 0.01);
+            
+            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + lFromLeft + rFromRight;
+            pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
+            image_xscale = pWidth / originalWidth;
+            image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
+            priority = priority - arrayPos*16;
+            if(noteType == 3 && instance_exists(finst))
+                priority = finst.priority;
+        }
         
         noteprop_set_xy(position, time, side);
     }
@@ -369,7 +371,7 @@ image_yscale = global.scaleYAdjust;
         _prop_init();
     }
 
-    _prop_init();
+    _prop_init(true);
     
     // _outbound_check was moved to scrNote
 
