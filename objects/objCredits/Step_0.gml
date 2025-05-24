@@ -1,8 +1,8 @@
 
 if(keycheck(vk_space))
-    rollSpeedT = roll_speed * roll_speedup_factor;
+    rollSpeedT = oRollSpeed * rollSpeedUpFactor;
 else
-    rollSpeedT = roll_speed;
+    rollSpeedT = oRollSpeed;
 
 rollSpeed = lerp_a(rollSpeed, rollSpeedT, 0.3);
 nowY -= rollSpeed / room_speed;

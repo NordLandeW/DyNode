@@ -2,6 +2,9 @@
 if(!instance_exists(objUIInputManager))
     instance_create(0, 0, objUIInputManager);
 
+inputID = variable_instance_get(id, "inputID");
+title = variable_instance_get(id, "title");
+
 objUIInputManager.register_input(inputID, id);
 
 input = "";

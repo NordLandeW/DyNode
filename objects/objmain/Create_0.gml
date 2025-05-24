@@ -120,7 +120,8 @@ depth = 0;
     chartFile = "";
     
     chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
-    chartNotesArrayActivated = [];		// Activated notes in a step.
+    /// @type {Array<Id.Instance.objNote>} Activated notes in a step.
+    chartNotesArrayActivated = [];
     chartNotesArrayAt = 0;
     chartNotesCount = 0;
     chartNotesMap = array_create(3);
@@ -332,9 +333,9 @@ depth = 0;
 
 // FMODGMS Related
 
+    sampleRate = 0;
     channel = undefined;
     music = undefined;
-    sampleRate = 0;
     channelPaused = false;		// Only used for time correction
     musicLength = 0;
     usingMP3 = false;			// For Latency Workaround

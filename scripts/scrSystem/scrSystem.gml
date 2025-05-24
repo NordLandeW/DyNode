@@ -1179,6 +1179,7 @@ function theme_next() {
 	announcement_play(i18n_get("anno_switch_theme_to") + " [[" + global.themes[global.themeAt].title + "]", 1000);
 }
 
+/// @returns {Any} 
 function theme_get() {
 	return global.themes[global.themeAt];
 }

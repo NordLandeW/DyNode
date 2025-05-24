@@ -3,6 +3,8 @@
 // Inherit the parent event
 event_inherited();
 
+lists = variable_instance_get(id, "lists");
+
 for(var i=0; i<listCount; i++)
 	if(lists[i] == i18n_get_lang()) {
 		listPointer = i;

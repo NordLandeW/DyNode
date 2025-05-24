@@ -3,6 +3,9 @@
     Needed variables created:
     str, lastTime, uniqueID
 */
+str = variable_instance_get(id, "str");
+lastTime = variable_instance_get(id, "lastTime");
+uniqueID = variable_instance_get(id, "uniqueID");
 
 _generate_element = function () {
 	element = scribble(cjk_prefix() + str)

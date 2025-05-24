@@ -1,4 +1,7 @@
 
+content = variable_instance_get(id, "content");
+scale = variable_instance_get(id, "scale");
+
 fontColor = c_white;
 scriElement = scribble(cjk_prefix()+i18n_get(content))
     .starting_format("fDynamix16", fontColor)
