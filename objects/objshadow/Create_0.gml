@@ -22,3 +22,5 @@ function _prop_init() {
     nowScaleX = (nowWidth + extraWidth) / originalWidth;
     image_xscale = nowScaleX;
 }
+
+global.shadowCount ++;

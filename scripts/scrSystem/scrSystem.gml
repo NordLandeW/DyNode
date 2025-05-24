@@ -2,6 +2,8 @@
 #region Macros
 
 #macro MAX_STAT_TYPE 5
+#macro MAX_SHADOW_COUNT 300
+#macro MAX_PARTICLE_COUNT 500
 
 #endregion
 

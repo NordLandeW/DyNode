@@ -1,3 +1,4 @@
+
 function _outbound_check(_x, _y, _side) {
     if(_side == 0 && _y < -100)
         return true;

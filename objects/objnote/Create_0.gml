@@ -116,6 +116,9 @@ image_yscale = global.scaleYAdjust;
         if(!global.particleEffects)
             return;
         
+        if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
+            return;
+        
         // Emit Particles
         var _x, _y, _x1, _x2, _y1, _y2;
         if(side == 0) {
@@ -168,11 +171,15 @@ image_yscale = global.scaleYAdjust;
         if(objMain.hitSoundOn)
             audio_play_sound(sndHit, 0, 0);
         
+        
         // Create Shadow
         if(side > 0 && objMain.chartSideType[side-1] == "MIXER") {
             objMain.mixerShadow[side-1]._hit();
         }
         else {
+            if(global.shadowCount >= MAX_SHADOW_COUNT)
+                return;
+            
         	var _x, _y;
 	        if(side == 0) {
 	            _x = x;
@@ -207,7 +214,7 @@ image_yscale = global.scaleYAdjust;
         }
         
     }
-    
+
     function get_prop(_fromxml = false, _set_pointer = false) {
     	var _prop = {
         	time : _fromxml?bar:time,
@@ -261,18 +268,50 @@ image_yscale = global.scaleYAdjust;
         if(!is_struct(arrayPointer)) {
             return;
         }
-    	arrayPointer.time = time;
-    	arrayPointer.side = side;
-    	arrayPointer.width = width;
-    	arrayPointer.position = position;
-    	arrayPointer.lastTime = lastTime;
-    	arrayPointer.noteType = noteType;
-    	arrayPointer.inst = id;
-    	arrayPointer.sinst = sinst;
-    	arrayPointer.beginTime = beginTime;
-    	arrayPointer.lastAttachBar = lastAttachBar;
+        var differs = false;
+        if(arrayPointer.time != time) {
+            arrayPointer.time = time;
+            differs = true;
+        }
+        if(arrayPointer.side != side) {
+            arrayPointer.side = side;
+            differs = true;
+        }
+        if(arrayPointer.width != width) {
+            arrayPointer.width = width;
+            differs = true;
+        }
+        if(arrayPointer.position != position) {
+            arrayPointer.position = position;
+            differs = true;
+        }
+        if(arrayPointer.lastTime != lastTime) {
+            arrayPointer.lastTime = lastTime;
+            differs = true;
+        }
+        if(arrayPointer.noteType != noteType) {
+            arrayPointer.noteType = noteType;
+            differs = true;
+        }
+        if(arrayPointer.inst != id) {
+            arrayPointer.inst = id;
+            differs = true;
+        }
+        if(arrayPointer.sinst != sinst) {
+            arrayPointer.sinst = sinst;
+            differs = true;
+        }
+        if(arrayPointer.beginTime != beginTime) {
+            arrayPointer.beginTime = beginTime;
+            differs = true;
+        }
+        if(arrayPointer.lastAttachBar != lastAttachBar) {
+            arrayPointer.lastAttachBar = lastAttachBar;
+            differs = true;
+        }
 
-        DyCore_modify_note(json_stringify(arrayPointer));
+        if(differs)
+            DyCore_modify_note(json_stringify(arrayPointer));
     }
 
     function pull_prop() {

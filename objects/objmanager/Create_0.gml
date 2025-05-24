@@ -80,6 +80,8 @@ global.difficultyCount = string_length(global.difficultyString);
 global.noteTypeName = ["NORMAL", "CHAIN", "HOLD", "SUB"];
 global.__GUIManager = undefined;
 
+global.shadowCount = 0;
+
 // Generate Temp Sprite
 
 global.sprLazer = generate_lazer_sprite(2000);
