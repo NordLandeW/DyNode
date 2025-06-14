@@ -9,7 +9,7 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
         var _topBarW = round(_nw * musicProgress);
         draw_sprite_stretched_exxt(
         global.sprLazer, 0,
-        0, topBarH, _topBarW+1, -26, 0, themeColor, 1.0);
+        0, topBarH, _topBarW+1, -26, 0, themeColor, 0.5);
         draw_set_color(c_white); draw_set_alpha(1.0);
         draw_rectangle(0, 0, _topBarW, topBarH, false);
     }

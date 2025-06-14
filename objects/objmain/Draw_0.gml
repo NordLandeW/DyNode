@@ -46,40 +46,40 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 // Draw targetline
 
     var _sprlazer = global.sprLazer;
-	var _lazerHeight = 25;
+	var _lazerHeight = 25, _lazerBaseAlpha = 0.5;
     // Light Below
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         0, _nh - targetLineBelow,
         _nw, targetLineBelowH/2 + _lazerHeight,
-        0, themeColor, lazerAlpha[0]);
+        0, themeColor, lazerAlpha[0] * _lazerBaseAlpha);
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         0, _nh - targetLineBelow + 1,
         _nw, -(targetLineBelowH/2 + _lazerHeight),
-        0, themeColor, lazerAlpha[0]);
+        0, themeColor, lazerAlpha[0] * _lazerBaseAlpha);
     // Light Left
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         targetLineBeside, _nh - targetLineBelow,
         _nh - targetLineBelow, targetLineBesideW/2 + _lazerHeight,
-        90, themeColor, lazerAlpha[1]);
+        90, themeColor, lazerAlpha[1] * _lazerBaseAlpha);
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         targetLineBeside + 1, _nh - targetLineBelow,
         _nh - targetLineBelow, -(targetLineBesideW/2 + _lazerHeight),
-        90, themeColor, lazerAlpha[1]);
+        90, themeColor, lazerAlpha[1] * _lazerBaseAlpha);
     // Light Right
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         _nw - targetLineBeside, _nh - targetLineBelow,
         _nh - targetLineBelow, targetLineBesideW/2 + _lazerHeight,
-        90, themeColor, lazerAlpha[2]);
+        90, themeColor, lazerAlpha[2] * _lazerBaseAlpha);
     draw_sprite_stretched_exxt(
         _sprlazer, 0,
         _nw - targetLineBeside + 1, _nh - targetLineBelow,
         _nh - targetLineBelow, -(targetLineBesideW/2 + _lazerHeight),
-        90, themeColor, lazerAlpha[2]);
+        90, themeColor, lazerAlpha[2] * _lazerBaseAlpha);
     
     
     // Line Left

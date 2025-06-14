@@ -16,7 +16,7 @@ void main() {
   // Gaussian function: f(x) = maxHeight * e^(-(x-mean)^2 / (2*stdDev^2))
   float bri =
       maxHeight * exp(-pow(uv.y - mean, 2.0) / (2.0 * pow(stdDev, 2.0)));
-  base_col = vec4(1., 1., 1., bri * 0.5);
+  base_col = vec4(1., 1., 1., bri);
   // base_col *= v_vColour;
 
   gl_FragColor = base_col;
