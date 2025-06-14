@@ -62,7 +62,7 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     draw_sprite_stretched_exxt(
         global.sprLazer, 0,
         0, _nh - targetLineBelow, _nw, global.resolutionH*0.75,
-        0, themeColor, bgFaintAlpha * animCurvFaintEval);
+        0, themeColor, bgFaintAlpha * animCurvFaintEval * 0.65);
 
 // Draw Pause Shadow
 
