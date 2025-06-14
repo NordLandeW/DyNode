@@ -25,16 +25,21 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     var partSurf = surface_create(_nw, _nh);
     gpu_push_state();
     // gpu_set_colorwriteenable(1, 1, 1, 0);
-    // gpu_set_blendmode_ext(bm_one, bm_zero);
     surface_set_target(partSurf);
-    draw_clear_alpha(c_black, 0);
-    part_system_drawit(partSysNote);
+    draw_clear_alpha(c_black, 1);
+        // gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+        gpu_set_blendmode(bm_max);      // maybe not valid but looks ok :(
+        shader_set(shd_prealpha);
+        part_system_drawit(partSysNote);
+        shader_reset();
     surface_reset_target();
     gpu_pop_state();
     
     gpu_push_state();
     gpu_set_blendmode(bm_add);
+    shader_set(shd_unprealpha);
     draw_surface(partSurf, 0, 0);
+    shader_reset();
     surface_free_f(partSurf);
     gpu_pop_state();
 

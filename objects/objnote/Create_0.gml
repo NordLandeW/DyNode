@@ -142,7 +142,8 @@ image_yscale = global.scaleYAdjust;
         }
         
         // Emit particles on mixer's position
-        if(side > 0 && objMain.chartSideType[side-1] == "MIXER") {
+        var _mixer = on_mixer_side();
+        if(_mixer) {
             _y = objMain.mixerX[side-1];
         }
         
@@ -150,9 +151,9 @@ image_yscale = global.scaleYAdjust;
         with(objMain) {
             _partemit_init(partEmit, _x1, _x2, _y1, _y2);
             if(_type == 0) {
-                _parttype_noted_init(partTypeNoteDL, 1, _ang);
-                _parttype_noted_init(partTypeNoteDR, 1, _ang+180);
-                
+                _parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
+                _parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
+
                 // part_particles_create(partSysNote, _x, _y, partTypeNoteDL, _num);
                 // part_particles_create(partSysNote, _x, _y, partTypeNoteDR, _num);
                 part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, _num);
@@ -373,6 +374,12 @@ image_yscale = global.scaleYAdjust;
         _prop_init();
     }
 
+    function on_mixer_side() {
+        if(side > 0)
+            return objMain.chartSideType[side - 1] == "MIXER";
+        return false;
+    }
+
     _prop_init(true);
     
     // _outbound_check was moved to scrNote
@@ -443,7 +450,7 @@ image_yscale = global.scaleYAdjust;
             state();
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
-            _emit_particle(ceil(partNumberLast * image_xscale * global.fpsAdjust), 1, true);
+            // _emit_particle(ceil(partNumberLast * image_xscale * global.fpsAdjust), 1, true);
         }
         
         if(time > objMain.nowTime) {
