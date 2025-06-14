@@ -28,7 +28,8 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     surface_set_target(partSurf);
     draw_clear_alpha(c_black, 1);
         // gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
-        gpu_set_blendmode(bm_max);      // maybe not valid but looks ok :(
+        // gpu_set_blendmode(bm_max);      // maybe not valid but looks ok :(
+        gpu_set_blendmode(bm_add);
         shader_set(shd_prealpha);
         part_system_drawit(partSysNote);
         shader_reset();

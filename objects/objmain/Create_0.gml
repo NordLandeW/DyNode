@@ -248,7 +248,7 @@ depth = 0;
             else {
                 part_type_speed(_pt, _scl * 20 * global.fpsAdjust, _scl * 20 * global.fpsAdjust, 0, 0);
                 part_type_life(_pt, room_speed*0.2, room_speed*0.4);
-                part_type_size(_pt, 1.0, 1.2, -0.04 * global.fpsAdjust, -0.04 * global.fpsAdjust);
+                part_type_size(_pt, 1.0, 1.2, -0.03 * global.fpsAdjust, -0.04 * global.fpsAdjust);
             }
             part_type_color3(_pt, c_white, _theme.partColA, _theme.partColB);
             // part_type_color2(_pt, 0x652dba, themeColor);
