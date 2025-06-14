@@ -267,13 +267,13 @@ function start_update() {
 	if(_update_status != UPDATE_STATUS.IDLE)
 		return;
 	_update_status = UPDATE_STATUS.CHECKING_I;
-	_update_download_event_handle = http_get_file(SOURCE_IORI + _update_filename, UPDATE_TARGET_FILE);
+	_update_download_event_handle = http_get_file(_update_github_url, UPDATE_TARGET_FILE);
 	announcement_play("autoupdate_process_2");
 }
 
 function fallback_update() {
 	_update_status = UPDATE_STATUS.CHECKING_II;
-	_update_download_event_handle = http_get_file(_update_github_url, UPDATE_TARGET_FILE);
+	_update_download_event_handle = http_get_file(SOURCE_IORI + _update_filename, UPDATE_TARGET_FILE);
 	announcement_play("autoupdate_process_3");
 }
 
