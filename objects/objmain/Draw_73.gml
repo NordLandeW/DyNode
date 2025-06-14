@@ -15,9 +15,28 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     }
     draw_set_alpha(1.0);
 
+// Draw Shadows
+
+    with(objShadow)
+        draw_self();
+
 // Draw Note Particles
 
+    var partSurf = surface_create(_nw, _nh);
+    gpu_push_state();
+    // gpu_set_colorwriteenable(1, 1, 1, 0);
+    // gpu_set_blendmode_ext(bm_one, bm_zero);
+    surface_set_target(partSurf);
+    draw_clear_alpha(c_black, 0);
     part_system_drawit(partSysNote);
+    surface_reset_target();
+    gpu_pop_state();
+    
+    gpu_push_state();
+    gpu_set_blendmode(bm_add);
+    draw_surface(partSurf, 0, 0);
+    surface_free_f(partSurf);
+    gpu_pop_state();
 
 // Draw Mixer & Shadow's Position
 

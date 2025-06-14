@@ -153,6 +153,8 @@ image_yscale = global.scaleYAdjust;
                 _parttype_noted_init(partTypeNoteDL, 1, _ang);
                 _parttype_noted_init(partTypeNoteDR, 1, _ang+180);
                 
+                // part_particles_create(partSysNote, _x, _y, partTypeNoteDL, _num);
+                // part_particles_create(partSysNote, _x, _y, partTypeNoteDR, _num);
                 part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, _num);
                 part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, _num);
             }
@@ -202,7 +204,7 @@ image_yscale = global.scaleYAdjust;
 	        _inst._prop_init();
         }
         
-        _emit_particle(ceil(partNumberLast * image_xscale), 0);
+        _emit_particle(partNumber, 0);
     }
     
     function _mouse_inbound_check(_mode = 0) {

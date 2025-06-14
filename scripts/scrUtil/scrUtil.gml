@@ -1,14 +1,14 @@
 function generate_lazer_sprite(_height) {
 	var _spr = -1;
 	var _surf = surface_create(1, _height);
-	
-	draw_set_color(c_white);
-	draw_set_alpha(1.0);
+
+	gpu_set_blendmode_ext(bm_one, bm_zero);
 	shader_set(shd_lazer);
 		surface_set_target(_surf);
 			draw_surface(_surf, 0, 0);
 		surface_reset_target();
 	shader_reset();
+	gpu_set_blendmode(bm_normal);
 	
 	_spr = sprite_create_from_surface(_surf, 0, 0, 1, _height, 0, 0, 0, _height);
 	

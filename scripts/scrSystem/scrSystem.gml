@@ -1136,22 +1136,22 @@ function theme_init() {
 		title: "[c_aqua]Dynamix[/c]",
 		color: c_aqua,
 		partSpr: sprParticleW,		// Particle Sprite
-		partColA: 0x652dba, 		// Note's Particle Color
-		partColB: 0x652dba,
+		partColA: 0x9A01FE, 		// Note's Particle Color
+		partColB: 0x9A01FE,
 		partColHA: 0x16925a,		// Hold's Particle Color
 		partColHB: 0x16925a,
-		partBlend: true
+		partBlend: false
 	});
 	
 	array_push(global.themes, {
 		title: "[c_sakura]Sakura[/c]",
 		color: 0xc5b7ff,
 		partSpr: sprParticleW,		// Particle Sprite
-		partColA: 0x652dba, 		// Note's Particle Color
-		partColB: 0x652dba,
+		partColA: 0xc5b7ff, 		// Note's Particle Color
+		partColB: 0xc5b7ff,
 		partColHA: 0x16925a,		// Hold's Particle Color
 		partColHB: 0x16925a,
-		partBlend: true
+		partBlend: false
 	});
 	
 	array_push(global.themes, {

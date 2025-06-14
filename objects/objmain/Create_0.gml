@@ -238,16 +238,15 @@ depth = 0;
             if(_theme.partBlend)
             	part_type_alpha3(_pt, partAlphaMul, 0.6 * partAlphaMul, 0);
             else
-            	part_type_alpha3(_pt, 1, 0.6, 0);
+            	part_type_alpha3(_pt, 1, 1, 0);
             
-            part_type_speed(_pt, _scl * 10 * global.fpsAdjust
-                            , _scl * 30 * global.fpsAdjust,
-                            _scl * -1.375 * global.fpsAdjust * global.fpsAdjust, 0);
-            part_type_color3(_pt, _theme.partColA, _theme.partColB, themeColor);
-            //part_type_color2(_pt, 0x652dba, themeColor);
-            part_type_size(_pt, 0.5, 0.8, -0.01 * global.fpsAdjust, 0);
+            part_type_speed(_pt, _scl * 20 * global.fpsAdjust, _scl * 20 * global.fpsAdjust, 0, 0);
+            part_type_color3(_pt, _theme.partColA, _theme.partColB, _theme.partColB);
+            // part_type_color2(_pt, 0x652dba, themeColor);
+            // part_type_color2(_pt, _theme.partColA, _theme.partColB);
+            part_type_size(_pt, 0.8, 1.2, -0.04 * global.fpsAdjust, 0);
             part_type_scale(_pt, _scl * 2, _scl * 2);
-            part_type_orientation(_pt, 0, 360, 0.5 * global.fpsAdjust, 0, false);
+            part_type_orientation(_pt, 0, 360, 2 * global.fpsAdjust, 0, false);
             part_type_life(_pt, room_speed*0.2, room_speed*0.4);
             part_type_blend(_pt, _theme.partBlend);
             part_type_direction(_pt, _ang, _ang, 0, 0);
