@@ -6,7 +6,7 @@
   "name":"SnapBufferReadCSV",
   "parent":{
     "name":"CSV",
-    "path":"folders/SNAP/CSV.yy",
+    "path":"folders/Extensions/SNAP/CSV.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

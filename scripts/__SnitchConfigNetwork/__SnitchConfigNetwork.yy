@@ -6,7 +6,7 @@
   "name":"__SnitchConfigNetwork",
   "parent":{
     "name":"Configuration - Please edit these scripts!",
-    "path":"folders/Snitch/Configuration - Please edit these scripts!.yy",
+    "path":"folders/Extensions/Snitch/Configuration - Please edit these scripts!.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

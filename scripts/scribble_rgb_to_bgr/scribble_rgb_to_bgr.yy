@@ -6,7 +6,7 @@
   "name":"scribble_rgb_to_bgr",
   "parent":{
     "name":"Colours",
-    "path":"folders/Scribble/Colours.yy",
+    "path":"folders/Extensions/Scribble/Colours.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

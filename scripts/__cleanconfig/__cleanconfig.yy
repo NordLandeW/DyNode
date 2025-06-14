@@ -6,7 +6,7 @@
   "name":"__CleanConfig",
   "parent":{
     "name":"Clean Shapes",
-    "path":"folders/Clean Shapes.yy",
+    "path":"folders/Extensions/Clean Shapes.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

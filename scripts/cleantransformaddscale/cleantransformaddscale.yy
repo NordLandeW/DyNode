@@ -6,7 +6,7 @@
   "name":"CleanTransformAddScale",
   "parent":{
     "name":"Transform",
-    "path":"folders/Clean Shapes/Transform.yy",
+    "path":"folders/Extensions/Clean Shapes/Transform.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

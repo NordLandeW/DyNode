@@ -6,7 +6,7 @@
   "name":"kawase_get_height",
   "parent":{
     "name":"Kawase",
-    "path":"folders/Kawase.yy",
+    "path":"folders/Extensions/Kawase.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

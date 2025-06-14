@@ -6,7 +6,7 @@
   "name":"CleanBatchEndDraw",
   "parent":{
     "name":"Batches",
-    "path":"folders/Clean Shapes/Batches.yy",
+    "path":"folders/Extensions/Clean Shapes/Batches.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

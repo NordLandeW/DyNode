@@ -6,7 +6,7 @@
   "name":"SnitchNetworkingAsyncEvent",
   "parent":{
     "name":"Snitch",
-    "path":"folders/Snitch.yy",
+    "path":"folders/Extensions/Snitch.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

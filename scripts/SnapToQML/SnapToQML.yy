@@ -6,7 +6,7 @@
   "name":"SnapToQML",
   "parent":{
     "name":"QML",
-    "path":"folders/SNAP/QML.yy",
+    "path":"folders/Extensions/SNAP/QML.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

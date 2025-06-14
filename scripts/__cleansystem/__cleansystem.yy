@@ -6,7 +6,7 @@
   "name":"__CleanSystem",
   "parent":{
     "name":"(System)",
-    "path":"folders/Clean Shapes/(System).yy",
+    "path":"folders/Extensions/Clean Shapes/(System).yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

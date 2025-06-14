@@ -6,7 +6,7 @@
   "name":"__kawase_check_surface",
   "parent":{
     "name":"(System)",
-    "path":"folders/Kawase/(System).yy",
+    "path":"folders/Extensions/Kawase/(System).yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

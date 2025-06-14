@@ -6,7 +6,7 @@
   "name":"GoogClientIDForce",
   "parent":{
     "name":"Google Analytics",
-    "path":"folders/Google Analytics.yy",
+    "path":"folders/Extensions/Google Analytics.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

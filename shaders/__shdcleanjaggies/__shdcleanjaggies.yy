@@ -4,7 +4,7 @@
   "name":"__shdCleanJaggies",
   "parent":{
     "name":"(System)",
-    "path":"folders/Clean Shapes/(System).yy",
+    "path":"folders/Extensions/Clean Shapes/(System).yy",
   },
   "resourceType":"GMShader",
   "resourceVersion":"2.0",

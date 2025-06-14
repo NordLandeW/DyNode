@@ -6,7 +6,7 @@
   "name":"scribble_font_add_from_sprite",
   "parent":{
     "name":"Deprecated",
-    "path":"folders/Scribble/(System - don't call these functions)/Deprecated.yy",
+    "path":"folders/Extensions/Scribble/(System - don't call these functions)/Deprecated.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

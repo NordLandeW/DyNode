@@ -4,7 +4,7 @@
   "name":"shd_kawase_down",
   "parent":{
     "name":"(System)",
-    "path":"folders/Kawase/(System).yy",
+    "path":"folders/Extensions/Kawase/(System).yy",
   },
   "resourceType":"GMShader",
   "resourceVersion":"2.0",

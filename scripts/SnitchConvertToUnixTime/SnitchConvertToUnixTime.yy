@@ -6,7 +6,7 @@
   "name":"SnitchConvertToUnixTime",
   "parent":{
     "name":"Utility",
-    "path":"folders/Snitch/Utility.yy",
+    "path":"folders/Extensions/Snitch/Utility.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

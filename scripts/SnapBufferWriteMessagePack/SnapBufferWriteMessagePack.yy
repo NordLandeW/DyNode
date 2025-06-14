@@ -6,7 +6,7 @@
   "name":"SnapBufferWriteMessagePack",
   "parent":{
     "name":"MessagePack",
-    "path":"folders/SNAP/MessagePack.yy",
+    "path":"folders/Extensions/SNAP/MessagePack.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"SnapToLooseJSON",
   "parent":{
     "name":"Loose JSON",
-    "path":"folders/SNAP/Loose JSON.yy",
+    "path":"folders/Extensions/SNAP/Loose JSON.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

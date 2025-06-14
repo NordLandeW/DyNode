@@ -6,7 +6,7 @@
   "name":"SnitchCrashDumpCollect",
   "parent":{
     "name":"Advanced",
-    "path":"folders/Snitch/Advanced.yy",
+    "path":"folders/Extensions/Snitch/Advanced.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

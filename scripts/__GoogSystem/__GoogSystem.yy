@@ -6,7 +6,7 @@
   "name":"__GoogSystem",
   "parent":{
     "name":"(System)",
-    "path":"folders/Google Analytics/(System).yy",
+    "path":"folders/Extensions/Google Analytics/(System).yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

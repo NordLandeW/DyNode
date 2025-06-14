@@ -6,7 +6,7 @@
   "name":"SnapToGML",
   "parent":{
     "name":"GML",
-    "path":"folders/SNAP/GML.yy",
+    "path":"folders/Extensions/SNAP/GML.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

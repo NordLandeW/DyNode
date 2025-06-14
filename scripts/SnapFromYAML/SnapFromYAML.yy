@@ -6,7 +6,7 @@
   "name":"SnapFromYAML",
   "parent":{
     "name":"YAML",
-    "path":"folders/SNAP/YAML.yy",
+    "path":"folders/Extensions/SNAP/YAML.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -6,7 +6,7 @@
   "name":"__scribble_class_element",
   "parent":{
     "name":"Classes",
-    "path":"folders/Scribble/(System - don't call these functions)/Classes.yy",
+    "path":"folders/Extensions/Scribble/(System - don't call these functions)/Classes.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

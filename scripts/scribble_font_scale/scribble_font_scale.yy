@@ -6,7 +6,7 @@
   "name":"scribble_font_scale",
   "parent":{
     "name":"Fonts",
-    "path":"folders/Scribble/Fonts.yy",
+    "path":"folders/Extensions/Scribble/Fonts.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

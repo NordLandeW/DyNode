@@ -6,7 +6,7 @@
   "name":"SnapFromINIFile",
   "parent":{
     "name":"INI",
-    "path":"folders/SNAP/INI.yy",
+    "path":"folders/Extensions/SNAP/INI.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
