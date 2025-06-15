@@ -54,7 +54,7 @@
     // Wheel width adjust
     var _delta_width = wheelcheck_up_ctrl() - wheelcheck_down_ctrl();
     if(_delta_width != 0) {
-        with(objNote) if(state == stateSelected) {
+        with(objNote) if(stateType == NOTE_STATES.SELECTED) {
             if(objEditor.editorWidthAdjustTime > objEditor.editorWidthAdjustTimeThreshold)
                 origProp = get_prop();
             width += _delta_width * 0.05;
@@ -65,7 +65,7 @@
     if(editorWidthAdjustTime < editorWidthAdjustTimeThreshold) {
         editorWidthAdjustTime += delta_time / 1000;
         if(editorWidthAdjustTime >= editorWidthAdjustTimeThreshold) {
-            with(objNote) if(state == stateSelected) {
+            with(objNote) if(stateType == NOTE_STATES.SELECTED) {
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
             }
             operation_merge_last_request(1, OPERATION_TYPE.SETWIDTH);

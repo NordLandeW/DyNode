@@ -1,31 +1,36 @@
+
+var _editMode = editor_get_editmode();
+
 _prop_init();
 
-if(state == undefined)
-	state = stateOut;
-
-if(state == stateOut && image_alpha<EPS) {
+if(stateType == NOTE_STATES.OUT && image_alpha<EPS) {
 	drawVisible = false;
 }
 else
     drawVisible = true;
 
-selectInbound = editor_select_is_area() && editor_select_inbound(x, y, side, noteType, side);
-selectTolerance = selectInbound || state == stateSelected;
+if(_editMode < 5) {
+    selectInbound = editor_select_is_area() && editor_select_inbound(x, y, side, noteType, side);
+    selectTolerance = selectInbound || stateType == NOTE_STATES.SELECTED;
+}
+else {
+    selectInbound = false;
+    selectTolerance = false;
+}
 
 state();
 
-if(editor_get_editmode() < 5)
+if(_editMode < 5)
     update_prop();
 
 selectUnlock = false;
-var _editMode = editor_get_editmode();
 
 if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
     if(_editMode < 5) {
         var _factor = 1;
         if(objMain.fadeOtherNotes && !editor_editside_allowed(side))
             _factor = 0.5;
-        if(state == stateAttach || state == stateSelected) {
+        if(stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.SELECTED) {
             if(image_alpha > 0.99)
                 image_alpha = animTargetA;      // Prevent weird fade in when attaching notes are reset.
             if(infoAlpha < 0.01)
@@ -59,20 +64,20 @@ if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
 }
 
 // If no longer visible then deactivate self
-if(!drawVisible && nodeAlpha<EPS && infoAlpha < EPS && !instance_exists(finst)) {
+if(!drawVisible && nodeAlpha < EPS && infoAlpha < EPS && !instance_exists(finst)) {
 	note_deactivate(id);
 	return;
 }
 
 // Update Highlight Line's Position
 if(_editMode < 5 && objEditor.editorHighlightLine && instance_exists(id)) {
-	if(state == stateSelected && isDragging || state == stateAttachSub || state == stateDropSub
-		|| ((state == stateAttach || state == stateDrop) && id == editor_get_note_attaching_center())) {
+	if(stateType == NOTE_STATES.SELECTED && isDragging || stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB
+		|| ((stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.DROP) && id == editor_get_note_attaching_center())) {
 		objEditor.editorHighlightTime = time;
         objEditor.editorHighlightPosition = position;
         objEditor.editorHighlightSide = side;
         objEditor.editorHighlightWidth = width;
-        if(state == stateAttachSub || state == stateDropSub) {
+        if(stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB) {
             objEditor.editorHighlightTime = sinst.time;
         }
 	}
@@ -80,7 +85,7 @@ if(_editMode < 5 && objEditor.editorHighlightLine && instance_exists(id)) {
 
 // Add selection blend
 
-if(state == stateSelected)
+if(stateType == NOTE_STATES.SELECTED)
     image_blend = selBlendColor;
 else
     image_blend = c_white;

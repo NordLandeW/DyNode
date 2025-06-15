@@ -1,7 +1,5 @@
 /// @description Draw editor & debug things
 
-if(_outroom_check(x, y)) return;
-
 if((drawVisible || nodeAlpha > EPS || infoAlpha > EPS) && editor_get_editmode() <= 4) {
     var _inv = noteType == 3 ? -1:1;
 	if(nodeAlpha>EPS) {

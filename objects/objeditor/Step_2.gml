@@ -5,7 +5,7 @@ if(editorMode == 4) {
     var _selectable = instance_exists(editorSelectSingleTarget);
     if(_selectable) {
         with(editorSelectSingleTarget)
-            _selectable = _selectable && state != stateSelected;
+            _selectable = _selectable && stateType != NOTE_STATES.SELECTED;
     }
 
     // If the single note being unselected unselectable1
@@ -13,7 +13,7 @@ if(editorMode == 4) {
                         && ctrl_ishold() && !_selectable && !mouse_isclick_double(0);
     if(_unselectable) {
         with(editorSelectedSingleInbound)
-            _unselectable = _unselectable && state == stateSelected && _mouse_inbound_check();
+            _unselectable = _unselectable && stateType == NOTE_STATES.SELECTED && _mouse_inbound_check();
     }
 
     // Detect if the mouse is dragging to enable selecting area
@@ -41,7 +41,7 @@ if(editorMode == 4) {
         // For mousewheel width adjust undo
         if(editorWidthAdjustTime < editorWidthAdjustTimeThreshold) {
             editorWidthAdjustTime = editorWidthAdjustTimeThreshold + 1;
-            with(objNote) if(state == stateSelected) {
+            with(objNote) if(stateType == NOTE_STATES.SELECTED) {
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
             }
         }
@@ -53,14 +53,14 @@ if(editorMode == 4) {
     // Select a note
     if(_selectable)
         with(editorSelectSingleTarget) {
-            state = stateSelected;
+            set_state(NOTE_STATES.SELECTED);
             state();
         }
     
     // Unselect a note
     if(_unselectable)
         with(editorSelectedSingleInbound) {
-            state = stateNormal;
+            set_state(NOTE_STATES.NORMAL);
             mouse_clear_click();
             state();
         }
@@ -72,9 +72,9 @@ if(editorMode == 4) {
             
             with(objNote) {
                 if(editor_editside_allowed(side) && 
-                    (state == stateNormal || state == stateSelected) && 
+                    (stateType == NOTE_STATES.NORMAL || stateType == NOTE_STATES.SELECTED) && 
                     editor_select_inbound(x, y, side, noteType)) {
-                        state = (state == stateSelected ? stateNormal : stateSelected);
+                        set_state(stateType == NOTE_STATES.SELECTED ? NOTE_STATES.NORMAL : NOTE_STATES.SELECTED);
                         state();
                     }
             }

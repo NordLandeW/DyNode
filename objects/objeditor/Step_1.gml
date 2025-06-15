@@ -11,33 +11,36 @@ editorSelectInbound = false;
 
 editorSelectCount = 0;
 var _note_found = false;
-with(objNote) {
-    var _hl = false;
-    if(state == stateSelected) {
-        objEditor.editorSelectCount ++;
-        objEditor.editorSelectInbound |= _mouse_inbound_check() || _mouse_inbound_check(1);
-        objEditor.editorSelectOccupied = 1;
-        objEditor.editorSelectDragOccupied |= isDragging;
-        if(isDragging) _hl = true;
-    }
-    else if((state == stateAttach || state == stateDrop) && id == editor_get_note_attaching_center()) {
-        _hl = true;
-    }
-    else if(state == stateAttachSub || state == stateDropSub) {
-        _hl = true;
-    }
-    
-    // Update Highlight Lines
-    if(_hl && objEditor.editorHighlightLineEnabled) {
-        _note_found = true;
-        objEditor.editorHighlightLine = true;
-        objEditor.editorHighlightLineFix = 1;
-        objEditor.editorHighlightTime = time;
-        objEditor.editorHighlightPosition = position;
-        objEditor.editorHighlightSide = side;
-        objEditor.editorHighlightWidth = width;
-        if(state == stateAttachSub || state == stateDropSub) {
-            objEditor.editorHighlightTime = sinst.time;
+
+if(editorMode < 5) {
+    with(objNote) {
+        var _hl = false;
+        if(stateType == NOTE_STATES.SELECTED) {
+            objEditor.editorSelectCount ++;
+            objEditor.editorSelectInbound |= _mouse_inbound_check() || _mouse_inbound_check(1);
+            objEditor.editorSelectOccupied = 1;
+            objEditor.editorSelectDragOccupied |= isDragging;
+            if(isDragging) _hl = true;
+        }
+        else if((stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.DROP) && id == editor_get_note_attaching_center()) {
+            _hl = true;
+        }
+        else if(stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB) {
+            _hl = true;
+        }
+        
+        // Update Highlight Lines
+        if(_hl && objEditor.editorHighlightLineEnabled) {
+            _note_found = true;
+            objEditor.editorHighlightLine = true;
+            objEditor.editorHighlightLineFix = 1;
+            objEditor.editorHighlightTime = time;
+            objEditor.editorHighlightPosition = position;
+            objEditor.editorHighlightSide = side;
+            objEditor.editorHighlightWidth = width;
+            if(stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB) {
+                objEditor.editorHighlightTime = sinst.time;
+            }
         }
     }
 }
@@ -120,7 +123,7 @@ editorSelectMultiple = editorSelectCount > 1;
     if(editor_select_count() > 0) {
     	if(keycheck_down(ord("M"))) {
 	    	with(objNote) {
-	    		if(state == stateSelected) {
+	    		if(stateType == NOTE_STATES.SELECTED) {
 	    			origProp = get_prop();
 	    			position = 5 - position;
 	    			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
@@ -131,7 +134,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    }
 	    if(keycheck_down_ctrl(ord("M"))) {
 	    	with(objNote) {
-	    		if(state == stateSelected) {
+	    		if(stateType == NOTE_STATES.SELECTED) {
 	    			var prop = get_prop();
 	    			prop.position = 5 - prop.position;
 	    			note_select_reset(id);
@@ -144,7 +147,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    if(keycheck_down(ord("R"))) {
 	    	var _found = 0;
 	    	with(objNote) {
-	    		if(state == stateSelected)
+	    		if(stateType == NOTE_STATES.SELECTED)
 		    		if(side > 0) {
 		    			origProp = get_prop();
 			    		side = 1 + (!(side - 1));
@@ -165,7 +168,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    if(keycheck_down_ctrl(ord("R"))) {
 	    	var _found = 0;
 	    	with(objNote) {
-	    		if(state == stateSelected)
+	    		if(stateType == NOTE_STATES.SELECTED)
 		    		if(side > 0) {
 		    			var prop = get_prop();
 			    		prop.side = 1 + (!(prop.side - 1));
@@ -186,7 +189,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    }
 	    if(keycheck_down_ctrl(ord("V"))) {
 	    	with(objNote)
-	    		if(state == stateSelected) {
+	    		if(stateType == NOTE_STATES.SELECTED) {
 	    			origProp = get_prop();
 			    	width = editor_get_default_width();
 			    	operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
@@ -197,7 +200,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    }
 	    if(keycheck_down_ctrl(ord("1"))) {
 	    	with(objNote)
-	    		if(state == stateSelected)
+	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
 			    		recordRequest = true;
 			    		instance_destroy();
@@ -210,7 +213,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    }
 	    if(keycheck_down_ctrl(ord("2"))) {
 	    	with(objNote)
-	    		if(state == stateSelected)
+	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
 			    		recordRequest = true;
 			    		instance_destroy();
@@ -408,7 +411,7 @@ editorSelectMultiple = editorSelectCount > 1;
         var _newCopyStack = [];
         _newCopyStack = [];
         with(objNote) {
-            if(state == stateSelected && noteType <= 2) {
+            if(stateType == NOTE_STATES.SELECTED && noteType <= 2) {
                 array_push(_newCopyStack, get_prop());
                 _cnt ++;
                 if(objEditor.cutRequest || objEditor.attachRequest) {

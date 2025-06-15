@@ -45,7 +45,7 @@ if(editor_get_editmode() <= 4){
         }
         else animTargetNodeA = 0;
     }
-    if(state == stateSelected) {
+    if(stateType == NOTE_STATES.SELECTED) {
         var _selected_single_inbound = objEditor.editorSelectedSingleInbound == id;
         var _unselection_hint = _selected_single_inbound && objEditor.editorSelectSingleTargetInbound < 0 && ctrl_ishold();
     	if((editor_select_is_area() && editor_select_inbound(x, y, side, noteType)) || _unselection_hint)
@@ -64,7 +64,7 @@ if(editor_get_editmode() <= 4){
     else {
         animTargetNodeBorderA = 0;
     }
-	if(state == stateAttach || state == stateAttachSub || state == stateDrop || state == stateDropSub) {
+	if(stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP || stateType == NOTE_STATES.DROP_SUB) {
 		animTargetNodeA = 0.0;
 
         if(alt_ishold()) {
@@ -77,7 +77,7 @@ if(editor_get_editmode() <= 4){
                 animTargetInfoA = 0.5;
         }
 	}
-	if((state == stateLast && noteType == 2) || state == stateOut) {
+	if((stateType == NOTE_STATES.LAST && noteType == 2) || stateType == NOTE_STATES.OUT) {
 		animTargetNodeA = 0;
 		animTargetInfoA = 0;
 	}

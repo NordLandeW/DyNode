@@ -108,7 +108,7 @@ function build_note(_id, _type, _time, _position, _width,
     with(_inst) {
     	_prop_init(true);
     	if(noteType == 2) _prop_hold_update();
-    	if(_selecting) state = stateSelected;
+    	if(_selecting) set_state(NOTE_STATES.SELECTED);
     }
     with(objMain) {
         array_push(chartNotesArray, _inst.get_prop(_fromxml, true));
@@ -262,7 +262,7 @@ function note_check_and_activate(_posistion_in_array) {
 	var _hold_intersect = _str.noteType >= 2 &&
 		(_str.noteType == 2? (_str.time <= objMain.nowTime && _str.time + _str.lastTime >= objMain.nowTime):
 			(_str.beginTime <= objMain.nowTime && _str.time >= objMain.nowTime));
-	if(_note_inbound || _hold_intersect || _str.inst.state != _str.inst.stateOut) {
+	if(_note_inbound || _hold_intersect || _str.inst.stateType != NOTE_STATES.OUT) {
 		// instance_activate_object(_str.inst);
 		note_activate(_str.inst);
 		return 1;
@@ -285,8 +285,8 @@ function note_select_reset(inst = undefined) {
 	if(inst == undefined) inst = objNote;
 	/// @self Id.Instance.objNote
 	with(inst)
-		if(state == stateSelected) {
-			state = stateNormal;
+		if(stateType == NOTE_STATES.SELECTED) {
+			set_state(NOTE_STATES.NORMAL);
 			state();
 		}
 }

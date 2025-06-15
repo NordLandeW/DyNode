@@ -153,8 +153,9 @@ function editor_select_reset() {
 function editor_select_all() {
 	if(editor_get_editmode() != 4) return;
 
-	with(objNote)
-		state = stateSelected;
+	with(objNote) {
+		set_state(NOTE_STATES.SELECTED);
+	}
 }
 
 function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false) {
@@ -272,7 +273,7 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
     
 	/// @self Id.Instance.objNote
     with(_inst) {
-        state = stateAttach;
+		set_state(NOTE_STATES.ATTACH);
         width = _width;
         side = _side;
         fixedLastTime = _lasttime;
@@ -302,7 +303,7 @@ function edtior_note_quick_duplicate() {
 	var maxTime = -10000000;
 	var minTime = 0x7fffffff;
 	with(objNote) {
-		if(state == stateSelected) {
+		if(stateType == NOTE_STATES.SELECTED) {
 			maxTime = max(maxTime, time + lastTime);
 			minTime = min(minTime, time);
 		}
@@ -311,7 +312,7 @@ function edtior_note_quick_duplicate() {
 	// Spacing snapping correction
 	spacing = editor_snap_to_grid_time(minTime + spacing, 0, true).time - minTime;
 	with(objNote) {
-		if(state == stateSelected) if(noteType != 3) {
+		if(stateType == NOTE_STATES.SELECTED) if(noteType != 3) {
 			note_select_reset(id);
 			var _prop = get_prop();
 			_prop.time += spacing;
@@ -632,7 +633,7 @@ function timing_point_create(record = false) {
 	if(editor_select_count() == 1) {
 		var _ntime = 0;
 		with(objNote)
-			if(state == stateSelected)
+			if(stateType == NOTE_STATES.SELECTED)
 				_ntime = time;
 		var _ptp = timing_point_get_at(_ntime, true);
 		if(_ptp != undefined) {
@@ -871,7 +872,7 @@ function advanced_expr() {
 		
 		with(objNote) {
 			if(noteType != 3)
-			if(_global || state==stateSelected) {
+			if(_global || stateType == NOTE_STATES.SELECTED) {
 				var _prop = get_prop();
 				var _nprop = get_prop();
 				

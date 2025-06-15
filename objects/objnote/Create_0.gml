@@ -1,4 +1,15 @@
 
+enum NOTE_STATES {
+    OUT,
+    NORMAL,
+    SELECTED,
+    LAST,
+    ATTACH,
+    DROP,
+    ATTACH_SUB,
+    DROP_SUB,
+}
+
 depth = 0;
 drawVisible = false;
 priority = int64(-10000000);
@@ -6,6 +17,7 @@ image_yscale = global.scaleYAdjust;
 
 // In-Variables
 
+    stateType = NOTE_STATES.OUT;
     sprite = sprNote2;
     width = 2.0;
     position = 2.5;
@@ -353,7 +365,7 @@ image_yscale = global.scaleYAdjust;
 	
 	// Change to selected state.
 	function select() {
-		state = stateSelected;
+		set_state(NOTE_STATES.SELECTED);
 		state();
 	}
 
@@ -386,6 +398,39 @@ image_yscale = global.scaleYAdjust;
 
 // State Machines
     
+    /// @param {Enum.NOTE_STATES} toState 
+    function set_state(toState) {
+        switch toState {
+            case NOTE_STATES.OUT:
+                state = stateOut;
+                break;
+            case NOTE_STATES.NORMAL:
+                state = stateNormal;
+                break;
+            case NOTE_STATES.SELECTED:
+                state = stateSelected;
+                break;
+            case NOTE_STATES.ATTACH:
+                state = stateAttach;
+                break;
+            case NOTE_STATES.DROP:
+                state = stateDrop;
+                break;
+            case NOTE_STATES.ATTACH_SUB:
+                state = stateAttachSub;
+                break;
+            case NOTE_STATES.DROP_SUB:
+                state = stateDropSub;
+                break;
+            case NOTE_STATES.LAST:
+                state = stateLast;
+                break;
+            default:
+                throw "Unknown note state";
+        }
+        stateType = toState;
+    }
+
     // State Normal
     function stateNormal() {
     	if(stateString == "SEL")
@@ -408,12 +453,12 @@ image_yscale = global.scaleYAdjust;
         		// If the state in last step is SELECT then skip create_shadow
         		if(!selectUnlock)
 	            	_create_shadow();
-	            state = stateLast;
+                set_state(NOTE_STATES.LAST);
 	            state();
 	        }
 	        if(_outbound_check(x, y, side)) {
-	            state = stateOut;
-	            state();
+	            set_state(NOTE_STATES.OUT);
+                state();
 	        }
         }
         
@@ -445,7 +490,7 @@ image_yscale = global.scaleYAdjust;
         
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
         if(time + lastTime <= _limTime) {
-            state = stateOut;
+            set_state(NOTE_STATES.OUT);
             image_alpha = lastTime == 0 ? 0 : image_alpha;
             state();
         }
@@ -454,7 +499,7 @@ image_yscale = global.scaleYAdjust;
         }
         
         if(time > objMain.nowTime) {
-            state = stateNormal;
+            set_state(NOTE_STATES.NORMAL);
             state();
         }
     }
@@ -468,7 +513,7 @@ image_yscale = global.scaleYAdjust;
         
         if(time + lastTime> objMain.nowTime && !_outbound_check(x, y, side)) {
 	        drawVisible = true;
-	        state = stateNormal;
+            set_state(NOTE_STATES.NORMAL);
 	        state();
 	    }
 	    
@@ -502,7 +547,7 @@ image_yscale = global.scaleYAdjust;
 	            var _pos = position, _time = time;
 	            with(objNote) {
 	            	var _center = editor_get_note_attaching_center();
-	            	if(state == stateAttach) {
+	            	if(stateType == NOTE_STATES.ATTACH) {
 	            		position = _pos + origPosition - _center.origPosition;
 	            		time = _time + origTime - _center.origTime;
 	            		_prop_init();
@@ -517,8 +562,8 @@ image_yscale = global.scaleYAdjust;
             
             if(mouse_check_button_pressed(mb_left) && !_outbound_check(x, y, side)
             	&& id == editor_get_note_attaching_center()) {
-                with(objNote) if(state == stateAttach) {
-                	state = stateDrop;
+                with(objNote) if(stateType == NOTE_STATES.ATTACH) {
+                	set_state(NOTE_STATES.DROP);
                 	origWidth = width;
                     dropWidthAdjustable = false;
                 }
@@ -541,11 +586,11 @@ image_yscale = global.scaleYAdjust;
                 		build_hold(random_id(9), time, position, width, random_id(9), time + fixedLastTime, side, true,
                                     _toSelectState);
                         if(_singlePaste) instance_destroy();
-                		state = stateAttach;
+                        set_state(NOTE_STATES.ATTACH);
                 		return;
                 	}
-                    var _time = time;
-                    state = stateAttachSub;
+                    var _time = time;                    
+                    set_state(NOTE_STATES.ATTACH_SUB);
                     sinst = instance_create_depth(x, y, depth, objHoldSub);
                     sinst.dummy = true;
                     sinst.time = time;
@@ -564,7 +609,7 @@ image_yscale = global.scaleYAdjust;
                     if(editor_get_editmode() == 0)
                         operation_merge_last_request(1, OPERATION_TYPE.PASTE);
                 }
-                state = stateAttach;
+                set_state(NOTE_STATES.ATTACH);
                 return;
             }
             
@@ -578,7 +623,7 @@ image_yscale = global.scaleYAdjust;
                         ) > dropWidthError) {
                     mouse_set_last_pos_l();
                     with(objNote) {
-                        if(state == stateDrop)
+                        if(stateType == NOTE_STATES.DROP)
                             dropWidthAdjustable = true;
                     }
                 }
@@ -601,7 +646,7 @@ image_yscale = global.scaleYAdjust;
             sinst.time = sinst.lastAttachBar.time;
             
             if(mouse_check_button_pressed(mb_left)) {
-                state = stateDropSub;
+                set_state(NOTE_STATES.DROP_SUB);
                 origWidth = width;
             }
         }
@@ -628,10 +673,10 @@ image_yscale = global.scaleYAdjust;
             stateString = "SEL";
             
             if(editor_get_editmode() != 4)
-                state = stateNormal;
+                set_state(NOTE_STATES.NORMAL);
             
             if(editor_select_is_multiple() && noteType == 3)
-                state = stateNormal;
+                set_state(NOTE_STATES.NORMAL);
             
             // Start dragging selected notes.
             if(!editor_select_is_dragging() && mouse_ishold_l() && _mouse_inbound_check(1)) {
@@ -643,7 +688,7 @@ image_yscale = global.scaleYAdjust;
                     if(noteType == 3)
                         editor_lrside_lock_set(true);
                     with(objNote) {
-                        if(state == stateSelected) {
+                        if(stateType == NOTE_STATES.SELECTED) {
                         	origProp = get_prop();
                             origX = x;
                             origY = y;
@@ -664,7 +709,7 @@ image_yscale = global.scaleYAdjust;
                         editor_lrside_lock_set(false);
                     
                     with(objNote) {
-                    	if(state == stateSelected) {
+                    	if(stateType == NOTE_STATES.SELECTED) {
                     		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
                             update_prop();
                     	}
@@ -712,7 +757,7 @@ image_yscale = global.scaleYAdjust;
                 _delta_side = side - origSide;
                 
                 with(objNote) {
-                    if(state == stateSelected)
+                    if(stateType == NOTE_STATES.SELECTED)
                     {
                         if(objEditor.editorSelectMultiSidesBinding || editor_editside_allowed(side)) {
                             position = origPosition + _delta_pos;
@@ -793,5 +838,5 @@ image_yscale = global.scaleYAdjust;
 			}
         }
 
-    state = undefined;			// shouldn't be assigned with function index immediately
+    set_state(NOTE_STATES.OUT);
     stateString = "OUT";

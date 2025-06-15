@@ -24,8 +24,8 @@ _prop_init(true);
         if(sinst > 0 || (sid != -1 && ds_map_exists(objMain.chartNotesMap[side], sid))) {
             if(sinst <= 0)
 		        sinst = objMain.chartNotesMap[side][? sid]
-		    
-		    if(state != stateOut)
+
+		    if(stateType != NOTE_STATES.OUT)
 		    	note_activate(sinst);
     
 		    // Being destroyed
@@ -51,7 +51,7 @@ _prop_init(true);
 		    	(sinst.time - max(time, selectTolerance?0:objMain.nowTime)))
 		        + dFromBottom + uFromTop;
 		    if(!global.simplify) {
-				subFading = pHeight < originalHeight && state == stateLast;
+				subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
 		    	pHeight = max(pHeight, originalHeight);
 		    }
 		    lastTime = sinst.time - time;
