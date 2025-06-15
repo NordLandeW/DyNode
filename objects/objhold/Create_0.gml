@@ -69,7 +69,8 @@ _prop_init(true);
 		if(subFading && objMain.nowPlaying) return;
 		
 		// Get Position
-		    
+		
+		gpu_push_state();
 		var _nx, _ny;
 		    
 		if(!selectTolerance) {
@@ -205,6 +206,7 @@ _prop_init(true);
 				        image_xscale, _scly, image_angle, image_blend, image_alpha);
 			}
 		}
+		gpu_pop_state();
 	}
 
 // Correction Value
