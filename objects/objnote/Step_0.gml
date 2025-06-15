@@ -16,39 +16,44 @@ state();
 update_prop();
 
 selectUnlock = false;
+var _editMode = editor_get_editmode();
 
 if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
-	var _factor = 1;
-	if(editor_get_editmode() < 5 && objMain.fadeOtherNotes && !editor_editside_allowed(side))
-    	_factor = 0.5;
-    if(state == stateAttach || state == stateSelected) {
-        if(image_alpha > 0.99)
-            image_alpha = animTargetA;      // Prevent weird fade in when attaching notes are reset.
-        if(infoAlpha < 0.01)
-            infoAlpha = animTargetInfoA;
-        if(nodeAlpha < 0.01)
-            nodeAlpha = animTargetNodeA;
-    }
-    if(editor_get_editmode() < 5) {
-    	image_alpha = lerp_a(image_alpha, animTargetA * _factor,
-        	animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
+    if(_editMode < 5) {
+        var _factor = 1;
+        if(objMain.fadeOtherNotes && !editor_editside_allowed(side))
+            _factor = 0.5;
+        if(state == stateAttach || state == stateSelected) {
+            if(image_alpha > 0.99)
+                image_alpha = animTargetA;      // Prevent weird fade in when attaching notes are reset.
+            if(infoAlpha < 0.01)
+                infoAlpha = animTargetInfoA;
+            if(nodeAlpha < 0.01)
+                nodeAlpha = animTargetNodeA;
+        }
+        image_alpha = lerp_a(image_alpha, animTargetA * _factor,
+            animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
+
+        lastAlpha = lerp_a(lastAlpha, animTargetLstA * _factor,
+            animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
+        
+        if(keycheck(ord("A")) || keycheck(ord("D")) || 
+            objMain.topBarMousePressed || (side == 0 && objMain.nowPlaying)) {
+            image_alpha = animTargetA * _factor;
+            lastAlpha = animTargetLstA * _factor;
+        }
+        
+        nodeAlpha = lerp_a(nodeAlpha, animTargetNodeA, animSpeed);
+        infoAlpha = lerp_a(infoAlpha, animTargetInfoA, animSpeed);
+        nodeBorderAlpha = lerp_a(nodeBorderAlpha, animTargetNodeBorderA, animSpeed);
     }
     else {
-    	image_alpha = animTargetA;
+        image_alpha = animTargetA;
+        lastAlpha = animTargetLstA;
+        nodeAlpha = animTargetNodeA;
+        infoAlpha = animTargetInfoA;
+        nodeBorderAlpha = animTargetNodeBorderA;
     }
-
-    lastAlpha = lerp_a(lastAlpha, animTargetLstA * _factor,
-        animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
-    
-    if(keycheck(ord("A")) || keycheck(ord("D")) || 
-    	objMain.topBarMousePressed || (side == 0 && objMain.nowPlaying)) {
-		image_alpha = animTargetA * _factor;
-		lastAlpha = animTargetLstA * _factor;
-	}
-    
-    nodeAlpha = lerp_a(nodeAlpha, animTargetNodeA, animSpeed);
-    infoAlpha = lerp_a(infoAlpha, animTargetInfoA, animSpeed);
-    nodeBorderAlpha = lerp_a(nodeBorderAlpha, animTargetNodeBorderA, animSpeed);
 }
 
 // If no longer visible then deactivate self
@@ -58,7 +63,7 @@ if(!drawVisible && nodeAlpha<EPS && infoAlpha < EPS && !instance_exists(finst)) 
 }
 
 // Update Highlight Line's Position
-if(objEditor.editorHighlightLine && instance_exists(id)) {
+if(_editMode < 5 && objEditor.editorHighlightLine && instance_exists(id)) {
 	if(state == stateSelected && isDragging || state == stateAttachSub || state == stateDropSub
 		|| ((state == stateAttach || state == stateDrop) && id == editor_get_note_attaching_center())) {
 		objEditor.editorHighlightTime = time;
