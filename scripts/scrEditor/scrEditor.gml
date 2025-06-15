@@ -850,6 +850,8 @@ function chart_randomize() {
 			side = irandom_range(0, 2);
 			width = random_range(0.5, 5);
 			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+			_prop_init(true);
+			update_prop();
 		}
 		operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
 	}

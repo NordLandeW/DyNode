@@ -45,6 +45,7 @@ _prop_init(true);
 		    
 		    sinst.beginTime = time;
 		    sinst.update_prop();
+			sinst._prop_init(true);
     
     		subFading = false;
 		    pHeight = max(0, objMain.playbackSpeed * 

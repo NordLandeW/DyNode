@@ -278,6 +278,7 @@ image_yscale = global.scaleYAdjust;
     	if(record)
     		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
     	
+        _prop_init(true);
     	update_prop();
     }
     
