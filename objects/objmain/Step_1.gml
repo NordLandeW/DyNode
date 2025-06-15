@@ -204,8 +204,9 @@ var _music_resync_request = false;
 
 	var i=max(chartNotesArrayAt-3, 0), l=chartNotesCount;
 	
-	for(; i<l; i++)
+	for(; i<l; i++) {
 		if(note_check_and_activate(i) < 0)
 			break;
+    }
 
 #endregion

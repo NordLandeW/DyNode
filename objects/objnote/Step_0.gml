@@ -13,7 +13,9 @@ selectInbound = editor_select_is_area() && editor_select_inbound(x, y, side, not
 selectTolerance = selectInbound || state == stateSelected;
 
 state();
-update_prop();
+
+if(editor_get_editmode() < 5)
+    update_prop();
 
 selectUnlock = false;
 var _editMode = editor_get_editmode();

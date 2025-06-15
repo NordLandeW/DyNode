@@ -24,10 +24,18 @@
 
 // Get activated notes
 
-	array_resize(chartNotesArrayActivated, 0);
+	array_resize(chartNotesArrayActivated, 1024);
+    var ap = 0, lp = 1024;
 	with(objNote) {
-		if(noteType <= 2 && !attaching)
-			array_push(objMain.chartNotesArrayActivated, arrayPos);
+		if(noteType <= 2 && !attaching) {
+            objMain.chartNotesArrayActivated[ap] = arrayPos;
+            ap++;
+            if(ap >= lp) {
+                array_resize(objMain.chartNotesArrayActivated, lp * 2);
+                lp *= 2;
+            }
+        }
     }
+    array_resize(chartNotesArrayActivated, ap);
     // Sort by array position
     array_sort(chartNotesArrayActivated, true);
