@@ -99,6 +99,9 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     
 // Draw Notes
 	
+	var _piano = global.themeAt == 2 && editor_get_editmode() == 5;
+    if(_piano)
+        shader_set(shd_mono);
 	if(instance_count <= INSTANCE_OPTI_THRESHOLD) {
 		// Draw Holds
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
@@ -112,6 +115,8 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[1]); i<_cl; i++)
 			chartNotesArrayActivated[1][i].draw_event();
 	}
+    if(_piano)
+        shader_reset();
 
 	// Draw Attaching Notes
 	if(is_array(objEditor.editorNoteAttaching))

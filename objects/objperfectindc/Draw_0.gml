@@ -5,8 +5,22 @@ var _scl = scale * scaleMul;
 var _nx = x + PERFECTINDC_SPRITE_ALPHABETS_WIDTH / 2;
 var _ny = y + PERFECTINDC_SPRITE_ALPHABETS_HEIGHT / 2;
 
-draw_sprite_ext(sprPerfect, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, c_white, alpha * alphaMul);
-draw_sprite_ext(sprPerfectBloom, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, c_white, 1 * bloomAlpha * alpha * alphaMul);
+// If is piano theme
+var _col = c_white;
+if(global.themeAt == 2) {
+    gpu_set_blendmode(bm_add);
+    shader_set(shd_mono);
+    _col = c_gray;
+}
+
+
+draw_sprite_ext(sprPerfect, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, alpha * alphaMul);
+draw_sprite_ext(sprPerfectBloom, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, 1 * bloomAlpha * alpha * alphaMul);
+
+if(global.themeAt == 2) {
+    gpu_set_blendmode(bm_normal);
+    shader_reset();
+}
 
 if(debug_mode && PERFECTINDC_DEBUG) {
     draw_set_color(c_red);

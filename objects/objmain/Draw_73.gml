@@ -17,8 +17,16 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 
 // Draw Shadows
 
+    if(global.themeAt == 2) {
+        shader_set(shd_mono);
+        gpu_set_blendmode(bm_add);
+    }
     with(objShadow)
         draw_self();
+    if(global.themeAt == 2) {
+        shader_reset();
+        gpu_set_blendmode(bm_normal);
+    }
 
 // Draw Note Particles
 
@@ -46,6 +54,9 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 
 // Draw Mixer & Shadow's Position
 
+    // If is piano theme
+    if(global.themeAt == 2)
+        shader_set(shd_mono);
     for(var i=0; i<2; i++) {
         if(chartSideType[i] == "MIXER") {
                 draw_sprite_ext(sprMixer, 0,
@@ -53,3 +64,5 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
                     1, 1, 0, c_white, lerp(0.25, 1, standardAlpha));
             }
     }
+    if(global.themeAt == 2)
+        shader_reset();
