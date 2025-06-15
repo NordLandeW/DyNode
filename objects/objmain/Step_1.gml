@@ -203,8 +203,10 @@ var _music_resync_request = false;
 	// 	note_deactivate_flush();
 
 	var i=max(chartNotesArrayAt-3, 0), l=chartNotesCount;
-	
+	var _editMode = editor_get_editmode();
 	for(; i<l; i++) {
+        if(_editMode == 5 && instance_exists(chartNotesArray[i].inst))
+            continue;
 		if(note_check_and_activate(i) < 0)
 			break;
     }

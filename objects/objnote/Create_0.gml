@@ -405,10 +405,16 @@ image_yscale = global.scaleYAdjust;
                 state = stateOut;
                 break;
             case NOTE_STATES.NORMAL:
+                if(stateType == NOTE_STATES.SELECTED)
+    		        selectUnlock = true;
                 state = stateNormal;
                 break;
             case NOTE_STATES.SELECTED:
                 state = stateSelected;
+                if(instance_exists(sinst)) {
+                    origLength = sinst.time - time;
+                    origSubTime = sinst.time;
+                }
                 break;
             case NOTE_STATES.ATTACH:
                 state = stateAttach;
@@ -433,44 +439,40 @@ image_yscale = global.scaleYAdjust;
 
     // State Normal
     function stateNormal() {
-    	if(stateString == "SEL")
-    		selectUnlock = true;
-        stateString = "NM";
         animTargetA = 1.0;
         animTargetLstA = lastAlphaL;
         
         // Side Fading
         if(editor_get_editmode() == 5 && side > 0) {
-        	animTargetA = lerp(0.25, 1, abs(x - resor_to_x(0.5)) / resor_to_x(0.5-0.2));
-        	animTargetA = clamp(animTargetA, 0, 1);
+            animTargetA = lerp(0.25, 1, abs(x - resor_to_x(0.5)) / resor_to_x(0.5-0.2));
+            animTargetA = clamp(animTargetA, 0, 1);
         }
-        
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
         
         // If inbound then the state wont change
         if(!selectInbound) {
-        	if(time <= _limTime) {
-        		// If the state in last step is SELECT then skip create_shadow
-        		if(!selectUnlock)
-	            	_create_shadow();
+            if(time <= _limTime) {
+                // If the state in last step is SELECT then skip create_shadow
+                if(!selectUnlock)
+                    _create_shadow();
                 set_state(NOTE_STATES.LAST);
-	            state();
-	        }
-	        if(_outbound_check(x, y, side)) {
-	            set_state(NOTE_STATES.OUT);
                 state();
-	        }
+            }
+            if(_outbound_check(x, y, side)) {
+                set_state(NOTE_STATES.OUT);
+                state();
+            }
         }
         
         
         // Check Selecting
         if(editor_get_editmode() == 4 && editor_editside_allowed(side) && !objMain.topBarMousePressed
             && !(objEditor.editorSelectOccupied && noteType == 3)) {
-        	var _mouse_click_to_select = mouse_isclick_l() && _mouse_inbound_check();
-        	var _mouse_drag_to_select = mouse_ishold_l() && _mouse_inbound_check(1) 
-        		&& !editor_select_is_area() && !editor_select_is_dragging()
-        		&& !keyboard_check(vk_control);
-        	
+            var _mouse_click_to_select = mouse_isclick_l() && _mouse_inbound_check();
+            var _mouse_drag_to_select = mouse_ishold_l() && _mouse_inbound_check(1) 
+                && !editor_select_is_area() && !editor_select_is_dragging()
+                && !keyboard_check(vk_control);
+            
             if(_mouse_click_to_select || _mouse_drag_to_select) {
                 objEditor.editorSelectSingleTarget =
                     editor_select_compare(objEditor.editorSelectSingleTarget, id);
@@ -485,7 +487,6 @@ image_yscale = global.scaleYAdjust;
     
     // State Last
     function stateLast() {
-        stateString = "LST";
         animTargetLstA = lastAlphaR;
         
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
@@ -506,8 +507,6 @@ image_yscale = global.scaleYAdjust;
     
     // State Targeted
     function stateOut() {
-        stateString = "OUT";
-        
         animTargetA = 0.0;
         animTargetLstA = lastAlphaL;
         
@@ -525,7 +524,6 @@ image_yscale = global.scaleYAdjust;
     // Editors
         // State attached to cursor
         function stateAttach() {
-            stateString = "ATCH";
             animTargetA = 0.5;
             
             if(editor_get_note_attaching_center() == id) {
@@ -573,7 +571,6 @@ image_yscale = global.scaleYAdjust;
         
         // State Dropping down
         function stateDrop() {
-            stateString = "DROP";
             animTargetA = 0.8;
             
             if(mouse_check_button_released(mb_left)) {
@@ -641,7 +638,6 @@ image_yscale = global.scaleYAdjust;
         }
         
         function stateAttachSub() {
-            stateString = "ATCHS";
             sinst.lastAttachBar = editor_snap_to_grid_y(side == 0?mouse_y:mouse_x, side);
             sinst.time = sinst.lastAttachBar.time;
             
@@ -652,7 +648,6 @@ image_yscale = global.scaleYAdjust;
         }
         
         function stateDropSub() {
-            stateString = "DROPS";
             animTargetA = 1.0;
             if(mouse_check_button_released(mb_left)) {
                 var _subid = random_id(9);
@@ -666,11 +661,6 @@ image_yscale = global.scaleYAdjust;
         function stateSelected() {
         	animTargetA = 1;
             animTargetInfoA = 1;
-            if(stateString != "SEL" && instance_exists(sinst)) {
-                origLength = sinst.time - time;
-                origSubTime = sinst.time;
-            }
-            stateString = "SEL";
             
             if(editor_get_editmode() != 4)
                 set_state(NOTE_STATES.NORMAL);
@@ -839,4 +829,3 @@ image_yscale = global.scaleYAdjust;
         }
 
     set_state(NOTE_STATES.OUT);
-    stateString = "OUT";

@@ -120,8 +120,8 @@ depth = 0;
     chartFile = "";
     
     chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
-    /// @type {Array<Real>} Activated notes' arrayPos in a step.
-    chartNotesArrayActivated = [];
+    /// @type {Array<Array<Any>>} Activated notes' inst in a step.
+    chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
     chartNotesCount = 0;
     chartNotesMap = array_create(3);
