@@ -223,3 +223,26 @@ projectTime += round(delta_time / 1000);
 	titleAlpha = lerp_a(titleAlpha, animTargetTitleAlpha, animSpeed);
 	
 #endregion
+
+#region Side Hinter Update
+
+	sideHinterCheckTimer += delta_time / 1000;
+	if(sideHinterCheckTimer > SIDEHINT_CHECK_TIME) {
+		sideHinterCheckTimer = 0;
+		_sidehinter_check();
+	}
+	for(var i=0; i<2; i++) 
+		if(sideHinterState[i] >= 0)
+		{
+			sideHinterTimer[i] += delta_time / 1000;
+			if(sideHinterTimer[i] >= SIDEHINT_STATE_TIME) {
+				sideHinterState[i] ++;
+				sideHinterTimer[i] -= SIDEHINT_STATE_TIME;
+			}
+			if(sideHinterState[i] > 4) {
+				sideHinterTimer[i] = 0;
+				sideHinterState[i] = -1;
+			}
+		}
+
+#endregion

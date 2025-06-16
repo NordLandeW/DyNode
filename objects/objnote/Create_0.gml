@@ -183,6 +183,7 @@ image_yscale = global.scaleYAdjust;
         }
     }
 
+    /// @description Hit the side and create shadow.
     function _create_shadow(_force = false) {
         if(!objMain.nowPlaying && !_force)
             return;
@@ -193,6 +194,9 @@ image_yscale = global.scaleYAdjust;
         if(objMain.hitSoundOn)
             audio_play_sound(sndHit, 0, 0);
         
+        // Update side hinter.
+        if(side > 0)
+            objMain._sidehinter_hit(side-1, time + lastTime);
         
         // Create Shadow
         if(side > 0 && objMain.chartSideType[side-1] == "MIXER") {

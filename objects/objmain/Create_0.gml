@@ -106,6 +106,52 @@ depth = 0;
 
 #endregion
 
+#region Side Hinters
+
+#macro SIDEHINT_STATE_TIME (120)        // ms
+#macro SIDEHINT_AHEAD_TIME (2600)       // ms
+#macro SIDEHINT_SEARCH_TIME (1500)      // ms
+#macro SIDEHINT_CHECK_TIME (100)        // ms
+    sideLastHitTime = [-1, -1];
+    // -1: none; 0,2,4: black; 1,3: white;
+    sideHinterState = [-1, -1];
+    sideHinterTimer = [0, 0];
+    sideHinterCheckTimer = 0;
+
+    function _sidehinter_check() {
+        if(!(editor_get_editmode() == 5 && nowPlaying && !topBarMousePressed)) {
+            sideLastHitTime[0] = -1;
+            sideLastHitTime[1] = -1;
+            return;
+        }
+
+        for(var i=0; i<2; i++) {
+            if(sideLastHitTime[i] < 0)
+                sideLastHitTime[i] = nowTime;
+            if(nowTime < sideLastHitTime[i]) continue;
+            if(sideHinterState[i] == -1)
+            {
+                for(var j=chartNotesArrayAt; j<chartNotesCount; j++) {
+                    var _note = chartNotesArray[j];
+                    if(_note.time - nowTime > SIDEHINT_SEARCH_TIME) break;
+                    if(_note.side == i + 1) {
+                        if(_note.time - sideLastHitTime[i] >= SIDEHINT_AHEAD_TIME) {
+                            sideHinterState[i] = 0;
+                            sideHinterTimer[i] = 0;
+                            sideLastHitTime[i] = _note.time;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    function _sidehinter_hit(side, time) {
+        sideLastHitTime[side] = time;
+    }
+
+#endregion
+
 #region Chart Vars
 
     chartTitle = "Last Train at 25 O'Clock"
@@ -181,7 +227,7 @@ depth = 0;
     statKPS = 0;
     
     // Bottom
-        bottomDim = 0.5;
+        bottomDim = 0.6;
         bottomBgBlurIterations = 3;
         bottomInfoSurf = -1;
     
