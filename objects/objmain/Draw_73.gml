@@ -21,9 +21,16 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
         shader_set(shd_mono);
         gpu_set_blendmode(bm_add);
     }
+    else if(global.themeAt > 0) {
+        // Else if a customized theme
+        shader_set(shd_hsv_trans);
+        var hsv = theme_get_color_hsv();
+        shader_set_uniform_q("u_hue", hsv[0]);
+        shader_set_uniform_q("u_saturation", hsv[1]);
+    }
     with(objShadow)
         draw_self();
-    if(global.themeAt == 2) {
+    if(global.themeAt > 0) {
         shader_reset();
         gpu_set_blendmode(bm_normal);
     }
@@ -57,6 +64,13 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
     // If is piano theme
     if(global.themeAt == 2)
         shader_set(shd_mono);
+    else if(global.themeAt > 0) {
+        // Else if a customized theme
+        shader_set(shd_hsv_trans);
+        var hsv = theme_get_color_hsv();
+        shader_set_uniform_q("u_hue", hsv[0]);
+        shader_set_uniform_q("u_saturation", hsv[1]);
+    }
     for(var i=0; i<2; i++) {
         if(chartSideType[i] == "MIXER") {
                 draw_sprite_ext(sprMixer, 0,
@@ -64,5 +78,5 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
                     1, 1, 0, c_white, lerp(0.25, 1, standardAlpha));
             }
     }
-    if(global.themeAt == 2)
+    if(global.themeAt > 0)
         shader_reset();

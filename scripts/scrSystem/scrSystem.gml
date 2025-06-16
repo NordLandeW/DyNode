@@ -1187,6 +1187,11 @@ function theme_get() {
 	return global.themes[global.themeAt];
 }
 
+function theme_get_color_hsv() {
+	var col = global.themes[global.themeAt].color;
+	return color_rgb_to_hsv(col);
+}
+
 #endregion
 
 #region ANNOUNCEMENT FUNCTIONS

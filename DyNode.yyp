@@ -463,6 +463,7 @@
     {"id":{"name":"sh_better_scaling_supersampling_3x3","path":"shaders/sh_better_scaling_supersampling_3x3/sh_better_scaling_supersampling_3x3.yy",},},
     {"id":{"name":"sh_better_scaling_supersampling_4x4","path":"shaders/sh_better_scaling_supersampling_4x4/sh_better_scaling_supersampling_4x4.yy",},},
     {"id":{"name":"shd_gaussian_blur_2pass","path":"shaders/shd_gaussian_blur_2pass/shd_gaussian_blur_2pass.yy",},},
+    {"id":{"name":"shd_hsv_trans","path":"shaders/shd_hsv_trans/shd_hsv_trans.yy",},},
     {"id":{"name":"shd_kawase_down","path":"shaders/shd_kawase_down/shd_kawase_down.yy",},},
     {"id":{"name":"shd_kawase_up","path":"shaders/shd_kawase_up/shd_kawase_up.yy",},},
     {"id":{"name":"shd_lazer","path":"shaders/shd_lazer/shd_lazer.yy",},},

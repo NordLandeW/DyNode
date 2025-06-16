@@ -843,3 +843,71 @@ function print_buffer_hex(buffer) {
     
     show_debug_message(output);
 }
+
+/// @description Convert rgb color to normalized hsv color arrays.
+/// @param {Real} rgb Color
+/// @returns {Array<Real>} HSV Array [H, S, V]
+function color_rgb_to_hsv(rgb) {
+    var r = color_get_red(rgb);
+    var g = color_get_green(rgb);
+    var b = color_get_blue(rgb);
+    
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    var max_val = max(r, max(g, b));
+    var min_val = min(r, min(g, b));
+    var delta = max_val - min_val;
+    
+    var h = 0;
+    var s = (max_val == 0) ? 0 : delta / max_val;
+    var v = max_val;
+    
+    if (delta != 0) {
+        if (max_val == r) {
+            h = ((g - b) / delta) % 6;
+        } else if (max_val == g) {
+            h = (b - r) / delta + 2;
+        } else { // max_val == b
+            h = (r - g) / delta + 4;
+        }
+        
+        h *= 60;
+        if (h < 0) h += 360;
+    }
+    
+    return [h/360, s, v];
+}
+
+
+
+/// @description Quickly set the shader's uniform with reals/ints or their arrays.
+/// @param {String} uniform Uniform's name.
+/// @param {Real|Array<Real>} vals Values to set.
+/// @param {Bool} real Is values real number or integers.
+/// @param {Asset.GMShader} shd The shader.
+function shader_set_uniform_q(uniform, vals, real = true, shd = undefined) {
+    if(shd == undefined) shd = shader_current();
+    var _uniform = shader_get_uniform(shd, uniform);
+    if(is_array(vals)) {
+        if(real)
+            shader_set_uniform_f_array(_uniform, vals);
+        else
+            shader_set_uniform_i_array(_uniform, vals);
+    }
+    else if(real)
+        shader_set_uniform_f(_uniform, vals);
+    else
+        shader_set_uniform_i(_uniform, vals);
+}
+
+/// @description Quickly set the shader's samplers.
+/// @param {String} uniform Uniform's name.
+/// @param {Pointer.Texture} texture Textures to attach.
+/// @param {Asset.GMShader} shd The shader.
+function shader_set_texture(uniform, texture, shd = undefined) {
+    if(shd == undefined) shd = shader_current();
+    var _sampler = shader_get_sampler_index(shd, uniform);
+    texture_set_stage(_sampler, texture);
+}

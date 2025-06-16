@@ -12,12 +12,19 @@ if(global.themeAt == 2) {
     shader_set(shd_mono);
     _col = c_gray;
 }
+else if(global.themeAt > 0) {
+    // Else if a customized theme
+    shader_set(shd_hsv_trans);
+    var hsv = theme_get_color_hsv();
+    shader_set_uniform_q("u_hue", hsv[0]);
+    shader_set_uniform_q("u_saturation", hsv[1]);
+}
 
 
 draw_sprite_ext(sprPerfect, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, alpha * alphaMul);
 draw_sprite_ext(sprPerfectBloom, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, 1 * bloomAlpha * alpha * alphaMul);
 
-if(global.themeAt == 2) {
+if(global.themeAt > 0) {
     gpu_set_blendmode(bm_normal);
     shader_reset();
 }

@@ -1,0 +1,12 @@
+{
+  "$GMShader":"",
+  "%Name":"shd_hsv_trans",
+  "name":"shd_hsv_trans",
+  "parent":{
+    "name":"Shaders",
+    "path":"folders/Shaders.yy",
+  },
+  "resourceType":"GMShader",
+  "resourceVersion":"2.0",
+  "type":1,
+}
