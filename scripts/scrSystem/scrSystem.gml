@@ -1126,6 +1126,8 @@ function project_backup(project_path) {
 
 #region THEME FUNCTIONS
 
+#macro c_neon_pink 0x9A01FE
+#macro c_neon_yellow 0x00fffc
 function theme_init() {
 	
 	global.themes = [];
@@ -1137,10 +1139,10 @@ function theme_init() {
 		title: "[c_aqua]Dynamix[/c]",
 		color: c_aqua,
 		partSpr: sprParticleW,		// Particle Sprite
-		partColA: 0x9A01FE, 		// Note's Particle Color
-		partColB: 0x9A01FE,
-		partColHA: 0x00fffc,		// Hold's Particle Color
-		partColHB: 0x00fffc,
+		partColA: c_neon_pink, 		// Note's Particle Color
+		partColB: c_neon_pink,
+		partColHA: c_neon_yellow,		// Hold's Particle Color
+		partColHB: c_neon_yellow,
 		partBlend: false
 	});
 	
@@ -1150,8 +1152,8 @@ function theme_init() {
 		partSpr: sprParticleW,		// Particle Sprite
 		partColA: 0xc5b7ff, 		// Note's Particle Color
 		partColB: 0xc5b7ff,
-		partColHA: 0x00fffc,		// Hold's Particle Color
-		partColHB: 0x00fffc,
+		partColHA: c_neon_yellow,		// Hold's Particle Color
+		partColHB: c_neon_yellow,
 		partBlend: false
 	});
 	

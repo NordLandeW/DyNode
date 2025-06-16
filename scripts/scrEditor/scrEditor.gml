@@ -527,6 +527,7 @@ function operation_undo() {
 		
 		announcement_play(i18n_get("undo", operation_get_name(_type), string(array_length(_ops))));
 		note_sort_request();
+		if(l > MAX_SELECTION_LIMIT) note_activation_reset();
 		// show_debug_message_safe("POINTER: "+ string(operationPointer));
 	}
 	
@@ -861,6 +862,9 @@ function chart_randomize() {
 
 /// For advanced property modifications.
 function advanced_expr() {
+	if(editor_get_editmode() == 5)
+		editor_set_editmode(4);
+
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
 		var _scope_str = _global?"你正在对谱面的所有音符进行高级操作。":"你正在对选定的音符进行高级操作。";
