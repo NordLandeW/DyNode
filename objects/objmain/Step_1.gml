@@ -71,7 +71,7 @@ var _music_resync_request = false;
         
         // Top Bar Adjust Part
         
-    		topBarMouseInbound = (mouse_y <= topBarMouseH && mouse_y >= 0) || alt_ishold();
+    		topBarMouseInbound = (mouse_y <= topBarMouseH && mouse_y >= 0) || (alt_ishold() && editor_get_editmode() == 4);
             if(topBarMouseInbound || topBarMousePressed || _timchange != 0 || _timscr != 0) {
             	animTargetTopBarIndicatorA = 0.3;
             	topBarTimeLastTime = 2000;
