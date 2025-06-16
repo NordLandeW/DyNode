@@ -506,7 +506,8 @@ image_yscale = global.scaleYAdjust;
             state();
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
-            partHoldTimer += delta_time / 1000;
+            partHoldTimer += get_delta_time() / 1000;
+            partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
                 partHoldTimer -= PARTICLE_HOLD_DELAY;
                 _emit_particle(partNumberLast, 1, true);

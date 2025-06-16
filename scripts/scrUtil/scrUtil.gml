@@ -908,3 +908,8 @@ function shader_set_texture(uniform, texture, shd = undefined) {
     var _sampler = shader_get_sampler_index(shd, uniform);
     texture_set_stage(_sampler, texture);
 }
+
+/// @description Get the safe delta time limited under 10FPS.
+function get_delta_time() {
+	return min(delta_time, 100000);
+}
