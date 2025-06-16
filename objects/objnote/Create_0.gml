@@ -84,9 +84,11 @@ image_yscale = global.scaleYAdjust;
     animTargetLstA = lastAlpha;
     image_alpha = 1;
     
-    // Particles Number
+    // Particles Varaiables
+#macro PARTICLE_HOLD_DELAY (33)     // in ms
     partNumber = 12;
     partNumberLast = 1;
+    partHoldTimer = 0;
     
     // Correction Values
     lFromLeft = 5;
@@ -157,6 +159,9 @@ image_yscale = global.scaleYAdjust;
         var _mixer = on_mixer_side();
         if(_mixer) {
             _y = objMain.mixerX[side-1];
+            var _mixerH = sprite_get_height(sprMixer);
+            _y1 = y - _mixerH / 2;
+            _y2 = y + _mixerH / 2;
         }
         
         var _ang = image_angle, _scl = image_xscale;
@@ -497,7 +502,11 @@ image_yscale = global.scaleYAdjust;
             state();
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
-            // _emit_particle(ceil(partNumberLast * image_xscale * global.fpsAdjust), 1, true);
+            partHoldTimer += delta_time / 1000;
+            while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
+                partHoldTimer -= PARTICLE_HOLD_DELAY;
+                _emit_particle(partNumberLast, 1, true);
+            }
         }
         
         if(time > objMain.nowTime) {

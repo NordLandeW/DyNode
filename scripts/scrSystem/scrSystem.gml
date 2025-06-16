@@ -1139,8 +1139,8 @@ function theme_init() {
 		partSpr: sprParticleW,		// Particle Sprite
 		partColA: 0x9A01FE, 		// Note's Particle Color
 		partColB: 0x9A01FE,
-		partColHA: 0x16925a,		// Hold's Particle Color
-		partColHB: 0x16925a,
+		partColHA: 0x00fffc,		// Hold's Particle Color
+		partColHB: 0x00fffc,
 		partBlend: false
 	});
 	
@@ -1150,8 +1150,8 @@ function theme_init() {
 		partSpr: sprParticleW,		// Particle Sprite
 		partColA: 0xc5b7ff, 		// Note's Particle Color
 		partColB: 0xc5b7ff,
-		partColHA: 0x16925a,		// Hold's Particle Color
-		partColHB: 0x16925a,
+		partColHA: 0x00fffc,		// Hold's Particle Color
+		partColHB: 0x00fffc,
 		partBlend: false
 	});
 	
@@ -1369,7 +1369,7 @@ function md5_config() {
 function vars_init() {
 	// Some variables that will take changes immediately
 	
-	if(debug_mode) global.fps = 165;
+	if(debug_mode) global.fps = 60;
 	game_set_speed(global.fps, gamespeed_fps);
 	global.fpsAdjust = BASE_FPS / global.fps;
 	global.scaleXAdjust = global.resolutionW / BASE_RES_W;
