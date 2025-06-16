@@ -1,6 +1,8 @@
 /// @description Draw editor & debug things
 
-if((drawVisible || nodeAlpha > EPS || infoAlpha > EPS) && editor_get_editmode() <= 4) {
+if(editor_get_editmode() == 5) return;
+
+if((drawVisible || nodeAlpha > EPS || infoAlpha > EPS)) {
     var _inv = noteType == 3 ? -1:1;
 	if(nodeAlpha>EPS) {
 		CleanRectangleXYWH(x, y, nodeRadius, nodeRadius)
