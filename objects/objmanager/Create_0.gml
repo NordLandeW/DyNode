@@ -86,7 +86,7 @@ global.shadowCount = 0;
 
 global.sprLazer = generate_lazer_sprite(2048);
 global.sprHoldBG = generate_hold_sprite(global.resolutionW + 4*sprite_get_height(sprHold));
-// global.sprPauseShadow = generate_pause_shadow(200);
+global.sprPauseShadow = generate_pause_shadow(200);
 
 // Set GUI & Window Resolution
 

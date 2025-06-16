@@ -4,6 +4,8 @@ function generate_lazer_sprite(_height) {
 
 	gpu_set_blendmode_ext(bm_one, bm_zero);
 	shader_set(shd_lazer);
+	shader_set_uniform_q("mean", 1.0);
+	shader_set_uniform_q("stdDev", 0.25);
 		surface_set_target(_surf);
 			draw_surface(_surf, 0, 0);
 		surface_reset_target();
@@ -93,21 +95,16 @@ function draw_rectangle_gradient(position, color, alpha) {
 function generate_pause_shadow(height, indent = 30) {
 	var width = global.resolutionW;
 	var surf = surface_create(width, height+2*indent);
-	surface_set_target(surf);
-		gpu_set_blendmode_ext(bm_one, bm_zero);
-			draw_rectangle_gradient([0, indent, width, indent+height/2],
-				[0, 0, 0, 0], [0, 0, 1, 1]);
-			draw_rectangle_gradient([0, indent+height/2, width, indent+height],
-				[0, 0, 0, 0], [1, 1, 0, 0]);
-		gpu_set_blendmode(bm_normal);
-	surface_reset_target();
 	
-	var _ping = kawase_create(width, height+2*indent, 5);
-	var _psurf = kawase_get_surface(_ping);
-	surface_copy(_psurf, 0, 0, surf);
-	kawase_blur(_ping);
-	surface_copy(surf, 0, 0, _psurf);
-	kawase_destroy(_ping);
+	gpu_set_blendmode_ext(bm_one, bm_zero);
+	shader_set(shd_lazer);
+	shader_set_uniform_q("mean", 0.5);
+	shader_set_uniform_q("stdDev", 0.15);
+		surface_set_target(surf);
+			draw_surface(surf, 0, 0);
+		surface_reset_target();
+	shader_reset();
+	gpu_set_blendmode(bm_normal);
 	
 	var _spr = sprite_create_from_surface(surf, 0, 0, width, height+2*indent, false, false, 0, 0);
 	surface_free(surf);

@@ -67,27 +67,19 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 // Draw Pause Shadow
 
 	// Draw Shadow
-	// gpu_set_colorwriteenable(1, 1, 1, 0);
-	// draw_rectangle_gradient([0, blackBarFromTop - blackBarHeight/2, 
-	// 						resor_to_x(1), blackBarFromTop],
-	// 						[0, 0, 0, 0], [0, 0, standardAlpha, standardAlpha]);
-	// draw_rectangle_gradient([0, blackBarFromTop, 
-	// 						resor_to_x(1), blackBarFromTop + blackBarHeight/2],
-	// 						[0, 0, 0, 0], [standardAlpha, standardAlpha, 0, 0]);
-	// gpu_set_colorwriteenable(1, 1, 1, 1);
-	// var _sw = sprite_get_width(global.sprPauseShadow);
-	// var _sh = sprite_get_height(global.sprPauseShadow);
-	// better_scaling_draw_sprite(global.sprPauseShadow, 0, 
-	// 	0, blackBarFromTop - blackBarHeight/2, 
-	// 	resor_to_x(1)/_sw, blackBarHeight/_sh, 0, c_white, standardAlpha, 1);
+	var _sw = sprite_get_width(global.sprPauseShadow);
+	var _sh = sprite_get_height(global.sprPauseShadow);
+	draw_sprite_ext(global.sprPauseShadow, 0, 
+		0, blackBarFromTop - blackBarHeight/2, 
+		resor_to_x(1)/_sw, blackBarHeight/_sh, 0, c_black, standardAlpha);
 	
 	// Draw Pause Icon
 	
-	// if(!showDebugInfo) {
-	// 	draw_sprite_ext(sprPauseBar, 0,
-	// 		resor_to_x(0.5) - pauseBarIndent / 2, blackBarFromTop,
-	// 		1, 1, 0, c_white, standardAlpha);
-	// 	draw_sprite_ext(sprPauseBar, 0,
-	// 		resor_to_x(0.5) + pauseBarIndent / 2, blackBarFromTop,
-	// 		1, 1, 0, c_white, standardAlpha);
-	// }
+	if(!showDebugInfo) {
+		draw_sprite_ext(sprPauseBar, 0,
+			resor_to_x(0.5) - pauseBarIndent / 2, blackBarFromTop,
+			1, 1, 0, c_white, standardAlpha);
+		draw_sprite_ext(sprPauseBar, 0,
+			resor_to_x(0.5) + pauseBarIndent / 2, blackBarFromTop,
+			1, 1, 0, c_white, standardAlpha);
+	}
