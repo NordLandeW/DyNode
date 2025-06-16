@@ -361,7 +361,7 @@ depth = 0;
     perfDepth = 1000;
     perfLeft = instance_create_depth(resor_to_x(295/1920), resor_to_y(636/1080), 
         perfDepth, objPerfectIndc);
-    perfRight = instance_create_depth(resor_to_x(1212/1920), resor_to_y(636/1080), 
+    perfRight = instance_create_depth(resor_to_x(1206/1920), resor_to_y(636/1080), 
         perfDepth, objPerfectIndc);
         
 #endregion
