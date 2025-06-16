@@ -28,10 +28,15 @@ animTargetScore = 0;
 animTargetScaleMul = 1.0;
 animTargetAlphaMul = alphaMul;
 
+animState = 0; // 0: normal, 1: expanding, 2: shrinking
+maximumScale = 1.4;
+expandingSpeed = 20 / 1000;
+shrinkingSpeed = 6 / 1000;
+
 animCurvChan = animcurve_get_channel(curvShadowFade, "curve1");
 
 function _hitit() {
-    scaleMul = 1.3;
+    animState = 1;
     bloomAlpha = 1.0;
     nowTime = 0;
 }

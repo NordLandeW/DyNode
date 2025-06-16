@@ -25,6 +25,9 @@ animTargetScore = 0;
 animTargetScaleMul = 1.0;
 animTargetAlpha = 0;
 
+expandTimer = 999;
+expandTimeLimit = 2.5/60 * 1000; // in ms
+
 sprWidth = sprite_get_width(sprNumber)
 sprHeight = sprite_get_height(sprNumber);
 shorten = 20; // total shorten pixels for each number in lr side
@@ -35,7 +38,8 @@ scale = SCOREBOARD_NUMBER_WIDTH / (sprWidth - SCOREBOARD_NUMBER_SPRITE_PADDING *
 visible = true;
 
 function _update_score(_scr, _hit = true, _force = false) {
-    if(_hit) scaleMul = 1.1;
+    if(_hit) 
+        expandTimer = 0;
     animTargetScore = _scr;
     if(_force) nowScore = _scr;
 }
