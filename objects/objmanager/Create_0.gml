@@ -225,7 +225,7 @@ else
 
 #region Updater Init / Variables
 
-#macro SOURCE_IORI "https://g.iorinn.moe/dyn/"
+#macro SOURCE_IORI "https://d.g.iorinn.moe/dyn/"
 #macro UPDATE_TARGET_FILE (program_directory + "update.zip")
 #macro UPDATE_TEMP_DIR (program_directory + "tmp/")
 
