@@ -96,6 +96,12 @@ function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 		case "-":
 			_res = _va - _vb;
 			break;
+		case "`+":
+			_res = _va;
+			break;
+		case "`-":
+			_res = -_va;
+			break;
 		case "*":
 			_res = _va * _vb;
 			break;
@@ -162,13 +168,15 @@ function expr_eval(_expr) {
 	show_debug_message("CAC EXPR "+_expr);
 	// Define the priority
 	var _prio = ds_map_create();
-	///						precedence, associativity, 	unary
+	///						precedence, associativity, 	unary(1) & both(2)
 	_prio[? "!"] 	= 		[2, 		1, 				1]		;
 	_prio[? "*"] 	= 		[3, 		0, 				0]		;
 	_prio[? "/"] 	= 		[3, 		0, 				0]		;
 	_prio[? "%"] 	= 		[3, 		0, 				0]		;
-	_prio[? "+"] 	= 		[4, 		0, 				0]		;
-	_prio[? "-"] 	= 		[4, 		0, 				0]		;
+	_prio[? "+"] 	= 		[4, 		0, 				2]		;
+	_prio[? "-"] 	= 		[4, 		0, 				2]		;
+	_prio[? "`+"] 	= 		[4, 		1, 				1]		;
+	_prio[? "`-"] 	= 		[4, 		1, 				1]		;
 	_prio[? "<<"] 	= 		[5, 		0, 				0]		;
 	_prio[? ">>"] 	= 		[5, 		0, 				0]		;
 	_prio[? ">" ] 	= 		[6, 		0, 				0]		;
@@ -183,10 +191,14 @@ function expr_eval(_expr) {
 	_prio[? "&&"] 	= 		[11, 		0, 				0]		;
 	_prio[? "||"] 	= 		[12, 		0, 				0]		;
 	_prio[? "="] 	= 		[13, 		1, 				0]		;
+
+	var both_to_unary_prefix = "`";
 	
 	// Define some ds
 	var _stnum = ds_stack_create();
 	var _stopt = ds_stack_create();
+	// 0 for number, 1 for operator, 2 for bracket, 3 for variable
+	var _lastTokenType = -1;
 	
 	// start analyze
 	var _len = string_length(_expr);
@@ -204,6 +216,7 @@ function expr_eval(_expr) {
 			var _varn = string_copy(_expr, _i, _j - _i);
 			ds_stack_push(_stnum, expr_get_sym(_varn, true));
 			_i = _j-1;
+			_lastTokenType = 3;
 		}
 		// If a number
 		else if(is_number(_ch)) {
@@ -222,6 +235,7 @@ function expr_eval(_expr) {
 			var _varn = string_copy(_expr, _i, _j - _i);
 			ds_stack_push(_stnum, new ExprSymbol("tempSym", ExprSymbolTypes.NUMBER, _varn));
 			_i = _j-1;
+			_lastTokenType = 0;
 		}
 		// If a bracket
 		else if(_ch == "(") {
@@ -238,6 +252,7 @@ function expr_eval(_expr) {
 			var _nres = expr_eval(_nexpr);
 			ds_stack_push(_stnum, _nres);
 			_i = _j;
+			_lastTokenType = 2;
 		}
 		// If an operation
 		else {
@@ -252,7 +267,10 @@ function expr_eval(_expr) {
 			}
 			if(!ds_map_exists(_prio, _opt))
 				throw "Expression error: "+ _expr +" - an unexisted operation " + _opt + " .";
-				
+			
+			if(_prio[? _opt][2] == 2 && _lastTokenType != 0 && _lastTokenType != 3) {
+				_opt = both_to_unary_prefix + _opt;
+			}
 			
 			// Caculation
 			while(ds_stack_size(_stopt)>0) {
@@ -266,7 +284,7 @@ function expr_eval(_expr) {
 				var _nopt = ds_stack_top(_stopt); ds_stack_pop(_stopt);
 				var _na = ds_stack_top(_stnum); ds_stack_pop(_stnum);
 				var _ans = new ExprSymbol();
-				if(_prio_top[2]) {
+				if(_prio_top[2] == 1) {
 					_ans = expr_cac(_nopt, _na);
 				}
 				else {
@@ -278,6 +296,7 @@ function expr_eval(_expr) {
 			
 			ds_stack_push(_stopt, _opt);
 			
+			_lastTokenType = 1;
 		}
 	}
 	
@@ -285,7 +304,7 @@ function expr_eval(_expr) {
 		var _nopt = ds_stack_top(_stopt); ds_stack_pop(_stopt);
 		var _na = ds_stack_top(_stnum); ds_stack_pop(_stnum);
 		var _ans = new ExprSymbol();
-		if(_nopt == "!") {
+		if(_prio[? _nopt][2] == 1) {
 			_ans = expr_cac(_nopt, _na);
 		}
 		else {
