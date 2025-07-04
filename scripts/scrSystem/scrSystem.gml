@@ -511,8 +511,11 @@ function background_load(_file = "") {
 	        program_directory, "Load Background File 加载背景文件");
         
     if(_file == "") return;
+
+	var _ext = filename_ext(_file);
+	_ext = string_lower(_ext);
     
-    switch(filename_ext(_file)) {
+    switch(_ext) {
     	case ".jpg":
     	case ".jpeg":
     	case ".png":
@@ -523,6 +526,9 @@ function background_load(_file = "") {
     	case ".mkv":
     		video_load(_file);
     		break;
+		default:
+			announcement_error("Unsupported background file format: " + filename_ext(_file));
+			break;
     }
 }
 
