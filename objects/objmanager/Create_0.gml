@@ -40,7 +40,7 @@ global.updatechannel = "STABLE";		// STABLE / BETA (not working for now)
 global.beatlineStyle = BeatlineStyles.BS_DEFAULT;
 global.musicDelay = 0;
 global.graphics = {
-	AA : 4,
+	AA : 2,
 	VSync : true
 };
 global.dropAdjustError = 0.125;
