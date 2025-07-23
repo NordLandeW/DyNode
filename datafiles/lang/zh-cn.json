@@ -109,7 +109,7 @@
     "anno_default_width": "设置默认宽度为",
     "error_config_file_corrupted": "检测到配置文件损坏。将还原所有的配置为默认值。",
     "anno_reload_config": "配置已重载。一部分配置可能需要重启游戏来生效。",
-    "start_page_hint": "F7: 切换无边框全屏\nF12: 查看快捷键 / 在线文档\nDyNode目前仅支持1920x1080的渲染分辨率。",
+    "start_page_hint": "F7: 切换无边框全屏\nF12: 查看快捷键 / 在线文档",
     "error_dym_note_load_failed": "导入谱面音符时出错，导入过程已终止。\n建议使用最新版本的 Dynamaker-modified 来导出谱面，你也可以选择向开发者反馈该错误。",
     "error_dym_bpm_load_failed": "未能读取谱面中的变 BPM 信息。\n建议使用最新版本的 Dynamaker-modified 来导出谱面的变 BPM 数据。",
     "error_default_width_must_be_real": "输入的默认宽度必须是一个实数。",

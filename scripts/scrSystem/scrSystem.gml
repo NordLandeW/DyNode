@@ -1303,15 +1303,13 @@ function load_config() {
 	
 	_check_set(_con, "theme", "themeAt");
 	_check_set(_con, "FPS", "fps");
-	_check_set(_con, "resolutionH");
-	_check_set(_con, "resolutionW");
 	_check_set(_con, "autosave");
 	_check_set(_con, "autoupdate");
 	_check_set(_con, "FMOD_MP3_DELAY");
 	_check_set(_con, "ANNOUNCEMENT_MAX_LIMIT");
 	_check_set(_con, "fullscreen");
 	if(variable_struct_exists(_con, "language"))
-		i18n_set_lang(_con.language);
+		i18n_set_lang(variable_struct_get(_con, "language"));
 	_check_set(_con, "simplify");
 	_check_set(_con, "updatechannel");
 	_check_set(_con, "graphics");
@@ -1346,8 +1344,6 @@ function save_config() {
 	fast_file_save(get_config_path(), SnapToJSON({
 		theme: global.themeAt,
 		FPS: global.fps,
-		resolutionW: global.resolutionW,
-		resolutionH: global.resolutionH,
 		version: VERSION,
 		autosave: global.autosave,
 		autoupdate: global.autoupdate,
