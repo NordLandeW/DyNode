@@ -267,10 +267,10 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
     var _obj = [objNote, objChain, objHold];
     _obj = _obj[_type];
     
+	/// @type {Id.Instance.objNote} 
     var _inst = instance_create_depth(mouse_x, mouse_y, 
                 0, _obj);
     
-	/// @self Id.Instance.objNote
     with(_inst) {
 		set_state(NOTE_STATES.ATTACH);
         width = _width;
@@ -297,7 +297,7 @@ function editor_get_note_attaching_center() {
 }
 
 /// @description Target at all selected notes, duplicate them to the next divided beat.
-function edtior_note_quick_duplicate() {
+function editor_note_duplicate_quick() {
 	if(timing_point_count() == 0) return;
 	var maxTime = -10000000;
 	var minTime = 0x7fffffff;

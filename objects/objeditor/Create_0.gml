@@ -10,8 +10,8 @@ editorSide = 0;                             // 0 down 1 left 2 right
 editorLRSide = false;                       // Special mode
 editorLRSideLock = false;                   // For special mode lock
 editorLastSide = 0;
-/// @type {Array<Id.Instance.objNote>} 
-editorNoteAttaching = -1;                   // instances that attached to cursor now
+/// @type {Array<Id.Instance.objNote>} instances that attached to cursor now
+editorNoteAttaching = -1;
 editorNoteAttachingCenter = 0;           // attached instances' center
 
 // Expressions

@@ -226,7 +226,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    }
 
         if(keycheck_down_ctrl(ord("D"))) {
-            edtior_note_quick_duplicate();
+            editor_note_duplicate_quick();
         }
     }
     
