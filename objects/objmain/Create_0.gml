@@ -4,6 +4,16 @@ depth = 0;
 // Make Original Background Layer Invisible
 
     layer_set_visible(layer_get_id("Background"), false);
+
+// FMODGMS Related
+
+    sampleRate = 0;
+    channel = undefined;
+    music = undefined;
+    channelPaused = false;		// Only used for time correction
+    musicLength = 0;
+    usingMP3 = false;			// For Latency Workaround
+    usingPitchShift = false;
     
 #region Optimization
 
@@ -16,14 +26,13 @@ depth = 0;
 #region Time Sources
 	
 	// To prevent unstable delay from music to chart
-	var _tsFun = function() {
-		nowPlaying = true;
-		nowTime = sfmod_channel_get_position(channel, sampleRate);
-	};
 	resumeDelay = 15;
 	timesourceResumeDelay =
 		time_source_create(time_source_game, resumeDelay/1000,
-		time_source_units_seconds, _tsFun, [], 1, time_source_expire_after);
+		time_source_units_seconds, function() {
+            nowPlaying = true;
+            nowTime = sfmod_channel_get_position(channel, sampleRate);
+	    }, [], 1, time_source_expire_after);
 	timesourceSyncVideo = 
 		time_source_create(time_source_game, 0.1,
 		time_source_units_seconds, function() {
@@ -165,6 +174,7 @@ depth = 0;
     chartMusicFile = "";
     chartFile = "";
     
+    /// @type {Array<Any>}
     chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
     /// @type {Array<Array<Any>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
@@ -377,16 +387,6 @@ depth = 0;
 	topbar = instance_create_depth(0, 0, 0, objTopBar);
 
 #endregion
-
-// FMODGMS Related
-
-    sampleRate = 0;
-    channel = undefined;
-    music = undefined;
-    channelPaused = false;		// Only used for time correction
-    musicLength = 0;
-    usingMP3 = false;			// For Latency Workaround
-    usingPitchShift = false;
     
 // Tool Related
 

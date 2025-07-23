@@ -1,7 +1,6 @@
 
 // In-Variables
 
-visible = false;
 animState = 1.0;
 animTarget = 0.0;
 animTargetX = 0.8;

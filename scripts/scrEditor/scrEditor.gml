@@ -131,7 +131,6 @@ function editor_select_get_area_position() {
 	var _pos;
 	with(objEditor) {
 		_pos = noteprop_to_xy(editorSelectAreaPosition.pos, editorSelectAreaPosition.time, editorSide);
-		_pos = [_pos.x, _pos.y];
 		_pos[2] = mouse_x;
 		_pos[3] = mouse_y;
 	}
@@ -269,7 +268,7 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
     _obj = _obj[_type];
     
     var _inst = instance_create_depth(mouse_x, mouse_y, 
-                depth, _obj);
+                0, _obj);
     
 	/// @self Id.Instance.objNote
     with(_inst) {
@@ -429,6 +428,7 @@ function operation_step_flush(_array) {
 	}
 }
 
+/// @param {Any} _to 
 function operation_do(_type, _from, _to = -1, _safe_ = false) {
 	if(_to != -1)
 		operation_synctime_set(_to.time);
@@ -525,7 +525,7 @@ function operation_undo() {
 		
 		operationPointer--;
 		
-		announcement_play(i18n_get("undo", operation_get_name(_type), string(array_length(_ops))));
+		announcement_play(i18n_get("undo", [operation_get_name(_type), string(array_length(_ops))]));
 		note_sort_request();
 		if(l > MAX_SELECTION_LIMIT) note_activation_reset();
 		// show_debug_message_safe("POINTER: "+ string(operationPointer));
@@ -561,8 +561,8 @@ function operation_redo() {
 					show_error("Unknown operation type.", true);
 			}
 		}
-		
-		announcement_play(i18n_get("redo", operation_get_name(_type), string(array_length(_ops))));
+
+		announcement_play(i18n_get("redo", [operation_get_name(_type), string(array_length(_ops))]));
 		note_sort_request();
 	}
 }
@@ -658,7 +658,7 @@ function timing_point_create(record = false) {
 	timing_point_add(_time, _bpm, _meter, record);
 	
     announcement_play(
-    	i18n_get("add_timing_point", format_time_ms(_time), string(mspb_to_bpm(_bpm)), string(_meter)), 
+    	i18n_get("add_timing_point", [format_time_ms(_time), string(mspb_to_bpm(_bpm)), string(_meter)]), 
     	5000);
 }
 
@@ -699,7 +699,7 @@ function timing_point_change(tp, record = false) {
 			operation_step_add(OPERATION_TYPE.TPCHANGE, _tpBefore, _tpAfter);
 		
 		timing_point_sort();
-		announcement_play(i18n_get("timing_point_change_success", tp.time, _nbpm, _nmeter), 5000);
+		announcement_play(i18n_get("timing_point_change_success", [tp.time, _nbpm, _nmeter]), 5000);
 	} catch (e) {
 		announcement_error(i18n_get("timing_point_change_err") + "\n[scale,0.5]" + string(e));
 		return;
@@ -727,7 +727,7 @@ function timing_fix(tpBefore, tpAfter) {
 				array_push(_affectedNotes, _noteArr[i]);
 		if(array_length(_affectedNotes) == 0)
 			return;
-		var _que = show_question(i18n_get("timing_fix_question", _timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)));
+		var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
 		if(!_que) return;
 		var _bar = [];
 		nl = array_length(_affectedNotes);
@@ -781,8 +781,8 @@ function timing_point_delete_at(_time, record = false) {
 			if(abs(timingPoints[i].time-_time) <= 1) {
 				var _tp = timingPoints[i];
 				announcement_play(
-					i18n_get("remove_timing_point", format_time_ms(_tp.time),
-    					string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)),
+					i18n_get("remove_timing_point", [format_time_ms(_tp.time),
+    					string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]),
 					5000);
     			
     			
@@ -806,8 +806,8 @@ function timing_point_duplicate(_time) {
     	timing_point_add(_time, _tp.beatLength, _tp.meter, true);
     	
     	announcement_play(
-    		i18n_get("copy_timing_point", format_time_ms(_time), 
-    			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)), 
+    		i18n_get("copy_timing_point", [format_time_ms(_time), 
+    			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]), 
 			5000);
     	
 	}

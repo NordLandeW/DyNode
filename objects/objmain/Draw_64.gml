@@ -74,7 +74,7 @@ _debug_str += "editorside: " + string(editor_get_editside()) + "\n";
 _debug_str += $"SAMPLERATE: {sampleRate}\n";
 _debug_str += $"Lst_key: {keyboard_lastkey}\n";
 if(instance_exists(editor))
-	_debug_str += "EDITMODE: " + string(editor.editorMode)+ "\n";
+	_debug_str += "EDITMODE: " + string(editor_get_editmode())+ "\n";
 draw_set_font(fMono16);
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);

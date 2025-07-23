@@ -257,15 +257,9 @@ function note_time_to_y(_time, _side) {
 }
 function noteprop_to_xy(_pos, _time, _side) {
 	if(_side == 0)
-		return {
-			x : note_pos_to_x(_pos, _side), 
-			y : note_time_to_y(_time, _side)
-		};
+		return [note_pos_to_x(_pos, _side), note_time_to_y(_time, _side)];
 	else
-		return {
-			x : note_time_to_y(_time, _side),
-			y : note_pos_to_x(_pos, _side)
-		};
+		return [note_time_to_y(_time, _side), note_pos_to_x(_pos, _side)];
 }
 // Struct is slow.
 function noteprop_set_xy(_pos, _time, _side) {
@@ -533,6 +527,7 @@ function lerp_a_pos(from, to, amount) {
 }
 
 function create_scoreboard(_x, _y, _dep, _dig, _align, _lim) {
+	/// @type {Id.Instance.objScoreBoard} 
     var _inst = instance_create_depth(_x, _y, _dep, objScoreBoard);
     _inst.align = _align;
     _inst.preZero = _dig;

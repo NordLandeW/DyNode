@@ -195,6 +195,7 @@ else
 	annosY = [];
 	animAnnoSpeed = 1 / room_speed;
 	
+	/// @type {Any} 
 	initVars = undefined;
 	initWithProject = false;
 	

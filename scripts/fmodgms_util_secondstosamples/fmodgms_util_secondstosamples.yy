@@ -6,7 +6,7 @@
   "name":"FMODGMS_Util_SecondsToSamples",
   "parent":{
     "name":"FMODGMS",
-    "path":"folders/Scripts/FMODGMS.yy",
+    "path":"folders/Extensions/FMODGMS.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

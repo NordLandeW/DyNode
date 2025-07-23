@@ -42,6 +42,7 @@ editorSelectCount = 0;
 editorSelectMultiple = false;               // selecting multiple notes
 editorSelectDragOccupied = false;           // dragging notes 
 editorSelectArea = false;                   // selecting area
+/// @type {Any}
 editorSelectAreaPosition = undefined;
 editorSelectInbound = false;                // if at least mouse is inbound one selected note
 editorSelectResetRequest = false;

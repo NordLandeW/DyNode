@@ -14,14 +14,14 @@
         
         if(_modchg != 0 || _groupchg != 0) {
         	set_div(beatlineDivs[beatlineNowGroup][beatlineNowMode], false);
-            announcement_play(i18n_get("beatline_divs", string(get_div()),
-            	chr(beatlineNowGroup+ord("A"))), 3000, "beatlineDiv");
+            announcement_play(i18n_get("beatline_divs", [string(get_div()),
+            	chr(beatlineNowGroup+ord("A"))]), 3000, "beatlineDiv");
         }
         
         if(keycheck_down(192)) {
         	if(editor_set_div())
-	        	announcement_play(i18n_get("beatline_divs", string(get_div()),
-	            	chr(beatlineNowGroup+ord("A"))), 3000, "beatlineDiv");
+	        	announcement_play(i18n_get("beatline_divs", [string(get_div()),
+	            	chr(beatlineNowGroup+ord("A"))]), 3000, "beatlineDiv");
         }
         
         animBeatlineTargetAlpha[0] += 0.7 * keycheck_down(vk_down);

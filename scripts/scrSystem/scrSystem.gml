@@ -944,7 +944,7 @@ function project_save_as(_file = "") {
 		
 		_file = $"{filename_path(_file)}{map_get_alt_title()}_{_corruption_file_id}.dyn";
 		
-		announcement_error($"保存项目时出现错误，项目文件可能损坏。原项目未改动，当前保存的项目位置为:{_file}\n错误信息:\n{e}");
+		announcement_error($"保存项目时出现错误。原项目未改动，当前保存的项目位置为:{_file}\n错误信息:\n{e}");
 	}
 	
 	try {

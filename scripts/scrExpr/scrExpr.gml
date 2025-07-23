@@ -338,7 +338,7 @@ function expr_exec(expr_seq) {
 		try {
 			_result = expr_eval(string_purify(_seqs[i]))
 		} catch (e) {
-			announcement_error(i18n_get("expr_catch_error", e, _seqs[i]));
+			announcement_error(i18n_get("expr_catch_error", [e, _seqs[i]]));
 			return -1;
 		}
 		// announcement_play($"已执行表达式：${_seqs[i]}");

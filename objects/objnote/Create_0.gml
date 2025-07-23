@@ -32,7 +32,8 @@ image_yscale = global.scaleYAdjust;
     finst = -999;					// Father instance id
     noteType = 0;					// 0 Note 1 Chain 2 Hold
     arrayPos = -1;					// Position in chartNotesArray
-    arrayPointer = undefined;		// Pointer to chartNotesArray
+    /// @type {Any} Pointer to chartNotesArray
+    arrayPointer = undefined;
     
     // For Editor
     origWidth = width;
@@ -74,6 +75,7 @@ image_yscale = global.scaleYAdjust;
     selectUnlock = false;			// If the state in last step is select
     selectTolerance = false;		// Make the notes display normally when being or might be selected
     attaching = false;				// If is a attaching note
+    /// @type {Any} 
     lastAttachBar = -1;
     dropWidthError = global.dropAdjustError;
     dropWidthAdjustable = false;

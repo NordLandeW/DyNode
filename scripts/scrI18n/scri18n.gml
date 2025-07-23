@@ -49,16 +49,19 @@ function i18n_get_lang() {
     return global.i18nCont[global.i18nLang].lang;
 }
 
-function i18n_get(context) {
+function i18n_get(context, args = []) {
+    if(!is_array(args))
+        args = [args];
+
     var _lang = global.i18nLang;
     if(!variable_struct_exists(global.i18nCont[_lang].content, context))
         _lang = global.i18nDefault;
     if(variable_struct_exists(global.i18nCont[_lang].content, context))
         context = variable_struct_get(global.i18nCont[_lang].content, context);
-    
-    if(argument_count>1) {
-        for(var i=1; i<argument_count; i++)
-            context = string_replace_all(context, "$"+string(i-1), string(argument[i]));
+
+    if(array_length(args) > 0) {
+        for(var i=0; i<array_length(args); i++)
+            context = string_replace_all(context, "$"+string(i), string(args[i]));
     }
     
     return context;
