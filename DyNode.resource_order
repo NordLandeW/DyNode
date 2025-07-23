@@ -22,7 +22,6 @@
     {"name":"instance","order":1,"path":"folders/Scripts/compatibility/instance.yy",},
     {"name":"object","order":2,"path":"folders/Scripts/compatibility/object.yy",},
     {"name":"texture","order":4,"path":"folders/Scripts/compatibility/texture.yy",},
-    {"name":"FMODGMS","order":10,"path":"folders/Scripts/FMODGMS.yy",},
     {"name":"Sequences","order":11,"path":"folders/Sequences.yy",},
     {"name":"Shaders","order":6,"path":"folders/Shaders.yy",},
     {"name":"Sounds","order":3,"path":"folders/Sounds.yy",},
