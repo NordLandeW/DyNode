@@ -450,17 +450,6 @@ function window_reset() {
 	);
 }
 
-function window_set_borderless_fullscreen(_state) {
-	if(_state && window_get_showborder()) {
-		window_set_showborder(false);
-		window_set_rectangle(0, 0, display_get_width(), display_get_height())
-	}
-	else if(!_state && !window_get_showborder()) {
-		window_reset();
-		window_set_showborder(true);
-	}
-}
-
 #endregion
 
 function in_between(x, l, r) {

@@ -26,6 +26,7 @@ enum OPERATION_TYPE {
 }
 
 function sOperation(_type, _from, _to) constructor {
+    /// @type {Enum.OPERATION_TYPE}
     opType = _type;
     fromProp = _from;
     toProp = _to;

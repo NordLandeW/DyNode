@@ -12,6 +12,7 @@
   "Folders":[
     {"$GMFolder":"","%Name":"Animation Curves","folderPath":"folders/Animation Curves.yy","name":"Animation Curves","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Extensions","folderPath":"folders/Extensions.yy","name":"Extensions","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Better Scaling","folderPath":"folders/Extensions/Better Scaling.yy","name":"Better Scaling","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Clean Shapes","folderPath":"folders/Extensions/Clean Shapes.yy","name":"Clean Shapes","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"(System)","folderPath":"folders/Extensions/Clean Shapes/(System).yy","name":"(System)","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Batches","folderPath":"folders/Extensions/Clean Shapes/Batches.yy","name":"Batches","resourceType":"GMFolder","resourceVersion":"2.0",},
@@ -71,7 +72,6 @@
     {"$GMFolder":"","%Name":"Paths","folderPath":"folders/Paths.yy","name":"Paths","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Rooms","folderPath":"folders/Rooms.yy","name":"Rooms","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"Scripts","folderPath":"folders/Scripts.yy","name":"Scripts","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Better Scaling","folderPath":"folders/Scripts/Better Scaling.yy","name":"Better Scaling","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"compatibility","folderPath":"folders/Scripts/compatibility.yy","name":"compatibility","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"instance","folderPath":"folders/Scripts/compatibility/instance.yy","name":"instance","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"object","folderPath":"folders/Scripts/compatibility/object.yy","name":"object","resourceType":"GMFolder","resourceVersion":"2.0",},

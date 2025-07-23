@@ -89,7 +89,7 @@ if(room == rMain) {
 	
 	
 	
-	// For New Project Initialization --- related codes in rStartPage or somewhere else.
+	// For New Project Initialization --- related codes in rStartPage and rProjectInit
 		// If there is a init struct
 		if(initVars != undefined) {
 			var _str = initVars;
