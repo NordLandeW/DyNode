@@ -34,7 +34,7 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 		}
 		if(symType == ExprSymbolTypes.FUNCTION && !is_method(_val))
 			throw $"Symbol {name} is a method, which cannot be set to {_val}";
-		if(symType == ExprSymbolTypes.STRING && !is_method(_val))
+		if(symType == ExprSymbolTypes.STRING && !is_string(_val))
 			throw $"Symbol {name} is a string, which cannot be set to {_val}";
 		
 		value = _val;
@@ -64,7 +64,7 @@ function expr_set_var(name, val) {
 function expr_get_var(name) {
 	if(!variable_struct_exists(global.__expr_symbols, name))
 		throw $"Variable {name} was not defined.";
-	return variable_struct_get(global.__expr_symbols, name).value;
+	return global.__expr_symbols[$ name].value;
 }
 
 function expr_get_sym(name, init_not_existed = false) {
@@ -75,13 +75,13 @@ function expr_get_sym(name, init_not_existed = false) {
 			throw $"Variable {name} was not defined before reading.";
 	}
 		
-	return variable_struct_get(global.__expr_symbols, name);
+	return global.__expr_symbols[$ name];
 }
 
 function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 	if(is_undefined(_a) || is_undefined(_b))
 		throw $"Expression error: operator {_opt} need arguments to operate.";
-	show_debug_message_safe($"EXPR CAC {_opt}, {_a}, {_b}")
+	// show_debug_message_safe($"EXPR CAC {_opt}, {_a}, {_b}")
 	var _va = (is_struct(_a)?_a.get_value():_a), _vb = (is_struct(_b)?_b.get_value():_b);
 	var _res = new ExprSymbol();
 	switch(_opt) {
@@ -162,41 +162,41 @@ function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 	return _res;
 }
 
+global.__expr_prio = {};
+///									precedence, associativity, 	unary(1) & both(2)
+global.__expr_prio[$ "!"] 	= 		[2, 		1, 				1];
+global.__expr_prio[$ "*"] 	= 		[3, 		0, 				0];
+global.__expr_prio[$ "/"] 	= 		[3, 		0, 				0];
+global.__expr_prio[$ "%"] 	= 		[3, 		0, 				0];
+global.__expr_prio[$ "+"] 	= 		[4, 		0, 				2];
+global.__expr_prio[$ "-"] 	= 		[4, 		0, 				2];
+global.__expr_prio[$ "`+"] 	= 		[4, 		1, 				1];
+global.__expr_prio[$ "`-"] 	= 		[4, 		1, 				1];
+global.__expr_prio[$ "<<"] 	= 		[5, 		0, 				0];
+global.__expr_prio[$ ">>"] 	= 		[5, 		0, 				0];
+global.__expr_prio[$ ">" ] 	= 		[6, 		0, 				0];
+global.__expr_prio[$ ">="] 	= 		[6, 		0, 				0];
+global.__expr_prio[$ "<" ] 	= 		[6, 		0, 				0];
+global.__expr_prio[$ "<=" ] =		[6, 		0, 				0];
+global.__expr_prio[$ "==" ] =		[7, 		0, 				0];
+global.__expr_prio[$ "!=" ] =		[7, 		0, 				0];
+global.__expr_prio[$ "&"] 	= 		[8, 		0, 				0];
+global.__expr_prio[$ "^"] 	= 		[9, 		0, 				0];
+global.__expr_prio[$ "|"] 	= 		[10, 		0, 				0];
+global.__expr_prio[$ "&&"] 	= 		[11, 		0, 				0];
+global.__expr_prio[$ "||"] 	= 		[12, 		0, 				0];
+global.__expr_prio[$ "="] 	= 		[13, 		1, 				0];
+
 ///@desc Expression Evaluator
 function expr_eval(_expr) {
 	_expr += " ";
-	show_debug_message("CAC EXPR "+_expr);
-	// Define the priority
-	var _prio = ds_map_create();
-	///						precedence, associativity, 	unary(1) & both(2)
-	_prio[? "!"] 	= 		[2, 		1, 				1]		;
-	_prio[? "*"] 	= 		[3, 		0, 				0]		;
-	_prio[? "/"] 	= 		[3, 		0, 				0]		;
-	_prio[? "%"] 	= 		[3, 		0, 				0]		;
-	_prio[? "+"] 	= 		[4, 		0, 				2]		;
-	_prio[? "-"] 	= 		[4, 		0, 				2]		;
-	_prio[? "`+"] 	= 		[4, 		1, 				1]		;
-	_prio[? "`-"] 	= 		[4, 		1, 				1]		;
-	_prio[? "<<"] 	= 		[5, 		0, 				0]		;
-	_prio[? ">>"] 	= 		[5, 		0, 				0]		;
-	_prio[? ">" ] 	= 		[6, 		0, 				0]		;
-	_prio[? ">="] 	= 		[6, 		0, 				0]		;
-	_prio[? "<" ] 	= 		[6, 		0, 				0]		;
-	_prio[? "<=" ] 	=		[6, 		0, 				0]		;
-	_prio[? "==" ] 	=		[7, 		0, 				0]		;
-	_prio[? "!=" ] 	=		[7, 		0, 				0]		;
-	_prio[? "&"] 	= 		[8, 		0, 				0]		;
-	_prio[? "^"] 	= 		[9, 		0, 				0]		;
-	_prio[? "|"] 	= 		[10, 		0, 				0]		;
-	_prio[? "&&"] 	= 		[11, 		0, 				0]		;
-	_prio[? "||"] 	= 		[12, 		0, 				0]		;
-	_prio[? "="] 	= 		[13, 		1, 				0]		;
+	// show_debug_message("CAC EXPR "+_expr);
 
+	static _prio = global.__expr_prio;
 	var both_to_unary_prefix = "`";
 	
-	// Define some ds
-	var _stnum = ds_stack_create();
-	var _stopt = ds_stack_create();
+	var _stnum = [];
+	var _stopt = [];
 	// 0 for number, 1 for operator, 2 for bracket, 3 for variable
 	var _lastTokenType = -1;
 	
@@ -214,7 +214,7 @@ function expr_eval(_expr) {
 				_ch = string_char_at(_expr, _j);
 			}
 			var _varn = string_copy(_expr, _i, _j - _i);
-			ds_stack_push(_stnum, expr_get_sym(_varn, true));
+			array_push(_stnum, expr_get_sym(_varn, true));
 			_i = _j-1;
 			_lastTokenType = 3;
 		}
@@ -233,7 +233,7 @@ function expr_eval(_expr) {
 			if(_subdot > 1)
 				throw "Expression error: "+ _expr +" - invalid real number."
 			var _varn = string_copy(_expr, _i, _j - _i);
-			ds_stack_push(_stnum, new ExprSymbol("tempSym", ExprSymbolTypes.NUMBER, _varn));
+			array_push(_stnum, new ExprSymbol("tempSym", ExprSymbolTypes.NUMBER, _varn));
 			_i = _j-1;
 			_lastTokenType = 0;
 		}
@@ -250,7 +250,7 @@ function expr_eval(_expr) {
 				throw "Expression error: " + _expr + " - Bracket match error.";
 			var _nexpr = string_copy(_expr, _i+1, _j-_i-1);
 			var _nres = expr_eval(_nexpr);
-			ds_stack_push(_stnum, _nres);
+			array_push(_stnum, _nres);
 			_i = _j;
 			_lastTokenType = 2;
 		}
@@ -258,74 +258,68 @@ function expr_eval(_expr) {
 		else {
 			var _opt = _ch;
 			_ch = string_char_at(_expr, _i + 1);
-			if(ds_map_exists(_prio, _opt+_ch)) {
+			if(variable_struct_exists(_prio, _opt+_ch)) {
 				_i ++ ;
 				_opt += _ch;
 				_ch = string_char_at(_expr, _i + 1);
 				if(!(is_alpha(_ch) || _ch = "_" || is_number(_ch) || _ch == "(" || _ch == " "))	
 					throw "Expression error: "+ _expr +" - an unexisted operation.";
 			}
-			if(!ds_map_exists(_prio, _opt))
+			if(!variable_struct_exists(_prio, _opt))
 				throw "Expression error: "+ _expr +" - an unexisted operation " + _opt + " .";
 			
-			if(_prio[? _opt][2] == 2 && _lastTokenType != 0 && _lastTokenType != 3) {
+			if(_prio[$ _opt][2] == 2 && _lastTokenType != 0 && _lastTokenType != 3) {
 				_opt = both_to_unary_prefix + _opt;
 			}
 			
 			// Caculation
-			while(ds_stack_size(_stopt)>0) {
-				var _prio_now = _prio[? _opt];
-				var _prio_top = _prio[? ds_stack_top(_stopt)];
+			while(array_length(_stopt)>0) {
+				var _prio_now = _prio[$ _opt];
+				var _prio_top = _prio[$ array_top(_stopt)];
 				var _rtol = _prio_now[0] == _prio_top[0] && _prio_now[1];
 				
 				if(_rtol || _prio_now[0] < _prio_top[0])
 					break;
-				
-				var _nopt = ds_stack_top(_stopt); ds_stack_pop(_stopt);
-				var _na = ds_stack_top(_stnum); ds_stack_pop(_stnum);
-				var _ans = new ExprSymbol();
+
+				var _nopt = array_top(_stopt); array_pop(_stopt);
+				var _na = array_top(_stnum); array_pop(_stnum);
+				var _ans = undefined;
 				if(_prio_top[2] == 1) {
 					_ans = expr_cac(_nopt, _na);
 				}
 				else {
-					var _nb = ds_stack_top(_stnum); ds_stack_pop(_stnum);
+					var _nb = array_top(_stnum); array_pop(_stnum);
 					_ans = expr_cac(_nopt, _nb, _na);
 				}
-				ds_stack_push(_stnum, _ans);
+				array_push(_stnum, _ans);
 			}
 			
-			ds_stack_push(_stopt, _opt);
+			array_push(_stopt, _opt);
 			
 			_lastTokenType = 1;
 		}
 	}
 	
-	while(ds_stack_size(_stopt)>0) {
-		var _nopt = ds_stack_top(_stopt); ds_stack_pop(_stopt);
-		var _na = ds_stack_top(_stnum); ds_stack_pop(_stnum);
+	while(array_length(_stopt)>0) {
+		var _nopt = array_top(_stopt); array_pop(_stopt);
+		var _na = array_top(_stnum); array_pop(_stnum);
 		var _ans = new ExprSymbol();
-		if(_prio[? _nopt][2] == 1) {
+		if(_prio[$ _nopt][2] == 1) {
 			_ans = expr_cac(_nopt, _na);
 		}
 		else {
-			var _nb = ds_stack_top(_stnum); ds_stack_pop(_stnum);
+			var _nb = array_top(_stnum); array_pop(_stnum);
 			_ans = expr_cac(_nopt, _nb, _na);
 		}
-		ds_stack_push(_stnum, _ans);
+		array_push(_stnum, _ans);
 	}
 	
 	// Check
-	if(ds_stack_size(_stnum)>1)
+	if(array_length(_stnum)>1)
 		throw "Expression error: " + _expr;
-	var _res = ds_stack_top(_stnum);
-		
+	var _res = array_top(_stnum);
 	
-	// Clean up
-	ds_map_destroy(_prio);
-	ds_stack_destroy(_stnum);
-	ds_stack_destroy(_stopt);
-	
-	show_debug_message("EXPR " + _expr + " RES "+ string(_res));
+	// show_debug_message("EXPR " + _expr + " RES "+ string(_res));
 	
 	return _res;
 }
@@ -336,7 +330,7 @@ function expr_exec(expr_seq) {
 	var _result = new ExprSymbol();
 	for(var i=0, l=array_length(_seqs); i<l; i++) {
 		try {
-			_result = expr_eval(string_purify(_seqs[i]))
+			_result = expr_eval(string_trim(_seqs[i]))
 		} catch (e) {
 			announcement_error(i18n_get("expr_catch_error", [e, _seqs[i]]));
 			return -1;
@@ -354,15 +348,4 @@ function is_alpha(ch) {
 
 function is_number(ch) {
 	return in_between(ord(ch), ord("0"), ord("9"))
-}
-
-///@desc Return an string that has no blank in front and end.
-function string_purify(_str) {
-	while(string_length(_str)>0 && ord(string_char_at(_str, 1))<=32)
-		_str = string_delete(_str, 1, 1);
-	while(string_length(_str)>0 && ord(string_char_at(_str, string_length(_str)))<=32)
-		_str = string_delete(_str, string_length(_str), 1);
-	
-	//show_debug_message(_str);
-	return _str;
 }
