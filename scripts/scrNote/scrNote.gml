@@ -194,7 +194,7 @@ function note_delete_all() {
 		ds_map_clear(chartNotesMap[1]);
 		ds_map_clear(chartNotesMap[2]);
 		
-		instance_activate_all();
+		note_activate_all();
 		with(objNote) arrayPos = -1;
 		instance_destroy(objNote);
 		DyCore_clear_notes();
@@ -202,7 +202,7 @@ function note_delete_all() {
 }
 
 function note_delete_all_manually(_record = true) {
-	instance_activate_all();
+	note_activate_all();
 	with(objNote) {
 		if(noteType != 3) {
 			recordRequest = _record;
@@ -271,10 +271,22 @@ function note_check_and_activate(_posistion_in_array) {
 
 function note_deactivate(inst) {
 	instance_deactivate_object(inst);
+	global.activationMan.deactivate(inst);
 }
 
 function note_activate(inst) {
 	instance_activate_object(inst);
+	global.activationMan.activate(inst);
+}
+
+function note_activate_all() {
+	instance_activate_object(objNote);
+	global.activationMan.activate_all();
+}
+
+function note_deactivate_all() {
+	with(objNote) global.activationMan.deactivate(id);
+	instance_deactivate_object(objNote);
 }
 
 function note_select_reset(inst = undefined) {
@@ -288,7 +300,7 @@ function note_select_reset(inst = undefined) {
 }
 
 function note_activation_reset() {
-	instance_deactivate_object(objNote);
+	note_deactivate_all();
 	with(objMain) {
 		ds_map_clear(deactivationQueue);
 		for(var i=0; i<chartNotesCount; i++)

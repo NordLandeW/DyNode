@@ -843,7 +843,7 @@ function _setup_xml_compability_variables() {
 
 /// surprise
 function chart_randomize() {
-	instance_activate_all();
+	note_activate_all();
 	with(objNote) {
 		if(noteType != 3) {
 			origProp = get_prop();
@@ -874,7 +874,7 @@ function advanced_expr() {
 		var _success = 1;
 		
 		if(_global)
-			instance_activate_all();
+			note_activate_all();
 		
 		with(objNote) {
 			if(noteType != 3)
@@ -959,8 +959,8 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 		announcement_error($"不合法的修正参数{_limit}。请使用大于零的误差。");
 		return;
 	}
-	
-	instance_activate_object(objNote);
+
+	note_activate_all();
 	var notes_to_fix = [];
 	for(var i=0, l=array_length(_array); i < l; i++) {
 		if(i==0) {

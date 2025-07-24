@@ -56,6 +56,9 @@ global.ANNOUNCEMENT_MAX_LIMIT = 7;
 global.VIDEO_UPDATE_FREQUENCY = 60;
 global.PROJECT_COMPRESSION_LEVEL = 11;		// zstd compression level. (0~22)
 
+// Singletons init
+global.activationMan = new Activationmanager();
+
 // Themes Init
 
 theme_init();

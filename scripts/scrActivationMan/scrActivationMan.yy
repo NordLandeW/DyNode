@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scrActivationMan",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scrActivationMan",
+  "parent":{
+    "name":"Scripts",
+    "path":"folders/Scripts.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

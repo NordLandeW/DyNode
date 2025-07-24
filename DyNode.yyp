@@ -282,6 +282,7 @@
     {"id":{"name":"kawase_get_surface","path":"scripts/kawase_get_surface/kawase_get_surface.yy",},},
     {"id":{"name":"kawase_get_width","path":"scripts/kawase_get_width/kawase_get_width.yy",},},
     {"id":{"name":"object_get_depth","path":"scripts/object_get_depth/object_get_depth.yy",},},
+    {"id":{"name":"scrActivationMan","path":"scripts/scrActivationMan/scrActivationMan.yy",},},
     {"id":{"name":"scrConstructor","path":"scripts/scrConstructor/scrConstructor.yy",},},
     {"id":{"name":"scrDyCore","path":"scripts/scrDyCore/scrDyCore.yy",},},
     {"id":{"name":"scrEditor","path":"scripts/scrEditor/scrEditor.yy",},},

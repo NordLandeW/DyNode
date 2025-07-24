@@ -1,7 +1,7 @@
 /// @description Delete id in array and map
 
 if(noteType == 2) {
-	instance_activate_object(sinst);
+	note_activate(sinst);
 	instance_destroy(sinst);
 }
 
