@@ -104,8 +104,8 @@ function build_note(_id, _type, _time, _position, _width,
     	if(_selecting) set_state(NOTE_STATES.SELECTED);
     }
     with(objMain) {
-        array_push(chartNotesArray, _inst.get_prop(false, true));
-		DyCore_insert_note(json_stringify(_inst.get_prop(false)));
+        array_push(chartNotesArray, _inst.get_prop(true));
+		DyCore_insert_note(json_stringify(_inst.get_prop()));
         if(ds_map_exists(chartNotesMap[_inst.side], _id)) {
             show_error_async("Duplicate Note ID " + _id + " in side " 
                 + string(_side), false);
@@ -117,7 +117,7 @@ function build_note(_id, _type, _time, _position, _width,
     }
     
     if(_record)
-    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(false), -1);
+    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(), -1);
     
     return _inst;
 }

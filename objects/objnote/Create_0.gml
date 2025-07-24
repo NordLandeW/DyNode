@@ -243,9 +243,9 @@ image_yscale = global.scaleYAdjust;
         
     }
 
-    function get_prop(_fromxml = false, _set_pointer = false) {
+    function get_prop(_set_pointer = false) {
     	var _prop = {
-        	time : _fromxml?bar:time,
+        	time : time,
         	side : side,
         	width : width,
         	position : position,
