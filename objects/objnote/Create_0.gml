@@ -613,7 +613,7 @@ image_yscale = global.scaleYAdjust;
                     editor_lrside_lock_set(true);
                     return;
                 }
-                var _note = build_note(random_id(9), noteType, time, position, width, -1, side, false, true,
+                var _note = build_note(random_id(9), noteType, time, position, width, -1, side, true,
                             _toSelectState);
                 
                 note_outscreen_check();

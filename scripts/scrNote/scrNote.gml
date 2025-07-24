@@ -67,7 +67,7 @@ function note_sort_request() {
 }
 
 function build_note(_id, _type, _time, _position, _width, 
-	_subid, _side, _fromxml = false, _record = false, _selecting = false) {
+	_subid, _side, _record = false, _selecting = false) {
     var _obj = undefined;
     switch(_type) {
         case "NORMAL":
@@ -93,17 +93,10 @@ function build_note(_id, _type, _time, _position, _width,
     var _inst = instance_create_depth(0, 0, 0, _obj);
     _inst.width = real(_width);
     _inst.side = real(_side);
-    // _inst.offset = real(_time);
-    if(_fromxml)
-        _inst.bar = real(_time);
-    else
-        _inst.time = _time;
+	_inst.time = _time;
     _inst.position = real(_position);
     _inst.nid = _id;
     _inst.sid = _subid;
-    
-    if(_fromxml)
-        _inst.position += _inst.width/2;
     
     with(_inst) {
     	_prop_init(true);
@@ -111,8 +104,8 @@ function build_note(_id, _type, _time, _position, _width,
     	if(_selecting) set_state(NOTE_STATES.SELECTED);
     }
     with(objMain) {
-        array_push(chartNotesArray, _inst.get_prop(_fromxml, true));
-		DyCore_insert_note(json_stringify(_inst.get_prop(_fromxml)));
+        array_push(chartNotesArray, _inst.get_prop(false, true));
+		DyCore_insert_note(json_stringify(_inst.get_prop(false)));
         if(ds_map_exists(chartNotesMap[_inst.side], _id)) {
             show_error_async("Duplicate Note ID " + _id + " in side " 
                 + string(_side), false);
@@ -124,7 +117,7 @@ function build_note(_id, _type, _time, _position, _width,
     }
     
     if(_record)
-    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(_fromxml), -1);
+    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(false), -1);
     
     return _inst;
 }
@@ -132,9 +125,9 @@ function build_note(_id, _type, _time, _position, _width,
 function build_hold(_id, _time, _position, _width, _subid, _subtime,
 					_side, _record = false, _selecting = false) {
 	var _sinst = build_note(_subid, 3, _subtime, _position, _width, -1, _side,
-							false, false, _selecting);
+							false, _selecting);
 	var _inst = build_note(_id, 2, _time, _position, _width, _subid, 
-						   _side, false, false, _selecting);
+						   _side, false, _selecting);
 	_sinst.beginTime = _time;
 	// assert(_inst.sinst == _sinst);
 	if(_record)
@@ -146,7 +139,7 @@ function build_hold(_id, _time, _position, _width, _subid, _subtime,
 function build_note_withprop(prop, record = false, selecting = false) {
 	if(prop.noteType < 2) {
 		return build_note(random_id(9), prop.noteType, prop.time, prop.position, 
-			prop.width, "-1", prop.side, false, record, selecting);
+			prop.width, "-1", prop.side, record, selecting);
 	}
 	else {
 		return build_hold(random_id(9), prop.time, prop.position, prop.width,

@@ -17,7 +17,6 @@
     {"name":"Paths","order":4,"path":"folders/Paths.yy",},
     {"name":"Rooms","order":10,"path":"folders/Rooms.yy",},
     {"name":"Scripts","order":5,"path":"folders/Scripts.yy",},
-    {"name":"Better Scaling","order":11,"path":"folders/Scripts/Better Scaling.yy",},
     {"name":"compatibility","order":1,"path":"folders/Scripts/compatibility.yy",},
     {"name":"instance","order":1,"path":"folders/Scripts/compatibility/instance.yy",},
     {"name":"object","order":2,"path":"folders/Scripts/compatibility/object.yy",},

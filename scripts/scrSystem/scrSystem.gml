@@ -397,7 +397,7 @@ function map_import_osu(_file = "") {
 	                			case 2:
 	                				var _x = real(_grid[i][0]);
 	                				var _y = real(_grid[i][1]);
-	                				build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0, false);
+	                				build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
 	                				break;
 	                			case 3: // Mania Mode
 	                				var _x = real(_grid[i][0]);
@@ -406,7 +406,7 @@ function map_import_osu(_file = "") {
 	                					build_hold(random_id(9), _ntime, _x / 512 * 5, 1.0, random_id(9), _subtim, 0);
 	                				} 
 	                				else
-	                					build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0, false);
+	                					build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
 	                				break;
 	                		}
                 		}
