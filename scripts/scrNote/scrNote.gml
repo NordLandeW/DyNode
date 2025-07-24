@@ -53,7 +53,10 @@ function note_sort_all() {
     		if(chartNotesArray[i].inst > 0)
 				chartNotesArray[i].inst.arrayPos = i;
     	
-    	while(array_length(chartNotesArray) > 0 && array_last(chartNotesArray).inst < 0) {
+    	while(array_length(chartNotesArray) > 0) {
+			/// @type {Any} 
+			var str = array_last(chartNotesArray);
+			if(str.inst >= 0) break;
     		array_pop(chartNotesArray);
     		chartNotesCount --;
     	}
