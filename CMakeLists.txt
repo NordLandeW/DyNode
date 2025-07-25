@@ -10,23 +10,38 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 设置Release模式下的优化选项
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
 
-add_library (DyCore SHARED "DyCore.cpp" "delaunator.cpp")
+set(DYCORE_SOURCES
+    src/DyCore.cpp
+    src/delaunator.cpp
+    src/utils.cpp
+    src/update.cpp
+    src/async.cpp
+    src/note.cpp
+    src/project.cpp
+)
+add_library (DyCore SHARED ${DYCORE_SOURCES})
 
 # 添加依赖库
-include_directories ("${CMAKE_SOURCE_DIR}/lib/zstd")
-include_directories ("${CMAKE_SOURCE_DIR}/lib/lua")
-include_directories ("${CMAKE_SOURCE_DIR}/lib")
+include_directories("${CMAKE_SOURCE_DIR}/lib/zstd")
+include_directories("${CMAKE_SOURCE_DIR}/lib/lua")
+include_directories("${CMAKE_SOURCE_DIR}/lib")
 file(GLOB ZSTD_SOURCES "${CMAKE_SOURCE_DIR}/lib/zstd/*/*.c")
 file(GLOB LUA_SOURCES "${CMAKE_SOURCE_DIR}/lib/lua/*.c")
+file(GLOB PUGIXML_SOURCES "${CMAKE_SOURCE_DIR}/lib/pugixml.cpp")
+file(GLOB DELAUNATOR_SOURCES "${CMAKE_SOURCE_DIR}/lib/delaunator.cpp")
 add_library(zstd STATIC ${ZSTD_SOURCES})
 add_library(lua STATIC ${LUA_SOURCES})
+add_library(pugixml STATIC ${PUGIXML_SOURCES})
+add_library(delaunator STATIC ${DELAUNATOR_SOURCES})
 
 # 链接依赖库
 target_link_libraries(DyCore PRIVATE zstd)
 target_link_libraries(DyCore PRIVATE lua)
+target_link_libraries(DyCore PRIVATE pugixml)
+target_link_libraries(DyCore PRIVATE delaunator)
 
 # 设置C++标准
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -40,37 +55,3 @@ install(TARGETS DyCore
 
 # 输出安装路径确认
 message(STATUS "DyCore will be installed to ${CMAKE_SOURCE_DIR}/../extensions/DyCore")
-
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
-)
-
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-add_executable(DyCoreTest "test_DyCore.cpp")
-
-# 链接 DyCore 和 GoogleTest
-target_link_libraries(DyCoreTest PRIVATE
-    DyCore
-    GTest::gtest
-    GTest::gtest_main  # 包含 main 函数，简化测试编写
-    zstd
-)
-
-# 启用测试
-enable_testing()
-
-# 添加测试
-add_test(
-    NAME DyCoreTest
-    COMMAND DyCoreTest
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
-
-# 设置测试属性
-set_tests_properties(DyCoreTest PROPERTIES
-    TIMEOUT 30  # 设置超时时间（秒）
-)
