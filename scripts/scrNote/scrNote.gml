@@ -153,7 +153,7 @@ function build_note_withprop(prop, record = false, selecting = false) {
 
 // This function can only be accessed in destroy event.
 function note_delete(_inst, _record = false) {
-	if(!instance_exists(_inst)) {
+	if(!note_exists(_inst)) {
 		show_debug_message("!!!Warning!!! You're trying to delete an unexisting/deactiaved note.")
 		return;
 	}
@@ -250,7 +250,7 @@ function note_check_and_activate(_posistion_in_array) {
 		_struct.inst.arrayPos = _posistion_in_array;
 	else
 		return 0;
-	if(instance_exists(_struct.inst)) {
+	if(note_exists(_struct.inst)) {
 		return 0;
 	}
 	var _str = _struct;
@@ -287,6 +287,10 @@ function note_activate_all() {
 function note_deactivate_all() {
 	with(objNote) global.activationMan.deactivate(id);
 	instance_deactivate_object(objNote);
+}
+
+function note_exists(inst) {
+	return global.activationMan.is_activated(inst);
 }
 
 function note_select_reset(inst = undefined) {

@@ -64,13 +64,13 @@ if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
 }
 
 // If no longer visible then deactivate self
-if(!drawVisible && nodeAlpha < EPS && infoAlpha < EPS && !global.activationMan.is_activated(finst)) {
+if(!drawVisible && nodeAlpha < EPS && infoAlpha < EPS && !note_exists(finst)) {
 	note_deactivate(id);
 	return;
 }
 
 // Update Highlight Line's Position
-if(_editMode < 5 && objEditor.editorHighlightLine && global.activationMan.is_activated(id)) {
+if(_editMode < 5 && objEditor.editorHighlightLine && note_exists(id)) {
 	if(stateType == NOTE_STATES.SELECTED && isDragging || stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB
 		|| ((stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.DROP) && id == editor_get_note_attaching_center())) {
 		objEditor.editorHighlightTime = time;

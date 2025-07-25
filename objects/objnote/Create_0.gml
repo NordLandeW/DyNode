@@ -118,7 +118,7 @@ image_yscale = global.scaleYAdjust;
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
             priority = priority - arrayPos*16;
-            if(noteType == 3 && instance_exists(finst))
+            if(noteType == 3 && note_exists(finst))
                 priority = finst.priority;
         }
         
@@ -423,7 +423,7 @@ image_yscale = global.scaleYAdjust;
                 break;
             case NOTE_STATES.SELECTED:
                 state = stateSelected;
-                if(instance_exists(sinst)) {
+                if(note_exists(sinst)) {
                     origLength = sinst.time - time;
                     origSubTime = sinst.time;
                 }
