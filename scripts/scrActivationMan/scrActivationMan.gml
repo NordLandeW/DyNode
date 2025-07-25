@@ -19,6 +19,7 @@ function Activationmanager() constructor {
     }
 
     static is_activated = function(inst) {
+        if(inst < 0) return false;
         var instr = string(inst);
         return !variable_struct_exists(deactivatedPool, instr);
     }
