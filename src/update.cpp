@@ -7,7 +7,6 @@
 
 #include "utils.h"
 
-// 核心函数
 double executeCmdScript(const std::wstring& _workDir) {
     const std::wstring workDir = _workDir;
     std::wstring script =

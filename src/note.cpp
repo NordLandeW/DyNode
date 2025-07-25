@@ -43,7 +43,6 @@ int delete_note(Note note) {
     mtxSaveProject.lock();
     currentNoteMap.erase(note.inst);
     mtxSaveProject.unlock();
-    // print_debug_message("Delete note at:" + std::to_string(note.time));
     return 0;
 }
 
