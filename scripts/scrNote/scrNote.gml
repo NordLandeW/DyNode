@@ -44,10 +44,10 @@ function note_recac_stats() {
 
 function note_sort_all() {
 	var startTime = get_timer();
-    var _f = function(_a, _b) {
-        return sign(_a.time == _b.time ? int64(_a.inst) - int64(_b.inst) : _a.time - _b.time);
-    }
-    quick_sort(objMain.chartNotesArray, _f);
+    var _f = function (_x) {
+		return _x.time;
+	}
+    objMain.chartNotesArray = extern_index_sort(objMain.chartNotesArray, _f);
 	var endTime = get_timer();
 	show_debug_message("Note sorting took " + string((endTime - startTime)/1000) + "ms");
     

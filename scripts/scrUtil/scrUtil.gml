@@ -954,3 +954,34 @@ function quick_sort(array, cmp_func_or_type, l = -1, r = -1) {
 	quick_sort(array, cmp_func_or_type, l, j);
 	quick_sort(array, cmp_func_or_type, i, r);
 }
+
+/// @description Using extern extension to speed up the index sorting.
+/// @param {Array} array The array to sort.
+/// @param {Function} extract_value_func The function to extract the value for sorting. Should return a real.
+function extern_index_sort(array, extract_value_func) {
+	static buff = -1;
+	var buffTargetSize = array_length(array) * (8+8);
+	if(!buffer_exists(buff) || buffer_get_size(buff) < buffTargetSize) {
+		if(!buffer_exists(buff))
+			buff = buffer_create(buffTargetSize * 2, buffer_fixed, 1);
+		else
+			buff = buffer_resize(buff, buffTargetSize * 2);
+	}
+	buffer_seek(buff, buffer_seek_start, 0);
+	for(var i=0, l=array_length(array); i<l; i++) {
+		buffer_write(buff, buffer_f64, extract_value_func(array[i]));
+		buffer_write(buff, buffer_f64, i);
+	}
+
+	DyCore_index_sort(buffer_get_address(buff), array_length(array));
+
+	buffer_seek(buff, buffer_seek_start, 8);
+	var _newArray = array_create(array_length(array));
+	for(var i=0, l=array_length(array); i<l; i++) {
+		var _index = buffer_read(buff, buffer_f64);
+		_newArray[i] = array[_index];
+		buffer_seek(buff, buffer_seek_relative, 8);
+	}
+
+	return _newArray;
+}
