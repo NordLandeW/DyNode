@@ -21,6 +21,7 @@ set(DYCORE_SOURCES
     src/async.cpp
     src/note.cpp
     src/project.cpp
+    src/compress.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 
