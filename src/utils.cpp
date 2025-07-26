@@ -10,7 +10,6 @@
 
 #include "api.h"
 
-
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
 }
@@ -103,5 +102,11 @@ std::string random_string(int length) {
 
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
     memcpy(dst, src, (size_t)size);
+    return 0;
+}
+
+DYCORE_API double DyCore_index_sort(void* data, double size) {
+    auto* pair_data = static_cast<std::pair<double, double>*>(data);
+    std::sort(pair_data, pair_data + (size_t)size);
     return 0;
 }
