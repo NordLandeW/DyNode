@@ -176,7 +176,7 @@ depth = 0;
     
     /// @type {Array<Any>}
     chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
-    /// @type {Array<Array<Any>>} Activated notes' inst in a step.
+    /// @type {Array<Array<Id.Instance.objNote>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
     chartNotesCount = 0;

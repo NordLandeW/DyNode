@@ -4,7 +4,6 @@
 #macro MAX_STAT_TYPE 5
 #macro MAX_SHADOW_COUNT 300
 #macro MAX_PARTICLE_COUNT 500
-#macro INSTANCE_OPTI_THRESHOLD 2048
 
 #endregion
 
@@ -1449,6 +1448,8 @@ function stat_note_string(stype, ntype) {
 function stat_next() {
 	objMain.showStats ++;
 	objMain.showStats %= MAX_STAT_TYPE;
+
+	note_recac_stats();
 }
 
 function stat_visible() {

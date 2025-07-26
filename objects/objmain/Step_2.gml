@@ -24,28 +24,25 @@
 
 // Get activated notes
 
-    // If instance count is too big, fall back to the native draw pipelines.
-    if(instance_count <= INSTANCE_OPTI_THRESHOLD) {
-        for(var i=0; i<3; i++)
-            if(array_length(chartNotesArrayActivated[i]) < 1024)
-                array_resize(chartNotesArrayActivated[i], 1024);
-        var ap = [0, 0, 0];
-        with(objNote) {
-            if(noteType <= 2 && !attaching) {
-                var _curArray = objMain.chartNotesArrayActivated[noteType];
-                _curArray[ap[noteType]] = arrayPos;
-                ap[noteType]++;
-                if(ap[noteType] >= array_length(_curArray)) {
-                    array_resize(_curArray, array_length(_curArray) * 2);
-                }
+    for(var i=0; i<3; i++)
+        if(array_length(chartNotesArrayActivated[i]) < 1024)
+            array_resize(chartNotesArrayActivated[i], 1024);
+    var ap = [0, 0, 0];
+    with(objNote) {
+        if(noteType <= 2 && !attaching) {
+            var _curArray = objMain.chartNotesArrayActivated[noteType];
+            _curArray[ap[noteType]] = arrayPos;
+            ap[noteType]++;
+            if(ap[noteType] >= array_length(_curArray)) {
+                array_resize(_curArray, array_length(_curArray) * 2);
             }
         }
-        for(var i=0; i<3; i++) {
-            array_resize(chartNotesArrayActivated[i], ap[i]);
-            // Sort by array position
-            if(ap[i] < 1024)
-                array_sort(chartNotesArrayActivated[i], true);
-            for(var j=0; j<ap[i]; j++)
-                chartNotesArrayActivated[i][j] = chartNotesArray[chartNotesArrayActivated[i][j]].inst;
-        }
+    }
+    for(var i=0; i<3; i++) {
+        array_resize(chartNotesArrayActivated[i], ap[i]);
+        // Sort by array position
+        if(ap[i] < 1024)
+            quick_sort(chartNotesArrayActivated[i], true);
+        for(var j=0; j<ap[i]; j++)
+            chartNotesArrayActivated[i][j] = chartNotesArray[chartNotesArrayActivated[i][j]].inst;
     }

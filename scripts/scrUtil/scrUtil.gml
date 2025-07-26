@@ -897,3 +897,60 @@ function shader_set_texture(uniform, texture, shd = undefined) {
 function get_delta_time() {
 	return min(delta_time, 100000);
 }
+
+/// @description Delete an element from an array at a specific index without preserving order.
+/// @param {Array} arr The array to modify.
+/// @param {Real} index The index of the element to delete.
+function array_delete_fast(arr, index) {
+	if (index < 0 || index >= array_length(arr)) return;
+
+	arr[index] = arr[array_length(arr) - 1];
+	array_pop(arr);
+}
+
+/// @description Map a value from one range to another.
+/// @param {Real} value The value to map.
+/// @param {Real} in_min The minimum of the input range.
+/// @param {Real} in_max The maximum of the input range.
+/// @param {Real} out_min The minimum of the output range.
+/// @param {Real} out_max The maximum of the output range.
+function value_map(value, in_min, in_max, out_min, out_max) {
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+function quick_sort(array, cmp_func_or_type, l = -1, r = -1) {
+	if(!is_method(cmp_func_or_type)) cmp_func_or_type = bool(cmp_func_or_type);
+	if (l == -1 && r == -1) {
+		l = 0;
+		r = array_length(array) - 1;
+	}
+	if (l >= r) return;
+	var pivot = array[(l + r) >> 1];
+	var i = l, j = r, t;
+	while (i <= j) {
+		if(is_bool(cmp_func_or_type)) {
+			if(cmp_func_or_type) {
+				while(array[i] > pivot) i++;
+				while(array[j] < pivot) j--;
+			}
+			else {
+				while(array[i] < pivot) i++;
+				while(array[j] > pivot) j--;
+			}
+		}
+		else {
+			while (cmp_func_or_type(array[i], pivot) < 0) i++;
+			while (cmp_func_or_type(array[j], pivot) > 0) j--;
+		}
+		if (i <= j) {
+			t = array[i];
+			array[i] = array[j];
+			array[j] = t;
+			i++;
+			j--;
+		}
+	}
+
+	quick_sort(array, cmp_func_or_type, l, j);
+	quick_sort(array, cmp_func_or_type, i, r);
+}

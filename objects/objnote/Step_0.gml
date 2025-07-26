@@ -78,7 +78,7 @@ if(_editMode < 5 && objEditor.editorHighlightLine && note_exists(id)) {
         objEditor.editorHighlightSide = side;
         objEditor.editorHighlightWidth = width;
         if(stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB) {
-            objEditor.editorHighlightTime = sinst.time;
+			objEditor.editorHighlightTime = time + lastTime;
         }
 	}
 }

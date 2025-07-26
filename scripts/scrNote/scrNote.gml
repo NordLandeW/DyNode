@@ -31,6 +31,9 @@ function _outscreen_check(_x, _y, _side) {
 }
 
 function note_recac_stats() {
+	if(!(in_between(objMain.showStats, 1, 2)))
+		return;
+
 	stat_reset();
 	var _arr = objMain.chartNotesArray
 	for(var i=0, l=array_length(_arr); i<l; i++)
@@ -40,12 +43,16 @@ function note_recac_stats() {
 }
 
 function note_sort_all() {
+	var startTime = get_timer();
     var _f = function(_a, _b) {
         return sign(_a.time == _b.time ? int64(_a.inst) - int64(_b.inst) : _a.time - _b.time);
     }
-    array_sort(objMain.chartNotesArray, _f);
+    quick_sort(objMain.chartNotesArray, _f);
+	var endTime = get_timer();
+	show_debug_message("Note sorting took " + string((endTime - startTime)/1000) + "ms");
     
     // Update arrayPos & Flush deleted notes
+	startTime = get_timer();
     with(objMain) {
     	chartNotesCount = array_length(chartNotesArray);
     	
@@ -63,6 +70,8 @@ function note_sort_all() {
     }
 
 	note_recac_stats();
+	endTime = get_timer();
+	show_debug_message("Note recalculation took " + string((endTime - startTime)/1000) + "ms");
 }
 
 function note_sort_request() {
