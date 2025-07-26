@@ -31,9 +31,9 @@ image_yscale = global.scaleYAdjust;
     /// @type {Id.Instance.objHold} 
     finst = -999;					// Father instance id
     noteType = 0;					// 0 Note 1 Chain 2 Hold
-    arrayPos = -1;					// Position in chartNotesArray
     /// @type {Any} Pointer to chartNotesArray
     arrayPointer = undefined;
+    deleting = false;
     
     // For Editor
     origWidth = width;
@@ -117,7 +117,7 @@ image_yscale = global.scaleYAdjust;
             pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
-            priority = priority - arrayPos*16;
+            priority = priority - get_array_pos()*16;
             if(noteType == 3 && note_exists(finst))
                 priority = finst.priority;
         }
@@ -243,6 +243,11 @@ image_yscale = global.scaleYAdjust;
         
     }
 
+    function get_array_pos() {
+        if(!is_struct(arrayPointer)) return -1;
+        return arrayPointer.index;
+    }
+
     function get_prop(_set_pointer = false) {
     	var _prop = {
         	time : time,
@@ -254,7 +259,8 @@ image_yscale = global.scaleYAdjust;
         	inst : id,
         	sinst: sinst,
         	beginTime : beginTime,
-        	lastAttachBar: lastAttachBar
+        	lastAttachBar: lastAttachBar,
+            index: get_array_pos()
         };
     	if(_set_pointer) {
     		arrayPointer = _prop;

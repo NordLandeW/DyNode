@@ -56,17 +56,18 @@ function note_sort_all() {
     with(objMain) {
     	chartNotesCount = array_length(chartNotesArray);
     	
-    	for(var i=0; i<chartNotesCount; i++)
-    		if(chartNotesArray[i].inst > 0)
-				chartNotesArray[i].inst.arrayPos = i;
+    	for(var i=0; i<chartNotesCount; i++) {
+			chartNotesArray[i].index = i;
+		}
     	
-    	while(array_length(chartNotesArray) > 0) {
-			/// @type {Any} 
-			var str = array_last(chartNotesArray);
-			if(str.inst >= 0) break;
-    		array_pop(chartNotesArray);
-    		chartNotesCount --;
+		var notes_to_delete = 0, p = array_length(chartNotesArray) - 1;
+    	while(p >= 0) {
+			if(chartNotesArray[p].inst < 0) {
+				notes_to_delete++;
+			}
+			p--;
     	}
+		array_resize(chartNotesArray, chartNotesCount - notes_to_delete);
     }
 
 	note_recac_stats();
@@ -161,17 +162,18 @@ function build_note_withprop(prop, record = false, selecting = false) {
 }
 
 // This function can only be accessed in destroy event.
+/// @param {Id.Instance.objNote} _inst
 function note_delete(_inst, _record = false) {
 	if(!note_exists(_inst)) {
 		show_debug_message("!!!Warning!!! You're trying to delete an unexisting/deactiaved note.")
 		return;
 	}
-	if(_inst.arrayPos == -1) {
+	if(_inst.deleting || _inst.get_array_pos() < 0) {
 		return;
 	}
 	try {
 		with(objMain) {
-	        var i = _inst.arrayPos;
+	        var i = _inst.get_array_pos();
 	        if(chartNotesArray[i].inst == _inst) {
 	        	chartNotesArray[i] = chartNotesArray[i].inst.get_prop();
 				DyCore_delete_note(json_stringify(chartNotesArray[i]));
@@ -204,7 +206,7 @@ function note_delete_all() {
 		ds_map_clear(chartNotesMap[2]);
 		
 		note_activate_all();
-		with(objNote) arrayPos = -1;
+		with(objNote) deleting = true;
 		instance_destroy(objNote);
 		DyCore_clear_notes();
 	}
@@ -226,7 +228,7 @@ function notes_array_update() {
 		var i=0, l=chartNotesCount;
 		for(; i<l; i++) if(chartNotesArray[i].time != INF) {
 			chartNotesArray[i].inst.update_prop();
-			chartNotesArray[i].inst.arrayPos = i;
+			chartNotesArray[i].index = i;
 		}
 	}
 	note_sort_request();
@@ -256,7 +258,7 @@ function notes_reallocate_id() {
 function note_check_and_activate(_posistion_in_array) {
 	var _struct = objMain.chartNotesArray[_posistion_in_array];
 	if(_struct.inst > 0)
-		_struct.inst.arrayPos = _posistion_in_array;
+		_struct.index = _posistion_in_array;
 	else
 		return 0;
 	if(note_exists(_struct.inst)) {
