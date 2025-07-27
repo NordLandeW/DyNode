@@ -965,7 +965,7 @@ function extern_index_sort(array, extract_value_func) {
 		if(!buffer_exists(buff))
 			buff = buffer_create(buffTargetSize * 2, buffer_fixed, 1);
 		else
-			buff = buffer_resize(buff, buffTargetSize * 2);
+			buffer_resize(buff, buffTargetSize * 2);
 	}
 	buffer_seek(buff, buffer_seek_start, 0);
 	for(var i=0, l=array_length(array); i<l; i++) {
