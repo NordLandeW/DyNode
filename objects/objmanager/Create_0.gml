@@ -22,6 +22,7 @@
 #macro DYCORE_BUFFER_SIZE (50*1024*1024)	// 50MB
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DYCORE_BUFFER_ADDRESS (buffer_get_address(global.__DyCore_Buffer))
+#macro DEBUG_MODE (true)
 math_set_epsilon(0.00000001);				// 1E-8
 
 // Announcement init
@@ -69,7 +70,7 @@ i18n_init();
 
 // Load Settings
 
-if(debug_mode) save_config();
+if(DEBUG_MODE) save_config();
 
 _lastConfig_md5 = load_config();
 
@@ -174,9 +175,9 @@ GoogHit("login", {
 	session_id: random_id(16),
 	engagement_time_msec: "100"}); // Analytics: Version
 
-if(debug_mode) test_at_start();
+if(DEBUG_MODE) test_at_start();
 
-if(debug_mode) room_goto(rMain);
+if(DEBUG_MODE) room_goto(rMain);
 else
 	room_goto(rStartPage);
 

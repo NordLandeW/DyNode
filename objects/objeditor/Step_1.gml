@@ -420,7 +420,7 @@ editorSelectMultiple = editorSelectCount > 1;
                 }
             }
         }
-        quick_sort(_newCopyStack, function (_a, _b) { 
+        array_sort(_newCopyStack, function (_a, _b) { 
             return sign(_a.time == _b.time? _a.position - _b.position : _a.time - _b.time); });
         
         if(_cnt == 0) {

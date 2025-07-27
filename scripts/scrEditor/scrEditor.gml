@@ -616,7 +616,7 @@ function timing_point_sort() {
     var _f = function(_a, _b) {
         return sign(_a.time - _b.time);
     }
-    quick_sort(objEditor.timingPoints, _f);
+    array_sort(objEditor.timingPoints, _f);
 }
 
 // Add a timing point to "timingPoints" array

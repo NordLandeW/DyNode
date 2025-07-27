@@ -29,7 +29,7 @@ if(global.themeAt > 0) {
     shader_reset();
 }
 
-if(debug_mode && PERFECTINDC_DEBUG) {
+if(DEBUG_MODE && PERFECTINDC_DEBUG) {
     draw_set_color(c_red);
     draw_set_alpha(1);
     draw_circle(x, y, 5, false);

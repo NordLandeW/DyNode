@@ -839,16 +839,16 @@ image_yscale = global.scaleYAdjust;
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
         }
         
-        function draw_event() {
-        	if(!drawVisible) return;
-			if(side == 0) {
-			    draw_sprite_ext(sprNote2, image_number, x - pWidth / 2, y, 
-			        image_xscale, image_yscale, image_angle, image_blend, image_alpha);
-			}
-			else {
-			    draw_sprite_ext(sprNote2, image_number, x, y + pWidth / 2 * (side == 1?-1:1), 
-			        image_xscale, image_yscale, image_angle, image_blend, image_alpha);
-			}
-        }
+function draw_event() {
+    if(!drawVisible) return;
+    if(side == 0) {
+        draw_sprite_ext(sprNote2, image_number, x - pWidth / 2, y, 
+            image_xscale, image_yscale, image_angle, image_blend, image_alpha);
+    }
+    else {
+        draw_sprite_ext(sprNote2, image_number, x, y + pWidth / 2 * (side == 1?-1:1), 
+            image_xscale, image_yscale, image_angle, image_blend, image_alpha);
+    }
+}
 
-    set_state(NOTE_STATES.OUT);
+set_state(NOTE_STATES.OUT);

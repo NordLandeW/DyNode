@@ -54,7 +54,7 @@ else
 alphaMul = lerp_a(alphaMul, animTargetAlphaMul, PERFECTINDC_ANIMATION_SPEED);
 nowTime = min(nowTime, 99999999);
 
-if(debug_mode && PERFECTINDC_DEBUG) {
+if(DEBUG_MODE && PERFECTINDC_DEBUG) {
     alpha = 1;
     alphaMul = 1;
 }

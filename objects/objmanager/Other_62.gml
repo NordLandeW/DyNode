@@ -10,7 +10,7 @@ if (async_load[? "id"] == _update_get_event_handle) {
 				if(variable_struct_exists(_result, "message") && _result.message == "Not Found") {
 					announcement_warning("autoupdate_warn");
 				}
-				else if(debug_mode || version_cmp(_result.tag_name, VERSION)>0 && _result.tag_name != global.lastCheckedVersion) {
+				else if(DEBUG_MODE || version_cmp(_result.tag_name, VERSION)>0 && _result.tag_name != global.lastCheckedVersion) {
 					_update_version = _result.tag_name;
 					_update_url = _result.html_url;
 					_update_filename = _result.assets[0].name;

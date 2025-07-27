@@ -14,7 +14,7 @@ for(var _i = 1; _i <= _len; _i ++) {
     draw_sprite_ext(sprNumber, int64(string_char_at(nowString, _i)), _x, _y, 
          scale * scaleMul * global.scaleXAdjust,  
          scale * scaleMul * global.scaleYAdjust, 0, c_white, alpha);
-    if(debug_mode && SCOREBOARD_DEBUG) {
+    if(DEBUG_MODE && SCOREBOARD_DEBUG) {
         draw_set_color(c_yellow);
         draw_set_alpha(1);
         draw_circle(_x, _y, 5, false);
@@ -22,7 +22,7 @@ for(var _i = 1; _i <= _len; _i ++) {
     _x += _w;
 }
 
-if(debug_mode && SCOREBOARD_DEBUG) {
+if(DEBUG_MODE && SCOREBOARD_DEBUG) {
     draw_set_color(c_red);
     draw_set_alpha(1);
     draw_circle(x, y, 5, false);

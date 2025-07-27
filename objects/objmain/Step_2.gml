@@ -40,7 +40,7 @@
     }
     for(var i=0; i<3; i++) {
         array_resize(chartNotesArrayActivated[i], ap[i]);
-        quick_sort(chartNotesArrayActivated[i], true);
+        extern_quick_sort(chartNotesArrayActivated[i], true);
         for(var j=0; j<ap[i]; j++)
             chartNotesArrayActivated[i][j] = chartNotesArray[chartNotesArrayActivated[i][j]].inst;
     }

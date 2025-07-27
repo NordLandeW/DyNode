@@ -640,7 +640,7 @@ function get_string_i18n(str, def) {
 }
 
 function show_debug_message_safe(str) {
-	if(debug_mode)
+	if(DEBUG_MODE)
 		show_debug_message(str);
 }
 
@@ -958,6 +958,7 @@ function quick_sort(array, cmp_func_or_type, l = -1, r = -1) {
 /// @description Using extern extension to speed up the index sorting.
 /// @param {Array} array The array to sort.
 /// @param {Function} extract_value_func The function to extract the value for sorting. Should return a real.
+/// @returns {Array} The sorted array.
 function extern_index_sort(array, extract_value_func) {
 	static buff = -1;
 	var buffTargetSize = array_length(array) * (8+8);
@@ -984,4 +985,29 @@ function extern_index_sort(array, extract_value_func) {
 	}
 
 	return _newArray;
+}
+
+/// @description Using extern extension to speed up the quick sorting.
+/// @param {Array} array The array to sort.
+/// @param {Boolean} type The sorting type. True for ascending, false for descending.
+function extern_quick_sort(array, type) {
+	static buff = -1;
+	var buffTargetSize = array_length(array) * 8;
+	if(!buffer_exists(buff) || buffer_get_size(buff) < buffTargetSize) {
+		if(!buffer_exists(buff))
+			buff = buffer_create(buffTargetSize * 2, buffer_fixed, 1);
+		else
+			buffer_resize(buff, buffTargetSize * 2);
+	}
+	buffer_seek(buff, buffer_seek_start, 0);
+	for(var i=0, l=array_length(array); i<l; i++) {
+		buffer_write(buff, buffer_f64, array[i]);
+	}
+
+	DyCore_quick_sort(buffer_get_address(buff), array_length(array), type);
+
+	buffer_seek(buff, buffer_seek_start, 0);
+	for(var i=0, l=array_length(array); i<l; i++) {
+		array[i] = buffer_read(buff, buffer_f64);
+	}
 }

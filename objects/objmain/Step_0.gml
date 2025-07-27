@@ -8,7 +8,7 @@ projectTime += round(delta_time / 1000);
 #region GUI Management
 	if(mouse_ishold_r() && !instance_exists(objUISideSwitcher))
 		instance_create(mouse_get_last_pos(1)[0], mouse_get_last_pos(1)[1], objUISideSwitcher);
-	else if(debug_mode && mouse_isclick_r()) {
+	else if(DEBUG_MODE && mouse_isclick_r()) {
 		if(global.__GUIManager == undefined) {
 			global.__GUIManager = new GUIManager();
 			// var _smh = new Bar("smh", mouse_x+100, mouse_y, "BRUH", 0.5, [0, 100]);

@@ -1276,7 +1276,7 @@ function get_config_path() {
 
 function load_config() {
 	var pth = get_config_path();
-	if(!file_exists(pth) || debug_mode)
+	if(!file_exists(pth) || DEBUG_MODE)
 		save_config();
 	
 	if(!file_exists(pth))
@@ -1377,7 +1377,7 @@ function md5_config() {
 function vars_init() {
 	// Some variables that will take changes immediately
 	
-	if(debug_mode) global.fps = 165;
+	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
 	global.fpsAdjust = BASE_FPS / global.fps;
 	global.scaleXAdjust = global.resolutionW / BASE_RES_W;

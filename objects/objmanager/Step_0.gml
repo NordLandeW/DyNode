@@ -137,7 +137,7 @@ if(keycheck_down(vk_escape)) {
 
 // Debug functions
 
-if(debug_mode) {
+if(DEBUG_MODE) {
 	if(keycheck_down_ctrl(vk_numpad0))
 		project_auto_save();
 }
