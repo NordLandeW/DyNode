@@ -12,10 +12,12 @@
 
 #include "api.h"
 
+// Prints a debug message to the console, prefixed with "[DyCore] ".
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
 }
 
+// Converts a wide string (wstring) to a UTF-8 encoded string.
 std::string wstringToUtf8(const std::wstring& wstr) {
     int len = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0,
                                   nullptr, nullptr);
@@ -29,6 +31,7 @@ std::string wstringToUtf8(const std::wstring& wstr) {
     return str;
 }
 
+// Converts a UTF-8 encoded string to a wide string (wstring).
 std::wstring s2ws(const std::string& str) {
     int size_needed =
         MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
@@ -38,6 +41,7 @@ std::wstring s2ws(const std::string& str) {
     return wstrTo;
 }
 
+// Converts a GB2312 encoded string to a UTF-8 encoded string.
 std::string gb2312ToUtf8(const std::string& gbStr) {
     if (gbStr.empty())
         return "";
@@ -63,6 +67,8 @@ std::string gb2312ToUtf8(const std::string& gbStr) {
     return utf8str;
 }
 
+// Retrieves the last modification time of a file as a formatted string.
+// The format is "YYYY_MM_DD_HH_MM_SS".
 std::string get_file_modification_time(char* file_path) {
     namespace fs = std::filesystem;
     std::error_code ec;
@@ -86,6 +92,8 @@ std::string get_file_modification_time(char* file_path) {
     return oss.str();
 }
 
+// Generates a random string of a specified length.
+// The string consists of alphanumeric characters.
 std::string random_string(int length) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -102,18 +110,27 @@ std::string random_string(int length) {
     return str;
 }
 
+// Copies a block of memory from a source address to a destination address.
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
     memcpy(dst, src, (size_t)size);
     return 0;
 }
 
+// Sorts an array of std::pair<double, double> in ascending order based on the
+// first element of the pair.
 DYCORE_API double DyCore_index_sort(void* data, double size) {
     auto* pair_data = static_cast<std::pair<double, double>*>(data);
     std::sort(pair_data, pair_data + (size_t)size);
     return 0;
 }
 
-// type -> true for ascending, false for descending
+// Sorts an array of doubles.
+// The sorting order is determined by the 'type' parameter.
+//
+// @param data A pointer to the array of doubles.
+// @param size The number of elements in the array.
+// @param type If true, sorts in ascending order; otherwise, sorts in descending
+// order.
 DYCORE_API double DyCore_quick_sort(void* data, double size, double type) {
     double* arr = static_cast<double*>(data);
     if (type) {

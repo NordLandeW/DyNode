@@ -14,6 +14,10 @@
 #include "note.h"
 #include "utils.h"
 
+// Verifies the integrity of a project string by checking its JSON structure.
+//
+// @param projectStr The project data as a JSON string.
+// @return 0 if the project is valid, -1 otherwise.
 int verify_project(string projectStr) {
     print_debug_message("Verifying project property...");
     try {
@@ -30,6 +34,12 @@ int verify_project(string projectStr) {
     return 0;
 }
 
+// Verifies the integrity of a project buffer.
+// It handles both compressed and uncompressed data.
+//
+// @param buffer A pointer to the project data buffer.
+// @param size The size of the buffer.
+// @return 0 if the project is valid, -1 otherwise.
 int verify_project_buffer(const char* buffer, size_t size) {
     if (!check_compressed(buffer, size)) {
         return verify_project(buffer);
@@ -37,6 +47,8 @@ int verify_project_buffer(const char* buffer, size_t size) {
     return verify_project(decompress_string(buffer, size));
 }
 
+// Asynchronously saves the project to a file.
+// This function is intended to be run in a separate thread.
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
 
@@ -126,6 +138,7 @@ void __async_save_project(SaveProjectParams params) {
     push_async_event({PROJECT_SAVING, err ? -1 : 0, errInfo});
 }
 
+// Initiates an asynchronous save of the project.
 void save_project(const char* projectProp, const char* filePath,
                   double compressionLevel) {
     SaveProjectParams params;
@@ -137,6 +150,13 @@ void save_project(const char* projectProp, const char* filePath,
     return;
 }
 
+// Saves the project to a file.
+// This is the main entry point for saving a project.
+//
+// @param projectProp The project properties as a JSON string.
+// @param filePath The path to save the project file.
+// @param compressionLevel The compression level to use.
+// @return 0 on success, -1 on error.
 DYCORE_API double DyCore_save_project(const char* projectProp,
                                       const char* filePath,
                                       double compressionLevel) {
@@ -159,6 +179,11 @@ DYCORE_API double DyCore_save_project(const char* projectProp,
     return 0;
 }
 
+// Generates the full project string by embedding the current notes into the
+// project properties JSON.
+//
+// @param projectProp The base project properties as a JSON string.
+// @return The complete project JSON string, or an empty string on error.
 string get_project_string(string projectProp) {
     json js;
     try {
@@ -181,14 +206,24 @@ string get_project_string(string projectProp) {
     return nlohmann::to_string(js);
 }
 
+// Compresses the project string into a buffer.
+//
+// @param projectString The project data as a string.
+// @param targetBuffer The buffer to store the compressed data.
+// @param compressionLevel The compression level.
+// @return The size of the compressed data.
 double get_project_buffer(string projectString, char* targetBuffer,
                           double compressionLevel) {
     return DyCore_compress_string(projectString.c_str(), targetBuffer,
                                   compressionLevel);
 }
 
-// Insert the notes array into the project property.
-// Might be called asynchronously.
+// Generates and compresses the project data into a buffer.
+//
+// @param projectProp The project properties as a JSON string.
+// @param targetBuffer The buffer to store the compressed project data.
+// @param compressionLevel The compression level.
+// @return The size of the compressed data.
 DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
                                             char* targetBuffer,
                                             double compressionLevel) {

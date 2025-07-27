@@ -5,6 +5,13 @@
 #include "json.hpp"
 
 using nlohmann::json;
+
+// Performs Delaunay triangulation on a set of 2D points.
+//
+// @param in_struct A JSON string representing an array of coordinates.
+//        Example: "[x1, y1, x2, y2, ...]"
+// @return A JSON string representing an array of triangles.
+//         Returns an error message if the input is not a valid array.
 DYCORE_API const char* DyCore_delaunator(char* in_struct) {
     static std::string returnBuffer;
 

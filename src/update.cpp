@@ -7,6 +7,12 @@
 
 #include "utils.h"
 
+// Executes a batch script to perform application updates.
+// The script waits for "DyNode.exe" to close, copies new files,
+// cleans up temporary files, and then exits.
+//
+// @param _workDir The working directory for the update process.
+// @return 0 on success, -1 if script creation fails, -2 if execution fails.
 double executeCmdScript(const std::wstring& _workDir) {
     const std::wstring workDir = _workDir;
     std::wstring script =
@@ -78,6 +84,11 @@ double executeCmdScript(const std::wstring& _workDir) {
 }
 
 namespace fs = std::filesystem;
+// Cleans up temporary files created during the update process,
+// including zip files, the 'tmp' directory, and the update script itself.
+//
+// @param workDir The directory to clean up.
+// @return 0.0 on success, -1.0 on error.
 double cleanupTempFiles(const std::string& workDir) {
     try {
         for (const auto& entry : fs::directory_iterator(workDir)) {
@@ -110,14 +121,27 @@ double cleanupTempFiles(const std::string& workDir) {
     }
 }
 
+// Initiates the application update process by executing the update script.
+//
+// @param workDir The working directory.
+// @return The result of executeCmdScript.
 DYCORE_API double DyCore_update(char* workDir) {
     return executeCmdScript(s2ws(workDir));
 }
 
+// Cleans up temporary files from the working directory.
+//
+// @param workDir The working directory.
+// @return The result of cleanupTempFiles.
 DYCORE_API double DyCore_cleanup_tmpfiles(char* workDir) {
     return cleanupTempFiles(workDir);
 }
 
+// Retrieves the last modification time of a file.
+// This is a wrapper around the utility function to be exposed via the API.
+//
+// @param filePath The path to the file.
+// @return The file's modification time as a string.
 DYCORE_API const char* DyCore_get_file_modification_time(char* filePath) {
     thread_local static std::string ret;
     ret = get_file_modification_time(filePath);
