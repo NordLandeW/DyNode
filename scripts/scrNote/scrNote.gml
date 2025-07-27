@@ -67,7 +67,9 @@ function note_sort_all() {
 			}
 			p--;
     	}
-		array_resize(chartNotesArray, chartNotesCount - notes_to_delete);
+		
+		chartNotesCount -= notes_to_delete;
+		array_resize(chartNotesArray, chartNotesCount);
     }
 
 	note_recac_stats();
