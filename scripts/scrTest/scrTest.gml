@@ -57,6 +57,7 @@ function __test_quick_sort(_size) {
 }
 
 function __test_compression() {
+    show_debug_message("=====TEST COMPRESSION======");
     var _str_bef = "This is a string.\nthe string."
 
     var _cSize = DyCore_compress_string(_str_bef, buffer_get_address(global.__DyCore_Buffer), 11);
@@ -67,10 +68,44 @@ function __test_compression() {
         show_debug_message("Validation pass.");
 }
 
+function __test_vertex_construction(_size) {
+    show_debug_message($"=====TEST VERTEX CONSTRUCTION: {_size}======");
+    vertex_format_begin();
+    vertex_format_add_position();
+    vertex_format_add_texcoord();
+    vertex_format_add_color();
+    var vFormat = vertex_format_end();
+    var vBuff = vertex_create_buffer();
+    var st, et;
+    st = get_timer();
+    vertex_begin(vBuff, vFormat);
+    for(var i=0; i<_size; i++) {
+        vertex_position(vBuff, i, i);
+        vertex_texcoord(vBuff, 0, 0);
+        vertex_color(vBuff, c_white, 1);
+    }
+    vertex_end(vBuff);
+    et = get_timer();
+    show_debug_message("Vertex construction time: " + string((et - st)/1000) + "ms");
+
+    var buff = buffer_create(_size * (4 * 2 + 4 * 2 + 4), buffer_fixed, 1);
+    st = get_timer();
+    DyCore__test_vbuff_construct(buffer_get_address(buff), _size);
+    buffer_set_used_size(buff, _size * (4 * 2 + 4 * 2 + 4));
+    vertex_update_buffer_from_buffer(vBuff, 0, buff);
+    et = get_timer();
+    show_debug_message("Vertex extern construction time: " + string((et - st)/1000) + "ms");
+
+    vertex_delete_buffer(vBuff);
+    vertex_format_delete(vFormat);
+    buffer_delete(buff);
+}
+
 function test_at_start() {
     show_debug_message("=====DEBUG======")
-    var TEST_QUICK_SORT = true;
+    var TEST_QUICK_SORT = false;
     var TEST_COMPRESSION = false;
+    var TEST_VERTEX_CONSTRUCTION = true;
 
     if(TEST_QUICK_SORT) {
         __test_quick_sort(10);
@@ -83,4 +118,13 @@ function test_at_start() {
     }
     if(TEST_COMPRESSION)
         __test_compression();
+    if(TEST_VERTEX_CONSTRUCTION) {
+        __test_vertex_construction(100);
+        __test_vertex_construction(1000);
+        __test_vertex_construction(10000);
+        __test_vertex_construction(100000);
+        __test_vertex_construction(500000);
+        __test_vertex_construction(2000000);
+        __test_vertex_construction(10000000);
+    }
 }
