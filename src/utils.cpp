@@ -1,12 +1,14 @@
-
+#define NOMINMAX
 #include "utils.h"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <taskflow/taskflow.hpp>
 
 #include "api.h"
 
