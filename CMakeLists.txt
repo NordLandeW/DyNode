@@ -6,12 +6,12 @@ project ("DyCore")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 设置 C++ 标准
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 设置Release模式下的优化选项
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -pthread")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS -pthread")
 
 set(DYCORE_SOURCES
     src/DyCore.cpp
@@ -22,6 +22,7 @@ set(DYCORE_SOURCES
     src/note.cpp
     src/project.cpp
     src/compress.cpp
+    src/test.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 
@@ -52,6 +53,12 @@ endif()
 # 安装指令
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
+)
+
+# 构建后自动执行安装
+add_custom_command(TARGET DyCore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} --install . --config $<CONFIG>
+    COMMENT "Automatically installing DyCore after build..."
 )
 
 # 输出安装路径确认
