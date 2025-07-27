@@ -110,3 +110,14 @@ DYCORE_API double DyCore_index_sort(void* data, double size) {
     std::sort(pair_data, pair_data + (size_t)size);
     return 0;
 }
+
+// type -> true for ascending, false for descending
+DYCORE_API double DyCore_quick_sort(void* data, double size, double type) {
+    double* arr = static_cast<double*>(data);
+    if (type) {
+        std::sort(arr, arr + (size_t)size);
+    } else {
+        std::sort(arr, arr + (size_t)size, std::greater<double>());
+    }
+    return 0;
+}
