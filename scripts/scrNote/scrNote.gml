@@ -298,12 +298,14 @@ function note_check_and_activate(_posistion_in_array) {
 }
 
 function note_deactivate(inst) {
+	if(!note_is_activated(inst)) return;
 	instance_deactivate_object(inst);
 	global.activationMan.deactivate(inst);
 }
 
 /// @param {Id.Instance.objNote} inst 
 function note_activate(inst) {
+	if(note_is_activated(inst)) return;
 	instance_activate_object(inst);
 	inst.pull_prop();
 	global.activationMan.activate(inst);

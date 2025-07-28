@@ -789,12 +789,12 @@ image_yscale = global.scaleYAdjust;
                             time = origTime;
                             side = origSide;
                         }
-                        _prop_init();
-                        update_prop();
                         if(noteType == 2) {
                             sinst.time = (ctrl_ishold() || editor_select_is_multiple()) ? time + origLength : origSubTime;
                             _prop_hold_update();
                         }
+                        update_prop();
+                        _prop_init();
                     }
                 }
             } else {
