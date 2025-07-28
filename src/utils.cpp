@@ -140,3 +140,9 @@ DYCORE_API double DyCore_quick_sort(void* data, double size, double type) {
     }
     return 0;
 }
+
+DYCORE_API const char* DyCore_random_string(double length) {
+    static std::string str;
+    str = random_string(int(length));
+    return str.c_str();
+}

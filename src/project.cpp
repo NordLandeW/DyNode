@@ -206,6 +206,21 @@ string get_project_string(string projectProp) {
     return nlohmann::to_string(js);
 }
 
+string get_notes_array_string() {
+    json js;
+
+    mtxSaveProject.lock();
+    std::vector<Note> notes;
+    for (auto note : currentNoteMap)
+        if (note.second.noteType != 3)
+            notes.push_back(note.second);
+    mtxSaveProject.unlock();
+
+    js = notes;
+
+    return nlohmann::to_string(js);
+}
+
 // Compresses the project string into a buffer.
 //
 // @param projectString The project data as a string.
@@ -216,18 +231,4 @@ double get_project_buffer(string projectString, char* targetBuffer,
                           double compressionLevel) {
     return DyCore_compress_string(projectString.c_str(), targetBuffer,
                                   compressionLevel);
-}
-
-// Generates and compresses the project data into a buffer.
-//
-// @param projectProp The project properties as a JSON string.
-// @param targetBuffer The buffer to store the compressed project data.
-// @param compressionLevel The compression level.
-// @return The size of the compressed data.
-DYCORE_API double DyCore_get_project_buffer(const char* projectProp,
-                                            char* targetBuffer,
-                                            double compressionLevel) {
-    string project = get_project_string(projectProp);
-
-    return get_project_buffer(project, targetBuffer, compressionLevel);
 }

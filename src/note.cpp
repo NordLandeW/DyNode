@@ -12,7 +12,7 @@ std::unordered_map<string, Note> currentNoteMap;
 
 // Checks if a note exists in the current note map.
 bool note_exists(const Note& note) {
-    return currentNoteMap.find(note.inst) != currentNoteMap.end();
+    return currentNoteMap.find(note.noteID) != currentNoteMap.end();
 }
 
 // Clears all notes from the current note map.
@@ -26,12 +26,13 @@ void clear_notes() {
 // Returns 0 on success, -1 if the note already exists.
 int insert_note(Note note) {
     if (note_exists(note)) {
-        print_debug_message("Warning: the given note has existed." + note.inst);
+        print_debug_message("Warning: the given note has existed." +
+                            note.noteID);
         return -1;
     }
 
     mtxSaveProject.lock();
-    currentNoteMap[note.inst] = note;
+    currentNoteMap[note.noteID] = note;
     mtxSaveProject.unlock();
     // print_debug_message("Insert note at:" + std::to_string(note.time));
     return 0;
@@ -42,12 +43,12 @@ int insert_note(Note note) {
 int delete_note(Note note) {
     if (!note_exists(note)) {
         print_debug_message("Warning: the given note is not existed." +
-                            note.inst);
+                            note.noteID);
         return -1;
     }
 
     mtxSaveProject.lock();
-    currentNoteMap.erase(note.inst);
+    currentNoteMap.erase(note.noteID);
     mtxSaveProject.unlock();
     return 0;
 }
@@ -56,12 +57,12 @@ int delete_note(Note note) {
 // Returns 0 on success, -1 if the note does not exist.
 int modify_note(Note note) {
     if (!note_exists(note)) {
-        print_debug_message("Warning: the given note is not existed." +
-                            note.inst);
+        print_debug_message("Warning: Trying to modify a non-existing note: " +
+                            note.noteID);
         return -1;
     }
     mtxSaveProject.lock();
-    currentNoteMap[note.inst] = note;
+    currentNoteMap[note.noteID] = note;
     mtxSaveProject.unlock();
     return 0;
 }

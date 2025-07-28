@@ -26,7 +26,8 @@ struct Note {
     double position;
     double lastTime;
     int noteType;
-    string inst;
+    string noteID;
+    string subNoteID;
     double beginTime;
 
     string dump() {
@@ -34,7 +35,8 @@ struct Note {
     }
     string full_dump() {
         json ret = json(*this);
-        ret["inst"] = inst;
+        ret["noteID"] = noteID;
+        ret["subNoteID"] = subNoteID;
         ret["beginTime"] = beginTime;
         return ret.dump();
     }
@@ -47,7 +49,8 @@ inline void from_json(const json &j, Note &n) {
     j.at("position").get_to(n.position);
     j.at("lastTime").get_to(n.lastTime);
     j.at("noteType").get_to(n.noteType);
-    j.at("inst").get_to(n.inst);
+    j.at("noteID").get_to(n.noteID);
+    j.at("subNoteID").get_to(n.subNoteID);
     j.at("beginTime").get_to(n.beginTime);
 }
 
