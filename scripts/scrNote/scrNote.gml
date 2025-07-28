@@ -356,7 +356,6 @@ function note_select_reset(inst = undefined) {
 function note_activation_reset() {
 	note_deactivate_all();
 	with(objMain) {
-		ds_map_clear(deactivationQueue);
 		for(var i=0; i<chartNotesCount; i++)
 			note_check_and_activate(i);
 	}

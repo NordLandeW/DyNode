@@ -31,8 +31,6 @@ function map_close() {
 		if(bgImageSpr != -1)
 		    sprite_delete(bgImageSpr);
 		
-		ds_map_destroy(deactivationQueue);
-		
 		if(!is_undefined(music)) {
 			FMODGMS_Snd_Unload(music);
 			FMODGMS_Chan_RemoveChannel(channel);

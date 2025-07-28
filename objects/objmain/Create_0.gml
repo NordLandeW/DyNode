@@ -17,7 +17,6 @@ depth = 0;
     
 #region Optimization
 
-	deactivationQueue = ds_map_create();
 	savingProjectId = {id: -1, buffer: undefined}; // The project being saved async
 	savingExportId = {id: -1, buffer: undefined}; // The map being export async
     deletingAllNotes = false; // Prevent unnecessary note deletion in note's destroy event.
