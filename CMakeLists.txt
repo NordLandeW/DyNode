@@ -23,7 +23,6 @@ set(DYCORE_SOURCES
     src/project.cpp
     src/compress.cpp
     src/test.cpp
-    src/ds_wrapper.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 
