@@ -189,13 +189,18 @@ function build_hold(_time, _position, _width, _subtime,
 }
 
 
-function build_note_withprop(prop, record = false, selecting = false) {
+function build_note_withprop(prop, record = false, selecting = false, withoutID = false) {
 	var _id = variable_struct_exists(prop, "noteID") ? prop.noteID : "";
 	var _subid = variable_struct_exists(prop, "subNoteID") ? prop.subNoteID : "";
 
+	if(withoutID) {
+		_id = "";
+		_subid = "";
+	}
+
 	if(prop.noteType < 2) {
 		return build_note(prop.noteType, prop.time, prop.position, 
-			prop.width, "-1", prop.side, record, selecting, _id);
+			prop.width, -1, prop.side, record, selecting, _id);
 	}
 	else {
 		return build_hold(prop.time, prop.position, prop.width,

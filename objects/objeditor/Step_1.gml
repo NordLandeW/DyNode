@@ -139,7 +139,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			var prop = get_prop();
 	    			prop.position = 5 - prop.position;
 	    			note_select_reset(id);
-	    			build_note_withprop(prop, true, true);
+	    			build_note_withprop(prop, true, true, true);
 	    		}
 	    	}
             operation_merge_last_request(1, OPERATION_TYPE.MIRROR);
@@ -175,7 +175,7 @@ editorSelectMultiple = editorSelectCount > 1;
 		    			var prop = get_prop();
 			    		prop.side = 1 + (!(prop.side - 1));
 			    		note_select_reset(id);
-			    		build_note_withprop(prop, true, true);
+			    		build_note_withprop(prop, true, true, true);
 			    		_found ++;
 			    	}
 	    	}
@@ -206,10 +206,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
 			    		recordRequest = true;
-			    		instance_destroy();
 			    		var _prop = get_prop();
+			    		instance_destroy();
 			    		_prop.noteType = 0;
-			    		build_note_withprop(_prop, true, true);
+			    		build_note_withprop(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["NOTE", string(editor_select_count())]));
@@ -219,10 +219,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
 			    		recordRequest = true;
-			    		instance_destroy();
 			    		var _prop = get_prop();
+			    		instance_destroy();
 			    		_prop.noteType = 1;
-			    		build_note_withprop(_prop, true, true);
+			    		build_note_withprop(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["CHAIN", string(editor_select_count())]));

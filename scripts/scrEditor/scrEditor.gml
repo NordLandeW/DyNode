@@ -315,7 +315,7 @@ function editor_note_duplicate_quick() {
 			note_select_reset(id);
 			var _prop = get_prop();
 			_prop.time += spacing;
-			build_note_withprop(_prop, true, true);
+			build_note_withprop(_prop, true, true, true);
 			operation_merge_last_request(1, OPERATION_TYPE.DUPLICATE);
 		}
 	}
