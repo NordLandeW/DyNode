@@ -21,16 +21,9 @@ _prop_init(true);
 // In-Function
 
 	_prop_hold_update = function () {
-        if(sinst > 0 || (sid != -1 && ds_map_exists(objMain.chartNotesMap[side], sid))) {
-            if(sinst <= 0)
-		        sinst = objMain.chartNotesMap[side][? sid]
-
+        if(note_exists(sinst)) {
 		    if(stateType != NOTE_STATES.OUT)
 		    	note_activate(sinst);
-    
-		    // Being destroyed
-		    if(!instance_exists(sinst))
-		        return;
     
 		    // Sync the properties
 		    sinst.position = position;

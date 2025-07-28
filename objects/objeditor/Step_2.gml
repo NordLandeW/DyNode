@@ -2,14 +2,14 @@
 
 if(editorMode == 4) {
     // If the note being selected selectable
-    var _selectable = note_exists(editorSelectSingleTarget);
+    var _selectable = note_is_activated(editorSelectSingleTarget);
     if(_selectable) {
         with(editorSelectSingleTarget)
             _selectable = _selectable && stateType != NOTE_STATES.SELECTED;
     }
 
     // If the single note being unselected unselectable1
-    var _unselectable = note_exists(editorSelectedSingleInbound) && mouse_isclick_l() 
+    var _unselectable = note_is_activated(editorSelectedSingleInbound) && mouse_isclick_l() 
                         && ctrl_ishold() && !_selectable && !mouse_isclick_double(0);
     if(_unselectable) {
         with(editorSelectedSingleInbound)
@@ -17,7 +17,7 @@ if(editorMode == 4) {
     }
 
     // Detect if the mouse is dragging to enable selecting area
-    if(!note_exists(editorSelectSingleTarget) && !editorSelectArea 
+    if(!note_is_activated(editorSelectSingleTarget) && !editorSelectArea 
         && mouse_ishold_l() && !editorSelectInbound && !editorSelectDragOccupied && !editorSelectSingleTargetInbound) {
             editorSelectArea = true;
             var _pos = mouse_get_last_pos(0);

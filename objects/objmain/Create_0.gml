@@ -20,6 +20,7 @@ depth = 0;
 	deactivationQueue = ds_map_create();
 	savingProjectId = {id: -1, buffer: undefined}; // The project being saved async
 	savingExportId = {id: -1, buffer: undefined}; // The map being export async
+    deletingAllNotes = false; // Prevent unnecessary note deletion in note's destroy event.
 	
 #endregion
 
@@ -180,9 +181,6 @@ depth = 0;
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
     chartNotesCount = 0;
-    chartNotesMap = array_create(3);
-    for(var i=0; i<3; i++)
-        chartNotesMap[i] = ds_map_create();
 
 #endregion
 

@@ -42,5 +42,6 @@
         array_resize(chartNotesArrayActivated[i], ap[i]);
         extern_quick_sort(chartNotesArrayActivated[i], true);
         for(var j=0; j<ap[i]; j++)
-            chartNotesArrayActivated[i][j] = chartNotesArray[chartNotesArrayActivated[i][j]].inst;
+            chartNotesArrayActivated[i][j] =
+                note_get_instance(chartNotesArray[chartNotesArrayActivated[i][j]].noteID);
     }

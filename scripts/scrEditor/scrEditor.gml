@@ -439,15 +439,19 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			return build_note_withprop(_from, false, true);
 			break;
 		case OPERATION_TYPE.MOVE:
-			note_activate(_from.inst);
-			_from.inst.set_prop(_to);
-			_from.inst.note_outscreen_check();
+			/// @type {Id.Instance.objNote} 
+			var _inst = note_get_instance(_from.noteID);
+			note_activate(_inst);
+			_inst.set_prop(_to);
+			_inst.note_outscreen_check();
 			if(!_safe_)
-				_from.inst.select();
+				_inst.select();
 			break;
 		case OPERATION_TYPE.REMOVE:
-			note_activate(_from.inst);
-			instance_destroy(_from.inst);
+			/// @type {Id.Instance.objNote} 
+			var _inst = note_get_instance(_from.noteID);
+			note_activate(_inst);
+			instance_destroy(_inst);
 			break;
 		case OPERATION_TYPE.TPADD:
 			timing_point_add(_from.time, _from.beatLength, _from.meter);
@@ -467,25 +471,6 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 	}
 }
 
-function operation_refresh_inst(_origi, _nowi) {
-	with(objEditor) {
-		for(var i=0, l=array_length(operationStack); i<l; i++) {
-			var _ops = operationStack[i].ops;
-			for(var ii=0, ll=array_length(_ops); ii<ll; ii++) if(variable_struct_exists(_ops[ii].fromProp, "inst")) {
-				if(_ops[ii].fromProp.inst == _origi)
-					_ops[ii].fromProp.inst = _nowi;
-				if(_ops[ii].toProp != -1 && _ops[ii].toProp.inst == _origi)
-					_ops[ii].toProp.inst = _nowi;
-				if(_ops[ii].fromProp.sinst == _origi)
-					_ops[ii].fromProp.sinst = _nowi;
-				if(_ops[ii].toProp != -1 && _ops[ii].toProp.sinst == _origi)
-					_ops[ii].toProp.sinst = _nowi;
-			}
-		}
-	}
-	
-}
-
 function operation_undo() {
 	with(objEditor) {
 		if(operationPointer == -1) return;
@@ -503,8 +488,6 @@ function operation_undo() {
 					break;
 				case OPERATION_TYPE.REMOVE:
 					var _inst = operation_do(OPERATION_TYPE.ADD, _ops[i].fromProp);
-					operation_refresh_inst(_ops[i].fromProp.inst, _inst);
-					operation_refresh_inst(_ops[i].fromProp.sinst, _inst.sinst);
 					break;
 				case OPERATION_TYPE.TPADD:
 					operation_do(OPERATION_TYPE.TPREMOVE, _ops[i].fromProp);
@@ -548,8 +531,6 @@ function operation_redo() {
 					break;
 				case OPERATION_TYPE.ADD:
 					var _inst = operation_do(OPERATION_TYPE.ADD, _ops[i].fromProp);
-					operation_refresh_inst(_ops[i].fromProp.inst, _inst);
-					operation_refresh_inst(_ops[i].fromProp.sinst, _inst.sinst);
 					break;
 				case OPERATION_TYPE.REMOVE:
 				case OPERATION_TYPE.TPADD:
@@ -738,14 +719,14 @@ function timing_fix(tpBefore, tpAfter) {
 		var _cross_timing_warning = false;
 		// Convert bar to the new time.
 		for(var i=0; i<nl; i++) {
-			var _prop = _affectedNotes[i].inst.get_prop();
+			var _prop = SnapDeepCopy(_affectedNotes[i]);
 			_prop.time = bar_to_time_dyn(_bar[i]);
 			// Add the offset's delta.
 			_prop.time += tpAfter.time - tpBefore.time;
 			_prop.lastTime = -1;	// Detatch the sub and the hold.
 			if(_prop.time > _timeR)
 				_cross_timing_warning = true;
-			_affectedNotes[i].inst.set_prop(_prop, true);
+			note_get_instance(_affectedNotes[i].noteID).set_prop(_prop, true);
 		}
 		if(tpAfter.time < _timeM)
 			_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
@@ -976,7 +957,7 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 					for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 						notes_to_fix[_i].time = notes_to_fix[0].time;
 						if(_sync_to_instance)
-							notes_to_fix[_i].inst.set_prop(notes_to_fix[_i]);
+							note_get_instance(notes_to_fix[_i].noteID).set_prop(notes_to_fix[_i]);
 					}
 				}
 				notes_to_fix = [_array[i]];
@@ -988,7 +969,7 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 		for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 			notes_to_fix[_i].time = notes_to_fix[0].time;
 			if(_sync_to_instance)
-				notes_to_fix[_i].inst.set_prop(notes_to_fix[_i]);
+				note_get_instance(notes_to_fix[_i].noteID).set_prop(notes_to_fix[_i]);
 		}
 	}
 	note_activation_reset();

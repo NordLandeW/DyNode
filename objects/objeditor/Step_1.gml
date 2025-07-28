@@ -127,6 +127,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			origProp = get_prop();
 	    			position = 5 - position;
 	    			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                    update_prop();
 	    		}
 	    	}
             operation_merge_last_request(1, OPERATION_TYPE.MIRROR);
@@ -153,6 +154,7 @@ editorSelectMultiple = editorSelectCount > 1;
 			    		side = 1 + (!(side - 1));
 			    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
 			    		_found ++;
+                        update_prop();
 			    	}
 	    	}
 	    	if(_found>0) {
@@ -193,6 +195,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			origProp = get_prop();
 			    	width = editor_get_default_width();
 			    	operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                    update_prop();
 	    		}
             operation_merge_last_request(1, OPERATION_TYPE.SETWIDTH);
 	    	announcement_play(i18n_get("notes_set_width", [string_format(editor_get_default_width(), 1, 2),
@@ -359,10 +362,10 @@ editorSelectMultiple = editorSelectCount > 1;
                         _str.time,
                         _str.lastTime
                         ));
-                    if(_str.inst == attachRequestCenter) {
+                    if(_str.noteID == attachRequestCenterID) {
                         show_debug_message("Set attaching center.");
                         editorNoteAttachingCenter = i;
-                        attachRequestCenter = undefined;
+                        attachRequestCenterID = undefined;
                     }
                 }
                 if(_side_mask == 1 || _side_mask == 2 || _side_mask == 4) {
@@ -424,7 +427,7 @@ editorSelectMultiple = editorSelectCount > 1;
             return sign(_a.time == _b.time? _a.position - _b.position : _a.time - _b.time); });
         
         if(_cnt == 0) {
-            attachRequestCenter = undefined;
+            attachRequestCenterID = undefined;
             singlePaste = false;
         }
         else {

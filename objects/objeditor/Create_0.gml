@@ -176,7 +176,7 @@ copyStack = [];
 copyRequest = false;
 cutRequest = false;
 attachRequest = false;
-attachRequestCenter = undefined;
+attachRequestCenterID = undefined;
 copyMultipleSides = false;
 singlePaste = false;		// Only paste for one time then return (for attach mode)
 
@@ -225,10 +225,11 @@ function cut() {
 }
 
 /// Send attach request.
+/// @param {Id.Instance.objNote} inst - The note instance to attach to.
 function attach(inst) {
 	attachRequest = true;
 	singlePaste = true;
-    attachRequestCenter = inst;
+    attachRequestCenterID = inst.noteID;
 }
 
 set_div(4);			// Default divisor set to 4

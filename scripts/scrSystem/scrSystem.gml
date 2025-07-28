@@ -31,8 +31,6 @@ function map_close() {
 		if(bgImageSpr != -1)
 		    sprite_delete(bgImageSpr);
 		
-		for(var i=0; i<3; i++)
-		    ds_map_destroy(chartNotesMap[i]);
 		ds_map_destroy(deactivationQueue);
 		
 		if(!is_undefined(music)) {
@@ -41,6 +39,8 @@ function map_close() {
 		}
 
 		DyCore_clear_notes();
+		global.noteIDMan.clear();
+		global.activationMan.clear();
 	}
 	
 	instance_destroy(objMain);
@@ -103,9 +103,7 @@ function map_load(_file = "") {
     
     // Notes information init & Remove extra sub notes.
     notes_array_update();
-    note_extra_sub_removal();
     note_sort_all();
-    notes_reallocate_id();
     note_activation_reset();
     
     announcement_play("anno_import_chart_complete");
@@ -206,8 +204,8 @@ function map_import_dym(_file, _direct = false) {
 			_note_subid = $"{_note_subid}_{_side}";
 
 			if(struct_exists(_temp_note_map, _note_id)) {
-				throw $"Duplicate note id found. Note ID_Side: {_note_id}";
-				return;
+				show_debug_message($"Warning: Duplicate note id found. Note ID_Side: {_note_id}");
+				continue;
 			}
 			_temp_note_map[$ _note_id] = {
 				type: _note_type,
@@ -396,16 +394,16 @@ function map_import_osu(_file = "") {
 	                			case 2:
 	                				var _x = real(_grid[i][0]);
 	                				var _y = real(_grid[i][1]);
-	                				build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+	                				build_note(0, _ntime, _x / 512 * 5, 1.0, -1, 0);
 	                				break;
 	                			case 3: // Mania Mode
 	                				var _x = real(_grid[i][0]);
 	                				if(_ntype & 128) { // If is a Mania Hold
 	                					var _subtim = real(string_copy(_grid[i][5], 1, string_pos(":", _grid[i][5])-1)) + _delay_time;
-	                					build_hold(random_id(9), _ntime, _x / 512 * 5, 1.0, random_id(9), _subtim, 0);
+	                					build_hold(_ntime, _x / 512 * 5, 1.0, _subtim, 0);
 	                				} 
 	                				else
-	                					build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+	                					build_note(0, _ntime, _x / 512 * 5, 1.0, -1, 0);
 	                				break;
 	                		}
                 		}
@@ -626,10 +624,10 @@ function map_export_xml(_export_to_dym) {
     
     if(_file == "") return;
     
-    // For Compatibility
-    notes_reallocate_id();
-    note_extra_sub_removal();
 	notes_array_update();				// Sync main notes array
+
+	// TODO: Fetch noteArray contents from DyCore.
+
 	// Init the xml export variables.
 	_setup_xml_compability_variables();
 
@@ -653,14 +651,15 @@ function map_export_xml(_export_to_dym) {
             	var _time = _dec?round(time):time;
             	if(!_dym)
             		_time = mtime_to_time(_time);
-                array_push(_ret, {
-                	m_id : { text : inst.nid },
-                	m_type : { text : note_type_num_to_string(noteType) },
-                	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
-                	m_position : { text : string_format(position - width / 2, 1, 4) },
-                	m_width : { text : width },
-                	m_subId: { text : inst.sid }
-                });
+				// TODO: New data fetch from DyCore format data
+                // array_push(_ret, {
+                // 	m_id : { text : inst.nid },
+                // 	m_type : { text : note_type_num_to_string(noteType) },
+                // 	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
+                // 	m_position : { text : string_format(position - width / 2, 1, 4) },
+                // 	m_width : { text : width },
+                // 	m_subId: { text : inst.sid }
+                // });
             }
         }
         if(array_length(_ret) == 0)
@@ -816,17 +815,13 @@ function map_add_offset(_offset = "", record = false) {
 			timingPoints[i].time += _offset;
 	}
 	
-	note_activate(objNote);
 	with(objMain) {
 		for(var i=0, l=array_length(chartNotesArray); i<l; i++) {
-			chartNotesArray[i].inst.time += _offset;
+			chartNotesArray[i].time += _offset;
 		}
 	}
-	notes_array_update();
 	
 	announcement_play(i18n_get("anno_add_offset", _offset));
-	
-	note_activation_reset();
 	
 	if(record)
 		operation_step_add(OPERATION_TYPE.OFFSET, _offset, -1);

@@ -58,6 +58,7 @@
             if(objEditor.editorWidthAdjustTime > objEditor.editorWidthAdjustTimeThreshold)
                 origProp = get_prop();
             width += _delta_width * 0.05;
+            update_prop();
         }
         editorWidthAdjustTime = 0;
     }

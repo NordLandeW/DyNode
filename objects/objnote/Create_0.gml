@@ -1,4 +1,6 @@
 
+global.activationMan.track(id);
+
 enum NOTE_STATES {
     OUT,
     NORMAL,
@@ -17,6 +19,8 @@ image_yscale = global.scaleYAdjust;
 
 // In-Variables
 
+    noteID = "null";
+    subNoteID = "null";
     stateType = NOTE_STATES.OUT;
     sprite = sprNote2;
     width = 2.0;
@@ -24,8 +28,6 @@ image_yscale = global.scaleYAdjust;
     side = 0;
     bar = 0;
     time = 0;
-    nid = -1;						// Note id
-    sid = -1;						// Sub id
     /// @type {Id.Instance.objHoldSub} 
     sinst = -999;					// Sub instance id
     /// @type {Id.Instance.objHold} 
@@ -33,7 +35,6 @@ image_yscale = global.scaleYAdjust;
     noteType = 0;					// 0 Note 1 Chain 2 Hold
     /// @type {Any} Pointer to chartNotesArray
     arrayPointer = undefined;
-    deleting = false;
     
     // For Editor
     origWidth = width;
@@ -99,6 +100,12 @@ image_yscale = global.scaleYAdjust;
     uFromTop = 0;
 
 // In-Functions
+
+    function _get_subnote_id() {
+        if(note_exists(sinst))
+            return sinst.noteID;
+        return "null";
+    }
 
     function _prop_init(forced = false) {
         if(editor_get_editmode() != 5 || forced) {
@@ -256,8 +263,8 @@ image_yscale = global.scaleYAdjust;
         	position : position,
         	lastTime : lastTime,
         	noteType : noteType,
-        	inst : id,
-        	sinst: sinst,
+        	noteID : noteID,
+        	subNoteID: subNoteID,
         	beginTime : beginTime,
         	lastAttachBar: lastAttachBar,
             index: get_array_pos()
@@ -328,12 +335,13 @@ image_yscale = global.scaleYAdjust;
             arrayPointer.noteType = noteType;
             differs = true;
         }
-        if(arrayPointer.inst != id) {
-            arrayPointer.inst = id;
+        if(arrayPointer.noteID != noteID) {
+            arrayPointer.noteID = noteID;
             differs = true;
         }
-        if(arrayPointer.sinst != sinst) {
-            arrayPointer.sinst = sinst;
+        var _subNoteID = _get_subnote_id();
+        if(arrayPointer.subNoteID != _subNoteID) {
+            arrayPointer.subNoteID = _subNoteID;
             differs = true;
         }
         if(arrayPointer.beginTime != beginTime) {
@@ -357,8 +365,8 @@ image_yscale = global.scaleYAdjust;
     	position = arrayPointer.position;
     	lastTime = arrayPointer.lastTime;
     	noteType = arrayPointer.noteType;
-    	inst = arrayPointer.inst;
-    	sinst = arrayPointer.sinst;
+    	noteID = arrayPointer.noteID;
+        subNoteID = arrayPointer.subNoteID;
     	beginTime = arrayPointer.beginTime;
     	lastAttachBar = arrayPointer.lastAttachBar;
     }
@@ -603,7 +611,7 @@ image_yscale = global.scaleYAdjust;
                 	editor_set_default_width(width);
                 if(noteType == 2) {
                 	if(fixedLastTime != -1) {
-                		build_hold(random_id(9), time, position, width, random_id(9), time + fixedLastTime, side, true,
+                		build_hold(time, position, width, time + fixedLastTime, side, true,
                                     _toSelectState);
                         if(_singlePaste) instance_destroy();
                         set_state(NOTE_STATES.ATTACH);
@@ -619,7 +627,7 @@ image_yscale = global.scaleYAdjust;
                     editor_lrside_lock_set(true);
                     return;
                 }
-                var _note = build_note(random_id(9), noteType, time, position, width, -1, side, true,
+                var _note = build_note(noteType, time, position, width, -1, side, true,
                             _toSelectState);
                 
                 note_outscreen_check();
@@ -673,9 +681,7 @@ image_yscale = global.scaleYAdjust;
         function stateDropSub() {
             animTargetA = 1.0;
             if(mouse_check_button_released(mb_left)) {
-                var _subid = random_id(9);
-                var _teid = random_id(9);
-                build_hold(_teid, time, position, width, _subid, sinst.time, side, true);
+                build_hold(time, position, width, sinst.time, side, true);
                 instance_destroy();
             }
         }
@@ -784,6 +790,7 @@ image_yscale = global.scaleYAdjust;
                             side = origSide;
                         }
                         _prop_init();
+                        update_prop();
                         if(noteType == 2) {
                             sinst.time = (ctrl_ishold() || editor_select_is_multiple()) ? time + origLength : origSubTime;
                             _prop_hold_update();
@@ -832,11 +839,12 @@ image_yscale = global.scaleYAdjust;
 		    time += _timechg;
 		    position += _poschg;
 		    if(_timechg != 0) {
-                update_prop();
 		    	note_sort_request();
             }
-		    if(_timechg != 0 || _poschg != 0)
+		    if(_timechg != 0 || _poschg != 0) {
+                update_prop();
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+            }
         }
         
 function draw_event() {
