@@ -65,6 +65,15 @@ function Activationmanager() constructor {
         deactivatedPool = {};
     }
 
+    static deactivate_all = function() {
+        var _keys = variable_struct_get_names(activatedPool);
+        for(var i=0; i<array_length(_keys); i++) {
+            variable_struct_set(deactivatedPool, _keys[i], 0);
+        }
+        delete activatedPool;
+        activatedPool = {};
+    }
+
     static clear = function() {
         delete deactivatedPool;
         delete activatedPool;

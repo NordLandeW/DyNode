@@ -308,7 +308,7 @@ function stop_autoupdate() {
 
 // Check For Update
 update_cleanup();
-if(global.autoupdate)
+if(global.autoupdate && !DEBUG_MODE)
 	_update_get_event_handle = http_get("https://api.github.com/repos/NordLandeW/DyNode/releases/latest");
 
 #endregion

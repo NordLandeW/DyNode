@@ -317,7 +317,7 @@ function note_activate_all() {
 }
 
 function note_deactivate_all() {
-	with(objNote) global.activationMan.deactivate(id);
+	global.activationMan.deactivate_all();
 	instance_deactivate_object(objNote);
 }
 

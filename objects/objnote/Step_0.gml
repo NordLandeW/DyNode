@@ -1,7 +1,7 @@
-
-pull_prop();
-
 var _editMode = editor_get_editmode();
+
+if(_editMode < 5)
+    pull_prop();
 
 _prop_init();
 
