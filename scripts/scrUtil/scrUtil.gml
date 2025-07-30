@@ -686,7 +686,7 @@ function color_invert(col) {
 
 function assert(expression) {
 	if(!expression)
-		show_error("Assertion failed.", true);
+		throw "Assertion Failed.";
 }
 
 function filename_name_no_ext(file_name) {

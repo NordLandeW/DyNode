@@ -941,7 +941,6 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 		return;
 	}
 
-	note_activate_all();
 	var notes_to_fix = [];
 	for(var i=0, l=array_length(_array); i < l; i++) {
 		if(i==0) {
@@ -972,7 +971,6 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 				note_get_instance(notes_to_fix[_i].noteID).set_prop(notes_to_fix[_i]);
 		}
 	}
-	note_activation_reset();
 }
 
 function note_outbound_warning() {

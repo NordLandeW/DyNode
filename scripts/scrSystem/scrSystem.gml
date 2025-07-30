@@ -609,22 +609,12 @@ function map_export_xml(_export_to_dym) {
 	
     var _file = "";
     var _mapid = (_export_to_dym?"_dym_":"_map_") + map_get_alt_title() + "_" + difficulty_num_to_char(objMain.chartDifficulty);
-    var _default_file_name = _mapid + "-";
-    _default_file_name += string(current_year) + "-";
-    _default_file_name += string(current_month) + "-";
-    _default_file_name += string(current_day) + "-";
-    _default_file_name += string(current_hour) + "-";
-    _default_file_name += string(current_minute) + "-";
-    _default_file_name += string(current_second);
+	var _default_file_name = $"{_mapid}-{current_year}-{current_month}-{current_day}-{current_hour}-{current_minute}-{current_second}";
 
 	var _file_title = _export_to_dym ? "Export Dynamaker-modified Chart as XML File 导出 DyM 谱面文件" : "Export Dynamix Chart as XML File 导出实机 XML 谱面文件";
     _file = get_save_filename_ext("XML File (*.xml)|*.xml", _default_file_name + ".xml", program_directory, _file_title);
     
     if(_file == "") return;
-    
-	notes_array_update();				// Sync main notes array
-
-	// TODO: Fetch noteArray contents from DyCore.
 
 	// Init the xml export variables.
 	_setup_xml_compability_variables();
@@ -632,7 +622,33 @@ function map_export_xml(_export_to_dym) {
 	var _fix_dec = false;
     var _fix_error = _export_to_dym? false:show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
-	var _notes_array = SnapDeepCopy(objMain.chartNotesArray);
+	var _notes_array = DyCore_get_notes_array_string();
+	_notes_array = json_parse(_notes_array);
+
+	// show_debug_message(_notes_array);
+
+	var _sub_notes_array = [], _noteNIndex = 0;
+	for(var i=0, l=array_length(_notes_array); i<l; i++) {
+		_notes_array[i].noteID = string(_noteNIndex);
+		_noteNIndex ++;
+		_notes_array[i].subNoteID = -1;
+		if(_notes_array[i].noteType == 2) {
+			/// @type {Any}
+			var _subnote = SnapDeepCopy(_notes_array[i]);
+			_subnote.noteType = 3;
+			_subnote.time += _subnote.lastTime;
+			_subnote.lastTime = 0;
+			_subnote.noteID = string(_noteNIndex);
+			_notes_array[i].subNoteID = string(_noteNIndex);
+			_noteNIndex ++;
+			array_push(_sub_notes_array, _subnote);
+		}
+	}
+	// Merge sub notes to main notes array.
+	_notes_array = array_concat(_notes_array, _sub_notes_array);
+
+	// Sort the notes array.
+	_notes_array = extern_index_sort(_notes_array, function(_x) { return _x.time; });
 
 	// Correct the offset error
 	if(_fix_error) {
@@ -644,20 +660,20 @@ function map_export_xml(_export_to_dym) {
     	var _ret = [];
     	var _bfun = _dym? time_to_bar_for_dym:time_to_bar;
 		var l = array_length(_array);
-    	for(var i=0; i<l; i++) with (_array[i]) {
-            if(side == _side) {
-            	var _time = _dec?round(time):time;
+    	for(var i=0; i<l; i++) {
+			var _str = _array[i];
+            if(_str.side == _side) {
+            	var _time = _dec?round(_str.time):_str.time;
             	if(!_dym)
             		_time = mtime_to_time(_time);
-				// TODO: New data fetch from DyCore format data
-                // array_push(_ret, {
-                // 	m_id : { text : inst.nid },
-                // 	m_type : { text : note_type_num_to_string(noteType) },
-                // 	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
-                // 	m_position : { text : string_format(position - width / 2, 1, 4) },
-                // 	m_width : { text : width },
-                // 	m_subId: { text : inst.sid }
-                // });
+                array_push(_ret, {
+                	m_id : { text : _str.noteID },
+                	m_type : { text : note_type_num_to_string(_str.noteType) },
+                	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
+                	m_position : { text : string_format(_str.position - _str.width / 2, 1, 4) },
+                	m_width : { text : _str.width },
+                	m_subId: { text : _str.subNoteID }
+                });
             }
         }
         if(array_length(_ret) == 0)
@@ -729,8 +745,6 @@ function map_export_xml(_export_to_dym) {
 	
 	objMain.savingExportId = 
 		fast_file_save_async(_file, SnapToXML(_str));
-	
-	note_activation_reset();
 }
 
 function map_get_struct_without_notes() {
