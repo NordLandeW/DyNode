@@ -221,6 +221,12 @@ string get_notes_array_string() {
     return nlohmann::to_string(js);
 }
 
+DYCORE_API const char* DyCore_get_notes_array_string() {
+    static string notesArrayString;
+    notesArrayString = get_notes_array_string();
+    return notesArrayString.c_str();
+}
+
 // Compresses the project string into a buffer.
 //
 // @param projectString The project data as a string.
