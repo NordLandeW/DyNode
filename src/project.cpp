@@ -196,13 +196,13 @@ string get_project_string(string projectProp) {
 
     // Get the final notes array.
     mtxSaveProject.lock();
-    std::vector<Note> notes;
-    for (auto note : currentNoteMap)
+    std::vector<NoteExportView> notes;
+    for (const auto& note : currentNoteMap)
         if (note.second.noteType != 3)
-            notes.push_back(note.second);
-    mtxSaveProject.unlock();
+            notes.push_back(NoteExportView(note.second));
 
     js["charts"]["notes"] = notes;
+    mtxSaveProject.unlock();
     return nlohmann::to_string(js);
 }
 
@@ -210,13 +210,13 @@ string get_notes_array_string() {
     json js;
 
     mtxSaveProject.lock();
-    std::vector<Note> notes;
-    for (auto note : currentNoteMap)
+    std::vector<NoteExportView> notes;
+    for (const auto& note : currentNoteMap)
         if (note.second.noteType != 3)
-            notes.push_back(note.second);
-    mtxSaveProject.unlock();
+            notes.push_back(NoteExportView(note.second));
 
     js = notes;
+    mtxSaveProject.unlock();
 
     return nlohmann::to_string(js);
 }

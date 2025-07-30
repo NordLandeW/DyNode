@@ -15,9 +15,11 @@ DYCORE_API double DyCore_delete_note(const char *prop);
 DYCORE_API double DyCore_insert_note(const char *prop);
 
 struct Note;
+struct NoteExportView;
 extern std::unordered_map<string, Note> currentNoteMap;
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
+inline void to_json(json &j, const NoteExportView &n);
 
 struct Note {
     double time;
@@ -33,14 +35,20 @@ struct Note {
     string dump() {
         return json(*this).dump();
     }
-    string full_dump() {
-        json ret = json(*this);
-        ret["noteID"] = noteID;
-        ret["subNoteID"] = subNoteID;
-        ret["beginTime"] = beginTime;
-        return ret.dump();
+};
+
+struct NoteExportView {
+    const Note note;
+    NoteExportView(const Note n) : note(n) {
     }
 };
+
+inline void to_json(json &j, const NoteExportView &view) {
+    j = json{
+        {"time", view.note.time},         {"side", view.note.side},
+        {"width", view.note.width},       {"position", view.note.position},
+        {"lastTime", view.note.lastTime}, {"noteType", view.note.noteType}};
+}
 
 inline void from_json(const json &j, Note &n) {
     j.at("time").get_to(n.time);
@@ -55,7 +63,9 @@ inline void from_json(const json &j, Note &n) {
 }
 
 inline void to_json(json &j, const Note &n) {
-    j = json{{"time", n.time},         {"side", n.side},
-             {"width", n.width},       {"position", n.position},
-             {"lastTime", n.lastTime}, {"noteType", n.noteType}};
+    j = json{{"time", n.time},          {"side", n.side},
+             {"width", n.width},        {"position", n.position},
+             {"lastTime", n.lastTime},  {"noteType", n.noteType},
+             {"noteID", n.noteID},      {"subNoteID", n.subNoteID},
+             {"beginTime", n.beginTime}};
 }
