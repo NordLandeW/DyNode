@@ -1,8 +1,11 @@
 #include "notePoolManager.h"
 
 #include <algorithm>
+#include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/taskflow.hpp>
 
 #include "note.h"
+#include "singletons.h"
 #include "utils.h"
 
 extern NotePoolManager notePoolManager;
@@ -105,9 +108,7 @@ void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
     std::vector<nptr> all_note_handles;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-
         all_note_handles.reserve(noteInfoMap.size());
-
         for (const auto& [noteID, info] : noteInfoMap) {
             all_note_handles.push_back(info.pointer);
         }
@@ -117,6 +118,27 @@ void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
         std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
         executor(*note_ptr);
     }
+}
+
+void NotePoolManager::access_all_notes_parallel(
+    std::function<void(Note&)> executor) {
+    std::vector<nptr> all_note_handles;
+    {
+        std::lock_guard<std::mutex> lock(mtxNoteOps);
+        all_note_handles.reserve(noteInfoMap.size());
+        for (const auto& [noteID, info] : noteInfoMap) {
+            all_note_handles.push_back(info.pointer);
+        }
+    }
+
+    auto& tfexecutor = get_taskflow_executor();
+    tf::Taskflow taskflow;
+    taskflow.for_each(all_note_handles.begin(), all_note_handles.end(),
+                      [&](nptr note_ptr) {
+                          std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
+                          executor(*note_ptr);
+                      });
+    tfexecutor.run(taskflow).wait();
 }
 
 void NotePoolManager::clear_notes() {

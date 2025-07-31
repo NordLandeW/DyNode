@@ -18,7 +18,6 @@ void clear_notes();
 int insert_note(const Note &note);
 int delete_note(const Note &note);
 int modify_note(const Note &note);
-Note &get_note_ref(const string &noteID);
 
 void get_note_array(std::vector<Note> &notes);
 void get_note_array(std::vector<NoteExportView> &notes);

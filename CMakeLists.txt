@@ -41,6 +41,7 @@ set(DYCORE_SOURCES
     src/async.cpp
     src/note/note.cpp
     src/note/notePoolManager.cpp
+    src/note/noteStat.cpp
     src/project.cpp
     src/compress.cpp
     src/test.cpp
