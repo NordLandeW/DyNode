@@ -1428,18 +1428,6 @@ function stat_reset() {
 		];
 }
 
-function stat_count(side, type) {
-	if(type > 2)
-		return;
-	
-	with(objMain) {
-		statCount[side][type] ++;
-		statCount[side][3] += 1 + (type == 2);
-		statCount[3][type] ++;
-		statCount[3][3] += 1 + (type == 2);
-	}
-}
-
 function stat_note_string(stype, ntype) {
 	with(objMain)
 		if(stype == 1) {
