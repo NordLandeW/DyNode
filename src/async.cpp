@@ -1,10 +1,10 @@
 
 #include "async.h"
+
 #include "api.h"
 #include "utils.h"
 
 std::vector<AsyncEvent> asyncEventStack;
-std::mutex mtxSaveProject;
 std::mutex mtxAsyncEvents;
 
 // Pushes a general error event to the asynchronous event stack.

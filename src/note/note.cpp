@@ -1,14 +1,12 @@
 #include "note.h"
 
 #include <string>
-#include <unordered_map>
 
 #include "async.h"
 #include "singletons.h"
 #include "utils.h"
 
 using std::string;
-std::unordered_map<string, Note> currentNoteMap;
 
 // Checks if a note exists in the current note map.
 bool note_exists(const Note& note) {

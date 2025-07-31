@@ -31,7 +31,6 @@ DYCORE_API double DyCore_insert_note(const char *prop);
 DYCORE_API double DyCore_modify_note_bitwise(const char *noteID,
                                              const char *prop);
 
-extern std::unordered_map<string, Note> currentNoteMap;
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
 inline void to_json(json &j, const NoteExportView &n);
