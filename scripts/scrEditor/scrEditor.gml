@@ -220,10 +220,8 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
         });
         
         if(_side == 0) {
-            // if(_ry >= 0 && _ry <= _nh - targetLineBelow && _rt + _eps <= _nexttime)
             if((in_between(_ry, 0, _nh - targetLineBelow) || _ignore_boundary) && _rt + _eps <= _nexttime)
                 _ret = _f_genret(_ry, _rd, _rt);
-            // else if(_rby >= 0 && _rby <= _nh - targetLineBelow && _rbt + _eps <= _nexttime)
             else if((in_between(_rby, 0, _nh - targetLineBelow) || _ignore_boundary) && _rbt + _eps <= _nexttime)
                 _ret = _f_genret(_rby, _rbd, _rbt);
         }

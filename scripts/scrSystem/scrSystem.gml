@@ -425,7 +425,7 @@ function map_import_dyn(_file) {
     
 	var _buf = buffer_load(_file);
 	/// @type {Any} 
-    var _str = __dyn_read_buffer(_buf);
+    var _str = dyc_read_project_buffer(_buf);
 	buffer_delete(_buf);
     
     if(!is_struct(_str)) {
@@ -851,7 +851,7 @@ function project_load(_file = "") {
     if(_file == "") return 0;
     
     var _buf = buffer_load(_file);
-    var _contents = __dyn_read_buffer(_buf);
+    var _contents = dyc_read_project_buffer(_buf);
     buffer_delete(_buf);
     var _propath = filename_path(_file);
     
@@ -1518,38 +1518,6 @@ function global_add_delay(delay) {
 			nowTime -= delay;
 	save_config();
 	announcement_set("global_music_delay", global.musicDelay);
-}
-
-#endregion
-
-#region DYN File Format Functions
-
-/// @description To check if the buffer is compressed.
-function __dyn_is_compressed_buffer(buffer) {
-	return DyCore_is_compressed(buffer_get_address(buffer), buffer_get_size(buffer)) >= 0;
-}
-
-/// @description Convert compressed/uncompressed buffer to project struct.
-/// @param {Id.Buffer} buffer The given buffer.
-/// @returns {Struct} The final struct.
-function __dyn_read_buffer(buffer) {
-	var _json = "";
-	if(!__dyn_is_compressed_buffer(buffer)) {
-		// Fallback to text format.
-		buffer_seek(buffer, buffer_seek_start, 0);
-		_json = buffer_read(buffer, buffer_text);
-	}
-	else {
-		_json = DyCore_decompress_string(buffer_get_address(buffer), buffer_get_size(buffer));
-		if(_json == "failed")
-			throw "Decompress failed.";
-	}
-
-	var _str = json_parse(_json);
-
-	if(!is_struct(_str))
-		throw "Parse failed.";
-	return _str;
 }
 
 #endregion

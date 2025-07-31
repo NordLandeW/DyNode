@@ -354,7 +354,7 @@ image_yscale = global.scaleYAdjust;
         }
 
         if(differs)
-            DyCore_modify_note(json_stringify(arrayPointer));
+            dyc_update_note(arrayPointer);
     }
 
     function pull_prop() {
