@@ -8,15 +8,17 @@ class NotePoolManager {
     ~NotePoolManager();
 
     bool note_exists(const std::string &noteID);
-    bool create_note(std::string noteID);
+    bool create_note(const Note &note);
     Note get_note(const std::string &noteID);
     void set_note(const std::string &noteID, const Note &note);
     void set_note_bitwise(const std::string &noteID, const char *prop);
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
+    void access_all_notes(std::function<void(Note &)> executor);
     int get_index(const std::string &noteID);
     bool release_note(std::string noteID);
     bool release_note(const Note &note);
+    void clear_notes();
     bool array_sort_request();
 
    private:

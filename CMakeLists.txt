@@ -44,6 +44,7 @@ set(DYCORE_SOURCES
     src/project.cpp
     src/compress.cpp
     src/test.cpp
+    src/singletons.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 target_include_directories(DyCore PRIVATE

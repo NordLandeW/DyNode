@@ -12,6 +12,8 @@
 #include "async.h"
 #include "compress.h"
 #include "note.h"
+#include "note/note.h"
+#include "singletons.h"
 #include "utils.h"
 
 // Verifies the integrity of a project string by checking its JSON structure.
@@ -195,28 +197,20 @@ string get_project_string(string projectProp) {
     }
 
     // Get the final notes array.
-    mtxSaveProject.lock();
     std::vector<NoteExportView> notes;
-    for (const auto& note : currentNoteMap)
-        if (note.second.noteType != 3)
-            notes.push_back(NoteExportView(note.second));
+    get_note_array(notes);
 
     js["charts"]["notes"] = notes;
-    mtxSaveProject.unlock();
     return nlohmann::to_string(js);
 }
 
 string get_notes_array_string() {
     json js;
 
-    mtxSaveProject.lock();
     std::vector<NoteExportView> notes;
-    for (const auto& note : currentNoteMap)
-        if (note.second.noteType != 3)
-            notes.push_back(NoteExportView(note.second));
+    get_note_array(notes);
 
     js = notes;
-    mtxSaveProject.unlock();
 
     return nlohmann::to_string(js);
 }

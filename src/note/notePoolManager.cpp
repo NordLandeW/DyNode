@@ -21,20 +21,20 @@ bool NotePoolManager::note_exists(const std::string& noteID) {
     return noteInfoMap.find(noteID) != noteInfoMap.end();
 }
 
-bool NotePoolManager::create_note(std::string noteID) {
+bool NotePoolManager::create_note(const Note& note) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
-    if (note_exists(noteID)) {
+    if (note_exists(note.noteID)) {
         return false;
     }
     try {
         std::pmr::polymorphic_allocator<Note> alloc(&pool_res);
         auto ptr = std::allocate_shared<Note>(alloc);
 
-        ptr->noteID = noteID;
+        *ptr = note;
 
         noteMemoryList.emplace_back(ptr);
-        noteInfoMap[noteID] = {--noteMemoryList.end(), ptr,
-                               static_cast<int>(noteArray.size())};
+        noteInfoMap[note.noteID] = {--noteMemoryList.end(), ptr,
+                                    static_cast<int>(noteArray.size())};
 
         noteArray.push_back(ptr);
         set_ooo();
@@ -99,6 +99,32 @@ void NotePoolManager::access_note(const std::string& noteID,
 
     std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
     executor(*note_ptr);
+}
+
+void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
+    std::vector<nptr> all_note_handles;
+    {
+        std::lock_guard<std::mutex> lock(mtxNoteOps);
+
+        all_note_handles.reserve(noteInfoMap.size());
+
+        for (const auto& [noteID, info] : noteInfoMap) {
+            all_note_handles.push_back(info.pointer);
+        }
+    }
+
+    for (const auto& note_ptr : all_note_handles) {
+        std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
+        executor(*note_ptr);
+    }
+}
+
+void NotePoolManager::clear_notes() {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    noteArray.clear();
+    noteMemoryList.clear();
+    noteInfoMap.clear();
+    return;
 }
 
 int NotePoolManager::get_index(const std::string& noteID) {

@@ -1,10 +1,10 @@
 #include "note.h"
 
-#include <mutex>
 #include <string>
 #include <unordered_map>
 
 #include "async.h"
+#include "singletons.h"
 #include "utils.h"
 
 using std::string;
@@ -12,70 +12,69 @@ std::unordered_map<string, Note> currentNoteMap;
 
 // Checks if a note exists in the current note map.
 bool note_exists(const Note& note) {
-    return currentNoteMap.find(note.noteID) != currentNoteMap.end();
+    return note_exists(note.noteID.c_str());
 }
 bool note_exists(const char* noteID) {
-    return currentNoteMap.find(noteID) != currentNoteMap.end();
+    auto& noteMan = get_note_pool_manager();
+    return noteMan.note_exists(noteID);
 }
 
 // Clears all notes from the current note map.
 void clear_notes() {
-    mtxSaveProject.lock();
-    currentNoteMap.clear();
-    mtxSaveProject.unlock();
+    get_note_pool_manager().clear_notes();
 }
 
 // Inserts a new note into the note map.
 // Returns 0 on success, -1 if the note already exists.
-int insert_note(Note note) {
+int insert_note(const Note& note) {
     if (note_exists(note)) {
         print_debug_message("Warning: the given note has existed." +
                             note.noteID);
         return -1;
     }
 
-    mtxSaveProject.lock();
-    currentNoteMap[note.noteID] = note;
-    mtxSaveProject.unlock();
-    // print_debug_message("Insert note at:" + std::to_string(note.time));
+    get_note_pool_manager().create_note(note);
     return 0;
 }
 
 // Deletes a note from the note map.
 // Returns 0 on success, -1 if the note does not exist.
-int delete_note(Note note) {
+int delete_note(const Note& note) {
     if (!note_exists(note)) {
         print_debug_message("Warning: the given note is not existed." +
                             note.noteID);
         return -1;
     }
 
-    mtxSaveProject.lock();
-    currentNoteMap.erase(note.noteID);
-    mtxSaveProject.unlock();
+    get_note_pool_manager().release_note(note);
     return 0;
 }
 
 // Modifies an existing note in the note map.
 // Returns 0 on success, -1 if the note does not exist.
-int modify_note(Note note) {
+int modify_note(const Note& note) {
     if (!note_exists(note)) {
         print_debug_message("Warning: Trying to modify a non-existing note: " +
                             note.noteID);
         return -1;
     }
-    mtxSaveProject.lock();
-    currentNoteMap[note.noteID] = note;
-    mtxSaveProject.unlock();
+    get_note_pool_manager().set_note(note.noteID, note);
     return 0;
 }
 
-Note& get_note_ref(const string& noteID) {
-    mtxSaveProject.lock();
-    Note& note = currentNoteMap[noteID];
-    mtxSaveProject.unlock();
-
-    return note;
+void get_note_array(std::vector<Note>& notes) {
+    auto& noteMan = get_note_pool_manager();
+    noteMan.access_all_notes([&](Note& note) {
+        if (note.noteType != 3)
+            notes.push_back(note);
+    });
+}
+void get_note_array(std::vector<NoteExportView>& notes) {
+    auto& noteMan = get_note_pool_manager();
+    noteMan.access_all_notes([&](Note& note) {
+        if (note.noteType != 3)
+            notes.push_back(NoteExportView(note));
+    });
 }
 
 // Synchronizes the note map with a given array of notes in JSON format.
@@ -168,7 +167,6 @@ DYCORE_API double DyCore_modify_note_bitwise(const char* noteID,
     if (!note_exists(noteID)) {
         return -1;
     }
-    Note& note = get_note_ref(noteID);
-    note.bitread(prop);
+    get_note_pool_manager().set_note_bitwise(noteID, prop);
     return 0;
 }
