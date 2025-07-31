@@ -4,10 +4,8 @@
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
-#include <iomanip>
 #include <iostream>
 #include <random>
-#include <sstream>
 #include <taskflow/taskflow.hpp>
 
 #include "api.h"
@@ -79,17 +77,9 @@ std::string get_file_modification_time(char* file_path) {
         return "failed";
     }
 
-    auto sctp =
-        std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-            ftime - fs::file_time_type::clock::now() +
-            std::chrono::system_clock::now());
+    auto ftime_sec = std::chrono::floor<std::chrono::seconds>(ftime);
 
-    std::time_t tt = std::chrono::system_clock::to_time_t(sctp);
-    std::tm tm = *std::localtime(&tt);
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y_%m_%d_%H_%M_%S");
-    return oss.str();
+    return std::format("{:%Y_%m_%d_%H_%M_%S}", ftime_sec);
 }
 
 // Generates a random string of a specified length.
