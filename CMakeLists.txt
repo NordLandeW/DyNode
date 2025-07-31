@@ -12,18 +12,44 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+## Dependencies
+# --- zstd ---
+file(GLOB ZSTD_SOURCES "lib/zstd/*/*.c")
+add_library(zstd STATIC ${ZSTD_SOURCES})
+target_include_directories(zstd PUBLIC "lib/zstd")
+
+# --- lua ---
+file(GLOB LUA_SOURCES "lib/lua/*.c")
+add_library(lua STATIC ${LUA_SOURCES})
+target_include_directories(lua PUBLIC "lib/lua")
+
+# --- pugixml ---
+add_library(pugixml STATIC lib/pugixml.cpp)
+target_include_directories(pugixml PUBLIC "lib")
+
+# --- delaunator ---
+add_library(delaunator STATIC lib/delaunator.cpp)
+target_include_directories(delaunator PUBLIC "lib")
+
+## DyCore
+
 set(DYCORE_SOURCES
     src/DyCore.cpp
     src/delaunator.cpp
     src/utils.cpp
     src/update.cpp
     src/async.cpp
-    src/note.cpp
+    src/note/note.cpp
+    src/note/notePoolManager.cpp
     src/project.cpp
     src/compress.cpp
     src/test.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
+target_include_directories(DyCore PRIVATE
+    src
+    src/note
+)
 
 target_compile_definitions(DyCore PRIVATE 
     $<$<CONFIG:RELEASE>:NDEBUG>
@@ -41,18 +67,6 @@ else()
         $<$<CONFIG:RELEASE>:-mavx2>
     )
 endif()
-
-include_directories("${CMAKE_SOURCE_DIR}/lib/zstd")
-include_directories("${CMAKE_SOURCE_DIR}/lib/lua")
-include_directories("${CMAKE_SOURCE_DIR}/lib")
-file(GLOB ZSTD_SOURCES "${CMAKE_SOURCE_DIR}/lib/zstd/*/*.c")
-file(GLOB LUA_SOURCES "${CMAKE_SOURCE_DIR}/lib/lua/*.c")
-file(GLOB PUGIXML_SOURCES "${CMAKE_SOURCE_DIR}/lib/pugixml.cpp")
-file(GLOB DELAUNATOR_SOURCES "${CMAKE_SOURCE_DIR}/lib/delaunator.cpp")
-add_library(zstd STATIC ${ZSTD_SOURCES})
-add_library(lua STATIC ${LUA_SOURCES})
-add_library(pugixml STATIC ${PUGIXML_SOURCES})
-add_library(delaunator STATIC ${DELAUNATOR_SOURCES})
 
 target_link_libraries(DyCore PRIVATE zstd)
 target_link_libraries(DyCore PRIVATE lua)

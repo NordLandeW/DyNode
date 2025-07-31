@@ -1,5 +1,6 @@
 #include "note.h"
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -7,7 +8,6 @@
 #include "utils.h"
 
 using std::string;
-
 std::unordered_map<string, Note> currentNoteMap;
 
 // Checks if a note exists in the current note map.
