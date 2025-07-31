@@ -14,6 +14,9 @@ std::unordered_map<string, Note> currentNoteMap;
 bool note_exists(const Note& note) {
     return currentNoteMap.find(note.noteID) != currentNoteMap.end();
 }
+bool note_exists(const char* noteID) {
+    return currentNoteMap.find(noteID) != currentNoteMap.end();
+}
 
 // Clears all notes from the current note map.
 void clear_notes() {
@@ -65,6 +68,14 @@ int modify_note(Note note) {
     currentNoteMap[note.noteID] = note;
     mtxSaveProject.unlock();
     return 0;
+}
+
+Note& get_note_ref(const string& noteID) {
+    mtxSaveProject.lock();
+    Note& note = currentNoteMap[noteID];
+    mtxSaveProject.unlock();
+
+    return note;
 }
 
 // Synchronizes the note map with a given array of notes in JSON format.
@@ -150,4 +161,14 @@ DYCORE_API double DyCore_modify_note(const char* prop) {
 
     Note note = j.template get<Note>();
     return modify_note(note);
+}
+
+DYCORE_API double DyCore_modify_note_bitwise(const char* noteID,
+                                             const char* prop) {
+    if (!note_exists(noteID)) {
+        return -1;
+    }
+    Note& note = get_note_ref(noteID);
+    note.bitread(prop);
+    return 0;
 }

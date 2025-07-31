@@ -8,14 +8,25 @@
 using nlohmann::json;
 using std::string;
 
+struct Note;
+struct NoteExportView;
+
+bool note_exists(const Note &note);
+bool note_exists(const char *noteID);
+void clear_notes();
+int insert_note(Note note);
+int delete_note(Note note);
+int modify_note(Note note);
+Note &get_note_ref(const string &noteID);
+
 DYCORE_API double DyCore_clear_notes();
 DYCORE_API double DyCore_sync_notes_array(const char *notesArray);
 DYCORE_API double DyCore_modify_note(const char *prop);
 DYCORE_API double DyCore_delete_note(const char *prop);
 DYCORE_API double DyCore_insert_note(const char *prop);
+DYCORE_API double DyCore_modify_note_bitwise(const char *noteID,
+                                             const char *prop);
 
-struct Note;
-struct NoteExportView;
 extern std::unordered_map<string, Note> currentNoteMap;
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
@@ -32,10 +43,8 @@ struct Note {
         buffer += sizeof(double);
     }
     static void bitwrite_string(char *&buffer, const string &value) {
-        int size = value.size() + 1;
-        bitwrite_int(buffer, size);
-        memcpy(buffer, value.data(), size);
-        buffer += size;
+        memcpy(buffer, value.data(), value.size() + 1);
+        buffer += value.size() + 1;
     }
     static void bitread_int(const char *&buffer, int &value) {
         memcpy(&value, buffer, sizeof(int));
@@ -46,10 +55,9 @@ struct Note {
         buffer += sizeof(double);
     }
     static void bitread_string(const char *&buffer, string &value) {
-        int size;
-        bitread_int(buffer, size);
+        int size = strlen(buffer);
         value.assign(buffer, size);
-        buffer += size;
+        buffer += size + 1;
     }
 
    public:
