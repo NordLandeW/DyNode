@@ -2,10 +2,15 @@
 
 project ("DyCore")
 
+if(POLICY CMP0177)
+    cmake_policy(SET CMP0177 NEW)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 set(DYCORE_SOURCES
     src/DyCore.cpp
@@ -25,9 +30,17 @@ target_compile_definitions(DyCore PRIVATE
     $<$<CONFIG:RELEASE>:_CRT_SECURE_NO_WARNINGS>
 )
 
-target_compile_options(DyCore PRIVATE 
-    $<$<CONFIG:RELEASE>:-O3>
-)
+if(MSVC)
+    target_compile_options(DyCore PRIVATE
+        $<$<CONFIG:RELEASE>:/O2>
+        $<$<CONFIG:RELEASE>:/arch:AVX2>
+    )
+else()
+    target_compile_options(DyCore PRIVATE
+        $<$<CONFIG:RELEASE>:-O3>
+        $<$<CONFIG:RELEASE>:-mavx2>
+    )
+endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/lib/zstd")
 include_directories("${CMAKE_SOURCE_DIR}/lib/lua")
