@@ -22,18 +22,80 @@ inline void to_json(json &j, const Note &n);
 inline void to_json(json &j, const NoteExportView &n);
 
 struct Note {
-    double time;
+   private:
+    static void bitwrite_int(char *&buffer, const int &value) {
+        memcpy(buffer, &value, sizeof(int));
+        buffer += sizeof(int);
+    }
+    static void bitwrite_double(char *&buffer, const double &value) {
+        memcpy(buffer, &value, sizeof(double));
+        buffer += sizeof(double);
+    }
+    static void bitwrite_string(char *&buffer, const string &value) {
+        int size = value.size() + 1;
+        bitwrite_int(buffer, size);
+        memcpy(buffer, value.data(), size);
+        buffer += size;
+    }
+    static void bitread_int(const char *&buffer, int &value) {
+        memcpy(&value, buffer, sizeof(int));
+        buffer += sizeof(int);
+    }
+    static void bitread_double(const char *&buffer, double &value) {
+        memcpy(&value, buffer, sizeof(double));
+        buffer += sizeof(double);
+    }
+    static void bitread_string(const char *&buffer, string &value) {
+        int size;
+        bitread_int(buffer, size);
+        value.assign(buffer, size);
+        buffer += size;
+    }
+
+   public:
     int side;
+    int noteType;
+    double time;
     double width;
     double position;
     double lastTime;
-    int noteType;
+    double beginTime;
     string noteID;
     string subNoteID;
-    double beginTime;
 
     string dump() {
         return json(*this).dump();
+    }
+
+    size_t bitsize() {
+        return sizeof(int) * 2 + sizeof(double) * 5 +
+               sizeof(char) * (noteID.size() + subNoteID.size() + 4);
+    }
+
+    void bitwrite(char *buffer) {
+        char *ptr = buffer;
+        bitwrite_int(ptr, side);
+        bitwrite_int(ptr, noteType);
+        bitwrite_double(ptr, time);
+        bitwrite_double(ptr, width);
+        bitwrite_double(ptr, position);
+        bitwrite_double(ptr, lastTime);
+        bitwrite_double(ptr, beginTime);
+        bitwrite_string(ptr, noteID);
+        bitwrite_string(ptr, subNoteID);
+    }
+
+    void bitread(const char *&buffer) {
+        const char *ptr = buffer;
+        bitread_int(ptr, side);
+        bitread_int(ptr, noteType);
+        bitread_double(ptr, time);
+        bitread_double(ptr, width);
+        bitread_double(ptr, position);
+        bitread_double(ptr, lastTime);
+        bitread_double(ptr, beginTime);
+        bitread_string(ptr, noteID);
+        bitread_string(ptr, subNoteID);
     }
 };
 
