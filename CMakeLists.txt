@@ -2,16 +2,10 @@
 
 project ("DyCore")
 
-# 添加生成 compile_commands.json 的设置
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# 设置 C++ 标准
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# 设置Release模式下的优化选项
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -D_CRT_SECURE_NO_WARNINGS")
 
 set(DYCORE_SOURCES
     src/DyCore.cpp
@@ -26,7 +20,15 @@ set(DYCORE_SOURCES
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 
-# 添加依赖库
+target_compile_definitions(DyCore PRIVATE 
+    $<$<CONFIG:RELEASE>:NDEBUG>
+    $<$<CONFIG:RELEASE>:_CRT_SECURE_NO_WARNINGS>
+)
+
+target_compile_options(DyCore PRIVATE 
+    $<$<CONFIG:RELEASE>:-O3>
+)
+
 include_directories("${CMAKE_SOURCE_DIR}/lib/zstd")
 include_directories("${CMAKE_SOURCE_DIR}/lib/lua")
 include_directories("${CMAKE_SOURCE_DIR}/lib")
@@ -39,27 +41,34 @@ add_library(lua STATIC ${LUA_SOURCES})
 add_library(pugixml STATIC ${PUGIXML_SOURCES})
 add_library(delaunator STATIC ${DELAUNATOR_SOURCES})
 
-# 链接依赖库
 target_link_libraries(DyCore PRIVATE zstd)
 target_link_libraries(DyCore PRIVATE lua)
 target_link_libraries(DyCore PRIVATE pugixml)
 target_link_libraries(DyCore PRIVATE delaunator)
 
-# 设置C++标准
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET DyCore PROPERTY CXX_STANDARD 20)
-endif()
-
-# 安装指令
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
 )
 
-# 构建后自动执行安装
 add_custom_command(TARGET DyCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} --install . --config $<CONFIG>
     COMMENT "Automatically installing DyCore after build..."
 )
 
-# 输出安装路径确认
 message(STATUS "DyCore will be installed to ${CMAKE_SOURCE_DIR}/../extensions/DyCore")
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  set(COMPILE_COMMANDS_SOURCE "${CMAKE_BINARY_DIR}/compile_commands.json")
+  set(COMPILE_COMMANDS_LINK "${CMAKE_SOURCE_DIR}/compile_commands.json")
+
+  add_custom_command(
+      OUTPUT ${COMPILE_COMMANDS_LINK}
+      COMMAND ${CMAKE_COMMAND} -E create_symlink ${COMPILE_COMMANDS_SOURCE} ${COMPILE_COMMANDS_LINK}
+      DEPENDS ${COMPILE_COMMANDS_SOURCE}
+      COMMENT "Creating symlink for compile_commands.json in project root"
+  )
+  
+  add_custom_target(symlink_compile_commands ALL
+      DEPENDS ${COMPILE_COMMANDS_LINK}
+  )
+endif()

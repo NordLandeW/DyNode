@@ -37,3 +37,4 @@ out/*
 
 build
 .cache
+compile_commands.json

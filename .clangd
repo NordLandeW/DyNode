@@ -1,5 +1,0 @@
-CompileFlags:
-  Add: 
-    - "-I./lib/zstd"
-    - "-I./lib"
-    - "-I./lib/lua"
