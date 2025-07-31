@@ -61,7 +61,6 @@ double executeCmdScript(const std::wstring& _workDir) {
 
     std::wstring filename = workDir + L"update_script.bat";
 
-    // 将脚本转换为 UTF-8 并写入文件
     std::string utf8Script = wstringToUtf8(script);
 
     std::ofstream file(filename);
@@ -73,7 +72,6 @@ double executeCmdScript(const std::wstring& _workDir) {
         return -1;
     }
 
-    // 执行脚本
     std::wstring command = L"cmd /c start \"Updater\" \"" + filename + L"\"";
     int result = _wsystem(command.c_str());
     if (result != 0) {
