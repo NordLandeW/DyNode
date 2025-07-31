@@ -69,12 +69,8 @@ function note_recac_stats() {
 	if(!(in_between(objMain.showStats, 1, 2)))
 		return;
 
-	stat_reset();
-	var _arr = objMain.chartNotesArray
-	for(var i=0, l=array_length(_arr); i<l; i++)
-		if(_arr[i].time != INF) {
-			stat_count(_arr[i].side, _arr[i].noteType);
-		}
+	var result = json_parse(DyCore_note_count());
+	objMain.statCount = result;
 }
 
 function note_sort_all() {
