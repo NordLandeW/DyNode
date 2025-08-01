@@ -9,6 +9,7 @@
 
 #include "note.h"
 #include "singletons.h"
+#include "taskflow/core/executor.hpp"
 #include "utils.h"
 
 extern NotePoolManager notePoolManager;
@@ -156,7 +157,7 @@ void NotePoolManager::access_all_notes_safe(
 void NotePoolManager::access_all_notes_parallel(
     std::function<void(Note&)> executor) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
-    auto& tfexecutor = get_taskflow_executor();
+    tf::Executor tfexecutor;
     tf::Taskflow taskflow;
     taskflow.for_each(noteArray.begin(), noteArray.end(), [&](nptr note_ptr) {
         if (note_ptr) {
@@ -179,7 +180,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
             }
         }
     }
-    auto& tfexecutor = get_taskflow_executor();
+    tf::Executor tfexecutor;
     tf::Taskflow taskflow;
     taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
         std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
@@ -275,7 +276,7 @@ void NotePoolManager::array_sort() {
     if (hardware_concurrency() > 1) {
         // Use parallel sort
         tf::Taskflow taskflow;
-        auto& tfexecutor = get_taskflow_executor();
+        tf::Executor tfexecutor;
         taskflow.sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
         tfexecutor.run(taskflow).wait();
     } else {
