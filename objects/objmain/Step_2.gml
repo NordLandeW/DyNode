@@ -31,7 +31,7 @@
     with(objNote) {
         if(noteType <= 2 && !attaching) {
             var _curArray = objMain.chartNotesArrayActivated[noteType];
-            _curArray[ap[noteType]] = get_array_pos();
+            _curArray[ap[noteType]] = id;
             ap[noteType]++;
             if(ap[noteType] >= array_length(_curArray)) {
                 array_resize(_curArray, array_length(_curArray) * 2);
@@ -40,10 +40,5 @@
     }
     for(var i=0; i<3; i++) {
         array_resize(chartNotesArrayActivated[i], ap[i]);
-        extern_quick_sort(chartNotesArrayActivated[i], true);
-        for(var j=0; j<ap[i]; j++)
-            chartNotesArrayActivated[i][j] =
-                note_get_instance(
-                    dyc_get_note_id_at_index(chartNotesArrayActivated[i][j])
-                );
+        chartNotesArrayActivated[i] = extern_index_sort(chartNotesArrayActivated[i], function(val) { return -val.priority; });
     }

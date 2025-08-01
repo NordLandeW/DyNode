@@ -282,7 +282,7 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
         if(_lasttime != -1 && _type == 2) {
         	sinst = instance_create(x, y, objHoldSub);
         	sinst.dummy = true;
-        	_prop_hold_update();
+        	_prop_hold_update(false);
         }
     }
     
@@ -821,20 +821,20 @@ function _setup_xml_compability_variables() {
 
 /// surprise
 function chart_randomize() {
-	note_activate_all();
-	with(objNote) {
-		if(noteType != 3) {
-			origProp = get_prop();
-			position = random(5);
-			side = irandom_range(0, 2);
-			width = random_range(0.5, 5);
-			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-			_prop_init(true);
-			update_prop();
-		}
+	if(editor_get_editmode() == 5)
+		editor_set_editmode(4);
+	for(var i=0, l=objMain.chartNotesCount; i<l; i++) {
+		var _str = dyc_get_note_at_index_direct(i);
+		if(_str.noteType == 3) continue;
+		var origProp = SnapDeepCopy(_str);
+		_str.position = random(5);
+		_str.side = irandom_range(0, 2);
+		_str.width = random_range(0.5, 5);
+		operation_step_add(OPERATION_TYPE.MOVE, origProp, _str);
 		operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
+		dyc_update_note(_str);
 	}
-	note_activation_reset();
+	note_sort_all(true);
 }
 
 /// For advanced property modifications.

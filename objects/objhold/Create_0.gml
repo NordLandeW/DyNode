@@ -20,7 +20,7 @@ _prop_init(true);
 
 // In-Function
 
-	_prop_hold_update = function () {
+	_prop_hold_update = function (sync_to_array = true) {
         if(note_exists(sinst)) {
 		    if(stateType != NOTE_STATES.OUT)
 		    	note_activate(sinst);
@@ -37,7 +37,8 @@ _prop_init(true);
 		    	sinst.time = time + fixedLastTime;
 		    
 		    sinst.beginTime = time;
-		    sinst.update_prop();
+			if(sync_to_array)
+		    	sinst.update_prop();
 			sinst._prop_init(true);
     
     		subFading = false;
@@ -50,7 +51,8 @@ _prop_init(true);
 		    }
 		    lastTime = sinst.time - time;
 		    lastTime = max(lastTime, 1);
-			update_prop();
+			if(sync_to_array)
+				update_prop();
         }
     }
     

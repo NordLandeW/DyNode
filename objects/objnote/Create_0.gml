@@ -15,6 +15,7 @@ enum NOTE_STATES {
 depth = 0;
 drawVisible = false;
 priority = int64(-10000000);
+priorityRandomSeed = random(2);
 image_yscale = global.scaleYAdjust;
 
 // In-Variables
@@ -107,6 +108,7 @@ image_yscale = global.scaleYAdjust;
         return "null";
     }
 
+    /// @description Initialize the note's properties using internal values.
     function _prop_init(forced = false) {
         if(editor_get_editmode() != 5 || forced) {
             priority = -20000000;
@@ -124,14 +126,16 @@ image_yscale = global.scaleYAdjust;
             pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
-            priority = priority - time;
+            priority = priority - time * 16 - priorityRandomSeed;
             if(noteType == 3 && note_exists(finst))
                 priority = finst.priority;
         }
         
         noteprop_set_xy(position, time, side);
     }
-    _prop_hold_update = function() {}   // Place holder.
+    /// @description Update the hold's sub note properties. Including `update_prop()`
+    /// @param {Bool} sync_to_array If set to true, calls `update_prop()` on sinst and self.
+    _prop_hold_update = function(sync_to_array = true) {}   // Place holder.
 
     function _emit_particle(_num, _type, _force = false) {
         
@@ -574,7 +578,7 @@ image_yscale = global.scaleYAdjust;
 	            		time = _time + origTime - _center.origTime;
 	            		_prop_init();
 		            	if(noteType == 2)
-		            		_prop_hold_update();
+		            		_prop_hold_update(false);
 	            	}
 	            }
             }
@@ -712,27 +716,6 @@ image_yscale = global.scaleYAdjust;
                 }
             }
 
-            // Stop dragging selected notes.
-            if(mouse_check_button_released(mb_left)) {
-                if(isDragging) {
-                    isDragging = false;
-                    
-                    if(noteType == 3)
-                        editor_lrside_lock_set(false);
-                    
-                    with(objNote) {
-                    	if(stateType == NOTE_STATES.SELECTED) {
-                    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-                            update_prop();
-                    	}
-                    	
-                    	note_outscreen_check();
-                    }
-                    
-                    note_sort_request();
-                }
-            }
-
             if(isDragging) {
                 var _delta_time;
                 var _delta_pos;
@@ -784,9 +767,8 @@ image_yscale = global.scaleYAdjust;
                         }
                         if(noteType == 2) {
                             sinst.time = (ctrl_ishold() || editor_select_is_multiple()) ? time + origLength : origSubTime;
-                            _prop_hold_update();
+                            _prop_hold_update(false);
                         }
-                        update_prop();
                         _prop_init();
                     }
                 }
@@ -796,6 +778,30 @@ image_yscale = global.scaleYAdjust;
                 if(editor_editside_allowed(side))
                     objEditor.editorSelectedSingleInbound =
                         editor_select_compare(objEditor.editorSelectedSingleInbound, id);
+            }
+
+            // Stop dragging selected notes.
+            if(mouse_check_button_released(mb_left)) {
+                if(isDragging) {
+                    isDragging = false;
+                    
+                    if(noteType == 3)
+                        editor_lrside_lock_set(false);
+                    
+                    with(objNote) {
+                    	if(stateType == NOTE_STATES.SELECTED) {
+                    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                            update_prop();
+
+                            if(noteType == 2)
+                                _prop_hold_update();
+                    	}
+                    	
+                    	note_outscreen_check();
+                    }
+                    
+                    note_sort_request();
+                }
             }
             
             if((keycheck_down(vk_delete) || keycheck_down(vk_backspace)) && noteType != 3) {

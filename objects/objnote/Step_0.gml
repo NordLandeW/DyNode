@@ -1,7 +1,13 @@
 var _editMode = editor_get_editmode();
 
-if(_editMode < 5)
-    pull_prop();
+// If notes are in SELECTED state, prevent pulling properties
+if(_editMode < 5) {
+    if(stateType != NOTE_STATES.SELECTED) {
+        if(noteType <= 2 || (noteType == 3 && note_exists(finst) && finst.stateType != NOTE_STATES.SELECTED)) {
+            pull_prop();
+        }
+    }
+}
 
 _prop_init();
 
@@ -21,9 +27,6 @@ else {
 }
 
 state();
-
-if(_editMode < 5)
-    update_prop();
 
 selectUnlock = false;
 

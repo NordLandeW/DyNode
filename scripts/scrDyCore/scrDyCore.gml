@@ -74,13 +74,13 @@ function dyc_note_deserialization(buffer) {
 
 function dyc_update_note(noteProp) {
     var noteID = noteProp[$ "noteID"];
-    static buffer = -1;
-    if(buffer < 0) {
-        buffer = buffer_create(1024, buffer_grow, 1);
-    }
+    static buffer = buffer_create(1024, buffer_grow, 1);
 
     dyc_note_serialization(buffer, noteProp);
-    DyCore_modify_note_bitwise(noteID, buffer_get_address(buffer));
+    var result = DyCore_modify_note_bitwise(noteID, buffer_get_address(buffer));
+
+    if(result < 0)
+        show_debug_message("Trying to modify a non-existent note: " + noteID);
 }
 
 /// @description To check if the buffer is compressed.
@@ -131,6 +131,19 @@ function dyc_get_note_at_index(index) {
     DyCore_sort_notes();
     static propBuffer = buffer_create(1024, buffer_grow, 1);
     var result = DyCore_get_note_at_index(index, buffer_get_address(propBuffer));
+    if (result == 0) {
+        return dyc_note_deserialization(propBuffer);
+    }
+    return undefined;
+}
+
+/// @description Get note at notes array's index directly.
+/// This will bypass the OutOfOrder flag.
+/// @param {Real} index The index of the note in the notes array.
+/// @returns {Any} The note struct or undefined if not found.
+function dyc_get_note_at_index_direct(index) {
+    static propBuffer = buffer_create(1024, buffer_grow, 1);
+    var result = DyCore_get_note_at_index_direct(index, buffer_get_address(propBuffer));
     if (result == 0) {
         return dyc_note_deserialization(propBuffer);
     }

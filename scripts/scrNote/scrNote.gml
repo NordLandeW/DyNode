@@ -77,12 +77,11 @@ function note_sort_all(forced = false) {
 	if(!forced && !objEditor.editorNoteSortRequest) return;
 	objEditor.editorNoteSortRequest = false;
 	
-	var startTime = get_timer();
-	DyCore_sort_notes();
-	var endTime = get_timer();
-	show_debug_message("DyCore sorting took " + string((endTime - startTime)/1000) + "ms");
-
-	note_recac_stats();
+	var result = DyCore_sort_notes();
+	
+	if(result == 0) {
+		note_recac_stats();
+	}
 	
 	objMain.chartNotesCount = DyCore_get_note_count();
 }

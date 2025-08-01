@@ -46,6 +46,7 @@ function map_close() {
 
 function map_reset() {
 	map_close();
+	gc_collect();
 	instance_create_depth(0, 0, 0, objMain);
 }
 
