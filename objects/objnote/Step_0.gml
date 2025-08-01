@@ -1,12 +1,9 @@
 var _editMode = editor_get_editmode();
 
-// If notes are in SELECTED state, prevent pulling properties
+// If notes are being dragged, prevent pulling properties
 if(_editMode < 5) {
-    if(stateType != NOTE_STATES.SELECTED) {
-        if(noteType <= 2 || (noteType == 3 && note_exists(finst) && finst.stateType != NOTE_STATES.SELECTED)) {
-            pull_prop();
-        }
-    }
+    if(can_pull())
+        pull_prop();
 }
 
 _prop_init();

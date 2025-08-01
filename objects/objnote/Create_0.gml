@@ -289,6 +289,8 @@ image_yscale = global.scaleYAdjust;
     	position = props.position;
     	lastTime = props.lastTime;
     	noteType = props.noteType;
+        noteID = props.noteID;
+        subNoteID = props.subNoteID;
     	beginTime = props.beginTime;
         lastAttachBar = -1;
     	
@@ -350,6 +352,14 @@ image_yscale = global.scaleYAdjust;
 
         if(differs)
             dyc_update_note(propertyStr);
+    }
+
+    function can_pull() {
+        if(noteType <= 2)
+            return stateType != NOTE_STATES.SELECTED;
+        if(noteType == 3)
+            return stateType != NOTE_STATES.SELECTED && 
+                (!note_exists(finst) || finst.stateType != NOTE_STATES.SELECTED);
     }
 
     function pull_prop() {

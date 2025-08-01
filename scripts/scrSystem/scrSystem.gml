@@ -42,11 +42,12 @@ function map_close() {
 	}
 	
 	instance_destroy(objMain);
+
+	call_later(1, time_source_units_seconds, function() { gc_collect(); });
 }
 
 function map_reset() {
 	map_close();
-	gc_collect();
 	instance_create_depth(0, 0, 0, objMain);
 }
 

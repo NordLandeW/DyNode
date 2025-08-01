@@ -168,6 +168,11 @@ if(os_type == os_windows)
 
 randomize();
 
+// Debug Layer Init
+
+// if(debug_mode)
+// 	show_debug_overlay(true);
+
 // Init finished
 
 GoogHit("login", {
