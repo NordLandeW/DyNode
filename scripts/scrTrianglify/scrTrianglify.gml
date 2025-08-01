@@ -82,7 +82,7 @@ function trianglify_step(tri_struct) {
 	}
 }
 
-function __trisys_spakle(pos, w, h, jitterFactor = 0.15) {
+function __trisys_sparkle(pos, w, h, jitterFactor = 0.15) {
 	return [
 		pos[0]+(random(1)-0.5)*jitterFactor*w,
 		pos[1]+(random(1)-0.5)*jitterFactor*h,
