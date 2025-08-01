@@ -1,6 +1,7 @@
 #include "notePoolManager.h"
 
 #include <algorithm>
+#include <mutex>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/algorithm/sort.hpp>
 #include <taskflow/taskflow.hpp>
@@ -43,6 +44,7 @@ bool NotePoolManager::create_note(const Note& note) {
 
         noteArray.push_back(ptr);
         set_ooo();
+        noteCount++;
 
         return true;
     } catch (const std::bad_alloc& e) {
@@ -124,7 +126,7 @@ void NotePoolManager::access_all_notes_safe(
     std::vector<nptr> notes;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-        notes.resize(noteInfoMap.size());
+        notes.resize(get_note_count());
         for (const auto& note_ptr : noteArray) {
             if (note_ptr) {
                 notes.push_back(note_ptr);
@@ -158,7 +160,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
     std::vector<nptr> notes;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-        notes.resize(noteInfoMap.size());
+        notes.resize(get_note_count());
         for (const auto& note_ptr : noteArray) {
             if (note_ptr) {
                 notes.push_back(note_ptr);
@@ -179,6 +181,7 @@ void NotePoolManager::clear_notes() {
     noteArray.clear();
     noteMemoryList.clear();
     noteInfoMap.clear();
+    noteCount = 0;
     return;
 }
 
@@ -211,6 +214,7 @@ bool NotePoolManager::release_note(std::string noteID) {
     noteInfoMap.erase(it);
 
     set_ooo();
+    noteCount--;
     return true;
 }
 
@@ -279,4 +283,34 @@ NotePoolManager::nptr NotePoolManager::get_note_pointer(
     const std::string& noteID) {
     // Should only be called when mtxNoteOps is locked
     return noteInfoMap.find(noteID)->second.pointer;
+}
+
+int NotePoolManager::get_index_upperbound(double time) {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    if (arrayOutOfOrder)
+        throw std::runtime_error(
+            "Note array is out of order, cannot get index directly.");
+
+    auto it = std::upper_bound(
+        noteArray.begin(), noteArray.end(), time,
+        [](double t, const nptr& note) { return t < note->time; });
+    if (it == noteArray.end()) {
+        return static_cast<int>(noteArray.size());
+    }
+    return static_cast<int>(it - noteArray.begin());
+}
+
+int NotePoolManager::get_index_lowerbound(double time) {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    if (arrayOutOfOrder)
+        throw std::runtime_error(
+            "Note array is out of order, cannot get index directly.");
+
+    auto it = std::lower_bound(
+        noteArray.begin(), noteArray.end(), time,
+        [](const nptr& note, double t) { return note->time < t; });
+    if (it == noteArray.end()) {
+        return static_cast<int>(noteArray.size());
+    }
+    return static_cast<int>(it - noteArray.begin());
 }

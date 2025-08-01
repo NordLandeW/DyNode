@@ -28,3 +28,16 @@ DYCORE_API const char *DyCore_note_count() {
 
     return result.c_str();
 }
+
+/// Caculate the avg notes' count between [_time-_range, _time] (in ms)
+DYCORE_API double DyCore_kps_count(double time, double range) {
+    auto &noteMan = get_note_pool_manager();
+    if (noteMan.get_note_count() == 0) {
+        return 0.0;
+    }
+
+    double ub = noteMan.get_index_upperbound(time);
+    double lb = noteMan.get_index_lowerbound(time - range);
+
+    return (ub - lb) * 1000.0 / range;
+}

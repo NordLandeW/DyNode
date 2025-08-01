@@ -24,6 +24,12 @@ class NotePoolManager {
     bool release_note(const Note &note);
     void clear_notes();
     bool array_sort_request();
+    int get_index_upperbound(double time);
+    int get_index_lowerbound(double time);
+
+    int get_note_count() {
+        return noteCount;
+    }
 
    private:
     using nptr = std::shared_ptr<Note>;
@@ -49,4 +55,5 @@ class NotePoolManager {
     std::unordered_map<std::string, NoteMemoryInfo> noteInfoMap;
     std::mutex mtxNoteOps;
     bool arrayOutOfOrder = false;
+    int noteCount = 0;
 };
