@@ -12,7 +12,6 @@
 #include "async.h"
 #include "compress.h"
 #include "note.h"
-#include "note/note.h"
 #include "singletons.h"
 #include "utils.h"
 

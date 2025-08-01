@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 4.0)
+﻿cmake_minimum_required (VERSION 3.14)
 
 project ("DyCore")
 
@@ -42,7 +42,7 @@ set(DYCORE_SOURCES
     src/note/note.cpp
     src/note/notePoolManager.cpp
     src/note/noteStat.cpp
-    src/project.cpp
+    src/project/project.cpp
     src/compress.cpp
     src/test.cpp
     src/singletons.cpp
@@ -51,6 +51,7 @@ add_library (DyCore SHARED ${DYCORE_SOURCES})
 target_include_directories(DyCore PRIVATE
     src
     src/note
+    src/project
 )
 
 target_compile_definitions(DyCore PRIVATE 
