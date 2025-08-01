@@ -13,6 +13,19 @@ class NotePoolManager {
     bool note_exists(const std::string &noteID);
     bool create_note(const Note &note);
     Note get_note(const std::string &noteID);
+    Note get_note(int index) {
+        return operator[](index);
+    }
+    /// Returns a direct reference to the note at the given index.
+    /// This is unsafe and should only be used when you are sure the index is
+    /// valid.
+    Note get_note_direct(int index) {
+        std::lock_guard<std::mutex> lock(mtxNoteOps);
+        if (index < 0 || index >= static_cast<int>(noteArray.size())) {
+            throw std::out_of_range("Index out of range in NotePoolManager");
+        }
+        return *noteArray[index];
+    }
     void set_note(const std::string &noteID, const Note &note);
     void set_note_bitwise(const std::string &noteID, const char *prop);
     void access_note(const std::string &noteID,

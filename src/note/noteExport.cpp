@@ -121,6 +121,19 @@ bool get_note_bitwise(int index, char* prop) {
     return true;
 }
 
+/// Gets a note's bitwise properties directly by index.
+/// This is unsafe and should only be used when you are sure the index is valid.
+bool get_note_bitwise_direct(int index, char* prop) {
+    try {
+        auto note = get_note_pool_manager().get_note_direct(index);
+        note.bitwrite(prop);
+    } catch (const std::exception& e) {
+        print_debug_message("Error: " + std::string(e.what()));
+        return false;
+    }
+    return true;
+}
+
 DYCORE_API double DyCore_get_note(const char* noteID, char* propBuffer) {
     if (!note_exists(noteID))
         return -1;
@@ -133,6 +146,12 @@ DYCORE_API double DyCore_get_note_count() {
 
 DYCORE_API double DyCore_get_note_at_index(double index, char* propBuffer) {
     return get_note_bitwise(static_cast<int>(index), propBuffer) ? 0 : -1;
+}
+
+DYCORE_API double DyCore_get_note_at_index_direct(double index,
+                                                  char* propBuffer) {
+    return get_note_bitwise_direct(static_cast<int>(index), propBuffer) ? 0
+                                                                        : -1;
 }
 
 DYCORE_API double DyCore_get_note_time_at_index(double index) {
