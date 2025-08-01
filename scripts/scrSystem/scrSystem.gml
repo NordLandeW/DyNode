@@ -622,10 +622,13 @@ function map_export_xml(_export_to_dym) {
 	var _fix_dec = false;
     var _fix_error = _export_to_dym? false:show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
+	show_debug_message("Exporting notes array...")
+	
 	var _notes_array = DyCore_get_notes_array_string();
-	_notes_array = json_parse(_notes_array);
 
-	// show_debug_message(_notes_array);
+	show_debug_message("Parsing notes array...")
+
+	_notes_array = json_parse(_notes_array);
 
 	var _sub_notes_array = [], _noteNIndex = 0;
 	for(var i=0, l=array_length(_notes_array); i<l; i++) {
@@ -644,6 +647,9 @@ function map_export_xml(_export_to_dym) {
 			array_push(_sub_notes_array, _subnote);
 		}
 	}
+
+	show_debug_message("Post-fixing notes array...")
+
 	// Merge sub notes to main notes array.
 	_notes_array = array_concat(_notes_array, _sub_notes_array);
 
@@ -654,6 +660,8 @@ function map_export_xml(_export_to_dym) {
 	if(_fix_error) {
 		note_error_correction(global.offsetCorrection, _notes_array, false);
 	}
+
+	show_debug_message("Generating project structure...")
     
 	/// @param {Array<Id.Instance.objNote>} _array 
     var _gen_narray = function (_side, _dec, _dym, _array) {
@@ -742,9 +750,13 @@ function map_export_xml(_export_to_dym) {
 			version: "1.0"
 		}
 	};
+
+	show_debug_message("Converting to XML file...");
 	
 	objMain.savingExportId = 
 		fast_file_save_async(_file, SnapToXML(_str));
+
+	show_debug_message("Export done.");
 }
 
 function map_get_struct_without_notes() {
@@ -1455,13 +1467,7 @@ function stat_visible() {
 
 /// @description Caculate the avg notes' count between [_time-_range, _time] (in ms)
 function stat_kps(_time, _range) {
-	if(objMain.chartNotesCount == 0)
-		return 0;
-
-	var ff = function(array, at) { return array[at].time; }
-	var ub = array_upper_bound(objMain.chartNotesArray, _time, ff);
-	var lb = array_lower_bound(objMain.chartNotesArray, _time - _range, ff);
-	return (ub - lb) * 1000 / _range;
+	return DyCore_kps_count(_time, _range);
 }
 
 #endregion

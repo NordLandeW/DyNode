@@ -107,6 +107,11 @@ function note_sort_all() {
 	note_recac_stats();
 	endTime = get_timer();
 	show_debug_message("Note recalculation took " + string((endTime - startTime)/1000) + "ms");
+
+	startTime = get_timer();
+	DyCore_sort_notes();
+	endTime = get_timer();
+	show_debug_message("DyCore sorting took " + string((endTime - startTime)/1000) + "ms");
 }
 
 function note_sort_request() {
