@@ -110,3 +110,15 @@ function dyc_read_project_buffer(buffer) {
 		throw "Parse failed.";
 	return _str;
 }
+
+/// @description Get note at notes array's index.
+/// @param {Real} index The index of the note in the notes array.
+/// @returns {Any} The note struct or undefined if not found.
+function dyc_get_note_at_index(index) {
+    var propBuffer = buffer_create(1024, buffer_grow, 1);
+    var result = DyCore_get_note_at_index(index, buffer_get_address(propBuffer));
+    if (result == 0) {
+        return dyc_note_deserialization(propBuffer);
+    }
+    return undefined;
+}

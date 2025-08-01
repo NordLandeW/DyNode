@@ -95,10 +95,11 @@ depth = 0;
     /// @description Return struct with x and time.
     function mixer_get_next_x(side) {
     	var found = false, beginTime = 0, result = 0, accum = 0;
-        for(var i=chartNotesArrayAt; i<chartNotesCount
-        	&& (chartNotesArray[i].time - nowTime) * playbackSpeed / global.resolutionW <= MIXER_REACTION_RANGE; i++)
-        	if(chartNotesArray[i].side == side) {
-        		var _note = chartNotesArray[i];
+        for(var i=chartNotesArrayAt; i<chartNotesCount; i++) {
+            var _note = dyc_get_note_at_index(i);
+            if((_note.time - nowTime) * playbackSpeed / global.resolutionW > MIXER_REACTION_RANGE)
+                break;
+        	if(_note.side == side) {
         		if(!found) {
         			found = true;
         			beginTime = _note.time;
@@ -108,6 +109,7 @@ depth = 0;
         		result += _note.position * (1 / _note.width);
         		accum += 1/_note.width;
         	}
+        }
         if(!found) return undefined;
         result /= accum;
         return {x: note_pos_to_x(result, side), time: beginTime};
