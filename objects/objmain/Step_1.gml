@@ -144,13 +144,6 @@ var _music_resync_request = false;
     else {
         musicProgress = 0;
     }
-    
-// Time Jump
-
-    if(keycheck_down_ctrl(ord("L")) && chartNotesArrayAt<chartNotesCount)
-        animTargetTime = chartNotesArray[chartNotesArrayAt].time;
-    if(keycheck_down_ctrl(ord("K")) && chartNotesArrayAt>0)
-        animTargetTime = chartNotesArray[chartNotesArrayAt-1].time;
 
 // Update and Sync Time & musicTime
 
@@ -179,19 +172,19 @@ var _music_resync_request = false;
 	chartDifficulty += _diff_delta;
 	chartDifficulty = clamp(chartDifficulty, 0, global.difficultyCount - 1);
 
-    chartNotesCount = array_length(chartNotesArray)
+    chartNotesCount = DyCore_get_note_count();
 
 	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, chartNotesCount);
 	
     while(chartNotesArrayAt < chartNotesCount &&
-        chartNotesArray[chartNotesArrayAt].time <= nowTime) {
+        dyc_get_note_time_at_index(chartNotesArrayAt) <= nowTime) {
             chartNotesArrayAt ++;
             if(chartNotesArrayAt < chartNotesCount)
                 note_check_and_activate(chartNotesArrayAt);
         }
 
     while(chartNotesArrayAt > 0 &&
-        chartNotesArray[chartNotesArrayAt-1].time > nowTime){
+        dyc_get_note_time_at_index(chartNotesArrayAt-1) > nowTime){
             chartNotesArrayAt --;
             note_check_and_activate(chartNotesArrayAt);
         }
@@ -203,7 +196,7 @@ var _music_resync_request = false;
 	var i=max(chartNotesArrayAt-3, 0), l=chartNotesCount;
 	var _editMode = editor_get_editmode();
 	for(; i<l; i++) {
-        if(_editMode == 5 && note_is_activated(chartNotesArray[i].noteID))
+        if(_editMode == 5 && note_is_activated(dyc_get_note_id_at_index(i)))
             continue;
 		if(note_check_and_activate(i) < 0)
 			break;

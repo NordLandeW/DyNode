@@ -83,10 +83,7 @@ if(editorMode == 4) {
 }
 
 // Note's array update & sort
-if(editorNoteSortRequest) {
-    note_sort_all();
-    editorNoteSortRequest = false;
-}
+note_sort_all();
 
 #region UNDO & REDO Management
 

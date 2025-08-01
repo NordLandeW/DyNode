@@ -73,45 +73,18 @@ function note_recac_stats() {
 	objMain.statCount = result;
 }
 
-function note_sort_all() {
+function note_sort_all(forced = false) {
+	if(!forced && !objEditor.editorNoteSortRequest) return;
+	objEditor.editorNoteSortRequest = false;
+	
 	var startTime = get_timer();
-    var _f = function (_x) {
-		return _x.time;
-	}
-    objMain.chartNotesArray = extern_index_sort(objMain.chartNotesArray, _f);
-
+	DyCore_sort_notes();
 	var endTime = get_timer();
-	show_debug_message("Note sorting took " + string((endTime - startTime)/1000) + "ms");
-    
-    // Update arrayPos & Flush deleted notes
-	startTime = get_timer();
-    with(objMain) {
-    	chartNotesCount = array_length(chartNotesArray);
-    	
-    	for(var i=0; i<chartNotesCount; i++) {
-			chartNotesArray[i].index = i;
-		}
-    	
-		var notes_to_delete = 0, p = array_length(chartNotesArray) - 1;
-    	while(p >= 0) {
-			if(chartNotesArray[p].time == INF) {
-				notes_to_delete++;
-			}
-			p--;
-    	}
-		
-		chartNotesCount -= notes_to_delete;
-		array_resize(chartNotesArray, chartNotesCount);
-    }
+	show_debug_message("DyCore sorting took " + string((endTime - startTime)/1000) + "ms");
 
 	note_recac_stats();
-	endTime = get_timer();
-	show_debug_message("Note recalculation took " + string((endTime - startTime)/1000) + "ms");
-
-	startTime = get_timer();
-	DyCore_sort_notes();
-	endTime = get_timer();
-	show_debug_message("DyCore sorting took " + string((endTime - startTime)/1000) + "ms");
+	
+	objMain.chartNotesCount = DyCore_get_note_count();
 }
 
 function note_sort_request() {
@@ -165,8 +138,8 @@ function build_note(_type, _time, _position, _width,
     	if(_selecting) set_state(NOTE_STATES.SELECTED);
     }
     with(objMain) {
-        array_push(chartNotesArray, _inst.get_prop(true));
-		DyCore_insert_note(json_stringify(_inst.get_prop()));        
+        var _prop = _inst.get_prop(true);
+		DyCore_insert_note(json_stringify(_prop));        
         note_sort_request();
     }
     
@@ -222,19 +195,10 @@ function note_delete(noteID, _record = false) {
 	var _inst = note_get_instance(noteID);
 	try {
 		with(objMain) {
-	        var i = _inst.get_array_pos();
-	        if(chartNotesArray[i].noteID == noteID) {
-				DyCore_delete_note(json_stringify(chartNotesArray[i]));
-	        	if(_record)
-	        		operation_step_add(OPERATION_TYPE.REMOVE, 
-	        						   SnapDeepCopy(chartNotesArray[i]), -1);
-	            chartNotesArray[i].time = INF;
-	            chartNotesArray[i].noteID = "null";
-				_inst.pull_prop();
-	        }
-	        else {
-	        	throw "Note id in array not matching instance id."
-	        }
+	        var _prop = _inst.get_prop();
+			if(_record)
+				operation_step_add(OPERATION_TYPE.REMOVE, _prop, -1);
+			DyCore_delete_note(noteID);
 	    }
 	} catch (e) {
 		announcement_error($"音符删除出现错误。请将谱面导出并备份以避免问题进一步恶化。您可以选择将该信息反馈开发者以帮助我们解决问题。错误信息：{e}");
@@ -245,7 +209,6 @@ function note_delete(noteID, _record = false) {
 
 function note_delete_all() {
 	with(objMain) {
-		chartNotesArray = [];
 		chartNotesArrayAt = 0;
 		chartNotesCount = 0;
 		
@@ -267,25 +230,9 @@ function note_delete_all_manually(_record = true) {
 	}
 }
 
-function notes_array_update() {
-	with(objMain) {
-		chartNotesCount = array_length(chartNotesArray);
-		var i=0, l=chartNotesCount;
-		for(; i<l; i++) if(chartNotesArray[i].time != INF) {
-			note_get_instance(chartNotesArray[i].noteID).update_prop();
-			chartNotesArray[i].index = i;
-		}
-	}
-	note_sort_request();
-}
-
 function note_check_and_activate(_posistion_in_array) {
-	var _str = objMain.chartNotesArray[_posistion_in_array];
+	var _str = dyc_get_note_at_index(_posistion_in_array);
 	var _inst = note_get_instance(_str.noteID);
-	if(_inst > 0)
-		_str.index = _posistion_in_array;
-	else
-		return 0;
 	if(note_is_activated(_inst)) {
 		return 0;
 	}
@@ -328,7 +275,11 @@ function note_deactivate_all() {
 }
 
 function note_get_instance(noteID) {
-	return global.noteIDMan.get(noteID);
+	var _inst = global.noteIDMan.get(noteID);
+	if(_inst < 0) {
+		throw "Trying to get an invalid note instance.";
+	}
+	return _inst;
 }
 
 function note_exists(inst_or_noteID) {

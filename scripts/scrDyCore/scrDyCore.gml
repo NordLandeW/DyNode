@@ -111,14 +111,59 @@ function dyc_read_project_buffer(buffer) {
 	return _str;
 }
 
+
+/// @description Get note by noteID.
+/// @param {String} noteID The note ID.
+/// @returns {Any} The note struct or undefined if not found.
+function dyc_get_note(noteID) {
+    static propBuffer = buffer_create(1024, buffer_grow, 1);
+    var result = DyCore_get_note(noteID, buffer_get_address(propBuffer));
+    if (result == 0) {
+        return dyc_note_deserialization(propBuffer);
+    }
+    return undefined;
+}
+
 /// @description Get note at notes array's index.
 /// @param {Real} index The index of the note in the notes array.
 /// @returns {Any} The note struct or undefined if not found.
 function dyc_get_note_at_index(index) {
-    var propBuffer = buffer_create(1024, buffer_grow, 1);
+    DyCore_sort_notes();
+    static propBuffer = buffer_create(1024, buffer_grow, 1);
     var result = DyCore_get_note_at_index(index, buffer_get_address(propBuffer));
     if (result == 0) {
         return dyc_note_deserialization(propBuffer);
     }
     return undefined;
+}
+
+/// @description Get note time at notes array's index.
+/// @param {Real} index The index of the note in the notes array.
+/// @returns {Real} The time of the note or undefined if not found.
+function dyc_get_note_time_at_index(index) {
+    DyCore_sort_notes();
+    var result = DyCore_get_note_time_at_index(index);
+    if (result != -999999) {
+        return result;
+    }
+    return undefined;
+}
+
+/// @description Get note time at notes array's index.
+/// @param {Real} index The index of the note in the notes array.
+/// @returns {Real} The time of the note or undefined if not found.
+function dyc_get_note_id_at_index(index) {
+    DyCore_sort_notes();
+    var result = DyCore_get_note_id_at_index(index);
+    if (result != "null") {
+        return result;
+    }
+    return undefined;
+}
+
+/// @description Get the index of the note in the notes array by noteID.
+/// @param {String} noteID The note ID.
+/// @returns {Real} The index of the note in the notes array or -1 if not found.
+function dyc_get_note_array_index(noteID) {
+    return DyCore_get_note_array_index(noteID);
 }

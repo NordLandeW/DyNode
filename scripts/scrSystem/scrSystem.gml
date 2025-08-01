@@ -100,8 +100,7 @@ function map_load(_file = "") {
 	}
     
     // Notes information init & Remove extra sub notes.
-    notes_array_update();
-    note_sort_all();
+    note_sort_all(true);
     note_activation_reset();
     
     announcement_play("anno_import_chart_complete");
@@ -414,7 +413,7 @@ function map_import_osu(_file = "") {
     }
     
     timing_point_sort();
-    note_sort_all();
+    note_sort_all(true);
     
     announcement_play("anno_import_info_complete", 1000);
 }
@@ -839,11 +838,7 @@ function map_add_offset(_offset = "", record = false) {
 			timingPoints[i].time += _offset;
 	}
 	
-	with(objMain) {
-		for(var i=0, l=array_length(chartNotesArray); i<l; i++) {
-			chartNotesArray[i].time += _offset;
-		}
-	}
+	DyCore_note_add_offset(_offset);
 	
 	announcement_play(i18n_get("anno_add_offset", _offset));
 	

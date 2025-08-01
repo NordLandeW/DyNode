@@ -697,13 +697,12 @@ function timing_fix(tpBefore, tpAfter) {
 		// Get affected time range.
 		var _timeL = tpBefore.time, _timeR = at+1 == l? 1000000000: timingPoints[at+1].time - 1;
 		var _timeM = at - 1 < 0 ? -1000000000: timingPoints[at-1].time;
-		var _noteArr = objMain.chartNotesArray;
-		var nl = array_length(_noteArr);
+		var nl = DyCore_get_note_count();
 		// Get affected notes.
 		var _affectedNotes = [];
 		for(var i=0; i<nl; i++)
-			if(in_between(_noteArr[i].time, _timeL, _timeR))
-				array_push(_affectedNotes, _noteArr[i]);
+			if(in_between(DyCore_get_note_time_at_index(i), _timeL, _timeR))
+				array_push(_affectedNotes, DyCore_get_note_at_index(i));
 		if(array_length(_affectedNotes) == 0)
 			return;
 		var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
@@ -835,7 +834,6 @@ function chart_randomize() {
 		}
 		operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
 	}
-	notes_array_update();
 	note_activation_reset();
 }
 
@@ -902,8 +900,7 @@ function advanced_expr() {
 			
 		editorLastExpr = _expr;
 		
-		notes_array_update();
-		note_sort_all();
+		note_sort_all(true);
 		if(_global)
 			note_activation_reset();
 	}
@@ -933,7 +930,7 @@ function editor_get_div() {
 }
 
 // error correction
-function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_to_instance = true) {
+function note_error_correction(_limit, _array, _sync_to_instance = true) {
 	if(_limit <= 0) {
 		announcement_error($"不合法的修正参数{_limit}。请使用大于零的误差。");
 		return;

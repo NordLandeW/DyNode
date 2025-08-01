@@ -143,7 +143,7 @@ depth = 0;
             if(sideHinterState[i] == -1)
             {
                 for(var j=chartNotesArrayAt; j<chartNotesCount; j++) {
-                    var _note = chartNotesArray[j];
+                    var _note = dyc_get_note_at_index(j);
                     if(_note.time - nowTime > SIDEHINT_SEARCH_TIME) break;
                     if(_note.side == i + 1) {
                         if(_note.time - sideLastHitTime[i] >= SIDEHINT_AHEAD_TIME) {
@@ -176,8 +176,6 @@ depth = 0;
     chartMusicFile = "";
     chartFile = "";
     
-    /// @type {Array<Any>}
-    chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
     /// @type {Array<Array<Id.Instance.objNote>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;

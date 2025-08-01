@@ -33,8 +33,8 @@ image_yscale = global.scaleYAdjust;
     /// @type {Id.Instance.objHold} 
     finst = -999;					// Father instance id
     noteType = 0;					// 0 Note 1 Chain 2 Hold
-    /// @type {Any} Pointer to chartNotesArray
-    arrayPointer = undefined;
+    /// @type {Any} Note property structure
+    propertyStr = undefined;
     
     // For Editor
     origWidth = width;
@@ -124,7 +124,7 @@ image_yscale = global.scaleYAdjust;
             pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
-            priority = priority - get_array_pos()*16;
+            priority = priority - time;
             if(noteType == 3 && note_exists(finst))
                 priority = finst.priority;
         }
@@ -251,8 +251,7 @@ image_yscale = global.scaleYAdjust;
     }
 
     function get_array_pos() {
-        if(!is_struct(arrayPointer)) return -1;
-        return arrayPointer.index;
+        return dyc_get_note_array_index(noteID);
     }
 
     function get_prop(_set_pointer = false) {
@@ -265,12 +264,10 @@ image_yscale = global.scaleYAdjust;
         	noteType : noteType,
         	noteID : noteID,
         	subNoteID: subNoteID,
-        	beginTime : beginTime,
-        	lastAttachBar: lastAttachBar,
-            index: get_array_pos()
+        	beginTime : beginTime
         };
     	if(_set_pointer) {
-    		arrayPointer = _prop;
+    		propertyStr = _prop;
     	}
     	return _prop;
     }
@@ -289,9 +286,7 @@ image_yscale = global.scaleYAdjust;
     	lastTime = props.lastTime;
     	noteType = props.noteType;
     	beginTime = props.beginTime;
-    	
-    	if(variable_struct_exists(props, "lastAttachBar"))
-    		lastAttachBar = props.lastAttachBar;
+        lastAttachBar = -1;
     	
     	if(noteType == 2 && sinst > 0 && lastTime >= 0) {
     		note_activate(sinst);
@@ -307,68 +302,66 @@ image_yscale = global.scaleYAdjust;
     }
     
     function update_prop() {
-        if(!is_struct(arrayPointer)) {
+        if(!is_struct(propertyStr)) {
             return;
         }
         var differs = false;
-        if(arrayPointer.time != time) {
-            arrayPointer.time = time;
+        if(propertyStr.time != time) {
+            propertyStr.time = time;
             differs = true;
         }
-        if(arrayPointer.side != side) {
-            arrayPointer.side = side;
+        if(propertyStr.side != side) {
+            propertyStr.side = side;
             differs = true;
         }
-        if(arrayPointer.width != width) {
-            arrayPointer.width = width;
+        if(propertyStr.width != width) {
+            propertyStr.width = width;
             differs = true;
         }
-        if(arrayPointer.position != position) {
-            arrayPointer.position = position;
+        if(propertyStr.position != position) {
+            propertyStr.position = position;
             differs = true;
         }
-        if(arrayPointer.lastTime != lastTime) {
-            arrayPointer.lastTime = lastTime;
+        if(propertyStr.lastTime != lastTime) {
+            propertyStr.lastTime = lastTime;
             differs = true;
         }
-        if(arrayPointer.noteType != noteType) {
-            arrayPointer.noteType = noteType;
+        if(propertyStr.noteType != noteType) {
+            propertyStr.noteType = noteType;
             differs = true;
         }
-        if(arrayPointer.noteID != noteID) {
-            arrayPointer.noteID = noteID;
+        if(propertyStr.noteID != noteID) {
+            propertyStr.noteID = noteID;
             differs = true;
         }
         var _subNoteID = _get_subnote_id();
-        if(arrayPointer.subNoteID != _subNoteID) {
-            arrayPointer.subNoteID = _subNoteID;
+        if(propertyStr.subNoteID != _subNoteID) {
+            propertyStr.subNoteID = _subNoteID;
             differs = true;
         }
-        if(arrayPointer.beginTime != beginTime) {
-            arrayPointer.beginTime = beginTime;
-            differs = true;
-        }
-        if(arrayPointer.lastAttachBar != lastAttachBar) {
-            arrayPointer.lastAttachBar = lastAttachBar;
+        if(propertyStr.beginTime != beginTime) {
+            propertyStr.beginTime = beginTime;
             differs = true;
         }
 
         if(differs)
-            dyc_update_note(arrayPointer);
+            dyc_update_note(propertyStr);
     }
 
     function pull_prop() {
-        if(!is_struct(arrayPointer)) return;
-    	time = arrayPointer.time;
-    	side = arrayPointer.side;
-    	width = arrayPointer.width;
-    	position = arrayPointer.position;
-    	lastTime = arrayPointer.lastTime;
-    	noteType = arrayPointer.noteType;
-    	noteID = arrayPointer.noteID;
-        subNoteID = arrayPointer.subNoteID;
-    	beginTime = arrayPointer.beginTime;
-    	lastAttachBar = arrayPointer.lastAttachBar;
+        if(noteID == "null") return;
+        propertyStr = dyc_get_note(noteID);
+    	time = propertyStr.time;
+    	side = propertyStr.side;
+    	width = propertyStr.width;
+    	position = propertyStr.position;
+    	lastTime = propertyStr.lastTime;
+    	noteType = propertyStr.noteType;
+    	noteID = propertyStr.noteID;
+        subNoteID = propertyStr.subNoteID;
+    	beginTime = propertyStr.beginTime;
+
+        lastAttachBar = -1;
     }
     
     // If a note is moving out of screen, throw a warning.
