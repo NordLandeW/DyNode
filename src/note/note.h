@@ -3,7 +3,6 @@
 #include <mutex>
 #include <string>
 
-#include "api.h"
 #include "json.hpp"
 
 using nlohmann::json;
@@ -23,14 +22,6 @@ int modify_note(const Note &note);
 
 void get_note_array(std::vector<Note> &notes);
 void get_note_array(std::vector<NoteExportView> &notes);
-
-DYCORE_API double DyCore_clear_notes();
-DYCORE_API double DyCore_sync_notes_array(const char *notesArray);
-DYCORE_API double DyCore_modify_note(const char *prop);
-DYCORE_API double DyCore_delete_note(const char *prop);
-DYCORE_API double DyCore_insert_note(const char *prop);
-DYCORE_API double DyCore_modify_note_bitwise(const char *noteID,
-                                             const char *prop);
 
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);

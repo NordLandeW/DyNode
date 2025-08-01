@@ -46,6 +46,7 @@ class NotePoolManager {
     void unset_ooo();
     void array_markdel_index(int index);
     void array_sort();
+    void reclaim_memory();
     nptr get_note_pointer(const std::string &noteID);
 
     std::array<std::byte, 64 * 1024 * 1024> initial_buffer;

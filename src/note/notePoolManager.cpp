@@ -1,6 +1,7 @@
 #include "notePoolManager.h"
 
 #include <algorithm>
+#include <chrono>
 #include <mutex>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/algorithm/sort.hpp>
@@ -88,8 +89,8 @@ void NotePoolManager::set_note(const std::string& noteID, const Note& note) {
         }
         note_ptr = get_note_pointer(noteID);
     }  // Release the manager lock
-
     *note_ptr = note;
+    set_ooo();
 }
 
 void NotePoolManager::set_note_bitwise(const std::string& noteID,
@@ -104,6 +105,7 @@ void NotePoolManager::set_note_bitwise(const std::string& noteID,
     }  // Release the manager lock
 
     note_ptr->bitread(prop);
+    set_ooo();
 }
 
 void NotePoolManager::access_note(const std::string& noteID,
@@ -195,6 +197,7 @@ void NotePoolManager::clear_notes() {
     noteMemoryList.clear();
     noteInfoMap.clear();
     noteCount = 0;
+    reclaim_memory();
     return;
 }
 
@@ -273,6 +276,7 @@ void NotePoolManager::array_markdel_index(int index) {
 
 // Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
+    auto start = std::chrono::high_resolution_clock::now();
     if (hardware_concurrency() > 1) {
         // Use parallel sort
         tf::Taskflow taskflow;
@@ -290,6 +294,9 @@ void NotePoolManager::array_sort() {
     for (size_t i = 0; i < noteArray.size(); ++i) {
         noteInfoMap[noteArray[i]->noteID].index = i;
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration<double, std::milli>(end - start);
+    print_debug_message("array_sort took " + std::to_string(duration.count()) + "ms");
 }
 
 NotePoolManager::nptr NotePoolManager::get_note_pointer(
@@ -326,4 +333,9 @@ int NotePoolManager::get_index_lowerbound(double time) {
         return static_cast<int>(noteArray.size());
     }
     return static_cast<int>(it - noteArray.begin());
+}
+
+// Thread unsafe function.
+void NotePoolManager::reclaim_memory() {
+    pool_res.release();
 }
