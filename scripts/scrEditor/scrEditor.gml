@@ -384,7 +384,6 @@ function operation_synctime_set(time) {
 	with(objEditor) {
 		operationSyncTime[0] = min(operationSyncTime[0], time);
 		operationSyncTime[1] = max(operationSyncTime[1], time);
-		show_debug_message_safe("OPERATION SYNC TIME SET:"+string(operationSyncTime));
 	}
 }
 function operation_synctime_sync() {

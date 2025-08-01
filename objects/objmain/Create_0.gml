@@ -522,10 +522,4 @@ function _set_channel_speed(spd) {
 
 #endregion
 
-#region Draw Extra Variables
-
-drawQueue = [array_create(1024), array_create(1024), array_create(1024)];
-
-#endregion
-
 _create_channel();	// Channel init.

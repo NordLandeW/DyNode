@@ -20,13 +20,16 @@ function map_close() {
 		instance_destroy(objPerfectIndc);
 		instance_destroy(objEditor);
 		instance_destroy(objShadow);
+		instance_destroy(objShadowMIX);
 		instance_destroy(objTopBar);
 		
 		time_source_destroy(timesourceResumeDelay);
+		time_source_destroy(timesourceSyncVideo);
 		part_emitter_destroy_all(partSysNote);
 		part_system_destroy(partSysNote);
 		part_type_destroy(partTypeNoteDL);
 		part_type_destroy(partTypeNoteDR);
+		part_type_destroy(partTypeHold);
 		
 		if(bgImageSpr != -1)
 		    sprite_delete(bgImageSpr);
@@ -44,6 +47,8 @@ function map_close() {
 	instance_destroy(objMain);
 
 	call_later(1, time_source_units_seconds, function() { gc_collect(); });
+	call_later(2, time_source_units_seconds, function() { gc_collect(); });
+	call_later(3, time_source_units_seconds, function() { gc_collect(); });
 }
 
 function map_reset() {
@@ -439,7 +444,7 @@ function map_import_dyn(_file) {
 
 function map_import_dyn_struct(_str, _import_info, _import_tp) {
 	if(_import_tp) {
-		objEditor.timingPoints = array_concat(objEditor.timingPoints, _str.timingPoints);
+		objEditor.timingPoints = SnapDeepCopy(array_concat(objEditor.timingPoints, _str.timingPoints));
 		timing_point_sort();
 	}
 	
@@ -894,7 +899,7 @@ function project_load(_file = "") {
 	    	background_load(_path_deal(videoPath, _propath));
 	    	
 	    timing_point_reset();
-	    objEditor.timingPoints = _contents[$ "timingPoints"];
+	    objEditor.timingPoints = SnapDeepCopy(_contents[$ "timingPoints"]);
 	    timing_point_sort();
 	    
 	    projectPath = _file;
