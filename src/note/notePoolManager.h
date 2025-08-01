@@ -5,6 +5,8 @@
 
 class NotePoolManager {
    public:
+    using nptr = std::shared_ptr<Note>;
+
     NotePoolManager();
     ~NotePoolManager();
 
@@ -30,10 +32,9 @@ class NotePoolManager {
     int get_note_count() {
         return noteCount;
     }
+    Note operator[](int index);
 
    private:
-    using nptr = std::shared_ptr<Note>;
-
     struct NoteMemoryInfo {
         std::pmr::list<nptr>::iterator iter;
         nptr pointer;

@@ -14,6 +14,7 @@ struct NoteExportView;
 
 bool note_exists(const Note &note);
 bool note_exists(const char *noteID);
+bool note_exists(const string &noteID);
 void clear_notes();
 int insert_note(const Note &note);
 int delete_note(const Note &note);

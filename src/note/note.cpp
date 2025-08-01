@@ -3,6 +3,7 @@
 #include <string>
 
 #include "async.h"
+#include "notePoolManager.h"
 #include "singletons.h"
 #include "utils.h"
 
@@ -13,8 +14,10 @@ bool note_exists(const Note& note) {
     return note_exists(note.noteID.c_str());
 }
 bool note_exists(const char* noteID) {
-    auto& noteMan = get_note_pool_manager();
-    return noteMan.note_exists(noteID);
+    return get_note_pool_manager().note_exists(noteID);
+}
+bool note_exists(const std::string& noteID) {
+    return get_note_pool_manager().note_exists(noteID);
 }
 
 // Clears all notes from the current note map.
@@ -58,6 +61,31 @@ int modify_note(const Note& note) {
     }
     get_note_pool_manager().set_note(note.noteID, note);
     return 0;
+}
+
+// For DYCORE_API.
+bool get_note_bitwise(const std::string& noteID, char* prop) {
+    if (!note_exists(noteID)) {
+        return false;
+    }
+    try {
+        auto note = get_note_pool_manager().get_note(noteID);
+        note.bitwrite(prop);
+    } catch (const std::exception& e) {
+        print_debug_message("Error: " + std::string(e.what()));
+        return false;
+    }
+    return true;
+}
+bool get_note_bitwise(int index, char* prop) {
+    try {
+        auto note = get_note_pool_manager()[index];
+        note.bitwrite(prop);
+    } catch (const std::exception& e) {
+        print_debug_message("Error: " + std::string(e.what()));
+        return false;
+    }
+    return true;
 }
 
 void get_note_array(std::vector<Note>& notes) {
@@ -171,4 +199,12 @@ DYCORE_API double DyCore_modify_note_bitwise(const char* noteID,
 
 DYCORE_API double DyCore_sort_notes() {
     return get_note_pool_manager().array_sort_request() ? 0 : -1;
+}
+
+DYCORE_API double DyCore_get_note(const char* noteID, char* propBuffer) {
+    return get_note_bitwise(noteID, propBuffer) ? 0 : -1;
+}
+
+DYCORE_API double DyCore_get_note_at_index(double index, char* propBuffer) {
+    return get_note_bitwise(static_cast<int>(index), propBuffer) ? 0 : -1;
 }

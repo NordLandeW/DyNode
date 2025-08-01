@@ -23,6 +23,18 @@ NotePoolManager::NotePoolManager()
 NotePoolManager::~NotePoolManager() {
 }
 
+Note NotePoolManager::operator[](int index) {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    if (index < 0 || index >= noteArray.size())
+        throw std::out_of_range("Index out of range in NotePoolManager");
+    if (arrayOutOfOrder)
+        print_debug_message(
+            "Warning: Note array is out of order, accessing by index may not "
+            "be reliable.");
+
+    return *noteArray[index];
+}
+
 bool NotePoolManager::note_exists(const std::string& noteID) {
     return noteInfoMap.find(noteID) != noteInfoMap.end();
 }
