@@ -18,6 +18,7 @@ bool note_exists(const string &noteID);
 void clear_notes();
 int insert_note(const Note &note);
 int delete_note(const Note &note);
+int delete_note(const std::string &noteID);
 int modify_note(const Note &note);
 
 void get_note_array(std::vector<Note> &notes);
