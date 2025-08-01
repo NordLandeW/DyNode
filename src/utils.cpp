@@ -136,3 +136,7 @@ DYCORE_API const char* DyCore_random_string(double length) {
     str = random_string(int(length));
     return str.c_str();
 }
+
+int hardware_concurrency() {
+    return std::thread::hardware_concurrency();
+}

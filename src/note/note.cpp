@@ -168,3 +168,7 @@ DYCORE_API double DyCore_modify_note_bitwise(const char* noteID,
     get_note_pool_manager().set_note_bitwise(noteID, prop);
     return 0;
 }
+
+DYCORE_API double DyCore_sort_notes() {
+    return get_note_pool_manager().array_sort_request() ? 0 : -1;
+}

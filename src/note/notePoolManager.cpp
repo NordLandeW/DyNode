@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/algorithm/sort.hpp>
 #include <taskflow/taskflow.hpp>
+#include <vector>
 
 #include "note.h"
 #include "singletons.h"
@@ -116,6 +118,25 @@ void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
     }
 }
 
+// This function is slower (but safer)
+void NotePoolManager::access_all_notes_safe(
+    std::function<void(Note&)> executor) {
+    std::vector<nptr> notes;
+    {
+        std::lock_guard<std::mutex> lock(mtxNoteOps);
+        notes.resize(noteInfoMap.size());
+        for (const auto& note_ptr : noteArray) {
+            if (note_ptr) {
+                notes.push_back(note_ptr);
+            }
+        }
+    }
+    for (const auto& note_ptr : notes) {
+        std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
+        executor(*note_ptr);
+    }
+}
+
 // This function is unsafe (DEADLOCK RISK). Do not access notePoolManager in
 // your executor.
 void NotePoolManager::access_all_notes_parallel(
@@ -128,6 +149,27 @@ void NotePoolManager::access_all_notes_parallel(
             std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
             executor(*note_ptr);
         }
+    });
+    tfexecutor.run(taskflow).wait();
+}
+
+void NotePoolManager::access_all_notes_parallel_safe(
+    std::function<void(Note&)> executor) {
+    std::vector<nptr> notes;
+    {
+        std::lock_guard<std::mutex> lock(mtxNoteOps);
+        notes.resize(noteInfoMap.size());
+        for (const auto& note_ptr : noteArray) {
+            if (note_ptr) {
+                notes.push_back(note_ptr);
+            }
+        }
+    }
+    auto& tfexecutor = get_taskflow_executor();
+    tf::Taskflow taskflow;
+    taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
+        std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
+        executor(*note_ptr);
     });
     tfexecutor.run(taskflow).wait();
 }
@@ -212,9 +254,17 @@ void NotePoolManager::array_markdel_index(int index) {
     set_ooo();
 }
 
+// Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
-    // Should only be called when mtxNoteOps is locked
-    std::sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
+    if (hardware_concurrency() > 1) {
+        // Use parallel sort
+        tf::Taskflow taskflow;
+        auto& tfexecutor = get_taskflow_executor();
+        taskflow.sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
+        tfexecutor.run(taskflow).wait();
+    } else {
+        std::sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
+    }
 
     while (!noteArray.empty() && noteArray.back() == nullptr) {
         noteArray.pop_back();

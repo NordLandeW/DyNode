@@ -16,7 +16,9 @@ class NotePoolManager {
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
     void access_all_notes(std::function<void(Note &)> executor);
+    void access_all_notes_safe(std::function<void(Note &)> executor);
     void access_all_notes_parallel(std::function<void(Note &)> executor);
+    void access_all_notes_parallel_safe(std::function<void(Note &)> executor);
     int get_index(const std::string &noteID);
     bool release_note(std::string noteID);
     bool release_note(const Note &note);
