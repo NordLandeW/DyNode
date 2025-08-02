@@ -94,7 +94,7 @@ depth = 0;
     /// @description Return struct with x and time.
     function mixer_get_next_x(side) {
     	var found = false, beginTime = 0, result = 0, accum = 0;
-        for(var i=chartNotesArrayAt; i<chartNotesCount; i++) {
+        for(var i=chartNotesArrayAt, l=dyc_get_note_count(); i<l; i++) {
             var _note = dyc_get_note_at_index(i);
             if((_note.time - nowTime) * playbackSpeed / BASE_RES_W > MIXER_REACTION_RANGE)
                 break;
@@ -141,7 +141,7 @@ depth = 0;
             if(nowTime < sideLastHitTime[i]) continue;
             if(sideHinterState[i] == -1)
             {
-                for(var j=chartNotesArrayAt; j<chartNotesCount; j++) {
+                for(var j=chartNotesArrayAt, l=dyc_get_note_count(); j<l; j++) {
                     var _note = dyc_get_note_at_index(j);
                     if(_note.time - nowTime > SIDEHINT_SEARCH_TIME) break;
                     if(_note.side == i + 1) {
@@ -178,7 +178,6 @@ depth = 0;
     /// @type {Array<Array<Id.Instance.objNote>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
-    chartNotesCount = 0;
 
 #endregion
 

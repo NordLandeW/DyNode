@@ -82,8 +82,6 @@ function note_sort_all(forced = false) {
 	if(result == 0) {
 		note_recac_stats();
 	}
-	
-	objMain.chartNotesCount = DyCore_get_note_count();
 }
 
 function note_sort_request() {
@@ -163,7 +161,6 @@ function note_delete(noteID, _record = false) {
 function note_delete_all() {
 	with(objMain) {
 		chartNotesArrayAt = 0;
-		chartNotesCount = 0;
 		
 		instance_destroy(objNote);
 		DyCore_clear_notes();
@@ -171,7 +168,7 @@ function note_delete_all() {
 }
 
 function note_delete_all_manually(_record = true) {
-	for(var i=0, l= objMain.chartNotesCount; i<l; i++) {
+	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
 		var _str = dyc_get_note_at_index(i);
 		note_delete(_str.noteID, _record);
 	}
@@ -199,6 +196,7 @@ function note_check_and_activate(_posistion_in_array) {
 /// @param {Id.Instance.objNote} inst
 function note_deactivate_instance(inst) {
 	if(!note_is_activated(inst)) return;
+	if(inst.noteType == 3) return;
 	inst.detach();
 
 	// ! Only for now. 
@@ -269,14 +267,6 @@ function note_select_reset(inst = undefined) {
 			set_state(NOTE_STATES.NORMAL);
 			state();
 		}
-}
-
-function note_activation_reset() {
-	note_deactivate_all();
-	with(objMain) {
-		for(var i=0; i<chartNotesCount; i++)
-			note_check_and_activate(i);
-	}
 }
 
 function note_generate_id() {

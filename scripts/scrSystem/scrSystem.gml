@@ -60,7 +60,6 @@ function map_load(_file = "") {
 	if(is_struct(_file)) {
 		map_load_struct(_file);
 		
-		note_activation_reset();
 		return;
 	}
 	var _direct = _file != "";
@@ -107,7 +106,6 @@ function map_load(_file = "") {
     
     // Notes information init & Remove extra sub notes.
     note_sort_all(true);
-    note_activation_reset();
     
     announcement_play("anno_import_chart_complete");
 }

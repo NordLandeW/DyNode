@@ -205,3 +205,7 @@ function dyc_get_note_array_index(noteID) {
 function dyc_note_exists(noteID) {
     return DyCore_note_exists(noteID) >= 0;
 }
+
+function dyc_get_note_count() {
+    return DyCore_get_note_count();
+}

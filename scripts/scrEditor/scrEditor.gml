@@ -504,8 +504,6 @@ function operation_undo() {
 		
 		announcement_play(i18n_get("undo", [operation_get_name(_type), string(array_length(_ops))]));
 		note_sort_request();
-		if(l > MAX_SELECTION_LIMIT) note_activation_reset();
-		// show_debug_message_safe("POINTER: "+ string(operationPointer));
 	}
 	
 }
@@ -819,7 +817,7 @@ function _setup_xml_compability_variables() {
 function chart_randomize() {
 	if(editor_get_editmode() == 5)
 		editor_set_editmode(4);
-	for(var i=0, l=objMain.chartNotesCount; i<l; i++) {
+	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
 		var _str = dyc_get_note_at_index_direct(i);
 		if(_str.noteType == 3) continue;
 		var origProp = SnapDeepCopy(_str);

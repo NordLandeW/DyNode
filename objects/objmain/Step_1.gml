@@ -172,14 +172,14 @@ var _music_resync_request = false;
 	chartDifficulty += _diff_delta;
 	chartDifficulty = clamp(chartDifficulty, 0, global.difficultyCount - 1);
 
-    chartNotesCount = DyCore_get_note_count();
+    var noteCount = dyc_get_note_count();
 
-	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, chartNotesCount);
+	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, noteCount);
 	
-    while(chartNotesArrayAt < chartNotesCount &&
+    while(chartNotesArrayAt < noteCount &&
         dyc_get_note_time_at_index(chartNotesArrayAt) <= nowTime) {
             chartNotesArrayAt ++;
-            if(chartNotesArrayAt < chartNotesCount)
+            if(chartNotesArrayAt < noteCount)
                 note_check_and_activate(chartNotesArrayAt);
         }
 
@@ -193,7 +193,7 @@ var _music_resync_request = false;
 
 #region NOTES ACTIVATE & DEACTIVATE
 
-	var i=max(chartNotesArrayAt-3, 0), l=chartNotesCount;
+	var i=max(chartNotesArrayAt-3, 0), l=noteCount;
 	var _editMode = editor_get_editmode();
 	for(; i<l; i++) {
         if(_editMode == 5 && note_is_activated(dyc_get_note_id_at_index(i)))

@@ -135,7 +135,8 @@ projectTime += round(delta_time / 1000);
   
 #region Scoreboard Update
 
-    if(nowCombo != chartNotesArrayAt && chartNotesCount > 0) {
+	var noteCount = dyc_get_note_count();
+    if(nowCombo != chartNotesArrayAt && noteCount > 0) {
         var _hit = nowCombo < chartNotesArrayAt;
         if(_hit) {
             with(objPerfectIndc)
@@ -143,7 +144,7 @@ projectTime += round(delta_time / 1000);
         }
         var _val;
         nowCombo = chartNotesArrayAt;
-        _val = 1000000*nowCombo/chartNotesCount;
+        _val = 1000000*nowCombo/noteCount;
         with(scbLeft) {
             _update_score(_val, _hit);
         }
@@ -152,7 +153,7 @@ projectTime += round(delta_time / 1000);
             _update_score(_val, _hit, true);
         }
     }
-    if(chartNotesCount == 0) {
+    if(noteCount == 0) {
     	with(scbLeft) _update_score(0, 0);
     	with(scbRight) _update_score(0, 0, true);
     }
