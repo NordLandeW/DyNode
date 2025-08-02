@@ -59,6 +59,7 @@ function _note_get_lrpadding_total(noteType) {
         case NOTE_TYPE.CHAIN:
             return NOTE_CHAIN_PADDING_PIXELS_LEFT + NOTE_CHAIN_PADDING_PIXELS_RIGHT;
         case NOTE_TYPE.HOLD:
+        case NOTE_TYPE.SUB:
             return NOTE_HOLD_PADDING_PIXELS_LEFT + NOTE_HOLD_PADDING_PIXELS_RIGHT;
     }
 }

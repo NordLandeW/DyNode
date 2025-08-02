@@ -90,13 +90,10 @@ image_yscale = 1;
     
     // Particles Varaiables
 #macro PARTICLE_HOLD_DELAY (33)     // in ms
-    partNumber = 12;
-    partNumberLast = 1;
+#macro PARTICLE_NOTE_NUMBER (12)
+#macro PARTICLE_NOTE_LAST (1)
     partHoldTimer = 0;
     
-    lFromLeft = 5;
-    // Correction Values
-    rFromRight = 5;
     dFromBottom = 0;
     uFromTop = 0;
 
@@ -122,7 +119,7 @@ image_yscale = 1;
             // Properties Limitation
             width = max(width, 0.01);
             
-            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + lFromLeft + rFromRight;
+            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + _note_get_lrpadding_total(noteType);
             pWidth = max(pWidth, originalWidth);
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
@@ -239,7 +236,7 @@ image_yscale = 1;
 	        _inst._prop_init();
         }
         
-        _emit_particle(partNumber, 0);
+        _emit_particle(PARTICLE_NOTE_NUMBER, 0);
     }
     
     function _mouse_inbound_check(_mode = 0) {
@@ -502,7 +499,7 @@ image_yscale = 1;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
                 partHoldTimer -= PARTICLE_HOLD_DELAY;
-                _emit_particle(partNumberLast, 1, true);
+                _emit_particle(PARTICLE_NOTE_LAST, 1, true);
             }
         }
         

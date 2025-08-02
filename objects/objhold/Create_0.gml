@@ -85,7 +85,7 @@ _prop_init(true);
 		}
 			
 		var _h = sprite_get_height(sprHold), _th = pHeight - dFromBottom - uFromTop,
-		_w = sprite_get_width(sprHold), _rw = pWidth - lFromLeft - rFromRight;
+		_w = sprite_get_width(sprHold), _rw = pWidth - _note_get_lrpadding_total(noteType);
 		var _sclx = _rw / _w;
 		var _scly = pHeight;
 		    
@@ -208,8 +208,6 @@ _prop_init(true);
 
     dFromBottom = 26;
     uFromTop = 13; 
-    lFromLeft = 12;
-    rFromRight = 12;
 
 // Simplification Color Configuration
 
