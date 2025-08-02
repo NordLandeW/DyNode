@@ -45,15 +45,18 @@ set(DYCORE_SOURCES
     src/note/noteUtils.cpp
     src/note/noteExport.cpp
     src/project/project.cpp
+    src/extension/extension.cpp
     src/compress.cpp
     src/test.cpp
     src/singletons.cpp
 )
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 target_include_directories(DyCore PRIVATE
-    src
+    src/
     src/note
     src/project
+    lib/
+    lib/sol/
 )
 
 target_compile_definitions(DyCore PRIVATE 
