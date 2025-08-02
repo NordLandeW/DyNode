@@ -109,7 +109,7 @@
         "anno_default_width": "デフォルト幅を設定：",
         "error_config_file_corrupted": "設定ファイルが破損しています。すべての設定を初期値に戻します。",
         "anno_reload_config": "設定を再読み込みしました。一部の設定は再起動が必要です。",
-        "start_page_hint": "F7：ボーダーレスフルスクリーン切替\nF12：ショートカット / オンラインドキュメント\nDyNodeは現在1920x1080のレンダー解像度のみをサポートしています。",
+        "start_page_hint": "F7：ボーダーレスフルスクリーン切替\nF12：ショートカット / オンラインドキュメント",
         "error_dym_note_load_failed": "譜面ノートのインポート中にエラーが発生しました。インポートを中止します。\n最新のDynamaker-modifiedで再エクスポートして試すか、開発者へ報告してください。",
         "error_dym_bpm_load_failed": "譜面内の変BPM情報を読み取れませんでした。\n最新のDynamaker-modifiedで変BPMデータをエクスポートしてください。",
         "error_default_width_must_be_real": "デフォルト幅には実数を入力してください。",
