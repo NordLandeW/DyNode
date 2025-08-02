@@ -89,8 +89,9 @@ void NotePoolManager::set_note(const std::string& noteID, const Note& note) {
         }
         note_ptr = get_note_pointer(noteID);
     }  // Release the manager lock
+    if (note_ptr->time != note.time)
+        set_ooo();
     *note_ptr = note;
-    set_ooo();
 }
 
 void NotePoolManager::set_note_bitwise(const std::string& noteID,
@@ -104,8 +105,10 @@ void NotePoolManager::set_note_bitwise(const std::string& noteID,
         note_ptr = get_note_pointer(noteID);
     }  // Release the manager lock
 
+    double origTime = note_ptr->time;
     note_ptr->bitread(prop);
-    set_ooo();
+    if (origTime != note_ptr->time)
+        set_ooo();
 }
 
 void NotePoolManager::access_note(const std::string& noteID,
@@ -296,7 +299,8 @@ void NotePoolManager::array_sort() {
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(end - start);
-    print_debug_message("array_sort took " + std::to_string(duration.count()) + "ms");
+    print_debug_message("array_sort took " + std::to_string(duration.count()) +
+                        "ms");
 }
 
 NotePoolManager::nptr NotePoolManager::get_note_pointer(
