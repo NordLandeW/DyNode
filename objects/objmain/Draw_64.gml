@@ -31,8 +31,8 @@ if(showStats > 0) {
 	// Note's stats
 	if(showStats < 3)
 		_stat_str += "[sprNote] "+stat_note_string(showStats, 0)
-		+" [scale,0.5][sprChain][/s] "+stat_note_string(showStats, 1)
-		+" [scale,0.5][sprHoldEdge][/s] "+stat_note_string(showStats, 2)
+		+" [scale,0.4][sprChain][/s] "+stat_note_string(showStats, 1)
+		+" [scale,0.4][sprHoldEdge][/s] "+stat_note_string(showStats, 2)
 		+ " Total " + stat_note_string(showStats, 3);
 	else if(showStats < 4) {
 		_stat_str += "Project Time " + format_time_string_hhmmss(objManager.projectTime);
@@ -43,8 +43,9 @@ if(showStats > 0) {
 
 	// Draw the stat string.
 	scribble(_stat_str)
-		.starting_format("fMono16", c_white)
+		.starting_format("mSpaceMono", c_white)
 		.align(fa_center, fa_bottom)
+		.scale(1.4)
 		.draw(BASE_RES_W/2, BASE_RES_H-3);
 }
 

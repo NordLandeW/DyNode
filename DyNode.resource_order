@@ -344,6 +344,7 @@
     {"name":"sndSoft","order":1,"path":"sounds/sndSoft/sndSoft.yy",},
     {"name":"jmak","order":1,"path":"sprites/jmak/jmak.yy",},
     {"name":"mDynamix","order":2,"path":"sprites/mDynamix/mDynamix.yy",},
+    {"name":"mSpaceMono","order":3,"path":"sprites/mSpaceMono/mSpaceMono.yy",},
     {"name":"scribble_fallback_bulletpoint","order":19,"path":"sprites/scribble_fallback_bulletpoint/scribble_fallback_bulletpoint.yy",},
     {"name":"sprBottomSignBlack","order":28,"path":"sprites/sprBottomSignBlack/sprBottomSignBlack.yy",},
     {"name":"sprBottomSignBlue","order":29,"path":"sprites/sprBottomSignBlue/sprBottomSignBlue.yy",},
