@@ -102,7 +102,7 @@ struct Note {
         return *this;
     }
 
-    string dump() {
+    string dump() const {
         return json(*this).dump();
     }
 

@@ -34,6 +34,8 @@ int insert_note(const Note& note) {
         return -1;
     }
 
+    print_debug_message("Insert note: " + note.dump());
+
     get_note_pool_manager().create_note(note);
     return 0;
 }

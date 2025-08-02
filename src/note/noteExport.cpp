@@ -46,15 +46,8 @@ DYCORE_API double DyCore_clear_notes() {
 // @param prop A JSON string representing a Note object.
 // @return 0 on success, -1 on failure.
 DYCORE_API double DyCore_insert_note(const char* prop) {
-    json j;
-    try {
-        j = json::parse(prop);
-    } catch (json::exception& e) {
-        print_debug_message("Parse failed:" + string(e.what()));
-        return -1;
-    }
-
-    Note note = j.template get<Note>();
+    Note note;
+    note.bitread(prop);
     return insert_note(note);
 }
 
@@ -173,7 +166,7 @@ DYCORE_API const char* DyCore_get_note_id_at_index(double index) {
         noteID = noteMan[static_cast<int>(index)].noteID;
     } catch (const std::exception& e) {
         print_debug_message("Error: " + std::string(e.what()));
-        return "null";
+        return "";
     }
     return noteID.c_str();
 }
