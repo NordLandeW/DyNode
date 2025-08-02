@@ -436,13 +436,13 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			return build_note_withprop(_from, false, true);
 			break;
 		case OPERATION_TYPE.MOVE:
-			/// @type {Id.Instance.objNote} 
-			var _inst = note_get_instance(_from.noteID);
-			note_activate(_inst);
-			_inst.set_prop(_to);
-			_inst.note_outscreen_check();
-			if(!_safe_)
+			dyc_update_note(_to);
+			if(!_safe_) {
+				var _inst = note_get_instance(_from.noteID);
+				note_activate(_inst);
 				_inst.select();
+				_inst.pull_prop();
+			}
 			break;
 		case OPERATION_TYPE.REMOVE:
 			/// @type {Id.Instance.objNote} 
@@ -722,7 +722,7 @@ function timing_fix(tpBefore, tpAfter) {
 			_prop.lastTime = -1;	// Detatch the sub and the hold.
 			if(_prop.time > _timeR)
 				_cross_timing_warning = true;
-			note_get_instance(_affectedNotes[i].noteID).set_prop(_prop, true);
+			dyc_update_note(_prop, true);
 		}
 		if(tpAfter.time < _timeM)
 			_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
@@ -967,7 +967,7 @@ function note_error_correction(_limit, _array, _sync_to_instance = true) {
 					for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 						notes_to_fix[_i].time = notes_to_fix[0].time;
 						if(_sync_to_instance)
-							note_get_instance(notes_to_fix[_i].noteID).set_prop(notes_to_fix[_i]);
+							dyc_update_note(notes_to_fix[_i], true);
 					}
 				}
 				notes_to_fix = [_array[i]];
@@ -979,7 +979,7 @@ function note_error_correction(_limit, _array, _sync_to_instance = true) {
 		for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 			notes_to_fix[_i].time = notes_to_fix[0].time;
 			if(_sync_to_instance)
-				note_get_instance(notes_to_fix[_i].noteID).set_prop(notes_to_fix[_i]);
+				dyc_update_note(notes_to_fix[_i], true);
 		}
 	}
 }

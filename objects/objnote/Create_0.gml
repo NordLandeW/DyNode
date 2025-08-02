@@ -34,7 +34,7 @@ image_yscale = 1;
     /// @type {Id.Instance.objHold} 
     finst = -999;					// Father instance id
     noteType = 0;					// 0 Note 1 Chain 2 Hold
-    /// @type {Any} Note property structure
+    /// @type {Struct.sNoteProp} Note property structure
     propertyStr = undefined;
     
     // For Editor
@@ -94,8 +94,8 @@ image_yscale = 1;
     partNumberLast = 1;
     partHoldTimer = 0;
     
-    // Correction Values
     lFromLeft = 5;
+    // Correction Values
     rFromRight = 5;
     dFromBottom = 0;
     uFromTop = 0;
@@ -259,7 +259,7 @@ image_yscale = 1;
     }
 
     function get_prop(_set_pointer = false) {
-    	var _prop = {
+    	var _prop = new sNoteProp({
         	time : time,
         	side : side,
         	width : width,
@@ -269,42 +269,11 @@ image_yscale = 1;
         	noteID : noteID,
         	subNoteID: subNoteID,
         	beginTime : beginTime
-        };
+        });
     	if(_set_pointer) {
     		propertyStr = _prop;
     	}
     	return _prop;
-    }
-    
-    function set_prop(props, record = false) {
-    	if(!is_struct(props))
-    		show_error("property must be a struct.", true);
-    	
-    	if(record)
-    		origProp = get_prop();
-    		
-    	time = props.time;
-    	side = props.side;
-    	width = props.width;
-    	position = props.position;
-    	lastTime = props.lastTime;
-    	noteType = props.noteType;
-        noteID = props.noteID;
-        subNoteID = props.subNoteID;
-    	beginTime = props.beginTime;
-        lastAttachBar = -1;
-    	
-    	if(noteType == 2 && sinst > 0 && lastTime >= 0) {
-    		note_activate(sinst);
-    		sinst.time = time + lastTime;
-    		_prop_hold_update();
-    	}
-    	
-    	if(record)
-    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-    	
-        _prop_init(true);
-    	update_prop();
     }
     
     function update_prop() {
@@ -379,8 +348,8 @@ image_yscale = 1;
     }
     
     // If a note is moving out of screen, throw a warning.
+    _prop_init();
 	function note_outscreen_check() {
-		_prop_init();
         var _outbound = false;
         if(side == 0) {
             var _xl = x - pWidth / 2, _xr = x + pWidth / 2;
