@@ -139,7 +139,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			var prop = get_prop();
 	    			prop.position = 5 - prop.position;
 	    			note_select_reset(id);
-	    			build_note_withprop(prop, true, true, true);
+	    			build_note(prop, true, true, true);
 	    		}
 	    	}
             operation_merge_last_request(1, OPERATION_TYPE.MIRROR);
@@ -175,7 +175,7 @@ editorSelectMultiple = editorSelectCount > 1;
 		    			var prop = get_prop();
 			    		prop.side = 1 + (!(prop.side - 1));
 			    		note_select_reset(id);
-			    		build_note_withprop(prop, true, true, true);
+			    		build_note(prop, true, true, true);
 			    		_found ++;
 			    	}
 	    	}
@@ -205,11 +205,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
-			    		recordRequest = true;
 			    		var _prop = get_prop();
-			    		instance_destroy();
+			    		note_delete(noteID, true);
 			    		_prop.noteType = 0;
-			    		build_note_withprop(_prop, true, true, true);
+			    		build_note(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["NOTE", string(editor_select_count())]));
@@ -218,11 +217,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
-			    		recordRequest = true;
 			    		var _prop = get_prop();
-			    		instance_destroy();
+			    		note_delete(noteID, true);
 			    		_prop.noteType = 1;
-			    		build_note_withprop(_prop, true, true, true);
+			    		build_note(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["CHAIN", string(editor_select_count())]));
@@ -418,8 +416,7 @@ editorSelectMultiple = editorSelectCount > 1;
                 array_push(_newCopyStack, get_prop());
                 _cnt ++;
                 if(objEditor.cutRequest || objEditor.attachRequest) {
-                    recordRequest = true;
-                    instance_destroy();
+                    note_delete(noteID, true);
                 }
             }
         }

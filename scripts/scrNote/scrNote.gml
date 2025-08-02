@@ -90,115 +90,69 @@ function note_sort_request() {
 	objEditor.editorNoteSortRequest = true;
 }
 
-function build_note(_type, _time, _position, _width, 
-	_sinst, _side, _record = false, _selecting = false, _id = "") {
-	if(_id == "") _id = note_generate_id();
-	if(_sinst < 0) _sinst = -999;
+function build_note(prop, record = false, selecting = false, randomID = false) {
+	prop = SnapDeepCopy(prop);
+	var _isHold = prop.noteType == NOTE_TYPE.HOLD;
+	if(!variable_struct_exists(prop, "noteID") || prop.noteID == "")
+		randomID = true;
 
-    var _obj = undefined;
-    switch(_type) {
-        case "NORMAL":
-        case 0:
-            _obj = objNote;
-            break;
-        case "CHAIN":
-        case 1:
-            _obj = objChain;
-            break;
-        case "HOLD":
-        case 2:
-            _obj = objHold;
-            break;
-        case "SUB":
-        case 3:
-            _obj = objHoldSub;
-            break;
-        default:
-            return;
-    }
-	/// @type {Id.Instance.objNote} 
-    var _inst = instance_create_depth(0, 0, 0, _obj);
-	_inst.noteID = _id;
-    _inst.width = real(_width);
-    _inst.side = real(_side);
-	_inst.time = _time;
-    _inst.position = real(_position);
-	_inst.sinst = _sinst;
-
-	if(_sinst > 0) {
-		_inst.subNoteID = _sinst.noteID;
+	if(randomID) {
+		prop.noteID = note_generate_id();
+		if(_isHold) {
+			prop.subNoteID = note_generate_id();
+		}
 	}
+	if(!_isHold) prop.subNoteID = "";
 
-	global.noteIDMan.update(_id, _inst);
-    
-    with(_inst) {
-    	_prop_init(true);
-    	if(noteType == 2) _prop_hold_update();
-    	if(_selecting) set_state(NOTE_STATES.SELECTED);
-    }
-    with(objMain) {
-        var _prop = _inst.get_prop(true);
-		DyCore_insert_note(json_stringify(_prop));        
-        note_sort_request();
-    }
-    
-    if(_record)
-    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(), -1);
-    
-    return _inst;
-}
+	var _newNote = new sNoteProp(prop);
 
-function build_hold(_time, _position, _width, _subtime,
-					_side, _record = false, _selecting = false, _id = "", _subid = "") {
-	var _sinst = build_note(3, _subtime, _position, _width, -1, _side,
-							false, _selecting, _subid);
-	var _inst = build_note(2, _time, _position, _width, _sinst, 
-						   _side, false, _selecting, _id);
-	_sinst.beginTime = _time;
-	// assert(_inst.sinst == _sinst);
-	if(_record)
-		operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(), -1);
-	return _inst;
-}
-
-
-function build_note_withprop(prop, record = false, selecting = false, withoutID = false) {
-	var _id = variable_struct_exists(prop, "noteID") ? prop.noteID : "";
-	var _subid = variable_struct_exists(prop, "subNoteID") ? prop.subNoteID : "";
-
-	if(withoutID) {
-		_id = "";
-		_subid = "";
-	}
-
-	if(prop.noteType < 2) {
-		return build_note(prop.noteType, prop.time, prop.position, 
-			prop.width, -1, prop.side, record, selecting, _id);
-	}
-	else {
-		return build_hold(prop.time, prop.position, prop.width,
-						  prop.time + prop.lastTime,
-						  prop.side, record, selecting, _id, _subid);
+	switch(prop.noteType) {
+		case NOTE_TYPE.NORMAL:
+		case NOTE_TYPE.CHAIN:
+			dyc_create_note(_newNote, record);
+			break;
+		case NOTE_TYPE.HOLD:
+			var _newSubNote = new sNoteProp({
+				time: prop.time + prop.lastTime,
+				side: prop.side,
+				width: prop.width,
+				position: prop.position,
+				lastTime: prop.lastTime,
+				noteType: NOTE_TYPE.SUB,
+				noteID: prop.subNoteID,
+				subNoteID: prop.noteID,
+				beginTime: prop.time
+			});
+			dyc_create_note(_newSubNote, false);
+			dyc_create_note(_newNote, record);
+			break;
+		case NOTE_TYPE.SUB:
+			throw "Cannot directly create sub notes."
 	}
 }
 
 // This function can only be accessed in destroy event.
 /// @param {String} noteID
 function note_delete(noteID, _record = false) {
-	if(objMain.deletingAllNotes) return;
-
-	if(noteID == "null") {
+	if(noteID == "") {
 		return;
 	}
 
-	var _inst = note_get_instance(noteID);
+	if(note_is_activated(noteID)) {
+		var _inst = note_get_instance(noteID);
+		note_deactivate_instance(_inst);
+	}
+
 	try {
-		with(objMain) {
-	        var _prop = _inst.get_prop();
-			if(_record)
-				operation_step_add(OPERATION_TYPE.REMOVE, _prop, -1);
-			DyCore_delete_note(noteID);
-	    }
+		var _prop = dyc_get_note(noteID);
+		if(_record)
+			operation_step_add(OPERATION_TYPE.REMOVE, _prop, -1);
+		var result = DyCore_delete_note(noteID);
+		if(_prop.noteType == NOTE_TYPE.HOLD) {
+			note_delete(_prop.subNoteID, false);
+		}
+		if(result < 0)
+			throw "DyCore note deletion failed.";
 	} catch (e) {
 		announcement_error($"音符删除出现错误。请将谱面导出并备份以避免问题进一步恶化。您可以选择将该信息反馈开发者以帮助我们解决问题。错误信息：{e}");
 	}
@@ -211,36 +165,29 @@ function note_delete_all() {
 		chartNotesArrayAt = 0;
 		chartNotesCount = 0;
 		
-		note_activate_all();
-		deletingAllNotes = true;
 		instance_destroy(objNote);
 		DyCore_clear_notes();
-		deletingAllNotes = false;
 	}
 }
 
 function note_delete_all_manually(_record = true) {
-	note_activate_all();
-	with(objNote) {
-		if(noteType != 3) {
-			recordRequest = _record;
-			instance_destroy();
-		}
+	for(var i=0, l= objMain.chartNotesCount; i<l; i++) {
+		var _str = dyc_get_note_at_index(i);
+		note_delete(_str.noteID, _record);
 	}
 }
 
 function note_check_and_activate(_posistion_in_array) {
 	var _str = dyc_get_note_at_index(_posistion_in_array);
-	var _inst = note_get_instance(_str.noteID);
-	if(note_is_activated(_inst)) {
+	if(note_is_activated(_str.noteID)) {
 		return 0;
 	}
 	var _note_inbound = !_outbound_check_t(_str.time, _str.side) && _str.time >= objMain.nowTime;
 	var _hold_intersect = _str.noteType >= 2 &&
 		(_str.noteType == 2? (_str.time <= objMain.nowTime && _str.time + _str.lastTime >= objMain.nowTime):
 			(_str.beginTime <= objMain.nowTime && _str.time >= objMain.nowTime));
-	if(_note_inbound || _hold_intersect || _inst.stateType != NOTE_STATES.OUT) {
-		note_activate(_inst);
+	if(_note_inbound || _hold_intersect) {
+		note_activate(_str.noteID);
 		return 1;
 	}
 	else if(!_note_inbound && _outbound_check_t(_str.time, !(_str.side))) {
@@ -249,23 +196,50 @@ function note_check_and_activate(_posistion_in_array) {
 	return 0;
 }
 
-function note_deactivate(inst) {
+/// @param {Id.Instance.objNote} inst
+function note_deactivate_instance(inst) {
 	if(!note_is_activated(inst)) return;
-	instance_deactivate_object(inst);
-	global.activationMan.deactivate(inst);
+	inst.detach();
+
+	// ! Only for now. 
+	// Release the instance back to objectPool.
+	if(inst.noteType == NOTE_TYPE.HOLD)
+		instance_destroy(inst.sinst);
+	instance_destroy(inst);
 }
 
 /// @param {Id.Instance.objNote} inst 
-function note_activate(inst) {
+function note_activate_instance(inst) {
 	if(note_is_activated(inst)) return;
 	instance_activate_object(inst);
 	inst.pull_prop();
 	global.activationMan.activate(inst);
 }
 
-function note_activate_all() {
-	instance_activate_object(objNote);
-	global.activationMan.activate_all();
+function note_activate(noteID, trackHead = true) {
+	if(note_is_activated(noteID)) return;
+	// Get note object from objectPool.
+	var _prop = dyc_get_note(noteID);
+	if(_prop.noteType == NOTE_TYPE.SUB && trackHead) {
+		// If is a sub note, get the main note.
+		var _mainNote = dyc_get_note(_prop.subNoteID);
+		if(_mainNote == undefined) {
+			throw "Sub note " + noteID + " has no main note.";
+			return;
+		}
+		if(note_is_activated(_mainNote.noteID)) {
+			// If the main note is already activated, just return.
+			return;
+		}
+		_prop = _mainNote;
+	}
+
+	/// @type {Id.Instance.objNote} 
+	var _inst = instance_create_depth(0, 0, 0, _note_get_object_asset(_prop.noteType));
+	_inst.attach(noteID);
+	global.activationMan.track(_inst);
+
+	// show_debug_message("Trying activate the note: " + noteID);
 }
 
 function note_deactivate_all() {
@@ -274,11 +248,7 @@ function note_deactivate_all() {
 }
 
 function note_get_instance(noteID) {
-	var _inst = global.noteIDMan.get(noteID);
-	if(_inst < 0) {
-		throw "Trying to get an invalid note instance.";
-	}
-	return _inst;
+	return global.noteIDMan.get(noteID);
 }
 
 function note_exists(inst_or_noteID) {

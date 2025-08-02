@@ -44,34 +44,17 @@ function DyCoreManager() constructor {
     }
 }
 
+/// @param {Id.Buffer} buffer 
+/// @param {Struct.sNoteProp} noteProp 
 function dyc_note_serialization(buffer, noteProp) {
-    buffer_seek(buffer, buffer_seek_start, 0);
-    buffer_write(buffer, buffer_u32, noteProp[$ "side"]);
-    buffer_write(buffer, buffer_u32, noteProp[$ "noteType"]);
-    buffer_write(buffer, buffer_f64, noteProp[$ "time"]);
-    buffer_write(buffer, buffer_f64, noteProp[$ "width"]);
-    buffer_write(buffer, buffer_f64, noteProp[$ "position"]);
-    buffer_write(buffer, buffer_f64, noteProp[$ "lastTime"]);
-    buffer_write(buffer, buffer_f64, noteProp[$ "beginTime"]);
-    buffer_write(buffer, buffer_string, noteProp[$ "noteID"]);
-    buffer_write(buffer, buffer_string, noteProp[$ "subNoteID"]);
+    noteProp.bitwrite(buffer);
 }
 
 function dyc_note_deserialization(buffer) {
-    var noteProp = {};
-    buffer_seek(buffer, buffer_seek_start, 0);
-    noteProp[$ "side"] = buffer_read(buffer, buffer_u32);
-    noteProp[$ "noteType"] = buffer_read(buffer, buffer_u32);
-    noteProp[$ "time"] = buffer_read(buffer, buffer_f64);
-    noteProp[$ "width"] = buffer_read(buffer, buffer_f64);
-    noteProp[$ "position"] = buffer_read(buffer, buffer_f64);
-    noteProp[$ "lastTime"] = buffer_read(buffer, buffer_f64);
-    noteProp[$ "beginTime"] = buffer_read(buffer, buffer_f64);
-    noteProp[$ "noteID"] = buffer_read(buffer, buffer_string);
-    noteProp[$ "subNoteID"] = buffer_read(buffer, buffer_string);
-    return noteProp;
+    return new sNoteProp().bitread(buffer);
 }
 
+/// @param {Struct.sNoteProp} noteProp 
 function dyc_update_note(noteProp, record = false) {
     var noteID = noteProp[$ "noteID"];
     if(!note_exists(noteID)) {
@@ -90,8 +73,32 @@ function dyc_update_note(noteProp, record = false) {
         operation_step_add(OPERATION_TYPE.MOVE, origProp, noteProp);
     }
 
+    if(noteProp.noteType == NOTE_TYPE.HOLD) {
+        // Sync the subnote's data.
+        var subNote = dyc_get_note(noteProp.subNoteID);
+        subNote.position = noteProp.position;
+        subNote.side = noteProp.side;
+        subNote.width = noteProp.width;
+        subNote.beginTime = noteProp.time;
+        
+        dyc_update_note(subNote, false);
+    }
+
     if(result < 0)
         throw "Unknown error in dyc_update_note.";
+}
+
+/// @param {Struct.sNoteProp} noteProp 
+function dyc_create_note(noteProp, record = false) {
+    static buffer = buffer_create(1024, buffer_grow, 1);
+    noteProp.bitwrite(buffer);
+    var result = DyCore_insert_note(buffer_get_address(buffer));
+    if(result < 0) {
+        throw "Unknown error in dyc_create_note.";
+    }
+    if(record) {
+        operation_step_add(OPERATION_TYPE.ADD, noteProp.copy(), -1);
+    }
 }
 
 /// @description To check if the buffer is compressed.
@@ -125,19 +132,22 @@ function dyc_read_project_buffer(buffer) {
 
 /// @description Get note by noteID.
 /// @param {String} noteID The note ID.
-/// @returns {Any} The note struct or undefined if not found.
+/// @returns {Struct.sNoteProp} The note struct or undefined if not found.
 function dyc_get_note(noteID) {
     static propBuffer = buffer_create(1024, buffer_grow, 1);
     var result = DyCore_get_note(noteID, buffer_get_address(propBuffer));
     if (result == 0) {
         return dyc_note_deserialization(propBuffer);
     }
+    if (result == -1) {
+        show_debug_message("!Warning: dyc_get_note failed to find noteID: " + noteID);
+    }
     return undefined;
 }
 
 /// @description Get note at notes array's index.
 /// @param {Real} index The index of the note in the notes array.
-/// @returns {Any} The note struct or undefined if not found.
+/// @returns {Struct.sNoteProp} The note struct or undefined if not found.
 function dyc_get_note_at_index(index) {
     DyCore_sort_notes();
     static propBuffer = buffer_create(1024, buffer_grow, 1);
@@ -151,7 +161,7 @@ function dyc_get_note_at_index(index) {
 /// @description Get note at notes array's index directly.
 /// This will bypass the OutOfOrder flag.
 /// @param {Real} index The index of the note in the notes array.
-/// @returns {Any} The note struct or undefined if not found.
+/// @returns {Struct.sNoteProp} The note struct or undefined if not found.
 function dyc_get_note_at_index_direct(index) {
     static propBuffer = buffer_create(1024, buffer_grow, 1);
     var result = DyCore_get_note_at_index_direct(index, buffer_get_address(propBuffer));
@@ -179,7 +189,7 @@ function dyc_get_note_time_at_index(index) {
 function dyc_get_note_id_at_index(index) {
     DyCore_sort_notes();
     var result = DyCore_get_note_id_at_index(index);
-    if (result != "null") {
+    if (result != "") {
         return result;
     }
     return undefined;
@@ -190,4 +200,8 @@ function dyc_get_note_id_at_index(index) {
 /// @returns {Real} The index of the note in the notes array or -1 if not found.
 function dyc_get_note_array_index(noteID) {
     return DyCore_get_note_array_index(noteID);
+}
+
+function dyc_note_exists(noteID) {
+    return DyCore_note_exists(noteID) >= 0;
 }

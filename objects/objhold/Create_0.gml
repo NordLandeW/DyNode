@@ -21,39 +21,40 @@ _prop_init(true);
 // In-Function
 
 	_prop_hold_update = function (sync_to_array = true) {
-        if(note_exists(sinst)) {
-		    if(stateType != NOTE_STATES.OUT)
-		    	note_activate(sinst);
-    
-		    // Sync the properties
-		    sinst.position = position;
-		    sinst.width = width;
-		    sinst.depth = depth;
-		    sinst.side = side;
-		    sinst.finst = id;
-		    sinst.time = max(sinst.time, time+0.0001);
-		    
-		    if(fixedLastTime != -1)
-		    	sinst.time = time + fixedLastTime;
-		    
-		    sinst.beginTime = time;
-			if(sync_to_array)
-		    	sinst.update_prop();
-			sinst._prop_init(true);
-    
-    		subFading = false;
-		    pHeight = max(0, objMain.playbackSpeed * 
-		    	(sinst.time - max(time, selectTolerance?0:objMain.nowTime)))
-		        + dFromBottom + uFromTop;
-		    if(!global.simplify) {
-				subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
-		    	pHeight = max(pHeight, originalHeight);
-		    }
-		    lastTime = sinst.time - time;
-		    lastTime = max(lastTime, 1);
-			if(sync_to_array)
-				update_prop();
-        }
+		if(stateType == NOTE_STATES.OUT) {
+			return;
+		}
+		if(!note_exists(sinst))
+			return;
+
+		// Sync the properties
+		sinst.position = position;
+		sinst.width = width;
+		sinst.depth = depth;
+		sinst.side = side;
+		sinst.finst = id;
+		sinst.time = max(sinst.time, time+0.0001);
+		
+		if(fixedLastTime != -1)
+			sinst.time = time + fixedLastTime;
+		
+		sinst.beginTime = time;
+		if(sync_to_array)
+			sinst.update_prop();
+		sinst._prop_init(true);
+
+		subFading = false;
+		pHeight = max(0, objMain.playbackSpeed * 
+			(sinst.time - max(time, selectTolerance?0:objMain.nowTime)))
+			+ dFromBottom + uFromTop;
+		if(!global.simplify) {
+			subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
+			pHeight = max(pHeight, originalHeight);
+		}
+		lastTime = sinst.time - time;
+		lastTime = max(lastTime, 1);
+		if(sync_to_array)
+			update_prop();
     }
     
     _prop_hold_update();

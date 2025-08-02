@@ -313,7 +313,7 @@ function editor_note_duplicate_quick() {
 			note_select_reset(id);
 			var _prop = get_prop();
 			_prop.time += spacing;
-			build_note_withprop(_prop, true, true, true);
+			build_note(_prop, true, true, true);
 			operation_merge_last_request(1, OPERATION_TYPE.DUPLICATE);
 		}
 	}
@@ -433,22 +433,19 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 		operation_synctime_set(_from.time);
 	switch(_type) {
 		case OPERATION_TYPE.ADD:
-			return build_note_withprop(_from, false, true);
+			return build_note(_from, false, true);
 			break;
 		case OPERATION_TYPE.MOVE:
 			dyc_update_note(_to);
 			if(!_safe_) {
+				note_activate(_from.noteID);
 				var _inst = note_get_instance(_from.noteID);
-				note_activate(_inst);
 				_inst.select();
 				_inst.pull_prop();
 			}
 			break;
 		case OPERATION_TYPE.REMOVE:
-			/// @type {Id.Instance.objNote} 
-			var _inst = note_get_instance(_from.noteID);
-			note_activate(_inst);
-			instance_destroy(_inst);
+			note_delete(_from.noteID, false);
 			break;
 		case OPERATION_TYPE.TPADD:
 			timing_point_add(_from.time, _from.beatLength, _from.meter);

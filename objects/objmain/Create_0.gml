@@ -19,8 +19,7 @@ depth = 0;
 
 	savingProjectId = {id: -1, buffer: undefined}; // The project being saved async
 	savingExportId = {id: -1, buffer: undefined}; // The map being export async
-    deletingAllNotes = false; // Prevent unnecessary note deletion in note's destroy event.
-	
+
 #endregion
 
 #region Time Sources

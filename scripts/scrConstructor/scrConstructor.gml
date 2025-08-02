@@ -71,7 +71,22 @@ function _note_get_sprite_orig_width(noteType) {
         case NOTE_TYPE.CHAIN:
             return 120;  // sprChain
         case NOTE_TYPE.HOLD:
+        case NOTE_TYPE.SUB:
             return 67; // sprHoldEdge2
+    }
+}
+
+/// @type {Asset.GMObject.objNote} 
+function _note_get_object_asset(noteType) {
+    switch(noteType) {
+        case NOTE_TYPE.NORMAL:
+            return objNote;
+        case NOTE_TYPE.CHAIN:
+            return objChain;
+        case NOTE_TYPE.HOLD:
+            return objHold;
+        case NOTE_TYPE.SUB:
+            return objHoldSub;
     }
 }
 
@@ -87,15 +102,19 @@ function sNoteProp(_initProp = undefined) constructor {
     beginTime = 0;
 
     if(is_struct(_initProp)) {
-        time = _initProp[$ "time"];
-        side = _initProp[$ "side"];
-        width = _initProp[$ "width"];
-        position = _initProp[$ "position"];
-        lastTime = _initProp[$ "lastTime"];
-        noteType = _initProp[$ "noteType"];
-        noteID = _initProp[$ "noteID"];
-        subNoteID = _initProp[$ "subNoteID"];
-        beginTime = _initProp[$ "beginTime"];
+        var _var_default = function(str, key, val) {
+            if(!variable_struct_exists(str, key)) return val;
+            return str[$ key];
+        }
+        time = _var_default(_initProp, "time", time);
+        side = _var_default(_initProp, "side", side);
+        width = _var_default(_initProp, "width", width);
+        position = _var_default(_initProp, "position", position);
+        lastTime = _var_default(_initProp, "lastTime", lastTime);
+        noteType = _var_default(_initProp, "noteType", noteType);
+        noteID = _var_default(_initProp, "noteID", noteID);
+        subNoteID = _var_default(_initProp, "subNoteID", subNoteID);
+        beginTime = _var_default(_initProp, "beginTime", beginTime);
     }
 
     static get_pixel_width = function() {
@@ -117,5 +136,40 @@ function sNoteProp(_initProp = undefined) constructor {
             if(_yr <= 0 || _yl >= BASE_RES_H)
                 _outbound = true;
         }
+    }
+
+    static bitread = function(buffer) {
+        buffer_seek(buffer, buffer_seek_start, 0);
+        side = buffer_read(buffer, buffer_u32);
+        noteType = buffer_read(buffer, buffer_u32);
+        time = buffer_read(buffer, buffer_f64);
+        width = buffer_read(buffer, buffer_f64);
+        position = buffer_read(buffer, buffer_f64);
+        lastTime = buffer_read(buffer, buffer_f64);
+        beginTime = buffer_read(buffer, buffer_f64);
+        noteID = buffer_read(buffer, buffer_string);
+        subNoteID = buffer_read(buffer, buffer_string);
+
+        return self;
+    }
+
+    static bitwrite = function(buffer) {
+        buffer_seek(buffer, buffer_seek_start, 0);
+        buffer_write(buffer, buffer_u32, side);
+        buffer_write(buffer, buffer_u32, noteType);
+        buffer_write(buffer, buffer_f64, time);
+        buffer_write(buffer, buffer_f64, width);
+        buffer_write(buffer, buffer_f64, position);
+        buffer_write(buffer, buffer_f64, lastTime);
+        buffer_write(buffer, buffer_f64, beginTime);
+        buffer_write(buffer, buffer_string, noteID);
+        buffer_write(buffer, buffer_string, subNoteID);
+
+        return self;
+    }
+
+    /// @returns {Struct.sNoteProp} 
+    static copy = function() {
+        return SnapDeepCopy(self);
     }
 }

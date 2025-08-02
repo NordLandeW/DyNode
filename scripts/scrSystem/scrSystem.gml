@@ -397,16 +397,34 @@ function map_import_osu(_file = "") {
 	                			case 2:
 	                				var _x = real(_grid[i][0]);
 	                				var _y = real(_grid[i][1]);
-	                				build_note(0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+									build_note({
+										noteType: NOTE_TYPE.NORMAL,
+										time: _ntime,
+										position: _x / 512 * 5,
+										width: 1.0,
+										side: NOTE_SIDE.FRONT,
+									});
 	                				break;
 	                			case 3: // Mania Mode
 	                				var _x = real(_grid[i][0]);
 	                				if(_ntype & 128) { // If is a Mania Hold
 	                					var _subtim = real(string_copy(_grid[i][5], 1, string_pos(":", _grid[i][5])-1)) + _delay_time;
-	                					build_hold(_ntime, _x / 512 * 5, 1.0, _subtim, 0);
+										build_note({
+											noteType: NOTE_TYPE.HOLD,
+											position: _x / 512 * 5,
+											width: 1.0,
+											lastTime: _subtim,
+											side: NOTE_SIDE.FRONT,
+										})
 	                				} 
 	                				else
-	                					build_note(0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+	                					build_note({
+	                						noteType: NOTE_TYPE.NORMAL,
+	                						time: _ntime,
+	                						position: _x / 512 * 5,
+	                						width: 1.0,
+	                						side: NOTE_SIDE.FRONT,
+	                					});
 	                				break;
 	                		}
                 		}
@@ -784,7 +802,7 @@ function map_load_struct(_str, _import_info = true, _import_tp = true) {
 	
 	var _arr = _str.notes;
 	for(var i=0, l=array_length(_arr); i<l; i++) 
-		build_note_withprop(_arr[i]);
+		build_note(_arr[i]);
 	
 	show_debug_message_safe("Load map from struct sucessfully.");
 }

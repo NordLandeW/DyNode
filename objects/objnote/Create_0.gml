@@ -20,8 +20,8 @@ image_yscale = 1;
 
 // In-Variables
 
-    noteID = "null";
-    subNoteID = "null";
+    noteID = "";
+    subNoteID = "";
     stateType = NOTE_STATES.OUT;
     sprite = sprNote2;
     width = 2.0;
@@ -100,9 +100,7 @@ image_yscale = 1;
 // In-Functions
 
     function _get_subnote_id() {
-        if(note_exists(sinst))
-            return sinst.noteID;
-        return "null";
+        return subNoteID;
     }
 
     /// @description Initialize the note's properties using internal values.
@@ -302,22 +300,18 @@ image_yscale = 1;
             propertyStr.noteType = noteType;
             differs = true;
         }
-        if(propertyStr.noteID != noteID) {
-            propertyStr.noteID = noteID;
-            differs = true;
-        }
-        var _subNoteID = _get_subnote_id();
-        if(propertyStr.subNoteID != _subNoteID) {
-            propertyStr.subNoteID = _subNoteID;
-            differs = true;
-        }
         if(propertyStr.beginTime != beginTime) {
             propertyStr.beginTime = beginTime;
             differs = true;
         }
 
-        if(differs)
+        if(differs) {
             dyc_update_note(propertyStr);
+            if(note_exists(finst))
+                finst._prop_hold_update(true);
+            if(note_exists(sinst))
+                _prop_hold_update(true);
+        }
     }
 
     function can_pull() {
@@ -329,7 +323,7 @@ image_yscale = 1;
     }
 
     function pull_prop() {
-        if(noteID == "null") return;
+        if(noteID == "") return;
         propertyStr = dyc_get_note(noteID);
     	time = propertyStr.time;
     	side = propertyStr.side;
@@ -337,9 +331,10 @@ image_yscale = 1;
     	position = propertyStr.position;
     	lastTime = propertyStr.lastTime;
     	noteType = propertyStr.noteType;
-    	noteID = propertyStr.noteID;
+    	// noteID = propertyStr.noteID;
         subNoteID = propertyStr.subNoteID;
     	beginTime = propertyStr.beginTime;
+        assert(noteID == propertyStr.noteID);
 
         lastAttachBar = -1;
     }
@@ -490,9 +485,11 @@ image_yscale = 1;
         
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
         if(time + lastTime <= _limTime) {
-            set_state(NOTE_STATES.OUT);
-            image_alpha = lastTime == 0 ? 0 : image_alpha;
-            state();
+            if(!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED) {
+                set_state(NOTE_STATES.OUT);
+                image_alpha = lastTime == 0 ? 0 : image_alpha;
+                state();
+            }
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
             partHoldTimer += get_delta_time() / 1000;
@@ -518,10 +515,6 @@ image_yscale = 1;
 	        drawVisible = true;
             set_state(NOTE_STATES.NORMAL);
 	        state();
-	    }
-	    
-	    if(noteType == 3 && time > objMain.nowTime && beginTime <= objMain.nowTime) {
-	    	note_activate(finst);
 	    }
     }
     
@@ -584,8 +577,14 @@ image_yscale = 1;
                 	editor_set_default_width(width);
                 if(noteType == 2) {
                 	if(fixedLastTime != -1) {
-                		build_hold(time, position, width, time + fixedLastTime, side, true,
-                                    _toSelectState);
+                        build_note({
+                            noteType: NOTE_TYPE.HOLD,
+                            time: time,
+                            position: position,
+                            width: width,
+                            lastTime: fixedLastTime,
+                            side: side
+                        }, true, _toSelectState, true);
                         if(_singlePaste) instance_destroy();
                         set_state(NOTE_STATES.ATTACH);
                 		return;
@@ -600,8 +599,13 @@ image_yscale = 1;
                     editor_lrside_lock_set(true);
                     return;
                 }
-                var _note = build_note(noteType, time, position, width, -1, side, true,
-                            _toSelectState);
+                build_note({
+                        noteType: noteType,
+                        time: time,
+                        position: position,
+                        width: width,
+                        side: side
+                    }, true, _toSelectState, true);
                 
                 note_outscreen_check();
                 
@@ -654,7 +658,14 @@ image_yscale = 1;
         function stateDropSub() {
             animTargetA = 1.0;
             if(mouse_check_button_released(mb_left)) {
-                build_hold(time, position, width, sinst.time, side, true);
+                build_note({
+                    noteType: NOTE_TYPE.HOLD,
+                    time: time,
+                    position: position,
+                    width: width,
+                    lastTime: sinst.time - time,
+                    side: side
+                }, true, false, true);
                 instance_destroy();
             }
         }
@@ -781,8 +792,7 @@ image_yscale = 1;
             }
             
             if((keycheck_down(vk_delete) || keycheck_down(vk_backspace)) && noteType != 3) {
-            	recordRequest = true;
-            	instance_destroy();
+            	note_delete(noteID, true);
             }
                 
             
@@ -832,6 +842,36 @@ function draw_event() {
         draw_sprite_ext(sprNote2, image_number, x, y + pWidth / 2 * (side == 1?-1:1), 
             image_xscale, image_yscale, image_angle, image_blend, image_alpha);
     }
+}
+
+function initialize_subnote() {
+    if(!note_exists(sinst)) {
+        // If the note is dummy, it will not have a subNoteID.
+        if(!dyc_note_exists(noteID)) return;
+        note_activate(subNoteID, false);
+        sinst = note_get_instance(subNoteID);
+    }
+}
+
+function attach(noteID) {
+    global.noteIDMan.update(noteID, id);
+    self.noteID = noteID;
+    pull_prop();
+
+    if(noteType == NOTE_TYPE.HOLD)
+        initialize_subnote();
+    
+    _prop_init(true);
+    if(noteType == NOTE_TYPE.HOLD)
+        _prop_hold_update(false);
+}
+
+function detach() {
+    global.noteIDMan.remove(noteID);
+    noteID = "";
+
+    if(noteType == 2)
+        sinst.detach();
 }
 
 set_state(NOTE_STATES.OUT);
