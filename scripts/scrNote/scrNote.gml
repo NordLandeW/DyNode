@@ -208,14 +208,6 @@ function note_deactivate_instance(inst) {
 	instance_destroy(inst);
 }
 
-/// @param {Id.Instance.objNote} inst 
-function note_activate_instance(inst) {
-	if(note_is_activated(inst)) return;
-	instance_activate_object(inst);
-	inst.pull_prop();
-	global.activationMan.activate(inst);
-}
-
 function note_activate(noteID, trackHead = true) {
 	if(note_is_activated(noteID)) return;
 	// Get note object from objectPool.
