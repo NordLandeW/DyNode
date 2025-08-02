@@ -29,12 +29,10 @@ void clear_notes() {
 // Returns 0 on success, -1 if the note already exists.
 int insert_note(const Note& note) {
     if (note_exists(note)) {
-        print_debug_message("Warning: the given note has existed." +
+        print_debug_message("Warning: the given note has existed. " +
                             note.noteID);
         return -1;
     }
-
-    print_debug_message("Insert note: " + note.dump());
 
     get_note_pool_manager().create_note(note);
     return 0;
@@ -44,7 +42,7 @@ int insert_note(const Note& note) {
 // Returns 0 on success, -1 if the note does not exist.
 int delete_note(const Note& note) {
     if (!note_exists(note)) {
-        print_debug_message("Warning: the given note is not existed." +
+        print_debug_message("Warning: the given note is not existed. " +
                             note.noteID);
         return -1;
     }
@@ -54,7 +52,8 @@ int delete_note(const Note& note) {
 }
 int delete_note(const std::string& noteID) {
     if (!note_exists(noteID)) {
-        print_debug_message("Warning: the given note is not existed." + noteID);
+        print_debug_message("Warning: the given note is not existed. " +
+                            noteID);
         return -1;
     }
 
