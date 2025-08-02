@@ -109,7 +109,7 @@
         "anno_default_width": "設定預設寬度為",
         "error_config_file_corrupted": "偵測到設定檔損壞。將恢復所有設定為預設值。",
         "anno_reload_config": "設定已重新載入。部分設定可能需要重啟遊戲才能生效。",
-        "start_page_hint": "F7：切換無邊框全螢幕\nF12：查看快捷鍵 / 線上文檔\nDyNode 目前僅支援 1920x1080 的渲染解析度。",
+        "start_page_hint": "F7：切換無邊框全螢幕\nF12：查看快捷鍵 / 線上文檔",
         "error_dym_note_load_failed": "匯入譜面音符時出錯，匯入程序已終止。\n建議使用最新版本的 Dynamaker-modified 重新匯出譜面，或向開發者回報此錯誤。",
         "error_dym_bpm_load_failed": "未能讀取譜面中的變 BPM 資訊。\n建議使用最新版本的 Dynamaker-modified 匯出譜面之變 BPM 資料。",
         "error_default_width_must_be_real": "輸入的預設寬度必須為實數。",
