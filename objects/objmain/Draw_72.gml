@@ -42,15 +42,15 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 
 	// Draw Bottom Right
     
-    var _nxx = resor_to_x((1920 - 80 - 30) / 1920), _nww = 180 * global.scaleXAdjust;
+    var _nxx = resor_to_x((1920 - 80 - 30) / 1920), _nww = 180;
     for(var i = 0; i < 8; i++) {
         draw_sprite_ext(
             i==0?sprBottomSignBlue:sprBottomSignBlack,
             0,
             _nxx - i * _nww / 2,
             (i & 1) == 0? _nh : _nh - targetLineBelow,
-            global.scaleXAdjust,
-            global.scaleYAdjust,
+            1,
+            1,
             (i & 1) == 0? 180 : 0,
             c_white,
             1

@@ -59,8 +59,8 @@ depth = 0;
 
 // Top Progress Bar
 
-    topBarH = 5*global.scaleYAdjust;
-    topBarMouseH = 20*global.scaleYAdjust;
+    topBarH = 5;
+    topBarMouseH = 20;
     topBarMouseInbound = false;
     topBarMousePressed = false;
     topBarMouseLastX = 0;
@@ -112,7 +112,7 @@ depth = 0;
         }
         if(!found) return undefined;
         result /= accum;
-        return {x: note_pos_to_x(result, side), time: beginTime};
+        return [note_pos_to_x(result, side), beginTime];
     }
 
 #endregion
@@ -236,7 +236,6 @@ depth = 0;
     // Bottom
         bottomDim = 0.6;
         bottomBgBlurIterations = 3;
-        bottomInfoSurf = -1;
     
     // Background
         bgDim = 0.65;

@@ -7,7 +7,7 @@ noteType = 2;
 holdAlpha = 0.8;
 bgLightness = 0.52;
 
-image_yscale = 0.6 * global.scaleYAdjust;
+image_yscale = 0.6;
 
 originalHeight = sprite_get_height(sprHoldEdge);
 pHeight = originalHeight; // Height in Pixels base on sprHoldEdge

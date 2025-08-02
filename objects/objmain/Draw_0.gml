@@ -3,44 +3,29 @@
 var _nw = global.resolutionW, _nh = global.resolutionH;
 
 // Draw Bottom
-    
-    if(!surface_exists(bottomInfoSurf)) {
-    	bottomInfoSurf = surface_create(global.resolutionW, targetLineBelow);
-    }
-    
-    surface_set_target(bottomInfoSurf);
-    	
-    		draw_clear_alpha(c_black, 0);
-    		var _nx = resor_to_x(0.017);
-	    	// Draw Title
-			if(has_cjk(chartTitle)) {
-				draw_set_halign(fa_left); draw_set_valign(fa_middle);
-				
-				draw_set_font(global._notoFont);
-				// Shadow
-				draw_set_color_alpha(c_black, 0.4);
-				draw_text(_nx, 44 * global.scaleYAdjust, chartTitle);
-				draw_set_color_alpha(c_white, 1);
-				draw_text(_nx, 37 * global.scaleYAdjust, chartTitle);
-				draw_set_alpha(1.0);
-			}
-			else {
-				scribble(chartTitle).starting_format("fOrbitron48s", c_white)
-		        .align(fa_left, fa_middle)
-			    .transform(global.scaleXAdjust * 0.7, global.scaleYAdjust * 0.7)
-			    .draw(_nx, 42 * global.scaleYAdjust);
-			}
-		    
-		    // Draw Difficulty
-		    draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 
-		        _nx, 77 * global.scaleYAdjust,
-		        0.67 * global.scaleXAdjust, 0.67 * global.scaleYAdjust, 0, c_white,
-		        1);
-	    
-    surface_reset_target();
-    
-    draw_surface_ext(bottomInfoSurf, 0, global.resolutionH - targetLineBelow,
-    	1.0, 1.0, 0, c_white, titleAlpha);
+	var _nx = resor_to_x(0.017), _yoffset = global.resolutionH - targetLineBelow;
+	// Draw Title
+	if(has_cjk(chartTitle)) {
+		draw_set_halign(fa_left); draw_set_valign(fa_middle);
+		
+		draw_set_font(global._notoFont);
+		// Shadow
+		draw_set_color_alpha(c_black, 0.4);
+		draw_text(_nx, 44 + _yoffset, chartTitle);
+		draw_set_color_alpha(c_white, 1);
+		draw_text(_nx, 37 + _yoffset, chartTitle);
+		draw_set_alpha(1.0);
+	}
+	else {
+		scribble(chartTitle).starting_format("fOrbitron48s", c_white)
+		.align(fa_left, fa_middle)
+		.transform(0.7, 0.7)
+		.draw(_nx, 42 + _yoffset);
+	}
+	
+	// Draw Difficulty
+	draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 
+		_nx, 77 + _yoffset, 0.67, 0.67, 0, c_white, 1);
     	
 
 // Draw targetline

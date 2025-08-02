@@ -160,6 +160,7 @@ scribble_font_bake_outline_8dir("fDynamix16", "fDynamix16o", c_white, true);
 
 windowDisplayRatio = 0.7;
 window_enable_borderless_fullscreen(true);
+
 window_set_fullscreen(global.fullscreen);
 if(os_type == os_windows)
 	window_command_hook(window_command_close);

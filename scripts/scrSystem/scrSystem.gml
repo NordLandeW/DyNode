@@ -13,7 +13,6 @@ function map_close() {
 	with(objMain) {
 		safe_video_free();
 		kawase_destroy(kawaseArr);
-		surface_free_f(bottomInfoSurf);
 		
 		note_delete_all();
 		instance_destroy(objScoreBoard);
@@ -1401,8 +1400,6 @@ function vars_init() {
 	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
 	global.fpsAdjust = BASE_FPS / global.fps;
-	global.scaleXAdjust = global.resolutionW / BASE_RES_W;
-	global.scaleYAdjust = global.resolutionH / BASE_RES_H;
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();

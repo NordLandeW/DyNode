@@ -21,8 +21,8 @@ else if(global.themeAt > 0) {
 }
 
 
-draw_sprite_ext(sprPerfect, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, alpha * alphaMul);
-draw_sprite_ext(sprPerfectBloom, 0, _nx, _ny, _scl * global.scaleXAdjust, _scl * global.scaleYAdjust, 0, _col, 1 * bloomAlpha * alpha * alphaMul);
+draw_sprite_ext(sprPerfect, 0, _nx, _ny, _scl, _scl, 0, _col, alpha * alphaMul);
+draw_sprite_ext(sprPerfectBloom, 0, _nx, _ny, _scl, _scl, 0, _col, 1 * bloomAlpha * alpha * alphaMul);
 
 if(global.themeAt > 0) {
     gpu_set_blendmode(bm_normal);

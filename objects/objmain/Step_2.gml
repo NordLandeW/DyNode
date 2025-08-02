@@ -7,8 +7,8 @@
         // Mixer Restriction
         var _next = mixer_get_next_x(i+1);
         if(!is_undefined(_next)) {
-            var _nextX = _next.x;
-            var _nextT = _next.time - objMain.nowTime;
+            var _nextX = _next[0];
+            var _nextT = _next[1] - objMain.nowTime;
         	mixerNextX[i] = _nextX;
             mixerNextX[i] = clamp(mixerNextX[i], resor_to_y(198/1080), resor_to_y(858/1080));
             

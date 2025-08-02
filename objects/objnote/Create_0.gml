@@ -16,7 +16,7 @@ depth = 0;
 drawVisible = false;
 priority = int64(-10000000);
 priorityRandomSeed = random(2);
-image_yscale = global.scaleYAdjust;
+image_yscale = 1;
 
 // In-Variables
 
@@ -123,7 +123,7 @@ image_yscale = global.scaleYAdjust;
             width = max(width, 0.01);
             
             pWidth = width * 300 / (side == 0 ? 1:2) - 30 + lFromLeft + rFromRight;
-            pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
+            pWidth = max(pWidth, originalWidth);
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
             priority = priority - time * 16 - priorityRandomSeed;
