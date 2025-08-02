@@ -72,15 +72,26 @@ function dyc_note_deserialization(buffer) {
     return noteProp;
 }
 
-function dyc_update_note(noteProp) {
+function dyc_update_note(noteProp, record = false) {
     var noteID = noteProp[$ "noteID"];
-    static buffer = buffer_create(1024, buffer_grow, 1);
+    if(!note_exists(noteID)) {
+        show_debug_message("!Warning: dyc_update_note called with non-existing noteID: " + noteID);
+        return;
+    }
 
+    var origProp = -1;
+    if(record) origProp = dyc_get_note(noteID);
+
+    static buffer = buffer_create(1024, buffer_grow, 1);
     dyc_note_serialization(buffer, noteProp);
     var result = DyCore_modify_note_bitwise(noteID, buffer_get_address(buffer));
 
+    if(result == 0 && record) {
+        operation_step_add(OPERATION_TYPE.MOVE, origProp, noteProp);
+    }
+
     if(result < 0)
-        show_debug_message("Trying to modify a non-existent note: " + noteID);
+        throw "Unknown error in dyc_update_note.";
 }
 
 /// @description To check if the buffer is compressed.

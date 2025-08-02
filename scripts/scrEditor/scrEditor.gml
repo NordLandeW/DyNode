@@ -830,9 +830,9 @@ function chart_randomize() {
 		_str.side = irandom_range(0, 2);
 		_str.width = random_range(0.5, 5);
 		operation_step_add(OPERATION_TYPE.MOVE, origProp, _str);
-		operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
 		dyc_update_note(_str);
 	}
+	operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
 	note_sort_all(true);
 }
 
@@ -847,16 +847,12 @@ function advanced_expr() {
 		var _expr = get_string(_scope_str+"请填写表达式：", editorLastExpr);
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
-		var _success = 1;
-		
-		if(_global)
-			note_activate_all();
-		
-		with(objNote) {
-			if(noteType != 3)
-			if(_global || stateType == NOTE_STATES.SELECTED) {
-				var _prop = get_prop();
-				var _nprop = get_prop();
+		var _success = true;
+		var _exec = function(_noteProp, _expr) {
+			if(_noteProp.noteType != 3) {
+				/// @type {Any} 
+				var _prop = SnapDeepCopy(_noteProp);
+				var _nprop = SnapDeepCopy(_noteProp);
 				
 				expr_init(); // Reset symbol table
 				expr_set_var("time", _prop.time);
@@ -866,17 +862,17 @@ function advanced_expr() {
 				expr_set_var("htime", _prop.time);
 				expr_set_var("etime", _prop.time + _prop.lastTime);
 				
-				_success = _success && expr_exec(_expr);
-				
-				if(!_success) {
+				var _result = expr_exec(_expr);
+
+				if(!_result) {
 					announcement_error("advanced_expr_error");
-					break;
+					return false;
 				}
 				
 				_nprop.time = expr_get_var("time");
 				_nprop.position = expr_get_var("pos");
 				_nprop.width = expr_get_var("wid");
-				if(noteType == 2) {
+				if(_noteProp.noteType == 2) {
 					if(expr_get_var("htime") != _prop.time) {
 						_nprop.lastTime = _prop.lastTime - (expr_get_var("htime") - _prop.time);
 						_nprop.time = expr_get_var("htime");
@@ -887,21 +883,42 @@ function advanced_expr() {
 						_nprop.lastTime = expr_get_var("etime") - _nprop.time;
 				}
 				
-				set_prop(_nprop, true);
+				dyc_update_note(_nprop, true);
 				
 				delete _prop;
 				delete _nprop;
+				return true;
+			}
+			return true;
+		}
+		
+		if(_global) {
+			for(var i=0, l=DyCore_get_note_count(); i<l; i++) {
+				var _note = dyc_get_note_at_index_direct(i);
+				_success = _success && _exec(_note, _expr);
+				if(!_success) break;
+			}
+		}
+		else {
+			with(objNote) {
+				if(stateType == NOTE_STATES.SELECTED) {
+					_success = _success && _exec(get_prop(), _expr);
+					pull_prop();
+					if(!_success) return;
+				}
 			}
 		}
 		
 		if(_success)
 			announcement_play("表达式执行成功。");
+		else {
+			announcement_error("表达式执行失败。");
+		}
 			
 		editorLastExpr = _expr;
-		
+
+		operation_merge_last_request(1, OPERATION_TYPE.EXPR);
 		note_sort_all(true);
-		if(_global)
-			note_activation_reset();
 	}
 }
 
