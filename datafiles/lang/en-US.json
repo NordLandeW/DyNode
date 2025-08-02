@@ -109,7 +109,7 @@
         "anno_default_width": "Set default width to",
         "error_config_file_corrupted": "Configuration file corrupted. All settings will be restored to defaults.",
         "anno_reload_config": "Configuration reloaded. Some settings may require a restart to take effect.",
-        "start_page_hint": "F7: Toggle borderless fullscreen\nF12: View shortcuts/Online documentation\nDyNode currently supports a 1920x1080 rendering resolution only.",
+        "start_page_hint": "F7: Toggle borderless fullscreen\nF12: View shortcuts/Online documentation",
         "error_dym_note_load_failed": "Error importing chart notes. Import process aborted.\nPlease use the latest Dynamaker-modified version to export the chart, or report this error.",
         "error_dym_bpm_load_failed": "Failed to read variable BPM data.\nPlease use the latest Dynamaker-modified version to export variable BPM data.",
         "error_default_width_must_be_real": "The default width must be a real number.",
