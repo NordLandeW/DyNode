@@ -438,8 +438,8 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 		case OPERATION_TYPE.MOVE:
 			dyc_update_note(_to);
 			if(!_safe_) {
-				note_activate(_from.noteID);
-				var _inst = note_get_instance(_from.noteID);
+				note_activate(_to.noteID);
+				var _inst = note_get_instance(_to.noteID);
 				_inst.select();
 				_inst.pull_prop();
 			}

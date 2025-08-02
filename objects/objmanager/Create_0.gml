@@ -16,7 +16,7 @@
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
 #macro USE_DSP_PITCHSHIFT (objMain.usingPitchShift)
-#macro MAX_SELECTION_LIMIT 4000
+#macro MAX_SELECTION_LIMIT 400
 #macro KPS_MEASURE_WINDOW 400
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
 #macro DYCORE_BUFFER_SIZE (50*1024*1024)	// 50MB

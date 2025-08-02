@@ -56,8 +56,12 @@ function dyc_note_deserialization(buffer) {
 
 /// @param {Struct.sNoteProp} noteProp 
 function dyc_update_note(noteProp, record = false) {
-    var noteID = noteProp[$ "noteID"];
-    if(!note_exists(noteID)) {
+    // Check if noteProp is sNoteProp type.
+    if(!variable_struct_exists(noteProp, "copy"))
+        noteProp = new sNoteProp(noteProp);
+
+    var noteID = noteProp.noteID;
+    if(!dyc_note_exists(noteID)) {
         show_debug_message("!Warning: dyc_update_note called with non-existing noteID: " + noteID);
         return;
     }
