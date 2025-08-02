@@ -127,6 +127,12 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 		case NOTE_TYPE.SUB:
 			throw "Cannot directly create sub notes."
 	}
+
+	if(selecting) {
+		note_activate(_newNote.noteID);
+		var _inst = note_get_instance(_newNote.noteID);
+		_inst.select();
+	}
 }
 
 // This function can only be accessed in destroy event.
@@ -222,6 +228,7 @@ function note_activate(noteID, trackHead = true) {
 			return;
 		}
 		_prop = _mainNote;
+		noteID = _prop.noteID;
 	}
 
 	/// @type {Id.Instance.objNote} 
@@ -229,7 +236,7 @@ function note_activate(noteID, trackHead = true) {
 	_inst.attach(noteID);
 	global.activationMan.track(_inst);
 
-	// show_debug_message("Trying activate the note: " + noteID);
+	// show_debug_message($"Trying activate the note: {noteID}, {_inst.noteType}");
 }
 
 function note_deactivate_all() {
