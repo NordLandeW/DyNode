@@ -37,32 +37,32 @@ global.noteIDMan = new NoteIDManager();
 function _outbound_check(_x, _y, _side) {
     if(_side == 0 && _y < -100)
         return true;
-    else if(_side == 1 && _x >= global.resolutionW / 2)
+    else if(_side == 1 && _x >= BASE_RES_W / 2)
         return true;
-    else if(_side == 2 && _x <= global.resolutionW / 2)
+    else if(_side == 2 && _x <= BASE_RES_W / 2)
         return true;
     else
         return false;
 }
 
 function _outroom_check(_x, _y) {
-	return !pos_inbound(_x, _y, 0, 0, global.resolutionW, global.resolutionH);
+	return !pos_inbound(_x, _y, 0, 0, BASE_RES_W, BASE_RES_H);
 }
 
 function _outbound_check_t(_time, _side) {
     var _pos = note_time_to_y(_time, _side);
     if(_side == 0 && _pos < -100)
         return true;
-    else if(_side == 1 && _pos >= global.resolutionW / 2)
+    else if(_side == 1 && _pos >= BASE_RES_W / 2)
         return true;
-    else if(_side == 2 && _pos <= global.resolutionW / 2)
+    else if(_side == 2 && _pos <= BASE_RES_W / 2)
         return true;
     else
         return false;
 }
 
 function _outscreen_check(_x, _y, _side) {
-	return _side == 0? !in_between(_x, 0, global.resolutionW) : !in_between(_y, 0, global.resolutionH);
+	return _side == 0? !in_between(_x, 0, BASE_RES_W) : !in_between(_y, 0, BASE_RES_H);
 }
 
 function note_recac_stats() {

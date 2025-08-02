@@ -6,4 +6,4 @@ fname = variable_instance_get(id, "fname");
 dir = variable_instance_get(id, "dir");
 fTitle = variable_instance_get(id, "fTitle");
 
-maxWidth = 0.5*global.resolutionW;
+maxWidth = 0.5*BASE_RES_W;

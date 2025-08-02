@@ -16,12 +16,12 @@ if(_update_status == UPDATE_STATUS.DOWNLOADING ||
 		scribble("Updating ... " + progress)
 			.starting_format("fMono16", c_white)
 			.align(fa_center, fa_bottom)
-			.draw(global.resolutionW / 2, global.resolutionH)
+			.draw(BASE_RES_W / 2, BASE_RES_H)
 }
 else if(_update_status == UPDATE_STATUS.UNZIP) {
 	if(!stat_visible())
 		scribble("Unzipping ... ")
 			.starting_format("fMono16", c_white)
 			.align(fa_center, fa_bottom)
-			.draw(global.resolutionW / 2, global.resolutionH)
+			.draw(BASE_RES_W / 2, BASE_RES_H)
 }

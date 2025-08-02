@@ -156,11 +156,11 @@ beatlineEnabled = array_create(28, 0);
 
 beatlineHardWidth = 6;
 beatlineWidth = 3;
-beatlineHardLength = global.resolutionW * 0.9;
-beatlineLength = global.resolutionW * 0.75;
-beatlineLengthLong = global.resolutionW - objMain.targetLineBeside * 2;
-beatlineHardHeight = (global.resolutionH - objMain.targetLineBeside) * 0.95;
-beatlineHeight = (global.resolutionH - objMain.targetLineBeside) * 0.90;
+beatlineHardLength = BASE_RES_W * 0.9;
+beatlineLength = BASE_RES_W * 0.75;
+beatlineLengthLong = BASE_RES_W - objMain.targetLineBeside * 2;
+beatlineHardHeight = (BASE_RES_H - objMain.targetLineBeside) * 0.95;
+beatlineHeight = (BASE_RES_H - objMain.targetLineBeside) * 0.90;
 beatlineAlpha = [0, 0, 0];
 beatlineAlphaMul = 0;
 beatlineSideInfoX = resor_to_x(0.5)+beatlineHardLength/2;

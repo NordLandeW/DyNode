@@ -162,7 +162,7 @@ function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false) {
 }
 
 function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
-    var _nw = global.resolutionW, _nh = global.resolutionH;
+    var _nw = BASE_RES_W, _nh = BASE_RES_H;
     
     var _time = y_to_note_time(_y, _side);
     var _nowat = 0;

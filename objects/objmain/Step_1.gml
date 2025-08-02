@@ -108,14 +108,14 @@ var _music_resync_request = false;
                 else {
                     if(nowPlaying) {
                         if(abs(topBarMouseLastX - mouse_x) >= 2) {
-                            musicProgress = mouse_x / global.resolutionW;
+                            musicProgress = mouse_x / BASE_RES_W;
                             nowTime = musicProgress * musicLength;
                             _music_resync_request = true;
                         }
                         topBarMouseLastX = mouse_x;
                     }
                     else {
-                        musicProgress = mouse_x / global.resolutionW;
+                        musicProgress = mouse_x / BASE_RES_W;
                         animTargetTime = musicProgress * musicLength;
                     }
                 }

@@ -1,5 +1,5 @@
 
-var _nw = global.resolutionW, _nh = global.resolutionH;
+var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Top Progress Bar
 

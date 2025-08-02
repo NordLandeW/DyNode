@@ -246,7 +246,7 @@ editorSelectMultiple = editorSelectCount > 1;
             editor_set_editside(3);
     }
     if(editorLRSide && !editorLRSideLock && !editor_select_is_area()) {
-        editorSide = mouse_x*2 < global.resolutionW? 1:2;
+        editorSide = mouse_x*2 < BASE_RES_W? 1:2;
     }
     if(editorSide != editorLastSide) {
         _attach_sync_request = true;

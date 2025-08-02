@@ -1,7 +1,7 @@
 
 function safe_video_init() {
     with(objMain) {
-        bgVideoSurf = surface_create(global.resolutionW, global.resolutionH);
+        bgVideoSurf = surface_create(BASE_RES_W, BASE_RES_H);
         surface_clear(bgVideoSurf);
         if(room_speed > VIDEO_FREQUENCY) {
             timesourceUpdateVideo =
@@ -29,7 +29,7 @@ function safe_video_init() {
 
 function safe_video_update() {
     with(objMain) {
-        bgVideoSurf = surface_checkate(bgVideoSurf, global.resolutionW, global.resolutionH);
+        bgVideoSurf = surface_checkate(bgVideoSurf, BASE_RES_W, BASE_RES_H);
         
         if(bgVideoAlpha < EPS || !bgVideoLoaded)
             return false;
@@ -54,11 +54,11 @@ function safe_video_update() {
             }
             else if(_status[0] == 0 && surface_exists(_status[1])) {
                 var _w = surface_get_width(_status[1]), _h = surface_get_height(_status[1]);
-                var _wscl = global.resolutionW / _w;
-                var _hscl = global.resolutionH / _h;
+                var _wscl = BASE_RES_W / _w;
+                var _hscl = BASE_RES_H / _h;
                 var _scl = max(_wscl, _hscl); // Centre & keep ratios
-                var _nx = global.resolutionW/2 - _scl * _w / 2;
-                var _ny = global.resolutionH/2 - _scl * _h / 2;
+                var _nx = BASE_RES_W/2 - _scl * _w / 2;
+                var _ny = BASE_RES_H/2 - _scl * _h / 2;
                 draw_surface_ext(_status[1], _nx, _ny, _scl, _scl, 0, c_white, 1);
             }
         surface_reset_target();

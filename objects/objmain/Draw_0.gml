@@ -1,9 +1,9 @@
 /// @description Draw the Playview
 
-var _nw = global.resolutionW, _nh = global.resolutionH;
+var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Bottom
-	var _nx = resor_to_x(0.017), _yoffset = global.resolutionH - targetLineBelow;
+	var _nx = resor_to_x(0.017), _yoffset = BASE_RES_H - targetLineBelow;
 	// Draw Title
 	if(has_cjk(chartTitle)) {
 		draw_set_halign(fa_left); draw_set_valign(fa_middle);

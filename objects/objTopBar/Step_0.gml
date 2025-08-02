@@ -1,7 +1,7 @@
 
 if(keycheck_down(vk_tab)) {
     if(!active) {
-        var _nw = global.resolutionW/2;
+        var _nw = BASE_RES_W/2;
         gui_manager_create();
         var _inst = new BarVolumeMain("mainvol", _nw - layout.padding - layoutBar.w/2, layout.fromTop);
         _inst.set_wh(layoutBar.w ,layoutBar.h);

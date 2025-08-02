@@ -3,7 +3,7 @@
 
 	var beatlineVisible = beatlineAlpha[0] + beatlineAlpha[1] + beatlineAlpha[2] > 0.01;
     if(array_length(timingPoints)) {
-        var _nw = global.resolutionW, _nh = global.resolutionH;
+        var _nw = BASE_RES_W, _nh = BASE_RES_H;
         var nowTime = objMain.nowTime;
         var targetLineBelow = objMain.targetLineBelow + objMain.targetLineBelowH / 2;
         var targetLineBeside = objMain.targetLineBeside;
@@ -185,21 +185,21 @@ if(editorHighlightLine) {
     var _ny = note_time_to_y(editorHighlightTime, 0),
         _nx = note_time_to_y(editorHighlightTime, 1);
     // Down
-    CleanPolyline([30, _ny, global.resolutionW/2, _ny, global.resolutionW - 30, _ny])
+    CleanPolyline([30, _ny, BASE_RES_W/2, _ny, BASE_RES_W - 30, _ny])
         .BlendExt([highlightLineColorDownA, 1, highlightLineColorDownB, 0.8, highlightLineColorDownA, 1])
         .Thickness(5)
         .Cap("round", "round")
         .Draw();
     
     // LR
-    CleanLine(_nx, 30, _nx, global.resolutionH - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
+    CleanLine(_nx, 30, _nx, BASE_RES_H - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
         .Thickness(10)
         .Blend2(highlightLineColorSideA, 1,
             highlightLineColorSideB, 1)
         .Cap("round", "none")
         .Draw();
-    _nx = global.resolutionW - _nx;
-    CleanLine(_nx, 30, _nx, global.resolutionH - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
+    _nx = BASE_RES_W - _nx;
+    CleanLine(_nx, 30, _nx, BASE_RES_H - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
         .Thickness(10)
         .Blend2(highlightLineColorSideA, 1,
             highlightLineColorSideB, 1)
@@ -212,16 +212,16 @@ if(editorHighlightLine) {
     if(editorHighlightSide == 0)
         draw_line_width(
         _nx, 0, _nx,
-        global.resolutionH - objMain.targetLineBelow - objMain.targetLineBelowH / 2, 3);
+        BASE_RES_H - objMain.targetLineBelow - objMain.targetLineBelowH / 2, 3);
 }
 
 // Draw Selction Area
 if(editorSelectArea) {
     var _pos = editor_select_get_area_position();
-    _pos[0] = clamp(_pos[0], -10, global.resolutionW+10);
-    _pos[2] = clamp(_pos[2], -10, global.resolutionW+10);
-    _pos[1] = clamp(_pos[1], -10, global.resolutionH+10);
-    _pos[3] = clamp(_pos[3], -10, global.resolutionH+10);
+    _pos[0] = clamp(_pos[0], -10, BASE_RES_W+10);
+    _pos[2] = clamp(_pos[2], -10, BASE_RES_W+10);
+    _pos[1] = clamp(_pos[1], -10, BASE_RES_H+10);
+    _pos[3] = clamp(_pos[3], -10, BASE_RES_H+10);
     CleanRectangle(min(_pos[0], _pos[2]), min(_pos[1], _pos[3]), max(_pos[0], _pos[2]), max(_pos[1], _pos[3]))
         .Blend(c_white, 0.2)
         .Border(5, c_white, 0.8)

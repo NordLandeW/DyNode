@@ -93,7 +93,7 @@ function draw_rectangle_gradient(position, color, alpha) {
 
 // W Pixels Width
 function generate_pause_shadow(height, indent = 30) {
-	var width = global.resolutionW;
+	var width = BASE_RES_W;
 	var surf = surface_create(width, height+2*indent);
 	
 	gpu_set_blendmode_ext(bm_one, bm_zero);
@@ -223,35 +223,35 @@ function pix_to_note_time(_pixel) {
 
 function note_pos_to_x(_pos, _side) {
     if(_side == 0) {
-        return global.resolutionW/2 + (_pos-2.5)*300;
+        return BASE_RES_W/2 + (_pos-2.5)*300;
     }
     else {
-        return global.resolutionH/2 + (2.5-_pos)*150;
+        return BASE_RES_H/2 + (2.5-_pos)*150;
     }
 }
 function x_to_note_pos(_x, _side) {
 	if(_side == 0) {
-		return (_x - global.resolutionW / 2) / (300) + 2.5;
+		return (_x - BASE_RES_W / 2) / (300) + 2.5;
 	}
 	else {
-		return 2.5 - (_x - global.resolutionH / 2) / 150;
+		return 2.5 - (_x - BASE_RES_H / 2) / 150;
 	}
 }
 function y_to_note_time(_y, _side) {
 	if(_side == 0) {
-		return (global.resolutionH - objMain.targetLineBelow - _y) / objMain.playbackSpeed + objMain.nowTime;
+		return (BASE_RES_H - objMain.targetLineBelow - _y) / objMain.playbackSpeed + objMain.nowTime;
 	}
 	else {
-		_y = _side == 1? _y: global.resolutionW - _y;
+		_y = _side == 1? _y: BASE_RES_W - _y;
 		return (_y - objMain.targetLineBeside) / objMain.playbackSpeed + objMain.nowTime;
 	}
 }
 function note_time_to_y(_time, _side) {
 	if(_side == 0) {
-		return global.resolutionH - objMain.targetLineBelow - (_time - objMain.nowTime) * objMain.playbackSpeed;
+		return BASE_RES_H - objMain.targetLineBelow - (_time - objMain.nowTime) * objMain.playbackSpeed;
 	}
 	else {
-		return global.resolutionW / 2 + (_side == 1?-1:1) *  (global.resolutionW / 2 - 
+		return BASE_RES_W / 2 + (_side == 1?-1:1) *  (BASE_RES_W / 2 - 
 			(objMain.playbackSpeed * (_time - objMain.nowTime)) - objMain.targetLineBeside);
 	}
 }
@@ -286,10 +286,10 @@ function xy_to_noteprop(_x, _y, _side) {
 		};
 }
 function resor_to_x(ratio) {
-    return global.resolutionW * ratio;
+    return BASE_RES_W * ratio;
 }
 function resor_to_y(ratio) {
-    return global.resolutionH * ratio;
+    return BASE_RES_H * ratio;
 }
 #endregion
 
@@ -440,8 +440,8 @@ function file_path_fix(_file) {
 #region WINDOWS
 
 function window_reset() {
-	var _ratio = min(display_get_width() / global.resolutionW, display_get_height() / global.resolutionH) * objManager.windowDisplayRatio;
-	var w = global.resolutionW * _ratio, h = global.resolutionH * _ratio
+	var _ratio = min(display_get_width() / BASE_RES_W, display_get_height() / BASE_RES_H) * objManager.windowDisplayRatio;
+	var w = BASE_RES_W * _ratio, h = BASE_RES_H * _ratio
     window_set_rectangle(
 		(display_get_width() - w) * 0.5,
 		(display_get_height() - h) * 0.5,

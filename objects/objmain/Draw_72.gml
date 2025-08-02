@@ -1,12 +1,17 @@
 /// @description Draw the Background & Beat Lines
 
-var _nw = global.resolutionW, _nh = global.resolutionH;
+var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Background
 
 	// Image
     if(bgImageSpr != -1) {
-        draw_sprite(bgImageSpr, 0, _nw/2, _nh/2);
+        var _spr = bgImageSpr;
+        var _sw = sprite_get_width(_spr), _sh = sprite_get_height(_spr);
+        var _scl = max(_nw / _sw, _nh / _sh); // Centre & keep ratios
+        var _sx = (_nw - _sw * _scl) / 2, _sy = (_nh - _sh * _scl) / 2;
+
+        draw_sprite_ext(_spr, 0, _sx, _sy, _scl, _scl, 0, c_white, 1);
     }
     else {
         draw_clear(c_white);
@@ -61,7 +66,7 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
 
     draw_sprite_stretched_exxt(
         global.sprLazer, 0,
-        0, _nh - targetLineBelow, _nw, global.resolutionH*0.75,
+        0, _nh - targetLineBelow, _nw, BASE_RES_H*0.75,
         0, themeColor, bgFaintAlpha * animCurvFaintEval * 0.65);
 
 // Draw Pause Shadow

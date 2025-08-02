@@ -52,7 +52,7 @@ for(var i=array_length(announcements)-1; i>=0; i--) {
 #endregion
 
 
-camera_set_view_size(view_camera[0], global.resolutionW, global.resolutionH);
+camera_set_view_size(view_camera[0], BASE_RES_W, BASE_RES_H);
 
 var _fmoderr = FMODGMS_Sys_Update();
 

@@ -30,8 +30,6 @@ math_set_epsilon(0.00000001);				// 1E-8
 announcements = [];
 
 // Global Configs
-global.resolutionW = 1920
-global.resolutionH = 1080
 global.fps = display_get_frequency();
 global.autosave = false;
 global.autoupdate = true;
@@ -89,13 +87,13 @@ global.shadowCount = 0;
 // Generate Temp Sprite
 
 global.sprLazer = generate_lazer_sprite(2048);
-global.sprHoldBG = generate_hold_sprite(global.resolutionW + 4*sprite_get_height(sprHold));
+global.sprHoldBG = generate_hold_sprite(BASE_RES_W + 4*sprite_get_height(sprHold));
 global.sprPauseShadow = generate_pause_shadow(200);
 
 // Set GUI & Window Resolution
 
-surface_resize(application_surface, global.resolutionW, global.resolutionH);
-display_set_gui_size(global.resolutionW, global.resolutionH);
+surface_resize(application_surface, BASE_RES_W, BASE_RES_H);
+display_set_gui_size(BASE_RES_W, BASE_RES_H);
 
 // Graphics settings init
 gpu_set_tex_filter(true);

@@ -585,25 +585,19 @@ function image_load(_file) {
     }
     
     var _spr = sprite_add(_file, 1, 0, 0, 0, 0);
+
     if(_spr < 0) {
         announcement_error("anno_graph_load_err");
         return;
     }
     
-    var _wscl = global.resolutionW / sprite_get_width(_spr);
-    var _hscl = global.resolutionH / sprite_get_height(_spr);
-    var _scl = max(_wscl, _hscl); // Centre & keep ratios
-    
-    var _nspr = compress_sprite(_spr, _scl, true);
-    
     with(objMain) {
         if(bgImageSpr != -1)
             sprite_delete(bgImageSpr);
         
-        bgImageSpr = _nspr;
+        bgImageSpr = _spr;
     }
     objManager.backgroundPath = _file;
-    sprite_delete(_spr);
 }
 
 function map_export_xml(_export_to_dym) {
@@ -1228,8 +1222,8 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 	
 	var _below = 10;
 	var _beside = 10;
-	var _nx = global.resolutionW - _beside;
-	var _ny = global.resolutionH - _below;
+	var _nx = BASE_RES_W - _beside;
+	var _ny = BASE_RES_H - _below;
 	
 	if(_uniqueID == "null")
 		_uniqueID = random_id(8);

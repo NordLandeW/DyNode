@@ -154,13 +154,13 @@ image_yscale = 1;
             _x = x;
             _x1 = x - pWidth / 2;
             _x2 = x + pWidth / 2;
-            _y = global.resolutionH - objMain.targetLineBelow;
+            _y = BASE_RES_H - objMain.targetLineBelow;
             _y1 = _y;
             _y2 = _y;
         }
         else {
             _x = side == 1 ? objMain.targetLineBeside : 
-                             global.resolutionW - objMain.targetLineBeside;
+                             BASE_RES_W - objMain.targetLineBeside;
             _x1 = _x;
             _x2 = _x;
             _y = y;
@@ -222,11 +222,11 @@ image_yscale = 1;
         	var _x, _y;
 	        if(side == 0) {
 	            _x = x;
-	            _y = global.resolutionH - objMain.targetLineBelow;
+	            _y = BASE_RES_H - objMain.targetLineBelow;
 	        }
 	        else {
 	            _x = side == 1 ? objMain.targetLineBeside : 
-	                             global.resolutionW - objMain.targetLineBeside;
+	                             BASE_RES_W - objMain.targetLineBeside;
 	            _y = y;
 	        }
 	        var _shadow = objShadow;
@@ -384,12 +384,12 @@ image_yscale = 1;
         var _outbound = false;
         if(side == 0) {
             var _xl = x - pWidth / 2, _xr = x + pWidth / 2;
-            if(_xr <= 0 || _xl >= global.resolutionW)
+            if(_xr <= 0 || _xl >= BASE_RES_W)
                 _outbound = true;
         }
         else {
             var _yl = y - pWidth / 2, _yr = y + pWidth / 2;
-            if(_yr <= 0 || _yl >= global.resolutionH)
+            if(_yr <= 0 || _yl >= BASE_RES_H)
                 _outbound = true;
         }
 		if(_outbound)
@@ -403,7 +403,7 @@ image_yscale = 1;
 	}
 
     function cac_LR_side() {
-        return x < global.resolutionW / 2 ? 1:2;
+        return x < BASE_RES_W / 2 ? 1:2;
     }
 
     function change_side(to_side, vis_consistency = (objEditor.editorDefaultWidthMode == 1)) {

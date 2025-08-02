@@ -19,7 +19,7 @@
         
         mixerX[i] = lerp_lim_a(mixerX[i], mixerNextX[i], mixerSpeed, mixerMaxSpeed);
         mixerShadow[i].y = mixerX[i];
-        mixerShadow[i].x = i*global.resolutionW + (i? -1:1) * targetLineBeside;
+        mixerShadow[i].x = i*BASE_RES_W + (i? -1:1) * targetLineBeside;
     }
 
 // Get activated notes

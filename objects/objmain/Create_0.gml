@@ -47,14 +47,14 @@ depth = 0;
 
 // Target Line
 
-    targetLineBelow = 137*global.resolutionH/1080;
-    targetLineBeside = 112*global.resolutionW/1920;
+    targetLineBelow = 137*BASE_RES_H/1080;
+    targetLineBeside = 112*BASE_RES_W/1920;
     targetLineBelowH = 6;
     targetLineBesideW = 4;
     
     function _position_update() {
-        targetLineBelow = 137*global.resolutionH/1080;
-        targetLineBeside = 112*global.resolutionW/1920;
+        targetLineBelow = 137*BASE_RES_H/1080;
+        targetLineBeside = 112*BASE_RES_W/1920;
     }
 
 // Top Progress Bar
@@ -82,7 +82,7 @@ depth = 0;
     
     #macro MIXER_AVERAGE_TIME_THRESHOLD 10 // ms
     
-    mixerX = array_create(2, global.resolutionH/2);
+    mixerX = array_create(2, BASE_RES_H/2);
     mixerNextX = array_create(2, note_pos_to_x(2.5, 1));
     mixerSpeed = 0.5;
     mixerMaxSpeed = 250; // px per frame
@@ -97,7 +97,7 @@ depth = 0;
     	var found = false, beginTime = 0, result = 0, accum = 0;
         for(var i=chartNotesArrayAt; i<chartNotesCount; i++) {
             var _note = dyc_get_note_at_index(i);
-            if((_note.time - nowTime) * playbackSpeed / global.resolutionW > MIXER_REACTION_RANGE)
+            if((_note.time - nowTime) * playbackSpeed / BASE_RES_W > MIXER_REACTION_RANGE)
                 break;
         	if(_note.side == side) {
         		if(!found) {
@@ -241,7 +241,6 @@ depth = 0;
         bgDim = 0.65;
         
         // Image
-        bgImageFile = "";
         bgImageSpr = -1;
         
         // Video
@@ -249,7 +248,6 @@ depth = 0;
         bgVideoDisplay = false;
         bgVideoPaused = false;
         bgVideoLength = 0;
-        bgVideoPath = "";
         bgVideoReloading = false;
         bgVideoDestroying = false;
         bgVideoSurf = undefined;
@@ -270,7 +268,7 @@ depth = 0;
         
         // Kawase Blur
 
-		kawaseArr = kawase_create(global.resolutionW, targetLineBelow, bottomBgBlurIterations);
+		kawaseArr = kawase_create(BASE_RES_W, targetLineBelow, bottomBgBlurIterations);
 
 #endregion
 
@@ -401,7 +399,7 @@ function time_set(time, animated = true, inbound = -1) {
 	if(inbound > 0) {
 		// If above screen
 		if(time > nowTime) 
-			time -= pix_to_note_time(global.resolutionH - targetLineBelow - inbound);
+			time -= pix_to_note_time(BASE_RES_H - targetLineBelow - inbound);
 		else
 			time -= pix_to_note_time(inbound);
 	}
@@ -426,7 +424,7 @@ function time_add(offset, animated = true) {
 
 // Check if given [time] is inbound.
 function time_inbound(time) {
-	return time>nowTime && note_time_to_pix(time - nowTime) + targetLineBelow < global.resolutionH;
+	return time>nowTime && note_time_to_pix(time - nowTime) + targetLineBelow < BASE_RES_H;
 }
 
 // Make the specific time range inbound.

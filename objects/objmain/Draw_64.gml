@@ -3,11 +3,11 @@
 // Time Info
 
 if(topBarTimeA > 0) {
-	var _nx = 0.5 * global.resolutionW, _ny = 20;
+	var _nx = 0.5 * BASE_RES_W, _ny = 20;
 	var _ntime = musicLength;
 	
 	if(topBarMouseInbound || topBarMousePressed)
-		_ntime = mouse_x / global.resolutionW * musicLength;
+		_ntime = mouse_x / BASE_RES_W * musicLength;
 	
 	draw_set_font(fMono16);
 	draw_set_color_alpha(merge_color(c_white, themeColor, topBarTimeGradA * 0.5), topBarTimeA);
@@ -45,7 +45,7 @@ if(showStats > 0) {
 	scribble(_stat_str)
 		.starting_format("fMono16", c_white)
 		.align(fa_center, fa_bottom)
-		.draw(global.resolutionW/2, global.resolutionH-3);
+		.draw(BASE_RES_W/2, BASE_RES_H-3);
 }
 
 // Debug
@@ -79,4 +79,4 @@ draw_set_font(fMono16);
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
 draw_set_color_alpha(c_white, 1);
-draw_text(global.resolutionW/2, 50, _debug_str);
+draw_text(BASE_RES_W/2, 50, _debug_str);
