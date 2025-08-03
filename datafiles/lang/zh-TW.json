@@ -169,6 +169,8 @@
         "timing_fix_cross_warning": "偵測到有音符在校正後進入了另一個 Timing Point 的區間。\n若校正後出現問題，你可隨時使用 Ctrl+Z 復原此操作。",
         "dym_old_version_warning": "DyNode 暫不支援匯入過舊版本的 Dynamaker 譜面。\n請使用最新版本的 Dynamaker 讀取該譜面並重新匯出後再嘗試匯入。",
         "bad_xml_chart_format": "該 XML 譜面格式不受 DyNode 支援。DyNode 目前僅支援從最新版 Dynamaker 匯出的 XML 譜面。\n請檢查譜面格式後再重試匯入。",
+        "dym_import_failed": "导入 XML 谱面文件失败，请检查谱面格式是否正确。",
+        "dym_import_info_timing_failed": "导入谱面信息 / Timing 失败。请检查谱面格式是否正确。\n错误信息：$0",
         "need_a_music_file_error": "建立專案需要一個音樂檔案。\n請至少選擇一個音樂檔案，或匯入包含音樂檔案的 .dy 譜面檔。",
         "multiple_sides_selection_property_binding": "異側多選屬性繫結",
         "ops_name_move": "移動音符",
