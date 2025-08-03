@@ -45,7 +45,7 @@ if(showStats > 0) {
 	scribble(_stat_str)
 		.starting_format("mSpaceMono", c_white)
 		.align(fa_center, fa_bottom)
-		.scale(1.4)
+		.scale(1.3)
 		.draw(BASE_RES_W/2, BASE_RES_H-3);
 }
 

@@ -114,8 +114,18 @@ function map_import_dym(_file, _direct = false) {
     var _buf = buffer_load(_file);
     var _str;
 	var _dy_format = false;
+	var _import_info, _import_tp;
+	if(!_direct) {
+		_import_info = show_question_i18n("box_q_import_info");
+		_import_tp = show_question_i18n("box_q_import_bpm");
+	} else {
+		_import_info = true;
+		_import_tp = true;
+	}
+
 	if(filename_ext(_file) == ".xml") {
-		_str = snap_alter_from_xml(SnapBufferReadXML(_buf, 0, buffer_get_size(_buf)));
+		dyc_project_import_xml(_file, _import_info, _import_tp);
+		return;
 	}
 	else {
 		// Parse .dy format
@@ -129,14 +139,6 @@ function map_import_dym(_file, _direct = false) {
 			return arg.text;
 	}
     buffer_delete(_buf);
-	var _import_info, _import_tp;
-	if(!_direct) {
-		_import_info = show_question_i18n("box_q_import_info");
-		_import_tp = show_question_i18n("box_q_import_bpm");
-	} else {
-		_import_info = true;
-		_import_tp = true;
-	}
     var _note_id, _note_type, _note_time,
         _note_position, _note_width, _note_subid;
     var _barpm, _offset;

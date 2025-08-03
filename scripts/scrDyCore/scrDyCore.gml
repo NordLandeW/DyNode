@@ -1,6 +1,6 @@
 /// DyCore Interface.
 
-enum DYCORE_ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR };
+enum DYCORE_ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR, GM_ANNOUNCEMENT };
 function DyCoreManager() constructor {
     // DyCore Step function.
     static step = function() {
@@ -9,7 +9,7 @@ function DyCoreManager() constructor {
             var _async_event = DyCore_get_async_event();
             if(_async_event == "") {
                 show_debug_message("!Warning: DyCore async event is empty.");
-                announcement_error("DyCore async events prased failed.");
+                announcement_error("DyCore async events parsed failed.");
                 return;
             }
             else {
@@ -31,11 +31,27 @@ function DyCoreManager() constructor {
                         announcement_play("anno_project_save_complete");
                 }
                 else {
-                    announcement_error(i18n_get("anno_project_save_failed", event[$ "message"]));
+                    announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));
                 }
                 break;
             case DYCORE_ASYNC_EVENT_TYPE.GENERAL_ERROR:
-                announcement_error(i18n_get("anno_dycore_error", event[$ "message"]));
+                announcement_error(i18n_get("anno_dycore_error", event[$ "content"]));
+                break;
+            case DYCORE_ASYNC_EVENT_TYPE.GM_ANNOUNCEMENT:
+                switch(event[$ "status"]) {
+                    case 0:
+                        announcement_play(i18n_get(event[$ "content"]));
+                        break;
+                    case 1:
+                        announcement_warning(i18n_get(event[$ "content"]));
+                        break;
+                    case 2:
+                        announcement_error(i18n_get(event[$ "content"]));
+                        break;
+                    default:
+                        announcement_error("Unknown GM announcement type from DyCore.");
+                        break;
+                }
                 break;
             default:
                 show_debug_message("!Warning: Unknown dycore async event type.");
@@ -212,4 +228,39 @@ function dyc_note_exists(noteID) {
 
 function dyc_get_note_count() {
     return DyCore_get_note_count();
+}
+
+function dyc_project_import_xml(filePath, importInfo, importTiming) {
+    var _result = DyCore_project_import_xml(filePath, importInfo, importTiming);
+    if (_result == 1) {
+        announcement_error("dym_import_failed");
+        return;
+    } else if (_result == 2) {
+        announcement_warning("bad_xml_chart_format", 10000);
+        return;
+    }
+
+    try {
+        if(importTiming) {
+            var _timingArray = json_parse(DyCore_get_timing_array_string());
+            objEditor.timingPoints = SnapDeepCopy(
+                array_concat(objEditor.timingPoints, _timingArray));
+            timing_point_sort();
+        }
+        if(importInfo) {
+            /// @type {Any}
+            var _info = DyCore_get_chart_metadata();
+            _info = json_parse(_info);
+            with(objMain) {
+                chartTitle = _info.title;
+                chartDifficulty = _info.difficulty;
+                chartSideType = _info.sidetype;
+            }
+        }
+    } catch (e) {
+        announcement_error("dym_import_info_timing_failed");
+        return;
+    }
+
+    show_debug_message("Load XML file completed.");
 }

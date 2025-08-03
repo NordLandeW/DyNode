@@ -32,8 +32,6 @@ function NoteIDManager() constructor {
 
 global.noteIDMan = new NoteIDManager();
 
-#macro NOTE_ID_LENGTH 9
-
 function _outbound_check(_x, _y, _side) {
     if(_side == 0 && _y < -100)
         return true;
@@ -277,5 +275,5 @@ function note_select_reset(inst = undefined) {
 }
 
 function note_generate_id() {
-	return DyCore_random_string(NOTE_ID_LENGTH);
+	return DyCore_generate_note_id();
 }
