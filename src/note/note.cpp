@@ -4,7 +4,6 @@
 
 #include "gm.h"
 #include "notePoolManager.h"
-#include "singletons.h"
 #include "utils.h"
 
 using std::string;

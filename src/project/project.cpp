@@ -11,7 +11,6 @@
 #include "compress.h"
 #include "gm.h"
 #include "note.h"
-#include "singletons.h"
 #include "utils.h"
 
 ChartMetaData chartMetaData;

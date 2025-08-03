@@ -10,6 +10,8 @@ class NotePoolManager {
     NotePoolManager();
     ~NotePoolManager();
 
+    NotePoolManager operator=(const NotePoolManager &other) = delete;
+
     bool note_exists(const std::string &noteID);
     bool create_note(const Note &note);
     Note get_note(const std::string &noteID);
@@ -74,3 +76,5 @@ class NotePoolManager {
         return noteCount;
     }
 };
+
+NotePoolManager &get_note_pool_manager();

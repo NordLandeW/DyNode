@@ -5,7 +5,7 @@
 
 #include "api.h"
 #include "note.h"
-#include "singletons.h"
+#include "notePoolManager.h"
 
 using json = nlohmann::json;
 

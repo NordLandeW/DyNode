@@ -4,7 +4,7 @@
 
 #include "api.h"
 #include "note.h"
-#include "singletons.h"
+#include "notePoolManager.h"
 #include "utils.h"
 
 DYCORE_API double DyCore_note_add_offset(double time) {

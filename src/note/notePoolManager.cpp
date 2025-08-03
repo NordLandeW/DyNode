@@ -10,11 +10,9 @@
 #include <vector>
 
 #include "note.h"
-#include "singletons.h"
+#include "notePoolManager.h"
 #include "taskflow/core/executor.hpp"
 #include "utils.h"
-
-extern NotePoolManager notePoolManager;
 
 NotePoolManager::NotePoolManager()
     : monotonic_res(initial_buffer.data(), initial_buffer.size(),
@@ -350,4 +348,10 @@ int NotePoolManager::get_index_lowerbound(double time) {
 // Thread unsafe function.
 void NotePoolManager::reclaim_memory() {
     pool_res.release();
+}
+
+// Singleton getter.
+NotePoolManager& get_note_pool_manager() {
+    static NotePoolManager instance;
+    return instance;
 }
