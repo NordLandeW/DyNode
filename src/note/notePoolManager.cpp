@@ -9,6 +9,7 @@
 #include <taskflow/taskflow.hpp>
 #include <vector>
 
+#include "constants.h"
 #include "note.h"
 #include "notePoolManager.h"
 #include "taskflow/core/executor.hpp"
@@ -286,7 +287,11 @@ void NotePoolManager::array_markdel_index(int index) {
 // Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
     auto start = std::chrono::high_resolution_clock::now();
-    if (hardware_concurrency() > 1) {
+    bool enableParallelSort;
+    enableParallelSort =
+        noteArray.size() >= NOTES_ARRAY_PARALLEL_SORT_THRESHOLD &&
+        hardware_concurrency() > 1;
+    if (enableParallelSort) {
         // Use parallel sort
         tf::Taskflow taskflow;
         tf::Executor tfexecutor;
