@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <mutex>
+#include <stdexcept>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/algorithm/sort.hpp>
 #include <taskflow/taskflow.hpp>
@@ -30,9 +31,8 @@ Note NotePoolManager::operator[](int index) {
     if (index < 0 || index >= noteArray.size())
         throw std::out_of_range("Index out of range in NotePoolManager");
     if (arrayOutOfOrder)
-        print_debug_message(
-            "Warning: Note array is out of order, accessing by index may not "
-            "be reliable.");
+        throw std::runtime_error(
+            "Note array is out of order. Use get_note_direct() instead.");
 
     return *noteArray[index];
 }
@@ -78,6 +78,14 @@ Note NotePoolManager::get_note(const std::string& noteID) {
     }  // Release the manager lock
 
     return *note_ptr;
+}
+
+Note NotePoolManager::get_note_direct(int index) {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    if (index < 0 || index >= static_cast<int>(noteArray.size())) {
+        throw std::out_of_range("Index out of range in NotePoolManager");
+    }
+    return *noteArray[index];
 }
 
 void NotePoolManager::set_note(const std::string& noteID, const Note& note) {

@@ -19,13 +19,7 @@ class NotePoolManager {
     /// Returns a direct reference to the note at the given index.
     /// This is unsafe and should only be used when you are sure the index is
     /// valid.
-    Note get_note_direct(int index) {
-        std::lock_guard<std::mutex> lock(mtxNoteOps);
-        if (index < 0 || index >= static_cast<int>(noteArray.size())) {
-            throw std::out_of_range("Index out of range in NotePoolManager");
-        }
-        return *noteArray[index];
-    }
+    Note get_note_direct(int index);
     void set_note(const std::string &noteID, const Note &note);
     void set_note_bitwise(const std::string &noteID, const char *prop);
     void access_note(const std::string &noteID,
@@ -42,9 +36,6 @@ class NotePoolManager {
     int get_index_upperbound(double time);
     int get_index_lowerbound(double time);
 
-    int get_note_count() {
-        return noteCount;
-    }
     Note operator[](int index);
 
    private:
@@ -71,4 +62,15 @@ class NotePoolManager {
     std::mutex mtxNoteOps;
     bool arrayOutOfOrder = false;
     int noteCount = 0;
+
+   public:
+    bool is_ooo() {
+        return arrayOutOfOrder;
+    }
+    bool clear_ooo() {
+        return array_sort_request();
+    }
+    int get_note_count() {
+        return noteCount;
+    }
 };
