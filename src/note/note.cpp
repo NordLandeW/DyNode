@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "async.h"
+#include "gm.h"
 #include "notePoolManager.h"
 #include "singletons.h"
 #include "utils.h"
@@ -86,4 +86,8 @@ void get_note_array(std::vector<NoteExportView>& notes) {
         if (note.noteType != 3)
             notes.push_back(NoteExportView(note));
     });
+}
+
+string generate_note_id() {
+    return random_string(NOTE_ID_LENGTH);
 }

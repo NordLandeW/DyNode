@@ -190,3 +190,9 @@ DYCORE_API double DyCore_note_exists(const char* noteID) {
         return -1;
     return 0;
 }
+
+DYCORE_API const char* DyCore_generate_note_id() {
+    static string noteID;
+    noteID = generate_note_id();
+    return noteID.c_str();
+}

@@ -9,7 +9,7 @@
 #include <string>
 
 #include "api.h"
-#include "async.h"
+#include "gm.h"
 #include "utils.h"
 
 using std::string;

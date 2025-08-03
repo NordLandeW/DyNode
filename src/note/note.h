@@ -5,6 +5,8 @@
 
 #include "json.hpp"
 
+const int NOTE_ID_LENGTH = 9;
+
 using nlohmann::json;
 using std::string;
 
@@ -19,6 +21,8 @@ int insert_note(const Note &note);
 int delete_note(const Note &note);
 int delete_note(const std::string &noteID);
 int modify_note(const Note &note);
+
+string generate_note_id();
 
 void get_note_array(std::vector<Note> &notes);
 void get_note_array(std::vector<NoteExportView> &notes);

@@ -10,9 +10,19 @@
 
 #include "api.h"
 
+namespace fs = std::filesystem;
+
 // Prints a debug message to the console, prefixed with "[DyCore] ".
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
+}
+
+// Converts a char* file path to a std::filesystem::path.
+// This function assumes the input is a UTF-8 encoded string.
+// Mainly used by Gamemaker API.
+fs::path convert_char_to_path(const char* filePath) {
+    // Convert char* to std::u8string, then to fs::path
+    return fs::path(std::u8string((char8_t*)filePath));
 }
 
 // Converts a wide string (wstring) to a UTF-8 encoded string.
@@ -98,6 +108,12 @@ std::string random_string(int length) {
         str[i] = charset[dis(gen)];
     }
     return str;
+}
+
+const std::string DIFFICULTY_STRING = "CNHMGT";
+int difficulty_char_to_int(char ch) {
+    size_t index = DIFFICULTY_STRING.find(ch);
+    return (index != std::string::npos) ? static_cast<int>(index) : -1;
 }
 
 // Copies a block of memory from a source address to a destination address.

@@ -1,5 +1,5 @@
 
-#include "async.h"
+#include "gm.h"
 
 #include "api.h"
 #include "utils.h"
@@ -47,4 +47,10 @@ DYCORE_API const char* DyCore_get_async_event() {
         print_debug_message("Async events unknown error:" + string(e.what()));
         return "";
     }
+}
+
+void gamemaker_announcement(string message, GM_ANNOUNCEMENT_TYPE type) {
+    AsyncEvent event = {GM_ANNOUNCEMENT, type, message};
+    push_async_event(event);
+    return;
 }

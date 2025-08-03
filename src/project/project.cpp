@@ -8,12 +8,13 @@
 #include <iostream>
 #include <memory>
 
-#include "api.h"
-#include "async.h"
 #include "compress.h"
+#include "gm.h"
 #include "note.h"
 #include "singletons.h"
 #include "utils.h"
+
+ChartMetaData chartMetaData;
 
 // Verifies the integrity of a project string by checking its JSON structure.
 //
@@ -81,15 +82,9 @@ void __async_save_project(SaveProjectParams params) {
         size_t cSize = get_project_buffer(projectString, chartBuffer.get(),
                                           params.compressionLevel);
 
-        print_debug_message("filePath in hex:");
-        for (size_t i = 0; i < params.filePath.size(); i++) {
-            std::cout << std::hex << (int)params.filePath[i] << " ";
-        }
-        std::cout << std::endl;
-
         // Write to file using std::ofstream
         print_debug_message("Open file at:" + params.filePath);
-        finalPath = fs::path(std::u8string((char8_t*)params.filePath.c_str()));
+        finalPath = convert_char_to_path(params.filePath.c_str());
         tempPath = finalPath.parent_path() /
                    (finalPath.filename().string() + random_string(8) + ".tmp");
         std::ofstream file(tempPath, std::ios::binary);
@@ -151,35 +146,6 @@ void save_project(const char* projectProp, const char* filePath,
     return;
 }
 
-// Saves the project to a file.
-// This is the main entry point for saving a project.
-//
-// @param projectProp The project properties as a JSON string.
-// @param filePath The path to save the project file.
-// @param compressionLevel The compression level to use.
-// @return 0 on success, -1 on error.
-DYCORE_API double DyCore_save_project(const char* projectProp,
-                                      const char* filePath,
-                                      double compressionLevel) {
-    namespace fs = std::filesystem;
-
-    if (!filePath || strlen(filePath) == 0) {
-        throw_error_event("File path is empty.");
-        return -1;
-    }
-
-    fs::path path = fs::path((char8_t*)filePath);
-    fs::path parentDir = path.parent_path();
-    if (!parentDir.empty() && !fs::exists(parentDir)) {
-        throw_error_event("Parent directory does not exist: " +
-                          parentDir.string());
-        return -1;
-    }
-
-    save_project(projectProp, filePath, compressionLevel);
-    return 0;
-}
-
 // Generates the full project string by embedding the current notes into the
 // project properties JSON.
 //
@@ -214,12 +180,6 @@ string get_notes_array_string() {
     return nlohmann::to_string(js);
 }
 
-DYCORE_API const char* DyCore_get_notes_array_string() {
-    static string notesArrayString;
-    notesArrayString = get_notes_array_string();
-    return notesArrayString.c_str();
-}
-
 // Compresses the project string into a buffer.
 //
 // @param projectString The project data as a string.
@@ -230,4 +190,13 @@ double get_project_buffer(string projectString, char* targetBuffer,
                           double compressionLevel) {
     return DyCore_compress_string(projectString.c_str(), targetBuffer,
                                   compressionLevel);
+}
+
+// Sets the metadata for the current project.
+void project_set_metadata(const ChartMetaData& metaData) {
+    chartMetaData = metaData;
+}
+
+ChartMetaData project_get_metadata() {
+    return chartMetaData;
 }

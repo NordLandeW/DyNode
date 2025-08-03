@@ -33,28 +33,14 @@ target_include_directories(delaunator PUBLIC "lib")
 
 ## DyCore
 
-set(DYCORE_SOURCES
-    src/DyCore.cpp
-    src/delaunator.cpp
-    src/utils.cpp
-    src/update.cpp
-    src/async.cpp
-    src/note/note.cpp
-    src/note/notePoolManager.cpp
-    src/note/noteStat.cpp
-    src/note/noteUtils.cpp
-    src/note/noteExport.cpp
-    src/project/project.cpp
-    src/extension/extension.cpp
-    src/compress.cpp
-    src/test.cpp
-    src/singletons.cpp
-)
+file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 add_library (DyCore SHARED ${DYCORE_SOURCES})
 target_include_directories(DyCore PRIVATE
     src/
     src/note
     src/project
+    src/extension
+    src/timing
     lib/
     lib/sol/
 )
