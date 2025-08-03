@@ -196,9 +196,6 @@ IMPORT_XML_RESULT_STATES project_import_xml(const char* filePath,
         for (const auto& note : notes)
             if (note.type != 3) {
                 Note newNote;
-                string newID = generate_note_id();
-
-                newNote.noteID = newID;
                 newNote.time = note.time;
                 newNote.side = note.side;
                 newNote.lastTime = 0;
@@ -208,20 +205,9 @@ IMPORT_XML_RESULT_STATES project_import_xml(const char* filePath,
                 newNote.beginTime = note.time;
 
                 if (note.type == 2) {
-                    string newSubID = generate_note_id();
-                    Note newSubNote(newNote);
                     newNote.lastTime = noteIDTimeMap[note.subid] - note.time;
-                    newNote.subNoteID = newSubID;
-
-                    newSubNote.noteType = 3;  // Sub note type
-                    newSubNote.noteID = newSubID;
-                    newSubNote.subNoteID = newID;
-                    newSubNote.time = noteIDTimeMap[note.subid];
-                    newSubNote.lastTime = 0;
-                    newSubNote.beginTime = newNote.time;
-                    insert_note(newSubNote);
                 }
-                insert_note(newNote);
+                create_note(newNote);
             }
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing XML: " +

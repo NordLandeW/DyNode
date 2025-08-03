@@ -38,6 +38,32 @@ int insert_note(const Note& note) {
     return 0;
 }
 
+// Creates a note with a random ID and optionally creates a sub-note.
+// Returns 0 on success, -1 if the note already exists.
+int create_note(const Note& note, bool randomID, bool createSub) {
+    if (note_exists(note)) {
+        print_debug_message("Warning: the given note has existed. " +
+                            note.noteID);
+        return -1;
+    }
+
+    Note newNote(note);
+    if (randomID)
+        newNote.noteID = generate_note_id();
+    if (note.noteType == 2 && createSub) {
+        newNote.subNoteID = generate_note_id();
+        Note newSubNote(newNote);
+        std::swap(newSubNote.noteID, newSubNote.subNoteID);
+        newSubNote.time = newNote.time + newNote.lastTime;
+        newSubNote.lastTime = 0;
+        newSubNote.beginTime = newNote.time;
+        newSubNote.noteType = 3;
+        insert_note(newSubNote);
+    }
+    insert_note(newNote);
+    return 0;
+}
+
 // Deletes a note from the note map.
 // Returns 0 on success, -1 if the note does not exist.
 int delete_note(const Note& note) {

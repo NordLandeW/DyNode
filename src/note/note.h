@@ -18,6 +18,7 @@ bool note_exists(const char *noteID);
 bool note_exists(const string &noteID);
 void clear_notes();
 int insert_note(const Note &note);
+int create_note(const Note &note, bool randomID = true, bool createSub = true);
 int delete_note(const Note &note);
 int delete_note(const std::string &noteID);
 int modify_note(const Note &note);
@@ -30,6 +31,8 @@ void get_note_array(std::vector<NoteExportView> &notes);
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
 inline void to_json(json &j, const NoteExportView &n);
+
+enum NOTE_TYPE { NORMAL, CHAIN, HOLD, SUB };
 
 struct Note {
    private:
