@@ -3,6 +3,8 @@
 
 #include "note.h"
 
+const int NOTES_ARRAY_PARALLEL_SORT_THRESHOLD = 10000;
+
 class NotePoolManager {
    public:
     using nptr = std::shared_ptr<Note>;
