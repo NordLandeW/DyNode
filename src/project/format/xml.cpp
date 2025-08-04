@@ -57,7 +57,7 @@ IMPORT_XML_RESULT_STATES project_import_xml(const char* filePath,
         };
 
         // Read chart metadata.
-        ChartMetaData metaData;
+        ChartMetadata metaData;
         metaData.sideType[0] = map_root.child_value("m_leftRegion");
         metaData.sideType[1] = map_root.child_value("m_rightRegion");
         string chartID = map_root.child_value("m_mapID");
@@ -201,7 +201,7 @@ IMPORT_XML_RESULT_STATES project_import_xml(const char* filePath,
                 newNote.lastTime = 0;
                 newNote.width = note.width;
                 newNote.position = note.position;
-                newNote.noteType = note.type;
+                newNote.type = note.type;
                 newNote.beginTime = note.time;
 
                 if (note.type == 2) {

@@ -51,6 +51,6 @@ DYCORE_API double DyCore_project_import_xml(const char* filePath,
 
 DYCORE_API const char* DyCore_get_chart_metadata() {
     static string chartMetadata;
-    chartMetadata = project_get_metadata().dump();
+    chartMetadata = nlohmann::json(project_get_metadata()).dump();
     return chartMetadata.c_str();
 }

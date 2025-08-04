@@ -13,7 +13,7 @@
 #include "note.h"
 #include "utils.h"
 
-ChartMetaData chartMetaData;
+ChartMetadata chartMetaData;
 
 // Verifies the integrity of a project string by checking its JSON structure.
 //
@@ -150,7 +150,7 @@ void save_project(const char* projectProp, const char* filePath,
 //
 // @param projectProp The base project properties as a JSON string.
 // @return The complete project JSON string, or an empty string on error.
-string get_project_string(string projectProp) {
+string get_project_string(const string& projectProp) {
     json js;
     try {
         js = json::parse(projectProp);
@@ -165,7 +165,7 @@ string get_project_string(string projectProp) {
     get_note_array(notes);
 
     js["charts"]["notes"] = notes;
-    return nlohmann::to_string(js);
+    return js.dump();
 }
 
 string get_notes_array_string() {
@@ -185,17 +185,17 @@ string get_notes_array_string() {
 // @param targetBuffer The buffer to store the compressed data.
 // @param compressionLevel The compression level.
 // @return The size of the compressed data.
-double get_project_buffer(string projectString, char* targetBuffer,
+double get_project_buffer(const string& projectString, char* targetBuffer,
                           double compressionLevel) {
     return DyCore_compress_string(projectString.c_str(), targetBuffer,
                                   compressionLevel);
 }
 
 // Sets the metadata for the current project.
-void project_set_metadata(const ChartMetaData& metaData) {
+void project_set_metadata(const ChartMetadata& metaData) {
     chartMetaData = metaData;
 }
 
-ChartMetaData project_get_metadata() {
+ChartMetadata project_get_metadata() {
     return chartMetaData;
 }
