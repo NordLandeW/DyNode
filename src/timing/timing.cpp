@@ -25,3 +25,9 @@ void TimingManager::sort() {
                   return a.time < b.time;
               });
 }
+
+void TimingManager::append_timing_points(
+    const std::vector<TimingPoint>& points) {
+    timingPoints.insert(timingPoints.end(), points.begin(), points.end());
+    outOfOrder = true;
+}

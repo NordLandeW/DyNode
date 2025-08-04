@@ -41,6 +41,7 @@ target_include_directories(DyCore PRIVATE
     src/project
     src/extension
     src/timing
+    src/utils
     lib/
     lib/sol/
 )

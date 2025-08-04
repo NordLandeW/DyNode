@@ -30,9 +30,19 @@ class TimingManager {
     bool outOfOrder = false;
 
    public:
+    // Should be called before any operations that require sorted timing points.
+    // This will sort the timing points if they are out of order.
+    // If they are already sorted, this is a no-op.
     void sort();
+
+    // Clear all timing points.
     void clear();
+
+    // Add a single timing point.
     void add_timing_point(TimingPoint timingPoint);
+
+    // Append multiple timing points.
+    void append_timing_points(const std::vector<TimingPoint>& points);
 
     // Dump the timing points array to JSON.
     std::string dump() {
