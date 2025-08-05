@@ -71,7 +71,7 @@ void ProjectManager::update_current_chart() {
     // Update timing points.
     get_timing_manager().get_timing_points(chart.timingPoints);
     // Update notes.
-    get_note_pool_manager().get_notes(chart.notes);
+    get_note_pool_manager().get_notes(chart.notes, true);
 }
 
 void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {

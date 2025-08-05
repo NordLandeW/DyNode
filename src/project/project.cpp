@@ -58,7 +58,9 @@ void __async_save_project(SaveProjectParams params) {
     string errInfo = "";
     string projectString = "";
     try {
-        projectString = get_project_string();
+        // Update current chart.
+        get_project_manager().update_current_chart();
+        projectString = get_project_manager().dump();
         if (projectString == "" || verify_project(projectString) != 0) {
             print_debug_message("Invalid saving project property.");
             push_async_event(
@@ -145,10 +147,6 @@ void save_project(const char *filePath, double compressionLevel) {
     std::thread t([=]() { __async_save_project(params); });
     t.detach();
     return;
-}
-
-string get_project_string() {
-    return get_project_manager().dump();
 }
 
 // Compresses the project string into a buffer.

@@ -56,8 +56,6 @@ void __async_save_project(SaveProjectParams params);
 void load_project(const char *filePath);
 void save_project(const char *filePath, double compressionLevel);
 
-string get_project_string();
-
 double get_project_buffer(const std::string &projectString, char *targetBuffer,
                           double compressionLevel);
 

@@ -20,7 +20,7 @@ class NotePoolManager {
     Note get_note(int index) {
         return operator[](index);
     }
-    void get_notes(std::vector<Note> &outNotes) const;
+    void get_notes(std::vector<Note>& outNotes, bool excludeSub) const;
     /// Returns a direct reference to the note at the given index.
     /// This is unsafe and should only be used when you are sure the index is
     /// valid.

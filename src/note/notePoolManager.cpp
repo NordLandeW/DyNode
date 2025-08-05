@@ -78,11 +78,15 @@ Note NotePoolManager::get_note(const std::string& noteID) {
     return *note_ptr;
 }
 
-void NotePoolManager::get_notes(std::vector<Note>& outNotes) const {
+void NotePoolManager::get_notes(std::vector<Note>& outNotes,
+                                bool excludeSub) const {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     outNotes.clear();
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
+            if (excludeSub && note_ptr->type == 3) {
+                continue;  // Skip sub notes
+            }
             outNotes.push_back(*note_ptr);
         }
     }
