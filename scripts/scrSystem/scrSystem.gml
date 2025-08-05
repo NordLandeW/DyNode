@@ -776,21 +776,6 @@ function map_export_xml(_export_to_dym) {
 	show_debug_message("Export done.");
 }
 
-function map_get_struct_without_notes() {
-	var _str = {
-		title: objMain.chartTitle,
-		difficulty: objMain.chartDifficulty,
-		sidetype: objMain.chartSideType,
-		
-		bpm: 0,			// ! Deprecated
-		barpm: 0,		// ! Deprecated
-		barused: 0,		// ! Deprecated
-		notes: []
-	}
-	
-	return _str;
-}
-
 function map_load_struct(_str, _import_info = true, _import_tp = true) {
 	with(objMain) {
 		if(_import_info) {
@@ -875,31 +860,41 @@ function project_load(_file = "") {
     
     if(_file == "") return 0;
     
-    var _buf = buffer_load(_file);
-    var _contents = dyc_read_project_buffer(_buf);
-    buffer_delete(_buf);
-    var _propath = filename_path(_file);
+    map_reset();
+    
+	var result = dyc_project_load(_file);
+	if(result < 0) {
+		show_debug_message("Project load failed. Terminated.");
+		return;
+	}
+	show_debug_message("Project loaded.");
+	var chartMetadata = dyc_chart_get_metadata();
+	var projectMetadata = dyc_project_get_metadata();
+	var path = dyc_chart_get_path();
+	var version = dyc_project_get_version();
+	var _propath = filename_path(_file);
     
     var _path_deal = function(_pth, _propath) {
     	if(filename_path(_pth)=="") return _propath+_pth;
     	return _pth;
     }
-    
-    map_reset();
+
+	objMain.chartTitle = chartMetadata[$ "title"];
+	objMain.chartDifficulty = chartMetadata[$ "difficulty"];
+	objMain.chartSideType = chartMetadata[$ "sideType"];
     
     with(objManager) {
-    	musicPath = _contents[$ "musicPath"];
-    	backgroundPath = _contents[$ "backgroundPath"];
-    	if(variable_struct_exists(_contents, "videoPath"))
-    		videoPath = _contents[$ "videoPath"];
+    	musicPath = path[$ "music"];
+    	backgroundPath = path[$ "image"];
+    	if(variable_struct_exists(path, "video"))
+    		videoPath = path[$ "video"];
     	else
     		videoPath = "";
 
 		objMain.animTargetTime = 0;
-		map_load(_contents[$ "charts"]);
 		
-		if(variable_struct_exists(_contents, "projectTime"))
-			projectTime = _contents[$ "projectTime"];
+		if(variable_struct_exists(projectMetadata[$"stats"], "projectTime"))
+			projectTime = projectMetadata[$"stats"][$ "projectTime"];
 		else
 			projectTime = 0;
 
@@ -910,18 +905,18 @@ function project_load(_file = "") {
 	    	background_load(_path_deal(videoPath, _propath));
 	    	
 	    timing_point_reset();
-	    objEditor.timingPoints = SnapDeepCopy(_contents[$ "timingPoints"]);
+	    objEditor.timingPoints = dyc_get_timingpoints();
 	    timing_point_sort();
 	    
 	    projectPath = _file;
 	    
-	    if(variable_struct_exists(_contents, "settings"))
-	    	project_set_settings(_contents[$ "settings"]);
+	    if(variable_struct_exists(projectMetadata, "settings"))
+	    	project_set_settings(projectMetadata[$ "settings"]);
     }
     
     /// Old version workaround
     
-	    if(version_cmp(_contents[$ "version"], "v0.1.5") < 0) {
+	    if(version_cmp(version, "v0.1.5") < 0) {
 	    	var _question = show_question_i18n(i18n_get("old_version_warn_1"));
 			if(_question)
 				map_add_offset(-64, true);
@@ -930,7 +925,7 @@ function project_load(_file = "") {
 	///
 
 	// Version update backup
-	if(_contents[$ "version"] != VERSION) {
+	if(version != VERSION) {
 		project_backup(objManager.projectPath);
 	}
     
@@ -954,39 +949,42 @@ function project_save_as(_file = "") {
 	var _contents;
 	var _corruption = false;
 	var _corruption_file_id = random_id(6);
-	
-	try {
-		_contents = {
-			version : VERSION,
-			musicPath: objManager.musicPath,
-			backgroundPath: objManager.backgroundPath,
-			videoPath: objManager.videoPath,
+
+	DyCore_set_project_version(VERSION);
+	DyCore_set_project_metadata(json_stringify({
+		stats : {
 			projectTime: objManager.projectTime,
-			timingPoints: objEditor.timingPoints,
-			charts: [],
-			settings: project_get_settings()
-		};
-		// DyCore will add the notes array to the contents.
-		_contents.charts = map_get_struct_without_notes();
-	
-		objManager.projectPath = _file;
-	} catch (e) {
-		_corruption = true;
-		
-		_file = $"{filename_path(_file)}{map_get_alt_title()}_{_corruption_file_id}.dyn";
-		
-		announcement_error($"保存项目时出现错误。原项目未改动，当前保存的项目位置为:{_file}\n错误信息:\n{e}");
-	}
+		},
+		settings: project_get_settings(),
+	}));
+	DyCore_set_chart_metadata(json_stringify({
+		title: objMain.chartTitle,
+		difficulty: objMain.chartDifficulty,
+		sideType: objMain.chartSideType,
+		charter: "",
+		artist: ""
+	}));
+	DyCore_set_chart_path(json_stringify({
+		music: objManager.musicPath,
+		image: objManager.backgroundPath,
+		video: objManager.videoPath
+	}));
 	
 	try {
-		project_file_duplicate(_contents);
+		project_file_duplicate(
+			{
+				backgroundPath: objManager.backgroundPath,
+				videoPath: objManager.videoPath,
+				musicPath: objManager.musicPath,
+			}
+		);
 	} catch (e) {
 		announcement_warning("复制音乐/背景/视频文件时出现错误。[scale, 0.7]\n"+string(e));
 	}
 
 	// Trigger an async saving project event.
-	DyCore_save_project(json_stringify(_contents), _file, DYCORE_COMPRESSION_LEVEL);
-	
+	DyCore_save_project(_file, DYCORE_COMPRESSION_LEVEL);
+
 	return 1;
 }
 

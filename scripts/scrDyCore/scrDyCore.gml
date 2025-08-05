@@ -19,6 +19,7 @@ function DyCoreManager() constructor {
     }
 
     static do_async_events = function(event) {
+        show_debug_message(event);
         switch(event[$ "type"]) {
             case DYCORE_ASYNC_EVENT_TYPE.PROJECT_SAVING:
                 if(event[$ "status"] == 0) {
@@ -38,15 +39,18 @@ function DyCoreManager() constructor {
                 announcement_error(i18n_get("anno_dycore_error", event[$ "content"]));
                 break;
             case DYCORE_ASYNC_EVENT_TYPE.GM_ANNOUNCEMENT:
+                var _anno_content = json_parse(event[$ "content"]);
+                var _msg = _anno_content[$ "msg"];
+                var _args = _anno_content[$ "args"];
                 switch(event[$ "status"]) {
                     case 0:
-                        announcement_play(i18n_get(event[$ "content"]));
+                        announcement_play(i18n_get(_msg, _args));
                         break;
                     case 1:
-                        announcement_warning(i18n_get(event[$ "content"]));
+                        announcement_warning(i18n_get(_msg, _args));
                         break;
                     case 2:
-                        announcement_error(i18n_get(event[$ "content"]));
+                        announcement_error(i18n_get(_msg, _args));
                         break;
                     default:
                         announcement_error("Unknown GM announcement type from DyCore.");
@@ -249,12 +253,11 @@ function dyc_project_import_xml(filePath, importInfo, importTiming) {
         }
         if(importInfo) {
             /// @type {Any}
-            var _info = DyCore_get_chart_metadata();
-            _info = json_parse(_info);
+            var _info = dyc_chart_get_metadata();
             with(objMain) {
                 chartTitle = _info.title;
                 chartDifficulty = _info.difficulty;
-                chartSideType = _info.sidetype;
+                chartSideType = _info.sideType;
             }
         }
     } catch (e) {
@@ -263,4 +266,58 @@ function dyc_project_import_xml(filePath, importInfo, importTiming) {
     }
 
     show_debug_message("Load XML file completed.");
+}
+
+function dyc_project_load(filePath) {
+    return DyCore_project_load(filePath);
+}
+
+function dyc_chart_get_metadata() {
+    try {
+        var _metadata = DyCore_get_chart_metadata();
+        return json_parse(_metadata);
+    } catch (e) {
+        show_debug_message("Error parsing chart metadata: " + string(e));
+        return undefined;
+    }
+}
+
+function dyc_chart_get_path() {
+    try {
+        var _path = DyCore_get_chart_path();
+        return json_parse(_path);
+    } catch (e) {
+        show_debug_message("Error parsing chart path: " + string(e));
+        return undefined;
+    }
+}
+
+function dyc_project_get_metadata() {
+    try {
+        var _metadata = DyCore_get_project_metadata();
+        return json_parse(_metadata);
+    } catch (e) {
+        show_debug_message("Error parsing project metadata: " + string(e));
+        return undefined;
+    }
+}
+
+/// @returns {Array<Struct.sTimingPoint>} 
+function dyc_get_timingpoints() {
+    try {
+        var _timingpoints = DyCore_get_timing_array_string();
+        return json_parse(_timingpoints);
+    } catch (e) {
+        show_debug_message("Error parsing timing points: " + string(e));
+        return undefined;
+    }
+}
+
+function dyc_project_get_version() {
+    try {
+        return DyCore_get_project_version();
+    } catch (e) {
+        show_debug_message("Error getting project version: " + string(e));
+        return "unknown";
+    }
 }

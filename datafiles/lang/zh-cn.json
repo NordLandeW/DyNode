@@ -41,6 +41,7 @@
         "autoupdate_process_err_1": "下载过程出现错误。更新中止。",
         "autoupdate_process_err_2": "解压更新文件时出错。更新中止。",
         "anno_project_load_complete": "打开项目完毕。",
+        "anno_project_load_failed": "打开项目失败。错误信息: $0",
         "anno_project_save_complete": "项目保存完毕。",
         "anno_project_save_failed": "项目保存失败。错误信息: $0",
         "anno_prefix_warn": "警告",
@@ -193,6 +194,7 @@
         "version_higher": "DyNode 已更新到版本 $0。",
         "version_lower": "DyNode 已降级到版本 $0。\n回退到较旧版本的 DyNode 可能将丢失一些设置，且可能无法正常读取较新版本的谱面。",
         "clear_all_notes": "已清除全部音符。",
-        "anno_dycore_error": "程序核心出现错误。\n错误信息: $0"
+        "anno_dycore_error": "程序核心出现错误。\n错误信息: $0",
+        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0"
     }
 }
