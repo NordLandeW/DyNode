@@ -65,7 +65,7 @@ IMPORT_XML_RESULT_STATES project_import_xml(const char* filePath,
         metaData.title = map_root.child_value("m_path");
 
         if (importMetadata)
-            project_set_metadata(metaData);
+            chart_set_metadata(metaData);
 
         double barPerMin = std::stod(map_root.child_value("m_barPerMin"));
         double offset = std::stod(map_root.child_value("m_timeOffset"));

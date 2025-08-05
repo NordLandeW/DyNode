@@ -78,6 +78,16 @@ Note NotePoolManager::get_note(const std::string& noteID) {
     return *note_ptr;
 }
 
+void NotePoolManager::get_notes(std::vector<Note>& outNotes) const {
+    std::lock_guard<std::mutex> lock(mtxNoteOps);
+    outNotes.clear();
+    for (const auto& note_ptr : noteArray) {
+        if (note_ptr) {
+            outNotes.push_back(*note_ptr);
+        }
+    }
+}
+
 Note NotePoolManager::get_note_direct(int index) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     if (index < 0 || index >= static_cast<int>(noteArray.size())) {

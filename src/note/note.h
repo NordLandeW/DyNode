@@ -28,6 +28,7 @@ string generate_note_id();
 
 void get_note_array(std::vector<Note> &notes);
 void get_note_array(std::vector<NoteExportView> &notes);
+std::string get_notes_array_string();
 
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);

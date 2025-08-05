@@ -27,6 +27,17 @@ inline void from_json(const nlohmann::json& j, TimingPoint& tp) {
     j.at("meter").get_to(tp.meter);
 }
 
+struct TimingPointExportView {
+    const TimingPoint& tp;
+    TimingPointExportView(const TimingPoint& tp) : tp(tp) {
+    }
+};
+inline void to_json(nlohmann::json& j, const TimingPointExportView& view) {
+    j["offset"] = view.tp.time;
+    j["bpm"] = view.tp.get_bpm();
+    j["meter"] = view.tp.meter;
+}
+
 class TimingManager {
    private:
     std::vector<TimingPoint> timingPoints;
@@ -46,6 +57,9 @@ class TimingManager {
 
     // Append multiple timing points.
     void append_timing_points(const std::vector<TimingPoint>& points);
+
+    // Get the timing points array.
+    void get_timing_points(std::vector<TimingPoint>& outPoints) const;
 
     // Dump the timing points array to JSON.
     nlohmann::json dump_json() {

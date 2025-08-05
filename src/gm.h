@@ -35,6 +35,7 @@ extern std::mutex mtxSaveProject;
 void throw_error_event(std::string error_info);
 void push_async_event(AsyncEvent asyncEvent);
 
-enum GM_ANNOUNCEMENT_TYPE { INFO, WARNING, ERROR };
+enum GM_ANNOUNCEMENT_TYPE { ANNO_INFO, ANNO_WARNING, ANNO_ERROR };
 
-void gamemaker_announcement(string message, GM_ANNOUNCEMENT_TYPE type);
+void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
+                            std::vector<string> args = {});

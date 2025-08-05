@@ -116,3 +116,14 @@ void get_note_array(std::vector<NoteExportView>& notes) {
 string generate_note_id() {
     return random_string(NOTE_ID_LENGTH);
 }
+
+string get_notes_array_string() {
+    json js;
+
+    std::vector<NoteExportView> notes;
+    get_note_array(notes);
+
+    js = notes;
+
+    return nlohmann::to_string(js);
+}
