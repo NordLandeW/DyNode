@@ -49,14 +49,14 @@ int create_note(const Note& note, bool randomID, bool createSub) {
     Note newNote(note);
     if (randomID)
         newNote.noteID = generate_note_id();
-    if (note.noteType == 2 && createSub) {
+    if (note.type == 2 && createSub) {
         newNote.subNoteID = generate_note_id();
         Note newSubNote(newNote);
         std::swap(newSubNote.noteID, newSubNote.subNoteID);
         newSubNote.time = newNote.time + newNote.lastTime;
         newSubNote.lastTime = 0;
         newSubNote.beginTime = newNote.time;
-        newSubNote.noteType = 3;
+        newSubNote.type = 3;
         insert_note(newSubNote);
     }
     insert_note(newNote);
@@ -101,18 +101,29 @@ int modify_note(const Note& note) {
 void get_note_array(std::vector<Note>& notes) {
     auto& noteMan = get_note_pool_manager();
     noteMan.access_all_notes([&](Note& note) {
-        if (note.noteType != 3)
+        if (note.type != 3)
             notes.push_back(note);
     });
 }
 void get_note_array(std::vector<NoteExportView>& notes) {
     auto& noteMan = get_note_pool_manager();
     noteMan.access_all_notes([&](Note& note) {
-        if (note.noteType != 3)
+        if (note.type != 3)
             notes.push_back(NoteExportView(note));
     });
 }
 
 string generate_note_id() {
     return random_string(NOTE_ID_LENGTH);
+}
+
+string get_notes_array_string() {
+    json js;
+
+    std::vector<NoteExportView> notes;
+    get_note_array(notes);
+
+    js = notes;
+
+    return nlohmann::to_string(js);
 }

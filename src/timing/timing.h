@@ -1,4 +1,4 @@
-
+#pragma once
 #include <string>
 #include <vector>
 
@@ -15,14 +15,28 @@ struct TimingPoint {
     double get_bpm() const {
         return 60000.0 / beatLength;
     }
-    nlohmann::json to_json() const {
-        nlohmann::json j;
-        j["time"] = time;
-        j["beatLength"] = beatLength;
-        j["meter"] = meter;
-        return j;
+};
+inline void to_json(nlohmann::json& j, const TimingPoint& tp) {
+    j["time"] = tp.time;
+    j["beatLength"] = tp.beatLength;
+    j["meter"] = tp.meter;
+}
+inline void from_json(const nlohmann::json& j, TimingPoint& tp) {
+    j.at("time").get_to(tp.time);
+    j.at("beatLength").get_to(tp.beatLength);
+    j.at("meter").get_to(tp.meter);
+}
+
+struct TimingPointExportView {
+    const TimingPoint& tp;
+    TimingPointExportView(const TimingPoint& tp) : tp(tp) {
     }
 };
+inline void to_json(nlohmann::json& j, const TimingPointExportView& view) {
+    j["offset"] = view.tp.time;
+    j["bpm"] = view.tp.get_bpm();
+    j["meter"] = view.tp.meter;
+}
 
 class TimingManager {
    private:
@@ -44,14 +58,16 @@ class TimingManager {
     // Append multiple timing points.
     void append_timing_points(const std::vector<TimingPoint>& points);
 
+    // Get the timing points array.
+    void get_timing_points(std::vector<TimingPoint>& outPoints) const;
+
     // Dump the timing points array to JSON.
+    nlohmann::json dump_json() {
+        return timingPoints;
+    }
+    // Dump the timing points array to a string.
     std::string dump() {
-        sort();
-        nlohmann::json j = nlohmann::json::array();
-        for (const auto& point : timingPoints) {
-            j.push_back(point.to_json());
-        }
-        return j.dump();
+        return dump_json().dump();
     }
 
     int size() {

@@ -49,8 +49,12 @@ DYCORE_API const char* DyCore_get_async_event() {
     }
 }
 
-void gamemaker_announcement(string message, GM_ANNOUNCEMENT_TYPE type) {
-    AsyncEvent event = {GM_ANNOUNCEMENT, type, message};
+void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
+                            std::vector<string> args) {
+    json j = json::object();
+    j["msg"] = message;
+    j["args"] = args;
+    AsyncEvent event = {GM_ANNOUNCEMENT, type, j.dump()};
     push_async_event(event);
     return;
 }

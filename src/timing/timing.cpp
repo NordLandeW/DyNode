@@ -31,3 +31,8 @@ void TimingManager::append_timing_points(
     timingPoints.insert(timingPoints.end(), points.begin(), points.end());
     outOfOrder = true;
 }
+
+void TimingManager::get_timing_points(
+    std::vector<TimingPoint>& outPoints) const {
+    outPoints = timingPoints;
+}

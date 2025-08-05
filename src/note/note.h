@@ -28,6 +28,7 @@ string generate_note_id();
 
 void get_note_array(std::vector<Note> &notes);
 void get_note_array(std::vector<NoteExportView> &notes);
+std::string get_notes_array_string();
 
 inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
@@ -38,7 +39,7 @@ enum NOTE_TYPE { NORMAL, CHAIN, HOLD, SUB };
 struct Note {
    public:
     int side;
-    int noteType;
+    int type;
     double time;
     double width;
     double position;
@@ -55,7 +56,7 @@ struct Note {
 
         // 直接从 'other' 拷贝数据
         side = other.side;
-        noteType = other.noteType;
+        type = other.type;
         time = other.time;
         width = other.width;
         position = other.position;
@@ -72,7 +73,7 @@ struct Note {
         std::scoped_lock lock(this->mtx, other.mtx);
 
         side = other.side;
-        noteType = other.noteType;
+        type = other.type;
         time = other.time;
         width = other.width;
         position = other.position;
@@ -96,7 +97,7 @@ struct Note {
         std::lock_guard<std::mutex> lock(mtx);
         char *ptr = buffer;
         bitwrite_int(ptr, side);
-        bitwrite_int(ptr, noteType);
+        bitwrite_int(ptr, type);
         bitwrite_double(ptr, time);
         bitwrite_double(ptr, width);
         bitwrite_double(ptr, position);
@@ -110,7 +111,7 @@ struct Note {
         std::lock_guard<std::mutex> lock(mtx);
         const char *ptr = buffer;
         bitread_int(ptr, side);
-        bitread_int(ptr, noteType);
+        bitread_int(ptr, type);
         bitread_double(ptr, time);
         bitread_double(ptr, width);
         bitread_double(ptr, position);
@@ -129,10 +130,9 @@ struct NoteExportView {
 
 inline void to_json(json &j, const NoteExportView &view) {
     std::lock_guard<std::mutex> lock(view.note.mtx);
-    j = json{
-        {"time", view.note.time},         {"side", view.note.side},
-        {"width", view.note.width},       {"position", view.note.position},
-        {"lastTime", view.note.lastTime}, {"noteType", view.note.noteType}};
+    j = json{{"time", view.note.time},       {"side", view.note.side},
+             {"width", view.note.width},     {"position", view.note.position},
+             {"length", view.note.lastTime}, {"type", view.note.type}};
 }
 
 inline void from_json(const json &j, Note &n) {
@@ -141,8 +141,8 @@ inline void from_json(const json &j, Note &n) {
     j.at("side").get_to(n.side);
     j.at("width").get_to(n.width);
     j.at("position").get_to(n.position);
-    j.at("lastTime").get_to(n.lastTime);
-    j.at("noteType").get_to(n.noteType);
+    j.at("length").get_to(n.lastTime);
+    j.at("type").get_to(n.type);
     j.at("noteID").get_to(n.noteID);
     j.at("subNoteID").get_to(n.subNoteID);
     j.at("beginTime").get_to(n.beginTime);
@@ -152,7 +152,7 @@ inline void to_json(json &j, const Note &n) {
     std::lock_guard<std::mutex> lock(n.mtx);
     j = json{{"time", n.time},          {"side", n.side},
              {"width", n.width},        {"position", n.position},
-             {"lastTime", n.lastTime},  {"noteType", n.noteType},
+             {"length", n.lastTime},    {"type", n.type},
              {"noteID", n.noteID},      {"subNoteID", n.subNoteID},
              {"beginTime", n.beginTime}};
 }

@@ -20,6 +20,7 @@ class NotePoolManager {
     Note get_note(int index) {
         return operator[](index);
     }
+    void get_notes(std::vector<Note> &outNotes) const;
     /// Returns a direct reference to the note at the given index.
     /// This is unsafe and should only be used when you are sure the index is
     /// valid.
@@ -63,7 +64,7 @@ class NotePoolManager {
     std::vector<nptr> noteArray;
     std::pmr::list<nptr> noteMemoryList;
     std::unordered_map<std::string, NoteMemoryInfo> noteInfoMap;
-    std::mutex mtxNoteOps;
+    mutable std::mutex mtxNoteOps;
     bool arrayOutOfOrder = false;
     int noteCount = 0;
 
