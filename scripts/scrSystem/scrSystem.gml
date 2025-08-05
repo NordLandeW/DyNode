@@ -1266,7 +1266,7 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 	});
 	
 	array_push(objManager.announcements, _inst);
-	show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
+	// show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {
