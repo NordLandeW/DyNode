@@ -749,8 +749,6 @@ function timing_point_delete_at(_time, record = false) {
     			operation_step_add(OPERATION_TYPE.TPREMOVE, _tp, -1);
             
             dyc_timingpoints_delete_at(_tp.time);
-			l--;
-			i--;
 		}
 }
 
