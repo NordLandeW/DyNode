@@ -1,5 +1,12 @@
 /// @description Reset Tags & Time Update & Activate notes
 
+// Pull metadata from DyCore.
+
+var _metadata = dyc_chart_get_metadata();
+chartTitle = _metadata.title;
+chartDifficulty = _metadata.difficulty;
+chartSideType = _metadata.sideType;
+
 #region TIME UPDATE
 
 var _music_resync_request = false;
@@ -171,6 +178,8 @@ var _music_resync_request = false;
 	var _diff_delta = keycheck_down_ctrl(ord("P")) - keycheck_down_ctrl(ord("O"));
 	chartDifficulty += _diff_delta;
 	chartDifficulty = clamp(chartDifficulty, 0, global.difficultyCount - 1);
+    if(_diff_delta != 0)
+        dyc_chart_set_difficulty(chartDifficulty);
 
     var noteCount = dyc_get_note_count();
 

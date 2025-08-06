@@ -79,6 +79,7 @@ projectTime += round(delta_time / 1000);
     		}
     		
 	    	chartSideType[_side] = _type;
+			dyc_chart_set_sidetype(chartSideType);
 	    	announcement_play(i18n_get("anno_switch_sidetype")+chartSideType[_side]);
     	}
     	else {

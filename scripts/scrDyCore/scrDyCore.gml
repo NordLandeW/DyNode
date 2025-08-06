@@ -276,6 +276,79 @@ function dyc_chart_get_metadata() {
     }
 }
 
+function dyc_chart_set_metadata(metadata) {
+    try {
+        var _metadataStr = json_stringify(metadata);
+        return DyCore_set_chart_metadata(_metadataStr);
+    } catch (e) {
+        show_debug_message("Error setting chart metadata: " + string(e));
+        return false;
+    }
+}
+
+function dyc_chart_set_title(title) {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        _metadata.title = title;
+        return dyc_chart_set_metadata(_metadata);
+    } catch (e) {
+        show_debug_message("Error setting chart title: " + string(e));
+        return false;
+    }
+}
+
+function dyc_chart_set_difficulty(difficulty) {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        _metadata.difficulty = difficulty;
+        return dyc_chart_set_metadata(_metadata);
+    } catch (e) {
+        show_debug_message("Error setting chart difficulty: " + string(e));
+        return false;
+    }
+}
+
+function dyc_chart_set_sidetype(sideType) {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        _metadata.sideType = sideType;
+        return dyc_chart_set_metadata(_metadata);
+    } catch (e) {
+        show_debug_message("Error setting chart side type: " + string(e));
+        return false;
+    }
+}
+
+function dyc_chart_get_title() {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        return _metadata.title;
+    } catch (e) {
+        show_debug_message("Error getting chart title: " + string(e));
+        return undefined;
+    }
+}
+
+function dyc_chart_get_difficulty() {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        return _metadata.difficulty;
+    } catch (e) {
+        show_debug_message("Error getting chart difficulty: " + string(e));
+        return undefined;
+    }
+}
+
+function dyc_chart_get_sidetype() {
+    try {
+        var _metadata = dyc_chart_get_metadata();
+        return _metadata.sideType;
+    } catch (e) {
+        show_debug_message("Error getting chart side type: " + string(e));
+        return undefined;
+    }
+}
+
 function dyc_chart_get_path() {
     try {
         var _path = DyCore_get_chart_path();

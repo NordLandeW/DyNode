@@ -479,6 +479,7 @@ function map_set_title() {
 		_title = string_replace_all(_title, "[", "[[")
 	
 	objMain.chartTitle = _title;
+	dyc_chart_set_title(_title);
 }
 
 function music_load(_file = "") {
