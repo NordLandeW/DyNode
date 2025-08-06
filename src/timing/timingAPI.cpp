@@ -44,3 +44,7 @@ DYCORE_API double DyCore_timing_points_add_offset(double offset) {
     get_timing_manager().add_offset(offset);
     return 0;
 }
+
+DYCORE_API double DyCore_get_timing_points_last_modified_time() {
+    return get_timing_manager().get_last_modified_time();
+}

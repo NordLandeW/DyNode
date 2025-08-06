@@ -55,8 +55,20 @@ class TimingManager {
    private:
     std::vector<TimingPoint> timingPoints;
     bool outOfOrder = false;
+    long long lastModifiedTime = 0;
+
+    void mark_modified() {
+        lastModifiedTime =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+    }
 
    public:
+    long long get_last_modified_time() const {
+        return lastModifiedTime;
+    }
+
     // Should be called before any operations that require sorted timing points.
     // This will sort the timing points if they are out of order.
     // If they are already sorted, this is a no-op.
