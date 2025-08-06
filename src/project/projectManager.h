@@ -16,7 +16,11 @@ class ProjectManager {
    public:
     ProjectManager() {
         // Create a default chart.
-        project.charts.push_back(Chart());
+        project.charts.push_back(Chart{.metadata = {
+                                           .title = "最終列車は25時",
+                                           .sideType = {"MIXER", "PAD"},
+                                           .difficulty = 3,
+                                       }});
     }
 
     void clear_project();
