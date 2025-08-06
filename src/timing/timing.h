@@ -38,6 +38,19 @@ inline void to_json(nlohmann::json& j, const TimingPointExportView& view) {
     j["meter"] = view.tp.meter;
 }
 
+struct TimingPointImportView {
+    TimingPoint& tp;
+    TimingPointImportView(TimingPoint& tp) : tp(tp) {
+    }
+};
+inline void from_json(const nlohmann::json& j, TimingPointImportView& view) {
+    j.at("offset").get_to(view.tp.time);
+    double bpm;
+    j.at("bpm").get_to(bpm);
+    view.tp.set_bpm(bpm);
+    j.at("meter").get_to(view.tp.meter);
+}
+
 class TimingManager {
    private:
     std::vector<TimingPoint> timingPoints;
@@ -59,10 +72,15 @@ class TimingManager {
     void append_timing_points(const std::vector<TimingPoint>& points);
 
     // Get the timing points array.
-    void get_timing_points(std::vector<TimingPoint>& outPoints) const;
+    void get_timing_points(std::vector<TimingPoint>& outPoints);
+
+    int count() {
+        return timingPoints.size();
+    }
 
     // Dump the timing points array to JSON.
     nlohmann::json dump_json() {
+        sort();
         return timingPoints;
     }
     // Dump the timing points array to a string.
@@ -79,6 +97,10 @@ class TimingManager {
         return timingPoints[index];
     }
     TimingPoint operator=(const TimingPoint& other) = delete;
+
+    void change_timing_point_at_time(double time, const TimingPoint& tp);
+    void delete_timing_point_at_time(double time);
+    void add_offset(double offset);
 };
 
 TimingManager& get_timing_manager();

@@ -13,6 +13,7 @@
 #include "gm.h"
 #include "note.h"
 #include "projectManager.h"
+#include "timing.h"
 #include "utils.h"
 
 ChartMetadata chartMetaData;
@@ -251,9 +252,10 @@ void from_json(const nlohmann::json &j, Chart &chart) {
     }
     chart.timingPoints.clear();
     for (const auto &tp : j["timingPoints"]) {
-        chart.timingPoints.push_back({tp["offset"].get<double>(),
-                                      60000.0 / tp["bpm"].get<double>(),
-                                      tp["meter"].get<int>()});
+        TimingPoint tpObj;
+        TimingPointImportView view(tpObj);
+        from_json(tp, view);
+        chart.timingPoints.push_back(tpObj);
     }
 }
 
