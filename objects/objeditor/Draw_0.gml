@@ -2,6 +2,8 @@
 #region Beatlines
 
 	var beatlineVisible = beatlineAlpha[0] + beatlineAlpha[1] + beatlineAlpha[2] > 0.01;
+    var timingPoints = dyc_get_timingpoints();
+    
     if(array_length(timingPoints)) {
         var _nw = BASE_RES_W, _nh = BASE_RES_H;
         var nowTime = objMain.nowTime;

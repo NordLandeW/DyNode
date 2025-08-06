@@ -2,6 +2,7 @@
 
 #region Beatlines
     
+    var timingPoints = dyc_get_timingpoints();
     animBeatlineTargetAlphaM = editorMode != 5 && array_length(timingPoints);
     beatlineAlphaMul = lerp_a(beatlineAlphaMul, animBeatlineTargetAlphaM, animSpeed);
     if(array_length(timingPoints)) {

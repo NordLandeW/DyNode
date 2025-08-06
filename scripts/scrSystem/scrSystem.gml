@@ -836,10 +836,7 @@ function map_add_offset(_offset = "", record = false) {
 		_record = true;
 	}
 	
-	with(objEditor) {
-		for(var i=0, l=array_length(timingPoints); i<l; i++)
-			timingPoints[i].time += _offset;
-	}
+	dyc_timingpoints_add_offset(_offset);
 	
 	DyCore_note_add_offset(_offset);
 	
@@ -905,7 +902,6 @@ function project_load(_file = "") {
 	    	background_load(_path_deal(videoPath, _propath));
 	    	
 	    timing_point_reset();
-	    objEditor.timingPoints = dyc_get_timingpoints();
 	    timing_point_sort();
 	    
 	    projectPath = _file;

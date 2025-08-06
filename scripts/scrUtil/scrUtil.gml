@@ -139,22 +139,21 @@ function mspb_to_bpm(mspb) {
 
 // Especially for dym
 function time_to_bar_for_dym(time) {
-	with(objEditor) {
-		var _rbar = 0;
-		var l = array_length(timingPoints);
-		for(var i=0; i<l; i++) {
-			if(i>0)
-				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-			if(time < timingPoints[0].time || 
-				i == l-1 ||
-				in_between(time, timingPoints[i].time, timingPoints[i+1].time)) 
-				{
-					return _rbar +
-						time_to_bar(time - timingPoints[i].time,
-							mspb_to_bpm(timingPoints[i].beatLength)/4);
-				}
-		}
+	var timingPoints = dyc_get_timingpoints();
+	var _rbar = 0;
+	var l = array_length(timingPoints);
+	for(var i=0; i<l; i++) {
+		if(i>0)
+			_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
+				mspb_to_bpm(timingPoints[i-1].beatLength)/4);
+		if(time < timingPoints[0].time || 
+			i == l-1 ||
+			in_between(time, timingPoints[i].time, timingPoints[i+1].time)) 
+			{
+				return _rbar +
+					time_to_bar(time - timingPoints[i].time,
+						mspb_to_bpm(timingPoints[i].beatLength)/4);
+			}
 	}
 	
 	show_error("CONVERSION FATAL ERROR", true);
@@ -163,52 +162,50 @@ function time_to_bar_for_dym(time) {
 // Accurate bar in DyNode's concept.
 // limit argument only used by timing_fix.
 function time_to_bar_dyn(time, limit = 0x7fffffff) {
-	with(objEditor) {
-		if (!array_length(timingPoints)) return 0;
-	
-		var totalBars = 1;
-		var nowAt = 0;
-		var l = array_length(timingPoints);
-	
-		while (nowAt + 1 != l && timingPoints[nowAt + 1].time <= time+1) {	// Error correction.
-			if(timingPoints[nowAt + 1].time > limit) break;
-			totalBars += ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
-				(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
-			nowAt++;
-		}
-	
-		var nowTP = timingPoints[nowAt];
-		var nowBeats = (time - nowTP.time) / nowTP.beatLength;
-		var nowBars = nowBeats / nowTP.meter;
-	
-		return totalBars + nowBars;
+	var timingPoints = dyc_get_timingpoints();
+	if (!array_length(timingPoints)) return 0;
+
+	var totalBars = 1;
+	var nowAt = 0;
+	var l = array_length(timingPoints);
+
+	while (nowAt + 1 != l && timingPoints[nowAt + 1].time <= time+1) {	// Error correction.
+		if(timingPoints[nowAt + 1].time > limit) break;
+		totalBars += ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
+			(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
+		nowAt++;
 	}
+
+	var nowTP = timingPoints[nowAt];
+	var nowBeats = (time - nowTP.time) / nowTP.beatLength;
+	var nowBars = nowBeats / nowTP.meter;
+
+	return totalBars + nowBars;
 }
 
 function bar_to_time_dyn(bar) {
-	with(objEditor) {
-		if (!array_length(timingPoints) || bar <= 0) return 0;
-	
-		var totalBars = 1;
-		var nowAt = 0;
-		var l = array_length(timingPoints);
-	
-		while (nowAt + 1 != l) {
-			var nextTotalBars = totalBars + ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
-				(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
-	
-			if (nextTotalBars > bar) break;
-			totalBars = nextTotalBars;
-			nowAt++;
-		}
-	
-		var nowTP = timingPoints[nowAt];
-		var remainingBars = bar - totalBars;
-		var remainingBeats = remainingBars * nowTP.meter;
-		var time = nowTP.time + remainingBeats * nowTP.beatLength;
-	
-		return time;
+	var timingPoints = dyc_get_timingpoints();
+	if (!array_length(timingPoints) || bar <= 0) return 0;
+
+	var totalBars = 1;
+	var nowAt = 0;
+	var l = array_length(timingPoints);
+
+	while (nowAt + 1 != l) {
+		var nextTotalBars = totalBars + ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
+			(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
+
+		if (nextTotalBars > bar) break;
+		totalBars = nextTotalBars;
+		nowAt++;
 	}
+
+	var nowTP = timingPoints[nowAt];
+	var remainingBars = bar - totalBars;
+	var remainingBeats = remainingBars * nowTP.meter;
+	var time = nowTP.time + remainingBeats * nowTP.beatLength;
+
+	return time;
 }
 
 #endregion

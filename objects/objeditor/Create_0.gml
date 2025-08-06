@@ -68,10 +68,6 @@ editorWidthAdjustTimeThreshold = 300;
     editorGridYEnabled = true;
     editorGridWidthEnabled = true;
 
-// Timings
-/// @type {Array<Struct.sTimingPoint>}  
-timingPoints = [];
-
 // Highlight lines
 highlightLineColorDownA = scribble_rgb_to_bgr(0xb6ffff);
 highlightLineColorDownB = scribble_rgb_to_bgr(0x81d4fa);

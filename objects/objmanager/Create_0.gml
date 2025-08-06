@@ -22,7 +22,7 @@
 #macro DYCORE_BUFFER_SIZE (50*1024*1024)	// 50MB
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DYCORE_BUFFER_ADDRESS (buffer_get_address(global.__DyCore_Buffer))
-#macro DEBUG_MODE (true)
+#macro DEBUG_MODE (debug_mode)
 math_set_epsilon(0.00000001);				// 1E-8
 
 // Announcement init

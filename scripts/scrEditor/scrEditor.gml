@@ -172,8 +172,9 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
 	    	bar: undefined
     	};
 	
-	if(!objEditor.editorGridYEnabled || !array_length(objEditor.timingPoints)) return _ret;
-    
+	var timingPoints = dyc_get_timingpoints();
+	if(!objEditor.editorGridYEnabled || !array_length(timingPoints)) return _ret;
+
     with(objEditor) {
         var targetLineBelow = objMain.targetLineBelow;
         var targetLineBeside = objMain.targetLineBeside;
@@ -458,6 +459,7 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			_tp.time = _to.time;
 			_tp.beatLength = _to.beatLength;
 			_tp.meter = _to.meter;
+			dyc_timingpoints_change(_tp.time, _tp);
 			break;
 		case OPERATION_TYPE.OFFSET:
 			map_add_offset(_from);
@@ -581,25 +583,22 @@ function operation_merge_last_request_revoke() {
 
 // The number of timing points' count.
 function timing_point_count() {
-	return array_length(objEditor.timingPoints);
+	return dyc_get_timingpoints_count();
 }
 
 // Sort the "timingPoints" array
 function timing_point_sort() {
-    var _f = function(_a, _b) {
-        return sign(_a.time - _b.time);
-    }
-    array_sort(objEditor.timingPoints, _f);
+    dyc_timingpoints_sort();
 }
 
 // Add a timing point to "timingPoints" array
 function timing_point_add(_t, _l, _b, record = false) {
-    with(objEditor) {
-        array_push(timingPoints, new sTimingPoint(_t, _l, _b));
-        timing_point_sort();
-    }
+    var _tp = new sTimingPoint(_t, _l, _b);
+    dyc_insert_timingpoint(_tp);
+    timing_point_sort();
+
     if(record)
-    	operation_step_add(OPERATION_TYPE.TPADD, new sTimingPoint(_t, _l, _b), -1);
+    	operation_step_add(OPERATION_TYPE.TPADD, _tp, -1);
 }
 
 function timing_point_create(record = false) {
@@ -664,9 +663,7 @@ function timing_point_change(tp, record = false) {
 		if(_fixable)
 			timing_fix(tp, _tpAfter);
 
-		tp.meter = _tpAfter.meter;
-		tp.beatLength = _tpAfter.beatLength;
-		tp.time = _tpAfter.time;
+        dyc_timingpoints_change(tp.time, _tpAfter);
 
 		if(record)
 			operation_step_add(OPERATION_TYPE.TPCHANGE, _tpBefore, _tpAfter);
@@ -680,131 +677,114 @@ function timing_point_change(tp, record = false) {
 }
 
 function timing_fix(tpBefore, tpAfter) {
-	with(objEditor) {
-		var l = array_length(timingPoints);
-		var at = -1;
-		for(var i=0; i<l; i++)
-			if(timingPoints[i] == tpBefore) {
-				at = i;
-				break;
-			}
-		// Get affected time range.
-		var _timeL = tpBefore.time, _timeR = at+1 == l? 1000000000: timingPoints[at+1].time - 1;
-		var _timeM = at - 1 < 0 ? -1000000000: timingPoints[at-1].time;
-		var nl = DyCore_get_note_count();
-		// Get affected notes.
-		var _affectedNotes = [];
-		for(var i=0; i<nl; i++)
-			if(in_between(DyCore_get_note_time_at_index(i), _timeL, _timeR))
-				array_push(_affectedNotes, DyCore_get_note_at_index(i));
-		if(array_length(_affectedNotes) == 0)
-			return;
-		var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
-		if(!_que) return;
-		var _bar = [];
-		nl = array_length(_affectedNotes);
-		// Caculate the notes' bars before.
-		for(var i=0; i<nl; i++)
-			array_push(_bar, time_to_bar_dyn(_affectedNotes[i].time, _timeR));
-		tpBefore.beatLength = tpAfter.beatLength;
-		var _cross_timing_warning = false;
-		// Convert bar to the new time.
-		for(var i=0; i<nl; i++) {
-			var _prop = SnapDeepCopy(_affectedNotes[i]);
-			_prop.time = bar_to_time_dyn(_bar[i]);
-			// Add the offset's delta.
-			_prop.time += tpAfter.time - tpBefore.time;
-			_prop.lastTime = -1;	// Detatch the sub and the hold.
-			if(_prop.time > _timeR)
-				_cross_timing_warning = true;
-			dyc_update_note(_prop, true);
+	var timingPoints = dyc_get_timingpoints();
+	var l = array_length(timingPoints);
+	var at = -1;
+	for(var i=0; i<l; i++)
+		if(timingPoints[i].time == tpBefore.time) {
+			at = i;
+			break;
 		}
-		if(tpAfter.time < _timeM)
-			_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
-		note_sort_request();
-		if(_cross_timing_warning)
-			announcement_warning("timing_fix_cross_warning");
+	// Get affected time range.
+	var _timeL = tpBefore.time, _timeR = at+1 == l? 1000000000: timingPoints[at+1].time - 1;
+	var _timeM = at - 1 < 0 ? -1000000000: timingPoints[at-1].time;
+	var nl = DyCore_get_note_count();
+	// Get affected notes.
+	var _affectedNotes = [];
+	
+	var _cross_timing_warning = false;
+	for(var i=0; i<nl; i++)
+		if(in_between(dyc_get_note_time_at_index(i), _timeL, _timeR))
+			array_push(_affectedNotes, dyc_get_note_at_index(i));
+	if(array_length(_affectedNotes) == 0)
+		return;
+	var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
+	if(!_que) return;
+	nl = array_length(_affectedNotes);
+	// Caculate note's new time.
+	for(var i=0; i<nl; i++) {
+		var _prop = SnapDeepCopy(_affectedNotes[i]);
+		_prop.time = (_prop.time - tpBefore.time) * (tpAfter.beatLength / tpBefore.beatLength) + tpAfter.time;
+		if(_prop.time > _timeR)
+			_cross_timing_warning = true;
+		dyc_update_note(_prop, true);
 	}
+	if(tpAfter.time < _timeM)
+		_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
+	note_sort_request();
+	if(_cross_timing_warning)
+		announcement_warning("timing_fix_cross_warning");
 }
 
 // To get current timing at [_time].
 /// @returns {Struct.sTimingPoint} 
 function timing_point_get_at(_time, _precise = false) {
-	with(objEditor) {
-		if(array_length(timingPoints) == 0) return undefined;
-		/// @self Struct.sTimingPoint
-		var _ret = timingPoints[
-			max(array_upper_bound(
-				timingPoints,
-				_time,
-				function(array, at) { return array[at].time; }) - 1, 0)
-			];
+    var timingPoints = dyc_get_timingpoints();
+	if(array_length(timingPoints) == 0) return undefined;
+	/// @self Struct.sTimingPoint
+	var _ret = timingPoints[
+		max(array_upper_bound(
+			timingPoints,
+			_time,
+			function(array, at) { return array[at].time; }) - 1, 0)
+		];
 		
-		if(!_precise || abs(_time - _ret.time) < 5)
-			return _ret;
-		else
-			return undefined;
-	}
+	if(!_precise || abs(_time - _ret.time) < 5)
+		return _ret;
+	else
+		return undefined;
 }
 
 function timing_point_delete_at(_time, record = false) {
-	with(objEditor) {
-		for(var i=0, l=array_length(timingPoints); i<l; i++)
-			if(abs(timingPoints[i].time-_time) <= 1) {
-				var _tp = timingPoints[i];
-				announcement_play(
-					i18n_get("remove_timing_point", [format_time_ms(_tp.time),
-    					string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]),
-					5000);
+    var timingPoints = dyc_get_timingpoints();
+	for(var i=0, l=array_length(timingPoints); i<l; i++)
+		if(abs(timingPoints[i].time-_time) <= 1) {
+			var _tp = timingPoints[i];
+			announcement_play(
+				i18n_get("remove_timing_point", [format_time_ms(_tp.time),
+    				string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]),
+				5000);
     			
-    			
-    			if(record)
-    				operation_step_add(OPERATION_TYPE.TPREMOVE, _tp, -1);
-				array_delete(timingPoints, i, 1);
-				l--;
-				i--;
-			}
-	}
+    		if(record)
+    			operation_step_add(OPERATION_TYPE.TPREMOVE, _tp, -1);
+            
+            dyc_timingpoints_delete_at(_tp.time);
+			l--;
+			i--;
+		}
 }
 
 // Duplicate the last timing point at certain point
 function timing_point_duplicate(_time) {
-	with(objEditor) {
-		if(array_length(timingPoints) == 0) {
-			announcement_error("error_no_timing_point");
-			return;
-		}
-		var _tp = timingPoints[array_length(timingPoints) - 1];
-    	timing_point_add(_time, _tp.beatLength, _tp.meter, true);
-    	
-    	announcement_play(
-    		i18n_get("copy_timing_point", [format_time_ms(_time), 
-    			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]), 
-			5000);
-    	
+    var timingPoints = dyc_get_timingpoints();
+	if(array_length(timingPoints) == 0) {
+		announcement_error("error_no_timing_point");
+		return;
 	}
+	var _tp = timingPoints[array_length(timingPoints) - 1];
+	timing_point_add(_time, _tp.beatLength, _tp.meter, true);
+	
+	announcement_play(
+		i18n_get("copy_timing_point", [format_time_ms(_time), 
+			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]), 
+		5000);
 }
 
 // Reset the "timingPoints" array
 function timing_point_reset() {
-    with(objEditor) {
-        var _l = array_length(timingPoints);
-        for(var i=0; i<_l; i++) {
-            delete timingPoints[i];
-        }
-        timingPoints = [];
-    }
+    dyc_timingpoints_reset();
 }
 
 // For Compatibility
 function _setup_xml_compability_variables() {
-	if(array_length(objEditor.timingPoints) == 0)
+	if(dyc_get_timingpoints_count() == 0)
 		return false;
 	with(objMain) {
 		// These variables only for xml export.
-		chartBeatPerMin = mspb_to_bpm(objEditor.timingPoints[0].beatLength);
+		var timingPoints = dyc_get_timingpoints();
+		chartBeatPerMin = mspb_to_bpm(timingPoints[0].beatLength);
 		chartBarPerMin = chartBeatPerMin / 4;
-		chartTimeOffset = -objEditor.timingPoints[0].time;
+		chartTimeOffset = -timingPoints[0].time;
 		chartBarOffset = time_to_bar(chartTimeOffset);
 			
 		return true;
