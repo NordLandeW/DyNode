@@ -298,15 +298,18 @@ function dyc_project_get_metadata() {
 
 /// @returns {Array<Struct.sTimingPoint>} 
 function dyc_get_timingpoints() {
-    // TODO: Check if the timing points is changed. Using static variables.
-
-    try {
-        var _timingpoints = DyCore_get_timing_array_string();
-        return json_parse(_timingpoints);
-    } catch (e) {
-        show_debug_message("Error parsing timing points: " + string(e));
-        return undefined;
+    static _timingpoints = [];
+    static _lastModifiedTime = -1;
+    var _lastModified = DyCore_get_timing_points_last_modified_time();
+    if (_lastModified != _lastModifiedTime) {
+        _lastModifiedTime = _lastModified;
+        try {
+            _timingpoints = json_parse(DyCore_get_timing_array_string());
+        } catch (e) {
+            show_debug_message("Error parsing timing points: " + string(e));
+        }
     }
+    return _timingpoints;
 }
 
 function dyc_get_timingpoints_count() {
@@ -324,55 +327,25 @@ function dyc_insert_timingpoint(timingPoint) {
 }
 
 function dyc_timingpoints_sort() {
-    try {
-        return DyCore_timing_points_sort();
-    } catch (e) {
-        show_debug_message("Error requesting timing point sort: " + string(e));
-        return -1;
-    }
+    return DyCore_timing_points_sort();
 }
 
 function dyc_timingpoints_reset() {
-    try {
-        return DyCore_timing_points_reset();
-    } catch (e) {
-        show_debug_message("Error requesting timing point reset: " + string(e));
-        return -1;
-    }
+    return DyCore_timing_points_reset();
 }
 
 function dyc_timingpoints_delete_at(time) {
-    try {
-        return DyCore_delete_timing_point_at_time(time);
-    } catch (e) {
-        show_debug_message("Error deleting timing point: " + string(e));
-        return -1;
-    }
+    return DyCore_delete_timing_point_at_time(time);
 }
 
 function dyc_timingpoints_change(time, timingPoint) {
-    try {
-        return DyCore_timing_points_change(time, json_stringify(timingPoint));
-    } catch (e) {
-        show_debug_message("Error changing timing point: " + string(e));
-        return -1;
-    }
+    return DyCore_timing_points_change(time, json_stringify(timingPoint));
 }
 
 function dyc_timingpoints_add_offset(offset) {
-    try {
-        return DyCore_timing_points_add_offset(offset);
-    } catch (e) {
-        show_debug_message("Error adding offset to timing points: " + string(e));
-        return -1;
-    }
+    return DyCore_timing_points_add_offset(offset);
 }
 
 function dyc_project_get_version() {
-    try {
-        return DyCore_get_project_version();
-    } catch (e) {
-        show_debug_message("Error getting project version: " + string(e));
-        return "unknown";
-    }
+    return DyCore_get_project_version();
 }
