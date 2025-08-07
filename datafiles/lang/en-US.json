@@ -195,6 +195,7 @@
         "version_lower": "DyNode has been downgraded to version $0.\nDowngrading may cause loss of some settings or incompatibility with newer chart formats.",
         "clear_all_notes": "All notes have been cleared.",
         "anno_dycore_error": "A core error occurred.\\nError message: $0",
-        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0"
+        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0",
+        "dyn_chart_import_failed": "导入 DYN 谱面文件失败。\n错误信息: $0"
     }
 }
