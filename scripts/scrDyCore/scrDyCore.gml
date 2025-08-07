@@ -255,10 +255,17 @@ function dyc_chart_import_dyn(filePath, importInfo, importTiming) {
     return DyCore_chart_import_dyn(filePath, importInfo, importTiming);
 }
 
+/// @returns {Any} The chart metadata struct.
 function dyc_chart_get_metadata() {
+    static _metadata = {};
+    static _lastModified = -1;
     try {
-        var _metadata = DyCore_get_chart_metadata();
-        return json_parse(_metadata);
+        var _modified = DyCore_get_chart_metadata_last_modified_time();
+        if(_modified != _lastModified) {
+            _lastModified = _modified;
+            _metadata = json_parse(DyCore_get_chart_metadata());
+        }
+        return _metadata;
     } catch (e) {
         show_debug_message("Error parsing chart metadata: " + string(e));
         return undefined;
