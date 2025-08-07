@@ -400,7 +400,7 @@ function image_load(_file) {
 }
 
 function map_export_xml(_export_to_dym) {
-	if(dyc_get_timingpoints_count()) {
+	if(dyc_get_timingpoints_count() == 0) {
 		announcement_error("export_timing_error");
 		return;
 	}
@@ -417,141 +417,13 @@ function map_export_xml(_export_to_dym) {
 	// Init the xml export variables.
 	_setup_xml_compability_variables();
 
-	var _fix_dec = false;
     var _fix_error = _export_to_dym? false:show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
-	show_debug_message("Exporting notes array...")
-	
-	var _notes_array = DyCore_get_notes_array_string();
-
-	show_debug_message("Parsing notes array...")
-
-	_notes_array = json_parse(_notes_array);
-
-	var _sub_notes_array = [], _noteNIndex = 0;
-	for(var i=0, l=array_length(_notes_array); i<l; i++) {
-		_notes_array[i].noteID = string(_noteNIndex);
-		_noteNIndex ++;
-		_notes_array[i].subNoteID = -1;
-		if(_notes_array[i].noteType == 2) {
-			/// @type {Any}
-			var _subnote = SnapDeepCopy(_notes_array[i]);
-			_subnote.noteType = 3;
-			_subnote.time += _subnote.lastTime;
-			_subnote.lastTime = 0;
-			_subnote.noteID = string(_noteNIndex);
-			_notes_array[i].subNoteID = string(_noteNIndex);
-			_noteNIndex ++;
-			array_push(_sub_notes_array, _subnote);
-		}
-	}
-
-	show_debug_message("Post-fixing notes array...")
-
-	// Merge sub notes to main notes array.
-	_notes_array = array_concat(_notes_array, _sub_notes_array);
-
-	// Sort the notes array.
-	_notes_array = extern_index_sort(_notes_array, function(_x) { return _x.time; });
-
-	// Correct the offset error
-	if(_fix_error) {
-		note_error_correction(global.offsetCorrection, _notes_array, false);
-	}
-
-	show_debug_message("Generating project structure...")
-    
-	/// @param {Array<Id.Instance.objNote>} _array 
-    var _gen_narray = function (_side, _dec, _dym, _array) {
-    	var _ret = [];
-    	var _bfun = _dym? time_to_bar_for_dym:time_to_bar;
-		var l = array_length(_array);
-    	for(var i=0; i<l; i++) {
-			var _str = _array[i];
-            if(_str.side == _side) {
-            	var _time = _dec?round(_str.time):_str.time;
-            	if(!_dym)
-            		_time = mtime_to_time(_time);
-                array_push(_ret, {
-                	m_id : { text : _str.noteID },
-                	m_type : { text : note_type_num_to_string(_str.noteType) },
-                	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
-                	m_position : { text : string_format(_str.position - _str.width / 2, 1, 4) },
-                	m_width : { text : _str.width },
-                	m_subId: { text : _str.subNoteID }
-                });
-            }
-        }
-        if(array_length(_ret) == 0)
-        	return { text : "" };
-        return {
-        	CMapNoteAsset : _ret
-        };
-    }
-    
-    var _narray = [_gen_narray(0, _fix_dec, _export_to_dym, _notes_array),
-    			   _gen_narray(1, _fix_dec, _export_to_dym, _notes_array),
-    			   _gen_narray(2, _fix_dec, _export_to_dym, _notes_array)];
-    
-    var _str = {
-    	CMap : {
-    		attributes : {
-    			"xmlns:xsi" : "http://www.w3.org/2001/XMLSchema-instance",
-    			"xmlns:xsd" : "http://www.w3.org/2001/XMLSchema"
-    		},
-    		m_path : { text : map_get_title() },
-	    	m_barPerMin : { text : string_format(objMain.chartBarPerMin, 1, EXPORT_XML_EPS) },
-	    	m_timeOffset : { text : string_format(objMain.chartBarOffset, 1, EXPORT_XML_EPS) },
-	    	m_leftRegion : { text : objMain.chartSideType[0] },
-	    	m_rightRegion : { text : objMain.chartSideType[1] },
-	    	m_mapID : { text : _mapid },
-	    	m_notes : {
-	    		m_notes : _narray[0]
-	    	},
-	    	m_notesLeft : {
-	    		m_notes : _narray[1]
-	    	},
-	    	m_notesRight : {
-	    		m_notes : _narray[2]
-	    	}
-    	}
-    }
-    
-    if(_export_to_dym) {
-    	var _rbar = 0;
-    	var _arr = [];
-    	
-		var timingPoints = dyc_get_timingpoints();
-		var l = array_length(timingPoints);
-		for(var i=0; i<l; i++) {
-			if(i>0)
-				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-			
-			array_push(_arr, {
-				m_time : { text : string_format(_rbar, 1, EXPORT_XML_EPS) },
-				m_value : { text : string_format(mspb_to_bpm(timingPoints[i].beatLength)/4, 1, EXPORT_XML_EPS) }
-			});
-		}
-    	
-    	_str.CMap.m_argument = {
-    		m_bpmchange : {
-    			CBpmchange : _arr
-    		}
-    	}
-    }
-	_str = snap_alter_to_xml(_str);
-	
-	_str.prolog = {
-		attributes: {
-			version: "1.0"
-		}
-	};
-
-	show_debug_message("Converting to XML file...");
-	
-	objMain.savingExportId = 
-		fast_file_save_async(_file, SnapToXML(_str));
+	var _result = dyc_chart_export_xml(_file, _export_to_dym, _fix_error? global.offsetCorrection:0);
+	if(_result < 0)
+		announcement_error("anno_export_failed");
+	else
+		announcement_play("anno_export_complete");
 
 	show_debug_message("Export done.");
 }

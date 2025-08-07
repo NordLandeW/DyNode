@@ -242,6 +242,11 @@ function dyc_chart_import_dy_get_remix() {
     }
 }
 
+/// @param {Real} fixError The fix-error offset.
+function dyc_chart_export_xml(filePath, isDym, fixError) {
+    return DyCore_chart_export_xml(filePath, isDym, fixError);
+}
+
 function dyc_project_load(filePath) {
     return DyCore_project_load(filePath);
 }
