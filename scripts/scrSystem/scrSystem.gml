@@ -124,27 +124,27 @@ function map_import_dym(_file, _direct = false) {
 	}
 
 	if(filename_ext(_file) == ".xml") {
-		dyc_project_import_xml(_file, _import_info, _import_tp);
+		dyc_chart_import_xml(_file, _import_info, _import_tp);
 		return;
 	}
 	else {
-		// TODO: Parse .dy format
-		_dy_format = true;
-		_str = json_parse(buffer_read(_buf, buffer_text));
+		var result = dyc_chart_import_dy(_file, _import_info, _import_tp);
+
+		// Read background & image from .dy format.
+		if(_import_info && result == 0) {
+			var _remix = dyc_chart_import_dy_get_remix();
+			var _music = convert_mime_base64_to_file("audio", _remix.music, objMain.chartTitle);
+			if(_music != "")
+				music_load(_music);
+			var _image = convert_mime_base64_to_file("image", _remix.bg, objMain.chartTitle);
+			if(_image != "")
+				image_load(_image);
+			var _video = convert_mime_base64_to_file("video", _remix.bg, objMain.chartTitle);
+			if(_video != "")
+				video_load(_video);
+		}
 	}
     
-	// Read background & image from .dy format.
-    if(_import_info && _dy_format) {
-		var _music = convert_mime_base64_to_file("audio", _str.remix.music, objMain.chartTitle);
-		if(_music != "")
-			music_load(_music);
-		var _image = convert_mime_base64_to_file("image", _str.remix.bg, objMain.chartTitle);
-		if(_image != "")
-			image_load(_image);
-		var _video = convert_mime_base64_to_file("video", _str.remix.bg, objMain.chartTitle);
-		if(_video != "")
-			video_load(_video);
-	}
 }
 
 function map_import_osu(_file = "") {

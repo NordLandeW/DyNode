@@ -125,35 +125,6 @@ function dyc_create_note(noteProp, record = false) {
     }
 }
 
-/// @description To check if the buffer is compressed.
-function dyc_is_compressed_buffer(buffer) {
-	return DyCore_is_compressed(buffer_get_address(buffer), buffer_get_size(buffer)) >= 0;
-}
-
-/// @description Convert compressed/uncompressed buffer to project struct.
-/// @param {Id.Buffer} buffer The given buffer.
-/// @returns {Struct} The final struct.
-function dyc_read_project_buffer(buffer) {
-	var _json = "";
-	if(!dyc_is_compressed_buffer(buffer)) {
-		// Fallback to text format.
-		buffer_seek(buffer, buffer_seek_start, 0);
-		_json = buffer_read(buffer, buffer_text);
-	}
-	else {
-		_json = DyCore_decompress_string(buffer_get_address(buffer), buffer_get_size(buffer));
-		if(_json == "failed")
-			throw "Decompress failed.";
-	}
-
-	var _str = json_parse(_json);
-
-	if(!is_struct(_str))
-		throw "Parse failed.";
-	return _str;
-}
-
-
 /// @description Get note by noteID.
 /// @param {String} noteID The note ID.
 /// @returns {Struct.sNoteProp} The note struct or undefined if not found.
@@ -234,32 +205,41 @@ function dyc_get_note_count() {
     return DyCore_get_note_count();
 }
 
-function dyc_project_import_xml(filePath, importInfo, importTiming) {
-    var _result = DyCore_project_import_xml(filePath, importInfo, importTiming);
+function dyc_chart_import_xml(filePath, importInfo, importTiming) {
+    var _result = DyCore_chart_import_xml(filePath, importInfo, importTiming);
     if (_result == 1) {
         announcement_error("dym_import_failed");
-        return;
+        return -1;
     } else if (_result == 2) {
-        announcement_warning("bad_xml_chart_format", 10000);
-        return;
-    }
-
-    try {
-        if(importInfo) {
-            /// @type {Any}
-            var _info = dyc_chart_get_metadata();
-            with(objMain) {
-                chartTitle = _info.title;
-                chartDifficulty = _info.difficulty;
-                chartSideType = _info.sideType;
-            }
-        }
-    } catch (e) {
-        announcement_error("dym_import_info_timing_failed");
-        return;
+        announcement_warning("bad_dym_chart_format", 10000);
+        return -1;
     }
 
     show_debug_message("Load XML file completed.");
+    return 0;
+}
+
+function dyc_chart_import_dy(filePath, importInfo, importTiming) {
+    var _result = DyCore_chart_import_dy(filePath, importInfo, importTiming);
+    if (_result == 1) {
+        announcement_error("dym_import_failed");
+        return -1;
+    } else if (_result == 2) {
+        announcement_warning("bad_dym_chart_format", 10000);
+        return -1;
+    }
+
+    show_debug_message("Load DY file completed.");
+    return 0;
+}
+
+function dyc_chart_import_dy_get_remix() {
+    try {
+        return json_parse(DyCore_chart_import_dy_get_remix());
+    } catch (e) {
+        show_debug_message("Error parsing DY remix: " + string(e));
+        return undefined;
+    }
 }
 
 function dyc_project_load(filePath) {
