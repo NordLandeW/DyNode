@@ -60,12 +60,6 @@ if(_fmoderr < 0) {
     show_error("FMOD ERROR:\n"+FMODGMS_Util_GetErrorMessage(), false);
 }
 
-//! Deprecated.
-// if(keycheck_down(vk_f10)) {
-// 	load_config();
-// 	announcement_play("anno_reload_config");
-// }
-
 if(keycheck_down_ctrl(vk_f11)) {
 	debugLayer = !debugLayer;
 	show_debug_overlay(debugLayer);
@@ -93,12 +87,13 @@ if(room == rMain) {
 		// If there is a init struct
 		if(initVars != undefined) {
 			var _str = initVars;
-			with(objMain) {
-				chartTitle = _str.title;
-				chartSideType[0] = _str.ltype;
-				chartSideType[1] = _str.rtype;
-				chartDifficulty = difficulty_char_to_num(string_char_at(_str.diff, 1));
-			}
+			dyc_chart_set_metadata({
+				title: _str.title,
+				sideType: [_str.ltype, _str.rtype],
+				difficulty: difficulty_char_to_num(string_char_at(_str.diff, 1)),
+				charter: "",
+				artist: ""
+			});
 			if(_str.mus != "")
 				music_load(_str.mus);
 			if(_str.bg != "") background_load(_str.bg);

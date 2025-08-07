@@ -525,7 +525,9 @@ function project_load(_file = "") {
 	var _propath = filename_path(_file);
     
     var _path_deal = function(_pth, _propath) {
-    	if(filename_path(_pth)=="") return _propath+_pth;
+    	// Check if is relative path.
+		if(filename_name(_pth) == _pth)
+			return _propath + _pth;
     	return _pth;
     }
 
