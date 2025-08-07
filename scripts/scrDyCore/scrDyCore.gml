@@ -266,6 +266,10 @@ function dyc_project_load(filePath) {
     return DyCore_project_load(filePath);
 }
 
+function dyc_chart_import_dyn(filePath, importInfo, importTiming) {
+    return DyCore_chart_import_dyn(filePath, importInfo, importTiming);
+}
+
 function dyc_chart_get_metadata() {
     try {
         var _metadata = DyCore_get_chart_metadata();

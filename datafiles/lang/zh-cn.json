@@ -195,6 +195,7 @@
         "version_lower": "DyNode 已降级到版本 $0。\n回退到较旧版本的 DyNode 可能将丢失一些设置，且可能无法正常读取较新版本的谱面。",
         "clear_all_notes": "已清除全部音符。",
         "anno_dycore_error": "程序核心出现错误。\n错误信息: $0",
-        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0"
+        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0",
+        "dyn_chart_import_failed": "导入 DYN 谱面文件失败。\n错误信息: $0"
     }
 }

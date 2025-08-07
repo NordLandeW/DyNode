@@ -128,211 +128,10 @@ function map_import_dym(_file, _direct = false) {
 		return;
 	}
 	else {
-		// Parse .dy format
+		// TODO: Parse .dy format
 		_dy_format = true;
 		_str = json_parse(buffer_read(_buf, buffer_text));
 	}
-	static _arg_parser = function(_dy_format, arg) {
-		if(_dy_format)
-			return string(arg);
-		else
-			return arg.text;
-	}
-    buffer_delete(_buf);
-    var _note_id, _note_type, _note_time,
-        _note_position, _note_width, _note_subid;
-    var _barpm, _offset;
-    var _tp_lists = [], _nbpm;
-
-	var _temp_note_map = {}, chartStruct = {
-		charts: {
-			title: "",
-			difficulty: 0,
-			sidetype: ["PAD", "PAD"],
-			notes: []
-		},
-		timingPoints: [],
-	};
-
-	var _noteType_conversion = function (_type) {
-		if(_type == "NORMAL") return 0;
-		if(_type == "CHAIN") return 1;
-		if(_type == "HOLD") return 2;
-		if(_type == "SUB") return 3;
-	}
-    
-    // Import Information & bpm
-	if(variable_struct_exists(_str, "DynamixMap")) {
-		announcement_warning("dym_old_version_warning", 10000);
-		return;
-	}
-	else if(!variable_struct_exists(_str, "CMap")) {
-		announcement_error("bad_xml_chart_format");
-		return;
-	}
-
-	// Acquire basic map infos.
-    var _main = _str.CMap;
-	chartStruct.charts.title = _arg_parser(_dy_format, _main.m_path);
-	if(variable_struct_exists(_main, "m_leftRegion"))
-		chartStruct.charts.sidetype[0] = _arg_parser(_dy_format, _main.m_leftRegion);
-	else
-		chartStruct.charts.sidetype[0] = "PAD";
-	if(variable_struct_exists(_main, "m_rightRegion"))
-		chartStruct.charts.sidetype[1] = _arg_parser(_dy_format, _main.m_rightRegion);
-	else
-		chartStruct.charts.sidetype[1] = "PAD";
-	var chartID = _arg_parser(_dy_format, _main.m_mapID);
-    _barpm = real(_arg_parser(_dy_format, _main.m_barPerMin));
-	_offset = real(_arg_parser(_dy_format, _main.m_timeOffset));
-	
-	// Import 3 sides Notes.
-	var _import_fun = function (_dy_format, _arg_parser, _arr, _side, _temp_note_map) {
-		if(!variable_struct_exists(_arr, "m_notes"))
-			return;
-		_arr = _arr.m_notes;
-		if(!variable_struct_exists(_arr, "CMapNoteAsset"))
-			return;
-		_arr = _arr.CMapNoteAsset;
-		if(!is_array(_arr)) _arr = [_arr];
-		for(var i=0, l=array_length(_arr); i<l; i++) if(variable_struct_names_count(_arr[i]) >= 6) {
-			_note_id = _arg_parser(_dy_format, _arr[i].m_id);
-			_note_type = _arg_parser(_dy_format, _arr[i].m_type);
-			_note_time = _arg_parser(_dy_format, _arr[i].m_time);
-			_note_position = _arg_parser(_dy_format, _arr[i].m_position);
-			_note_width = _arg_parser(_dy_format, _arr[i].m_width);
-			_note_subid = _arg_parser(_dy_format, _arr[i].m_subId);
-
-			_note_id = $"{_note_id}_{_side}";
-			_note_subid = $"{_note_subid}_{_side}";
-
-			if(struct_exists(_temp_note_map, _note_id)) {
-				show_debug_message($"Warning: Duplicate note id found. Note ID_Side: {_note_id}");
-				continue;
-			}
-			_temp_note_map[$ _note_id] = {
-				type: _note_type,
-				bar: real(_note_time),
-				position: real(_note_position) + real(_note_width) / 2,		// Position fix
-				width: real(_note_width),
-				subid: _note_subid,
-				side: _side
-			};
-		}
-	}
-	
-	try {
-		_import_fun(_dy_format, _arg_parser, _main.m_notes, 0, _temp_note_map);
-		_import_fun(_dy_format, _arg_parser, _main.m_notesLeft, 1, _temp_note_map);
-		_import_fun(_dy_format, _arg_parser, _main.m_notesRight, 2, _temp_note_map);
-	} catch (e) {
-		announcement_error("error_dym_note_load_failed");
-		show_debug_message(string(e));
-		return;
-	}
-
-	var _imp_dym = false;
-	if(variable_struct_exists(_main, "m_argument")) {
-		if(variable_struct_exists(_main.m_argument, "m_bpmchange") && variable_struct_exists(_main.m_argument.m_bpmchange, "CBpmchange")) {
-			_imp_dym = true;
-			try {
-				var _bpms = _main.m_argument.m_bpmchange.CBpmchange;
-				if(!is_array(_bpms)) _bpms = [_bpms];
-				for(var i=0, l=array_length(_bpms); i<l; i++) {
-					_note_time = real(_arg_parser(_dy_format, _bpms[i].m_time));
-					_nbpm = real(_arg_parser(_dy_format, _bpms[i].m_value));
-				
-					array_push(_tp_lists, {
-			    		time: _note_time,
-			    		barpm: _nbpm
-			    	});
-				}
-				
-				array_sort(_tp_lists, function (a, b) { return sign(a.time-b.time); });
-			}
-			catch (e) {
-				announcement_error("error_dym_bpm_load_failed");
-			}
-		}
-	}
-
-	chartStruct.charts.difficulty = difficulty_char_to_num(string_char_at(chartID, string_length(chartID)));
-    
-    // Import timing points info
-	if(_imp_dym) {
-		var _rtime = bar_to_time(-_offset, _barpm);
-		for(var i=0, l=array_length(_tp_lists); i<l; i++) {
-			var _ntime = _tp_lists[i].time;
-			if(i>0)
-				_ntime = bar_to_time(_ntime - _tp_lists[i-1].time, _tp_lists[i-1].barpm) + _rtime;
-			else
-				_ntime = _rtime;
-			_rtime = _ntime;
-			
-			array_push(
-				chartStruct.timingPoints,
-				new sTimingPoint(_ntime, bpm_to_mspb(_tp_lists[i].barpm*4), 4)
-			);
-		}
-	}
-	else {
-		array_push(
-			chartStruct.timingPoints,
-			new sTimingPoint(
-				bar_to_time(-_offset, _barpm),
-				bpm_to_mspb(_barpm*4),
-				4
-			)
-		);
-	}
-	timing_point_sort();
-    
-    // Fix every note's & tp's time
-    _offset = bar_to_time(_offset, _barpm);
-	var _note_ids = struct_get_names(_temp_note_map);
-	show_debug_message_safe($"Found {array_length(_note_ids)} notes.");
-	for(var j=0, _l=array_length(_note_ids); j<_l; j++) {
-		var _note = _temp_note_map[$ _note_ids[j]];
-		if(array_length(_tp_lists) > 1) {
-			var _ntime = _note.bar;
-			var _rtime = 0;
-			for(var i=1, l=array_length(_tp_lists); i<=l; i++) {
-				if(i == l || _tp_lists[i].time > _ntime) {
-					_rtime += bar_to_time(_ntime - _tp_lists[i-1].time, _tp_lists[i-1].barpm);
-					break;
-				}
-				_rtime += bar_to_time(_tp_lists[i].time - _tp_lists[i-1].time, _tp_lists[i-1].barpm);
-			}
-			_note.time = _rtime;
-		}
-		else
-			_note.time = bar_to_time(_note.bar, _barpm);    	 // Bar to Chart Time in ms
-		
-		_note.time = time_to_mtime(_note.time, _offset);         // Chart Time to Music Time in ms (Fix the offset to 0)
-	}
-
-	// Convert note maps to dyn format's note array.
-	for(var i=0, l=array_length(_note_ids); i<l; i++)
-	if(_temp_note_map[$ _note_ids[i]].type != "SUB")
-	{
-		var _note = _temp_note_map[$ _note_ids[i]];
-		_note.type = _noteType_conversion(_note.type);
-		var _convertedNote = {
-			side: _note.side,
-			time: _note.time,
-			noteType: _note.type,
-			lastTime: 0,
-			width: _note.width,
-			position: _note.position
-		};
-		if(_note.type == 2) {
-			_convertedNote.lastTime = _temp_note_map[$ _note.subid].time - _note.time;
-		}
-		array_push(chartStruct.charts.notes, _convertedNote);
-	}
-
-	// Import dyn format's chart struct.
-	map_import_dyn_struct(chartStruct, _import_info, _import_tp);
     
 	// Read background & image from .dy format.
     if(_import_info && _dy_format) {
@@ -445,27 +244,8 @@ function map_import_osu(_file = "") {
 function map_import_dyn(_file) {
 	var _import_info = show_question_i18n("box_q_import_info");
     var _import_tp = show_question_i18n("box_q_import_bpm");
-    
-	var _buf = buffer_load(_file);
-	/// @type {Any} 
-    var _str = dyc_read_project_buffer(_buf);
-	buffer_delete(_buf);
-    
-    if(!is_struct(_str)) {
-    	show_error("Load failed.", true);
-		return;
-	}
-    
-	map_import_dyn_struct(_str, _import_info, _import_tp);
-}
 
-function map_import_dyn_struct(_str, _import_info, _import_tp) {
-	if(_import_tp) {
-		objEditor.timingPoints = SnapDeepCopy(array_concat(objEditor.timingPoints, _str.timingPoints));
-		timing_point_sort();
-	}
-	
-	map_load_struct(_str.charts, _import_info, _import_tp);
+	dyc_chart_import_dyn(_file, _import_info, _import_tp);
 }
 
 function map_set_title() {
@@ -620,7 +400,7 @@ function image_load(_file) {
 }
 
 function map_export_xml(_export_to_dym) {
-	if(array_length(objEditor.timingPoints) == 0) {
+	if(dyc_get_timingpoints_count()) {
 		announcement_error("export_timing_error");
 		return;
 	}
@@ -741,19 +521,18 @@ function map_export_xml(_export_to_dym) {
     	var _rbar = 0;
     	var _arr = [];
     	
-    	with(objEditor) {
-    		var l = array_length(timingPoints);
-    		for(var i=0; i<l; i++) {
-    			if(i>0)
-    				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-    					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-    			
-    			array_push(_arr, {
-    				m_time : { text : string_format(_rbar, 1, EXPORT_XML_EPS) },
-    				m_value : { text : string_format(mspb_to_bpm(timingPoints[i].beatLength)/4, 1, EXPORT_XML_EPS) }
-    			});
-    		}
-    	}
+		var timingPoints = dyc_get_timingpoints();
+		var l = array_length(timingPoints);
+		for(var i=0; i<l; i++) {
+			if(i>0)
+				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
+					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
+			
+			array_push(_arr, {
+				m_time : { text : string_format(_rbar, 1, EXPORT_XML_EPS) },
+				m_value : { text : string_format(mspb_to_bpm(timingPoints[i].beatLength)/4, 1, EXPORT_XML_EPS) }
+			});
+		}
     	
     	_str.CMap.m_argument = {
     		m_bpmchange : {
