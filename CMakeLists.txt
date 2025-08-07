@@ -24,7 +24,7 @@ add_library(lua STATIC ${LUA_SOURCES})
 target_include_directories(lua PUBLIC "lib/lua")
 
 # --- pugixml ---
-add_library(pugixml STATIC lib/pugixml.cpp)
+add_library(pugixml STATIC lib/pugixml/pugixml.cpp)
 target_include_directories(pugixml PUBLIC "lib")
 
 # --- delaunator ---
@@ -43,7 +43,8 @@ target_include_directories(DyCore PRIVATE
     src/timing
     src/utils
     lib/
-    lib/sol/
+    lib/pugixml
+    lib/sol
 )
 
 target_compile_definitions(DyCore PRIVATE 
