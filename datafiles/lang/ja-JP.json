@@ -195,6 +195,7 @@
         "version_lower": "DyNodeはバージョン $0 にダウングレードされました。\n古いバージョンへのロールバックでは一部設定が失われたり、新バージョン譜面が正しく読み込めない可能性があります。",
         "clear_all_notes": "すべてのノートを削除しました。",
         "anno_dycore_error": "プログラムコアでエラーが発生しました。\nエラーメッセージ: $0",
-        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0"
+        "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0",
+        "dyn_chart_import_failed": "导入 DYN 谱面文件失败。\n错误信息: $0"
     }
 }
