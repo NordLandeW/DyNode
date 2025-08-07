@@ -6,7 +6,9 @@
 
 #include "compress.h"
 #include "gm.h"
+#include "note.h"
 #include "project.h"
+#include "timing.h"
 #include "utils.h"
 
 using std::string;
@@ -116,15 +118,16 @@ bool dyn_old_format_check(const json& input) {
     return false;
 }
 
+// This function is for reading the entire project.
 int project_import_dyn(const char* filePath, Project& project) {
+    json projectJson;
+
     std::ifstream stream(convert_char_to_path(filePath), std::ios::binary);
     if (!stream.is_open()) {
         print_debug_message("Failed to open DYN file: " + string(filePath));
         return -1;
     }
     print_debug_message("Opened DYN file: " + string(filePath));
-
-    json projectJson;
 
     std::string content;
     content.assign((std::istreambuf_iterator<char>(stream)),
@@ -157,6 +160,34 @@ int project_import_dyn(const char* filePath, Project& project) {
     }
 
     projectJson.get_to<Project>(project);
+    return 0;
+}
+
+// This function is for importing charts.
+int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
+    try {
+        Project project;
+        project_import_dyn(filePath, project);
+
+        // Import notes from the first chart.
+        const Chart& chart = project.charts[0];
+        for (const Note& note : chart.notes) {
+            create_note(note);
+        }
+
+        // Import chart information if requested.
+        if (importInfo) {
+            chart_set_metadata(chart.metadata);
+        }
+
+        // Import timing information if requested.
+        if (importTiming) {
+            get_timing_manager().append_timing_points(chart.timingPoints);
+        }
+    } catch (const std::exception& e) {
+        gamemaker_announcement(ANNO_ERROR, "dyn_chart_import_failed",
+                               {e.what()});
+    }
 
     return 0;
 }

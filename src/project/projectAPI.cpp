@@ -1,4 +1,5 @@
 #include "api.h"
+#include "format/dyn.h"
 #include "format/xml.h"
 #include "gm.h"
 #include "project.h"
@@ -58,6 +59,17 @@ DYCORE_API double DyCore_project_load(const char* filePath) {
         return -1;
     }
     return 0;
+}
+
+DYCORE_API double DyCore_chart_import_dyn(const char* filePath,
+                                          double importInfo,
+                                          double importTiming) {
+    if (!filePath || strlen(filePath) == 0) {
+        throw_error_event("File path is empty.");
+        return -1;
+    }
+
+    return chart_import_dyn(filePath, importInfo > 0, importTiming > 0);
 }
 
 DYCORE_API const char* DyCore_get_chart_metadata() {
