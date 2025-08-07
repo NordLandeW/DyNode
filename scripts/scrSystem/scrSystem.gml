@@ -209,10 +209,11 @@ function map_import_osu(_file = "") {
 	                				if(_ntype & 128) { // If is a Mania Hold
 	                					var _subtim = real(string_copy(_grid[i][5], 1, string_pos(":", _grid[i][5])-1)) + _delay_time;
 										build_note({
+											time: _ntime,
 											noteType: NOTE_TYPE.HOLD,
 											position: _x / 512 * 5,
 											width: 1.0,
-											lastTime: _subtim,
+											lastTime: _subtim - _ntime,
 											side: NOTE_SIDE.FRONT,
 										})
 	                				} 
