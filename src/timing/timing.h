@@ -1,8 +1,10 @@
 #pragma once
+#include <cstdint>
+#include <json.hpp>
 #include <string>
 #include <vector>
 
-#include "json.hpp"
+#include "utils.h"
 
 struct TimingPoint {
     double time;
@@ -55,17 +57,14 @@ class TimingManager {
    private:
     std::vector<TimingPoint> timingPoints;
     bool outOfOrder = false;
-    long long lastModifiedTime = 0;
+    uint64_t lastModifiedTime = 0;
 
     void mark_modified() {
-        lastModifiedTime =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch())
-                .count();
+        lastModifiedTime = get_current_time();
     }
 
    public:
-    long long get_last_modified_time() const {
+    uint64_t get_last_modified_time() const {
         return lastModifiedTime;
     }
 

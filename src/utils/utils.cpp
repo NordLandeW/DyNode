@@ -178,3 +178,9 @@ std::string format_double_with_precision(double value, int precision) {
     }
     return str;
 }
+
+uint64_t get_current_time() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}

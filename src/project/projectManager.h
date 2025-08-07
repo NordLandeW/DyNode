@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <mutex>
 
 #include "json.hpp"
@@ -9,6 +10,7 @@ class ProjectManager {
     mutable std::mutex mtx;
     Project project;
     int currentChartIndex = 0;
+    uint64_t chartMetadataLastModifiedTime = 0;
     bool is_current_chart_set();
     void check_current_chart_set();
     Chart &get_current_chart();
@@ -35,6 +37,7 @@ class ProjectManager {
 
     void set_chart_metadata(const ChartMetadata &meta);
     ChartMetadata get_chart_metadata();
+    uint64_t get_chart_metadata_last_modified_time() const;
     void set_chart_path(const ChartPath &path);
     ChartPath get_chart_path();
     void set_project_metadata(const nlohmann::json &meta);

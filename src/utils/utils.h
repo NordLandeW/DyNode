@@ -21,3 +21,5 @@ char difficulty_int_to_char(int index);
 int hardware_concurrency();
 
 std::string format_double_with_precision(double value, int precision);
+
+uint64_t get_current_time();

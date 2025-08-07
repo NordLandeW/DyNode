@@ -78,12 +78,18 @@ void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {
     std::lock_guard<std::mutex> lock(mtx);
     check_current_chart_set();
     get_current_chart().metadata = meta;
+
+    chartMetadataLastModifiedTime = get_current_time();
 }
 
 ChartMetadata ProjectManager::get_chart_metadata() {
     std::lock_guard<std::mutex> lock(mtx);
     check_current_chart_set();
     return get_current_chart().metadata;
+}
+
+uint64_t ProjectManager::get_chart_metadata_last_modified_time() const {
+    return chartMetadataLastModifiedTime;
 }
 
 void ProjectManager::set_chart_path(const ChartPath &path) {

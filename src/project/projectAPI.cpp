@@ -4,6 +4,7 @@
 #include "format/xml.h"
 #include "gm.h"
 #include "project.h"
+#include "projectManager.h"
 #include "utils.h"
 
 // Saves the project to a file.
@@ -112,6 +113,10 @@ DYCORE_API const char* DyCore_get_chart_metadata() {
     static string chartMetadata;
     chartMetadata = nlohmann::json(chart_get_metadata()).dump();
     return chartMetadata.c_str();
+}
+
+DYCORE_API double DyCore_get_chart_metadata_last_modified_time() {
+    return get_project_manager().get_chart_metadata_last_modified_time();
 }
 
 DYCORE_API const char* DyCore_get_chart_path() {
