@@ -90,6 +90,24 @@ DYCORE_API double DyCore_chart_import_dyn(const char* filePath,
     return chart_import_dyn(filePath, importInfo > 0, importTiming > 0);
 }
 
+DYCORE_API double DyCore_chart_export_xml(const char* filePath, double isDym,
+                                          double fixError) {
+    if (!filePath || strlen(filePath) == 0) {
+        throw_error_event("File path is empty.");
+        return -1;
+    }
+
+    try {
+        chart_export_xml(filePath, isDym > 0, fixError);
+    } catch (const std::exception& e) {
+        print_debug_message("Failed to export XML file to " + string(filePath) +
+                            ": " + e.what());
+        return -1;
+    }
+
+    return 0;
+}
+
 DYCORE_API const char* DyCore_get_chart_metadata() {
     static string chartMetadata;
     chartMetadata = nlohmann::json(chart_get_metadata()).dump();

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <filesystem>
 #include <iostream>
 #include <random>
@@ -115,6 +116,12 @@ int difficulty_char_to_int(char ch) {
     size_t index = DIFFICULTY_STRING.find(ch);
     return (index != std::string::npos) ? static_cast<int>(index) : -1;
 }
+char difficulty_int_to_char(int index) {
+    if (index < 0 || index >= DIFFICULTY_STRING.size()) {
+        throw std::out_of_range("Invalid difficulty index");
+    }
+    return DIFFICULTY_STRING[index];
+}
 
 // Copies a block of memory from a source address to a destination address.
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
@@ -155,4 +162,19 @@ DYCORE_API const char* DyCore_random_string(double length) {
 
 int hardware_concurrency() {
     return std::thread::hardware_concurrency();
+}
+
+std::string format_double_with_precision(double value, int precision) {
+    char buffer[512];
+    snprintf(buffer, sizeof(buffer), "%.*f", precision, value);
+    std::string str(buffer);
+
+    size_t dot_pos = str.find('.');
+    if (dot_pos != std::string::npos) {
+        str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+        if (str.back() == '.') {
+            str.pop_back();
+        }
+    }
+    return str;
 }

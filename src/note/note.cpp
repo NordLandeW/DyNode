@@ -98,19 +98,15 @@ int modify_note(const Note& note) {
     return 0;
 }
 
-void get_note_array(std::vector<Note>& notes) {
-    auto& noteMan = get_note_pool_manager();
-    noteMan.access_all_notes([&](Note& note) {
-        if (note.type != 3)
-            notes.push_back(note);
-    });
+void get_notes_array(std::vector<Note>& notes, bool excludeSub) {
+    get_note_pool_manager().get_notes(notes, excludeSub);
 }
-void get_note_array(std::vector<NoteExportView>& notes) {
-    auto& noteMan = get_note_pool_manager();
-    noteMan.access_all_notes([&](Note& note) {
-        if (note.type != 3)
-            notes.push_back(NoteExportView(note));
-    });
+void get_notes_array(std::vector<NoteExportView>& notes, bool excludeSub) {
+    std::vector<Note> noteArray;
+    get_note_pool_manager().get_notes(noteArray, excludeSub);
+    for (const auto& note : noteArray) {
+        notes.push_back(NoteExportView(note));
+    }
 }
 
 string generate_note_id() {
@@ -121,7 +117,7 @@ string get_notes_array_string() {
     json js;
 
     std::vector<NoteExportView> notes;
-    get_note_array(notes);
+    get_notes_array(notes);
 
     js = notes;
 

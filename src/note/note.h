@@ -26,8 +26,9 @@ int modify_note(const Note &note);
 
 string generate_note_id();
 
-void get_note_array(std::vector<Note> &notes);
-void get_note_array(std::vector<NoteExportView> &notes);
+void get_notes_array(std::vector<Note> &notes, bool excludeSub = true);
+void get_notes_array(std::vector<NoteExportView> &notes,
+                     bool excludeSub = true);
 std::string get_notes_array_string();
 
 inline void from_json(const json &j, Note &n);

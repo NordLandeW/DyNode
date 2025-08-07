@@ -16,4 +16,8 @@ std::string get_file_modification_time(char* file_path);
 std::string random_string(int length);
 int difficulty_char_to_int(char ch);
 
+char difficulty_int_to_char(int index);
+
 int hardware_concurrency();
+
+std::string format_double_with_precision(double value, int precision);
