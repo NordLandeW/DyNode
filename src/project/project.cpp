@@ -16,8 +16,6 @@
 #include "timing.h"
 #include "utils.h"
 
-ChartMetadata chartMetaData;
-
 // Verifies the integrity of a project string by checking its JSON structure.
 //
 // @param projectStr The project data as a JSON string.
