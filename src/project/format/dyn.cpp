@@ -185,8 +185,8 @@ int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
             get_timing_manager().append_timing_points(chart.timingPoints);
         }
     } catch (const std::exception& e) {
-        gamemaker_announcement(ANNO_ERROR, "dyn_chart_import_failed",
-                               {e.what()});
+        gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+                               "dyn_chart_import_failed", {e.what()});
     }
 
     return 0;

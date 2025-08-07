@@ -54,7 +54,7 @@ void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
     json j = json::object();
     j["msg"] = message;
     j["args"] = args;
-    AsyncEvent event = {GM_ANNOUNCEMENT, type, j.dump()};
+    AsyncEvent event = {GM_ANNOUNCEMENT, (int)type, j.dump()};
     push_async_event(event);
     return;
 }

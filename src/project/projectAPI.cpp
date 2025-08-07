@@ -1,4 +1,5 @@
 #include "api.h"
+#include "format/dy.h"
 #include "format/dyn.h"
 #include "format/xml.h"
 #include "gm.h"
@@ -38,23 +39,40 @@ DYCORE_API const char* DyCore_get_notes_array_string() {
     return notesArrayString.c_str();
 }
 
-DYCORE_API double DyCore_project_import_xml(const char* filePath,
-                                            double importInfo,
-                                            double importTiming) {
+DYCORE_API double DyCore_chart_import_xml(const char* filePath,
+                                          double importInfo,
+                                          double importTiming) {
     if (!filePath || strlen(filePath) == 0) {
         throw_error_event("File path is empty.");
         return -1;
     }
 
-    return project_import_xml(filePath, importInfo > 0, importTiming > 0);
+    return (double)chart_import_xml(filePath, importInfo > 0, importTiming > 0);
+}
+
+DYCORE_API double DyCore_chart_import_dy(const char* filePath,
+                                         double importInfo,
+                                         double importTiming) {
+    if (!filePath || strlen(filePath) == 0) {
+        throw_error_event("File path is empty.");
+        return -1;
+    }
+
+    return (double)chart_import_dy(filePath, importInfo > 0, importTiming > 0);
+}
+
+DYCORE_API const char* DyCore_chart_import_dy_get_remix() {
+    static string remix;
+    remix = get_dy_remix();
+    return remix.c_str();
 }
 
 DYCORE_API double DyCore_project_load(const char* filePath) {
     try {
         load_project(filePath);
     } catch (const std::exception& e) {
-        gamemaker_announcement(ANNO_ERROR, "anno_project_load_failed",
-                               {e.what()});
+        gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+                               "anno_project_load_failed", {e.what()});
         print_debug_message("Project load failed: " + string(e.what()));
         return -1;
     }

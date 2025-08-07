@@ -1,9 +1,10 @@
 
-#include "xml.h"
+#include "dy.h"
 
 #include <exception>
 #include <fstream>
-#include <pugixml.hpp>
+#include <json.hpp>
+#include <string>
 
 #include "gm.h"
 #include "note.h"
@@ -11,37 +12,66 @@
 #include "timing.h"
 #include "utils.h"
 
+using nlohmann::json;
 using std::string;
 
-IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
-                                          bool importMetadata,
-                                          bool importTiming) {
+double json_to_double(const json& j) {
+    if (j.is_string()) {
+        return std::stod(j.get<string>());
+    }
+    if (j.is_number()) {
+        return j.get<double>();
+    }
+    throw std::runtime_error("Invalid type for double conversion");
+}
+
+string json_to_string(const json& j) {
+    if (j.is_string()) {
+        return j.get<string>();
+    }
+    if (j.is_number_integer()) {
+        return std::to_string(j.get<long long>());
+    }
+    if (j.is_number_float()) {
+        return std::to_string(j.get<double>());
+    }
+    if (j.is_null()) {
+        return "";
+    }
+    throw std::runtime_error("Invalid type for string conversion: " + j.dump());
+}
+
+json lastRemix;
+
+string get_dy_remix() {
+    return lastRemix.dump();
+}
+
+IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
+                                        bool importMetadata,
+                                        bool importTiming) {
     // Read file into buffer.
     std::ifstream stream(convert_char_to_path(filePath));
     if (!stream.is_open()) {
-        print_debug_message("Failed to open XML file: " + string(filePath));
-        return IMPORT_XML_RESULT_STATES::FAILURE;
+        print_debug_message("Failed to open DY file: " + string(filePath));
+        return IMPORT_DY_RESULT_STATES::FAILURE;
     }
 
     auto start = std::chrono::high_resolution_clock::now();
 
     try {
-        pugi::xml_document doc;
-        pugi::xml_parse_result result = doc.load(stream);
-        if (!result) {
-            throw std::runtime_error("Failed to parse XML file: " +
-                                     string(filePath));
-        }
+        json doc = json::parse(stream);
+        stream.close();
 
         // Check for old Dynamaker format.
-        if (doc.child("DynamixMap")) {
-            return IMPORT_XML_RESULT_STATES::OLD_FORMAT;
+        if (doc.contains("DynamixMap")) {
+            return IMPORT_DY_RESULT_STATES::OLD_FORMAT;
         }
 
-        auto map_root = doc.child("CMap");
-        if (!map_root) {
+        auto map_root = doc["CMap"];
+        if (map_root.is_null()) {
             throw std::runtime_error(
-                "Invalid XML structure: Missing <CMap> root element");
+                "Invalid DY structure: Missing <CMap> root element");
         }
 
         auto noteType_conversion = [](const string& type) -> int {
@@ -58,47 +88,45 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
 
         // Read chart metadata.
         ChartMetadata metaData;
-        metaData.sideType[0] = map_root.child_value("m_leftRegion");
-        metaData.sideType[1] = map_root.child_value("m_rightRegion");
-        string chartID = map_root.child_value("m_mapID");
+        metaData.sideType[0] = map_root["m_leftRegion"];
+        metaData.sideType[1] = map_root["m_rightRegion"];
+        string chartID = map_root["m_mapID"];
         metaData.difficulty = difficulty_char_to_int(chartID.back());
-        metaData.title = map_root.child_value("m_path");
+        metaData.title = map_root["m_path"];
 
         if (importMetadata)
             chart_set_metadata(metaData);
 
-        double barPerMin = std::stod(map_root.child_value("m_barPerMin"));
-        double offset = std::stod(map_root.child_value("m_timeOffset"));
+        double barPerMin = json_to_double(map_root["m_barPerMin"]);
+        double offset = json_to_double(map_root["m_timeOffset"]);
 
         // Read note data.
-        struct XMLNoteData {
+        struct DYNoteData {
             string id, subid;
             int type, side;
             double bar, position, width, time;
         };
-        struct XMLTimingData {
+        struct DYTimingData {
             double time;
             double barPerMinute;
         };
-        std::vector<XMLNoteData> notes;
+        std::vector<DYNoteData> notes;
 
-        auto import_side_notes = [&](pugi::xml_node side_root, int side) {
-            auto arrNode = side_root.child("m_notes");
-            if (!arrNode)
+        auto import_side_notes = [&](const json& side_root, int side) {
+            auto arrNode = side_root["m_notes"]["CMapNoteAsset"];
+            if (!arrNode.is_array())
                 return;
-            for (auto noteNode : arrNode.children("CMapNoteAsset")) {
-                XMLNoteData noteData;
+            for (auto noteNode : arrNode) {
+                DYNoteData noteData;
                 // Read
-                noteData.id = noteNode.child_value("m_id");
-                noteData.subid = noteNode.child_value("m_subId");
-                noteData.type =
-                    noteType_conversion(noteNode.child_value("m_type"));
-                noteData.bar = std::stod(noteNode.child_value("m_time"));
-                noteData.position =
-                    std::stod(noteNode.child_value("m_position"));
-                noteData.width = std::stod(noteNode.child_value("m_width"));
+                noteData.id = json_to_string(noteNode["m_id"]);
+                noteData.subid = json_to_string(noteNode["m_subId"]);
+                noteData.type = noteType_conversion(noteNode["m_type"]);
+                noteData.bar = json_to_double(noteNode["m_time"]);
+                noteData.position = json_to_double(noteNode["m_position"]);
+                noteData.width = json_to_double(noteNode["m_width"]);
 
-                // Convert XML's position to DyNode's position.
+                // Convert DY's position to DyNode's position.
                 noteData.position = noteData.position + noteData.width / 2;
                 noteData.id += "_" + std::to_string(side);
                 noteData.subid += "_" + std::to_string(side);
@@ -107,25 +135,26 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
             }
         };
 
-        import_side_notes(map_root.child("m_notes"), 0);
-        import_side_notes(map_root.child("m_notesLeft"), 1);
-        import_side_notes(map_root.child("m_notesRight"), 2);
+        import_side_notes(map_root["m_notes"], 0);
+        import_side_notes(map_root["m_notesLeft"], 1);
+        import_side_notes(map_root["m_notesRight"], 2);
 
         // Read timing data.
         bool hasTimingData = false;
-        std::vector<XMLTimingData> xmlTimings;
-        if (auto timingRootNode =
-                map_root.child("m_argument").child("m_bpmchange")) {
-            for (auto timingNode : timingRootNode.children("CBpmchange")) {
+        std::vector<DYTimingData> xmlTimings;
+        if (map_root.contains("m_argument") &&
+            map_root["m_argument"].contains("m_bpmchange")) {
+            auto timingRootNode = map_root["m_argument"]["m_bpmchange"];
+            for (auto timingNode : timingRootNode["CBpmchange"]) {
                 xmlTimings.push_back({
-                    std::stod(timingNode.child_value("m_time")),
-                    std::stod(timingNode.child_value("m_value")),
+                    json_to_double(timingNode["m_time"]),
+                    json_to_double(timingNode["m_value"]),
                 });
                 hasTimingData = true;
             }
 
             std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const XMLTimingData& a, const XMLTimingData& b) {
+                      [](const DYTimingData& a, const DYTimingData& b) {
                           return a.time < b.time;
                       });
         }
@@ -209,18 +238,22 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
                 }
                 create_note(newNote);
             }
+
+        // Save remix part.
+        lastRemix = doc["remix"];
+
     } catch (const std::exception& e) {
-        print_debug_message("Exception occurred while importing XML: " +
+        print_debug_message("Exception occurred while importing DY: " +
                             string(e.what()));
-        throw_error_event("XML import error: " + string(e.what()));
-        return IMPORT_XML_RESULT_STATES::FAILURE;
+        throw_error_event("DY import error: " + string(e.what()));
+        return IMPORT_DY_RESULT_STATES::FAILURE;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
 
-    print_debug_message("XML import took: " + std::to_string(duration.count()) +
+    print_debug_message("DY import took: " + std::to_string(duration.count()) +
                         " seconds");
 
-    return IMPORT_XML_RESULT_STATES::SUCCESS;
+    return IMPORT_DY_RESULT_STATES::SUCCESS;
 }
