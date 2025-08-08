@@ -1,6 +1,7 @@
-﻿cmake_minimum_required (VERSION 3.14)
+﻿cmake_minimum_required (VERSION 3.28)
 
 project ("DyCore")
+include(FetchContent)
 
 if(POLICY CMP0177)
     cmake_policy(SET CMP0177 NEW)
@@ -31,6 +32,14 @@ target_include_directories(pugixml PUBLIC "lib")
 add_library(delaunator STATIC lib/delaunator.cpp)
 target_include_directories(delaunator PUBLIC "lib")
 
+# --- glm ---
+FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm.git
+  GIT_TAG        1.0.1
+)
+FetchContent_MakeAvailable(glm)
+
 ## DyCore
 
 file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
@@ -42,6 +51,7 @@ target_include_directories(DyCore PRIVATE
     src/extension
     src/timing
     src/utils
+    src/render
     lib/
     lib/pugixml
     lib/sol
@@ -68,6 +78,7 @@ target_link_libraries(DyCore PRIVATE zstd)
 target_link_libraries(DyCore PRIVATE lua)
 target_link_libraries(DyCore PRIVATE pugixml)
 target_link_libraries(DyCore PRIVATE delaunator)
+target_link_libraries(DyCore PRIVATE glm::glm)
 
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
