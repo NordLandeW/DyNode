@@ -54,6 +54,7 @@ void ProjectManager::clear_project() {
     std::lock_guard<std::mutex> lock(mtx);
     project = Project();
     currentChartIndex = 0;
+    chartMetadataLastModifiedTime = get_current_time();
 }
 
 void ProjectManager::load_project_from_file(const char *filePath) {

@@ -142,7 +142,6 @@ void NotePoolManager::access_note(const std::string& noteID,
         note_ptr = get_note_pointer(noteID);
     }  // Release the manager lock
 
-    std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
     executor(*note_ptr);
 }
 
@@ -152,7 +151,6 @@ void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
-            std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
             executor(*note_ptr);
         }
     }
@@ -172,7 +170,6 @@ void NotePoolManager::access_all_notes_safe(
         }
     }
     for (const auto& note_ptr : notes) {
-        std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
         executor(*note_ptr);
     }
 }
@@ -186,7 +183,6 @@ void NotePoolManager::access_all_notes_parallel(
     tf::Taskflow taskflow;
     taskflow.for_each(noteArray.begin(), noteArray.end(), [&](nptr note_ptr) {
         if (note_ptr) {
-            std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
             executor(*note_ptr);
         }
     });
@@ -207,10 +203,8 @@ void NotePoolManager::access_all_notes_parallel_safe(
     }
     tf::Executor tfexecutor;
     tf::Taskflow taskflow;
-    taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
-        std::lock_guard<std::mutex> noteLock(note_ptr->mtx);
-        executor(*note_ptr);
-    });
+    taskflow.for_each(notes.begin(), notes.end(),
+                      [&](nptr note_ptr) { executor(*note_ptr); });
     tfexecutor.run(taskflow).wait();
 }
 
