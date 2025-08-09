@@ -1,3 +1,4 @@
+global.frameCurrentTime = get_timer();
 
 // Input Update
 if(global.__InputManager != undefined)

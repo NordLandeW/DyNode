@@ -83,6 +83,8 @@ global.noteTypeName = ["NORMAL", "CHAIN", "HOLD", "SUB"];
 global.__GUIManager = undefined;
 
 global.shadowCount = 0;
+// Used to distinguish different frames. Updated on begin step event.
+global.frameCurrentTime = 0;
 
 // Generate Temp Sprite
 

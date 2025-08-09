@@ -202,13 +202,10 @@ var _music_resync_request = false;
 
 #region NOTES ACTIVATE & DEACTIVATE
 
-	var i=max(chartNotesArrayAt-3, 0), l=noteCount;
-	var _editMode = editor_get_editmode();
-	for(; i<l; i++) {
-        if(_editMode == 5 && note_is_activated(dyc_get_note_id_at_index(i)))
-            continue;
-		if(note_check_and_activate(i) < 0)
-			break;
+	var _activeNotes = dyc_get_active_notes(objMain.nowTime, objMain.playbackSpeed);
+    for(var i = 0; i < array_length(_activeNotes); i++) {
+        var note = _activeNotes[i];
+        note_check_and_activate(note);
     }
 
 #endregion

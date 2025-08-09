@@ -178,10 +178,15 @@ function note_delete_all_manually(_record = true) {
 	}
 }
 
-function note_check_and_activate(_posistion_in_array) {
-	var _str = dyc_get_note_at_index(_posistion_in_array);
-	if(note_is_activated(_str.noteID)) {
-		return 0;
+function note_check_and_activate(index_or_ID) {
+	var _str;
+	if(is_string(index_or_ID)) {
+		if(note_is_activated(index_or_ID)) return 0;
+		_str = dyc_get_note(index_or_ID);
+	}
+	else {
+		_str = dyc_get_note_at_index(index_or_ID);
+		if(note_is_activated(_str.noteID)) return 0;
 	}
 	var _note_inbound = !_outbound_check_t(_str.time, _str.side) && _str.time >= objMain.nowTime;
 	var _hold_intersect = _str.noteType >= 2 &&

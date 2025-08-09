@@ -418,3 +418,33 @@ function dyc_timingpoints_add_offset(offset) {
 function dyc_project_get_version() {
     return DyCore_get_project_version();
 }
+
+function dyc_get_active_notes(nowTime, noteSpeed) {
+    static _activeNotes = [];
+    static lastUpdateTime = -1;
+    static buffer = buffer_create(1024 * 1024, buffer_fixed, 1);
+
+    if(lastUpdateTime != global.frameCurrentTime) {
+        lastUpdateTime = global.frameCurrentTime;
+        delete _activeNotes;
+        _activeNotes = [];
+    }
+    else return _activeNotes;
+
+    var boundSize = DyCore_cac_active_notes(nowTime, noteSpeed);
+    if(boundSize > buffer_get_size(buffer)) {
+        buffer_resize(buffer, boundSize);
+        buffer_set_used_size(buffer, boundSize);
+    }
+
+    DyCore_get_active_notes(buffer_get_address(buffer));
+    buffer_seek(buffer, buffer_seek_start, 0);
+    var count = buffer_read(buffer, buffer_u32);
+
+    array_resize(_activeNotes, count);
+    for(var i = 0; i < count; i++) {
+        _activeNotes[i] = buffer_read(buffer, buffer_string);
+    }
+
+    return _activeNotes;
+}

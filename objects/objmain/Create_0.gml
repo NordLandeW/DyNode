@@ -46,14 +46,14 @@ depth = 0;
 
 // Target Line
 
-    targetLineBelow = 137*BASE_RES_H/1080;
-    targetLineBeside = 112*BASE_RES_W/1920;
+    targetLineBelow = 137;
+    targetLineBeside = 112;
     targetLineBelowH = 6;
     targetLineBesideW = 4;
     
     function _position_update() {
-        targetLineBelow = 137*BASE_RES_H/1080;
-        targetLineBeside = 112*BASE_RES_W/1920;
+        targetLineBelow = 137;
+        targetLineBeside = 112;
     }
 
 // Top Progress Bar
