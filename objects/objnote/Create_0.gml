@@ -132,111 +132,6 @@ image_yscale = 1;
     /// @param {Bool} sync_to_array If set to true, calls `update_prop()` on sinst and self.
     _prop_hold_update = function(sync_to_array = true) {}   // Place holder.
 
-    function _emit_particle(_num, _type, _force = false) {
-        
-        if(!objMain.nowPlaying && !_force)
-            return;
-        
-        if(!global.particleEffects)
-            return;
-        
-        if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
-            return;
-        
-        // Emit Particles
-        var _x, _y, _x1, _x2, _y1, _y2;
-        if(side == 0) {
-            _x = x;
-            _x1 = x - pWidth / 2;
-            _x2 = x + pWidth / 2;
-            _y = BASE_RES_H - objMain.targetLineBelow;
-            _y1 = _y;
-            _y2 = _y;
-        }
-        else {
-            _x = side == 1 ? objMain.targetLineBeside : 
-                             BASE_RES_W - objMain.targetLineBeside;
-            _x1 = _x;
-            _x2 = _x;
-            _y = y;
-            _y1 = y - pWidth / 2;
-            _y2 = y + pWidth / 2; 
-        }
-        
-        // Emit particles on mixer's position
-        var _mixer = on_mixer_side();
-        if(_mixer) {
-            _y = objMain.mixerX[side-1];
-            var _mixerH = sprite_get_height(sprMixer);
-            _y1 = y - _mixerH / 2;
-            _y2 = y + _mixerH / 2;
-        }
-        
-        var _ang = image_angle, _scl = image_xscale;
-        with(objMain) {
-            _partemit_init(partEmit, _x1, _x2, _y1, _y2);
-            if(_type == 0) {
-                _parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
-                _parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
-
-                // part_particles_create(partSysNote, _x, _y, partTypeNoteDL, _num);
-                // part_particles_create(partSysNote, _x, _y, partTypeNoteDR, _num);
-                part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, _num);
-                part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, _num);
-            }
-            else if(_type == 1) {
-                _parttype_hold_init(partTypeHold, 1, _ang);
-                part_emitter_burst(partSysNote, partEmit, partTypeHold, _num);
-            }
-        }
-    }
-
-    /// @description Hit the side and create shadow.
-    function _create_shadow(_force = false) {
-        if(!objMain.nowPlaying && !_force)
-            return;
-        if(objMain.topBarMousePressed)
-        	return;
-        
-        // Play Sound
-        if(objMain.hitSoundOn)
-            audio_play_sound(sndHit, 0, 0);
-        
-        // Update side hinter.
-        if(side > 0)
-            objMain._sidehinter_hit(side-1, time + lastTime);
-        
-        // Create Shadow
-        if(side > 0 && objMain.chartSideType[side-1] == "MIXER") {
-            objMain.mixerShadow[side-1]._hit();
-        }
-        else {
-            if(global.shadowCount >= MAX_SHADOW_COUNT)
-                return;
-            
-        	var _x, _y;
-	        if(side == 0) {
-	            _x = x;
-	            _y = BASE_RES_H - objMain.targetLineBelow;
-	        }
-	        else {
-	            _x = side == 1 ? objMain.targetLineBeside : 
-	                             BASE_RES_W - objMain.targetLineBeside;
-	            _y = y;
-	        }
-	        var _shadow = objShadow;
-	        
-            /// @self Id.Instance.objShadow
-	        var _inst = instance_create_depth(_x, _y, -100, _shadow), _scl = 1;
-	        _inst.nowWidth = pWidth;
-	        _inst.visible = true;
-	        _inst.image_angle = image_angle;
-	        _inst._prop_init();
-        }
-        
-        _emit_particle(PARTICLE_NOTE_NUMBER, 0);
-    }
-    
     function _mouse_inbound_check(_mode = 0) {
         switch _mode {
             case 0:
@@ -449,7 +344,7 @@ image_yscale = 1;
             if(time <= _limTime) {
                 // If the state in last step is SELECT then skip create_shadow
                 if(!selectUnlock)
-                    _create_shadow();
+                    note_hit(get_prop(), true);
                 set_state(NOTE_STATES.LAST);
                 state();
             }
@@ -497,7 +392,7 @@ image_yscale = 1;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
                 partHoldTimer -= PARTICLE_HOLD_DELAY;
-                _emit_particle(PARTICLE_NOTE_LAST, 1, true);
+                note_emit_particles(PARTICLE_NOTE_LAST, get_prop(), 1);
             }
         }
         
@@ -512,6 +407,7 @@ image_yscale = 1;
         animTargetA = 0.0;
         animTargetLstA = lastAlphaL;
         
+        if(editor_get_editmode() == 5) return;
         if(time + lastTime> objMain.nowTime && !_outbound_check(x, y, side)) {
 	        drawVisible = true;
             set_state(NOTE_STATES.NORMAL);

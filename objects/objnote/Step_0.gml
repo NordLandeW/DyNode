@@ -23,6 +23,10 @@ else {
     selectTolerance = false;
 }
 
+if(_editMode == 5) {
+    set_state(NOTE_STATES.OUT);
+}
+
 state();
 
 selectUnlock = false;

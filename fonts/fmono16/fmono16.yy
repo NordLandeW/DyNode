@@ -135,8 +135,8 @@
   "size":16.0,
   "styleName":"Bold",
   "textureGroupId":{
-    "name":"Default",
-    "path":"texturegroups/Default",
+    "name":"texFonts",
+    "path":"texturegroups/texFonts",
   },
   "TTFName":"",
   "usesSDF":true,

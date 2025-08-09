@@ -129,9 +129,7 @@ display_reset(global.graphics.AA, global.graphics.VSync);
     
 // DyCore Initialization
 
-if(DyCore_init() != "success") {
-	show_error("DyCore Initialized Failed.", false);
-}
+dyc_init();
 
 global.__DyCore_Buffer = buffer_create(DYCORE_BUFFER_SIZE, buffer_fixed, 1);
 global.__DyCore_Manager = new DyCoreManager();

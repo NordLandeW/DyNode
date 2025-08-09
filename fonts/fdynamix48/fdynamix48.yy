@@ -135,8 +135,8 @@
   "size":48.0,
   "styleName":"Standard",
   "textureGroupId":{
-    "name":"Default",
-    "path":"texturegroups/Default",
+    "name":"texFonts",
+    "path":"texturegroups/texFonts",
   },
   "TTFName":"",
   "usesSDF":false,

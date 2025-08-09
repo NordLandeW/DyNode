@@ -128,17 +128,22 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         shader_set(shd_mono);
 	}
 
-	// Draw Holds
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
-		chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
-		chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
-	// Draw Notes
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[0]); i<_cl; i++)
-		chartNotesArrayActivated[0][i].draw_event();
-	// Draw Chains
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[1]); i<_cl; i++)
-		chartNotesArrayActivated[1][i].draw_event();
+	if(editor_get_editmode() == 5) {
+		global.noteRenderer.render();
+	}
+	else {
+		// Draw Holds
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
+			chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
+			chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
+		// Draw Notes
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[0]); i<_cl; i++)
+			chartNotesArrayActivated[0][i].draw_event();
+		// Draw Chains
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[1]); i<_cl; i++)
+			chartNotesArrayActivated[1][i].draw_event();
+	}
 
     if(_piano) {
 		gpu_set_blendmode(bm_normal);

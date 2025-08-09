@@ -25,21 +25,23 @@
 
 // Get activated notes
 
-    for(var i=0; i<3; i++)
-        if(array_length(chartNotesArrayActivated[i]) < 1024)
-            array_resize(chartNotesArrayActivated[i], 1024);
-    var ap = [0, 0, 0];
-    with(objNote) {
-        if(noteType <= 2 && !attaching) {
-            var _curArray = objMain.chartNotesArrayActivated[noteType];
-            _curArray[ap[noteType]] = id;
-            ap[noteType]++;
-            if(ap[noteType] >= array_length(_curArray)) {
-                array_resize(_curArray, array_length(_curArray) * 2);
+    if(editor_get_editmode() < 5) {
+        for(var i=0; i<3; i++)
+            if(array_length(chartNotesArrayActivated[i]) < 1024)
+                array_resize(chartNotesArrayActivated[i], 1024);
+        var ap = [0, 0, 0];
+        with(objNote) {
+            if(noteType <= 2 && !attaching) {
+                var _curArray = objMain.chartNotesArrayActivated[noteType];
+                _curArray[ap[noteType]] = id;
+                ap[noteType]++;
+                if(ap[noteType] >= array_length(_curArray)) {
+                    array_resize(_curArray, array_length(_curArray) * 2);
+                }
             }
         }
-    }
-    for(var i=0; i<3; i++) {
-        array_resize(chartNotesArrayActivated[i], ap[i]);
-        chartNotesArrayActivated[i] = extern_index_sort(chartNotesArrayActivated[i], function(val) { return -val.priority; });
+        for(var i=0; i<3; i++) {
+            array_resize(chartNotesArrayActivated[i], ap[i]);
+            chartNotesArrayActivated[i] = extern_index_sort(chartNotesArrayActivated[i], function(val) { return -val.priority; });
+        }
     }

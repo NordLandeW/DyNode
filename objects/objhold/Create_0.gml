@@ -45,7 +45,7 @@ _prop_init(true);
 
 		subFading = false;
 		pHeight = max(0, objMain.playbackSpeed * 
-			(sinst.time - max(time, selectTolerance?0:objMain.nowTime)))
+			(sinst.time - max(time, selectTolerance?-9999999:objMain.nowTime)))
 			+ dFromBottom + uFromTop;
 		if(!global.simplify) {
 			subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;

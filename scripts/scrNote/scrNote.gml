@@ -282,3 +282,120 @@ function note_select_reset(inst = undefined) {
 function note_generate_id() {
 	return DyCore_generate_note_id();
 }
+
+/// @param {Struct.sNoteProp} note
+function note_get_pixel_width(note) {
+	return note.width * 300 / (note.side == 0 ? 1:2) - 30
+		 + _note_get_lrpadding_total(note.noteType);
+}
+
+/// @param {Any} number The number of particles to emit.
+/// @param {Struct.sNoteProp} note The note's property.
+/// @param {Real} parttype The type of particle to emit. 0: Normal; 1: Hold
+function note_emit_particles(number, note, parttype) {
+	if(!objMain.nowPlaying)
+		return;
+	
+	if(!global.particleEffects)
+		return;
+	
+	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
+		return;
+
+		
+        
+	// Emit Particles
+	var _x, _y, _x1, _x2, _y1, _y2;
+	var pWidth = note_get_pixel_width(note);
+	if(note.side == 0) {
+		_x = note_pos_to_x(note.position, note.side);
+		_x1 = _x - pWidth / 2;
+		_x2 = _x + pWidth / 2;
+		_y = BASE_RES_H - objMain.targetLineBelow;
+		_y1 = _y;
+		_y2 = _y;
+	}
+	else {
+		_x = note.side == 1 ? objMain.targetLineBeside : 
+							BASE_RES_W - objMain.targetLineBeside;
+		_x1 = _x;
+		_x2 = _x;
+		_y = note_pos_to_x(note.position, note.side);
+		_y1 = _y - pWidth / 2;
+		_y2 = _y + pWidth / 2; 
+	}
+	
+	// Emit particles on mixer's position
+	var _mixer = note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER";
+	if(_mixer) {
+		_y = objMain.mixerX[note.side-1];
+		var _mixerH = sprite_get_height(sprMixer);
+		_y1 = _y - _mixerH / 2;
+		_y2 = _y + _mixerH / 2;
+	}
+
+	var _ang = (note.side == 0 ? 0 : (note.side == 1 ? 270 : 90));
+	with(objMain) {
+		_partemit_init(partEmit, _x1, _x2, _y1, _y2);
+		if(note.noteType < 2) {
+			_parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
+			_parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
+
+			part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, number);
+			part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, number);
+		}
+		else if(note.noteType == 2) {
+			_parttype_hold_init(partTypeHold, 1, _ang);
+			part_emitter_burst(partSysNote, partEmit, partTypeHold, number);
+		}
+	}
+}
+
+/// @param {Struct.sNoteProp} note
+/// @param {Bool} displayEffects 
+function note_hit(note, displayEffects) {
+	if(!objMain.nowPlaying || objMain.topBarMousePressed)
+		return;
+
+		
+	// Play Sound
+	if(objMain.hitSoundOn)
+		audio_play_sound(sndHit, 0, 0);
+	
+	// Update side hinter.
+	if(note.side > 0)
+		objMain._sidehinter_hit(note.side-1, note.time + note.lastTime);
+
+	if(!displayEffects)
+		return;
+
+	// Create Shadow
+	if(note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER") {
+		objMain.mixerShadow[note.side-1]._hit();
+	}
+	else {
+		if(global.shadowCount >= MAX_SHADOW_COUNT)
+			return;
+		
+		var _x, _y;
+		if(note.side == 0) {
+			_x = note_pos_to_x(note.position, note.side);
+			_y = BASE_RES_H - objMain.targetLineBelow;
+		}
+		else {
+			_x = note.side == 1 ? objMain.targetLineBeside : 
+								BASE_RES_W - objMain.targetLineBeside;
+			_y = note_pos_to_x(note.position, note.side);
+		}
+		var _shadow = objShadow;
+		
+		/// @self Id.Instance.objShadow
+		var _inst = instance_create_depth(_x, _y, -100, _shadow), _scl = 1;
+		_inst.nowWidth = note_get_pixel_width(note);
+		_inst.visible = true;
+		_inst.image_angle = (note.side == 0 ? 0 : (note.side == 1 ? 270 : 90));
+		_inst._prop_init();
+	}
+
+	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
+}

@@ -354,6 +354,7 @@
     {"id":{"name":"scribble","path":"scripts/scribble/scribble.yy",},},
     {"id":{"name":"scrInput","path":"scripts/scrInput/scrInput.yy",},},
     {"id":{"name":"scrNote","path":"scripts/scrNote/scrNote.yy",},},
+    {"id":{"name":"scrRender","path":"scripts/scrRender/scrRender.yy",},},
     {"id":{"name":"scrSnapAlter","path":"scripts/scrSnapAlter/scrSnapAlter.yy",},},
     {"id":{"name":"scrSystem","path":"scripts/scrSystem/scrSystem.yy",},},
     {"id":{"name":"scrTest","path":"scripts/scrTest/scrTest.yy",},},
@@ -531,5 +532,6 @@
     {"$GMTextureGroup":"","%Name":"Default","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":true,"loadType":"default","mipsToGenerate":0,"name":"Default","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
     {"$GMTextureGroup":"","%Name":"texFonts","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"default","mipsToGenerate":0,"name":"texFonts","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
     {"$GMTextureGroup":"","%Name":"texNotload","autocrop":false,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"default","mipsToGenerate":0,"name":"texNotload","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMTextureGroup":"","%Name":"texNotes","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":true,"loadType":"default","mipsToGenerate":0,"name":"texNotes","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
   ],
 }
