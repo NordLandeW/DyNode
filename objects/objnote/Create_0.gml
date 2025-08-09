@@ -210,8 +210,11 @@ image_yscale = 1;
     }
 
     function can_pull() {
-        if(noteType <= 2)
+        if(noteType < 2)
             return stateType != NOTE_STATES.SELECTED;
+        if(noteType == 2)
+            return stateType != NOTE_STATES.SELECTED && 
+                (!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED);
         if(noteType == 3)
             return stateType != NOTE_STATES.SELECTED && 
                 (!note_exists(finst) || finst.stateType != NOTE_STATES.SELECTED);
