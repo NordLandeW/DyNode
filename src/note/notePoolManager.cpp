@@ -24,7 +24,7 @@ NotePoolManager::NotePoolManager()
 NotePoolManager::~NotePoolManager() {
 }
 
-Note NotePoolManager::operator[](int index) {
+const Note& NotePoolManager::operator[](int index) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     if (index < 0 || index >= noteArray.size())
         throw std::out_of_range("Index out of range in NotePoolManager");
@@ -51,10 +51,14 @@ bool NotePoolManager::create_note(const Note& note) {
         *ptr = note;
 
         noteMemoryList.emplace_back(ptr);
-        noteInfoMap[note.noteID] = {--noteMemoryList.end(), ptr,
-                                    static_cast<int>(noteArray.size())};
+        noteInfoMap[note.noteID] = {
+            --noteMemoryList.end(), ptr, static_cast<int>(noteArray.size()),
+            note.type == 2 ? static_cast<int>(holdArray.size()) : -1};
 
         noteArray.push_back(ptr);
+        if (note.type == 2)
+            holdArray.push_back(ptr);
+
         set_ooo();
         noteCount++;
 
@@ -65,7 +69,7 @@ bool NotePoolManager::create_note(const Note& note) {
     }
 }
 
-Note NotePoolManager::get_note(const std::string& noteID) {
+const Note& NotePoolManager::get_note(const std::string& noteID) {
     nptr note_ptr;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
@@ -92,7 +96,7 @@ void NotePoolManager::get_notes(std::vector<Note>& outNotes,
     }
 }
 
-Note NotePoolManager::get_note_direct(int index) {
+const Note& NotePoolManager::get_note_direct(int index) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     if (index < 0 || index >= static_cast<int>(noteArray.size())) {
         throw std::out_of_range("Index out of range in NotePoolManager");
@@ -162,7 +166,7 @@ void NotePoolManager::access_all_notes_safe(
     std::vector<nptr> notes;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-        notes.resize(get_note_count());
+        notes.reserve(get_note_count());
         for (const auto& note_ptr : noteArray) {
             if (note_ptr) {
                 notes.push_back(note_ptr);
@@ -194,7 +198,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
     std::vector<nptr> notes;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-        notes.resize(get_note_count());
+        notes.reserve(get_note_count());
         for (const auto& note_ptr : noteArray) {
             if (note_ptr) {
                 notes.push_back(note_ptr);
@@ -211,6 +215,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
 void NotePoolManager::clear_notes() {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     noteArray.clear();
+    holdArray.clear();
     noteMemoryList.clear();
     noteInfoMap.clear();
     noteCount = 0;
@@ -242,7 +247,7 @@ bool NotePoolManager::release_note(std::string noteID) {
 
     auto info = it->second;
 
-    array_markdel_index(info.index);
+    array_markdel_index(info);
     noteMemoryList.erase(info.iter);
     noteInfoMap.erase(it);
 
@@ -266,14 +271,6 @@ bool NotePoolManager::array_sort_request() {
     return true;
 }
 
-bool NotePoolManager::noteArray_cmp(const nptr a, const nptr b) {
-    if (a == nullptr)
-        return false;
-    if (b == nullptr)
-        return true;
-    return a->time < b->time;
-}
-
 void NotePoolManager::set_ooo() {
     arrayOutOfOrder = true;
 }
@@ -282,17 +279,37 @@ void NotePoolManager::unset_ooo() {
     arrayOutOfOrder = false;
 }
 
-void NotePoolManager::array_markdel_index(int index) {
-    if (index < 0 || index >= static_cast<int>(noteArray.size())) {
-        return;
+void NotePoolManager::array_markdel_index(const NoteMemoryInfo& info) {
+    noteArray[info.index] = nullptr;
+    if (info.holdIndex >= 0) {
+        holdArray[info.holdIndex] = nullptr;
     }
-
-    noteArray[index] = nullptr;
     set_ooo();
 }
 
 // Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
+    static auto noteArray_cmp = [](const nptr& a, const nptr& b) {
+        if (a == nullptr)
+            return false;
+        if (b == nullptr)
+            return true;
+        return a->time < b->time;
+    };
+    static auto holdArray_cmp = [](const nptr& a, const nptr& b) {
+        if (a == nullptr)
+            return false;
+        if (b == nullptr)
+            return true;
+        return a->lastTime > b->lastTime;
+    };
+
+    static auto single_array_pop = [&](std::vector<nptr>& array) {
+        while (!array.empty() && array.back() == nullptr) {
+            array.pop_back();
+        }
+    };
+
     auto start = std::chrono::high_resolution_clock::now();
     bool enableParallelSort;
     enableParallelSort =
@@ -303,17 +320,21 @@ void NotePoolManager::array_sort() {
         tf::Taskflow taskflow;
         tf::Executor tfexecutor;
         taskflow.sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
+        taskflow.sort(holdArray.begin(), holdArray.end(), holdArray_cmp);
         tfexecutor.run(taskflow).wait();
     } else {
         std::sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
+        std::sort(holdArray.begin(), holdArray.end(), holdArray_cmp);
     }
 
-    while (!noteArray.empty() && noteArray.back() == nullptr) {
-        noteArray.pop_back();
-    }
+    single_array_pop(noteArray);
+    single_array_pop(holdArray);
 
     for (size_t i = 0; i < noteArray.size(); ++i) {
         noteInfoMap[noteArray[i]->noteID].index = i;
+    }
+    for (size_t i = 0; i < holdArray.size(); ++i) {
+        noteInfoMap[holdArray[i]->noteID].holdIndex = i;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(end - start);

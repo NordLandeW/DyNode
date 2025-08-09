@@ -2,6 +2,7 @@
 #include <json.hpp>
 #include <string>
 
+#include "activation.h"
 #include "api.h"
 #include "note.h"
 #include "notePoolManager.h"
@@ -195,4 +196,17 @@ DYCORE_API const char* DyCore_generate_note_id() {
     static string noteID;
     noteID = generate_note_id();
     return noteID.c_str();
+}
+
+DYCORE_API double DyCore_cac_active_notes(double nowTime, double noteSpeed) {
+    auto& man = get_note_activation_manager();
+    man.set_range(nowTime, noteSpeed);
+    man.recalculate();
+    return man.get_bitwrite_bound();
+}
+
+DYCORE_API double DyCore_get_active_notes(char* buffer) {
+    auto& man = get_note_activation_manager();
+    man.bitwrite_active_notes(buffer);
+    return 0;
 }
