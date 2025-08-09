@@ -211,6 +211,17 @@ DYCORE_API double DyCore_get_active_notes(char* buffer) {
     return 0;
 }
 
+DYCORE_API double DyCore_get_lasting_holds(char* buffer) {
+    auto& man = get_note_activation_manager();
+    man.bitwrite_lasting_holds(buffer);
+    return 0;
+}
+
+DYCORE_API double DyCore_get_active_notes_bound() {
+    auto& man = get_note_activation_manager();
+    return man.get_bitwrite_bound();
+}
+
 DYCORE_API double DyCore_get_note_index_upper_bound(double time) {
     auto& noteMan = get_note_pool_manager();
     noteMan.array_sort_request();

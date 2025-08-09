@@ -397,6 +397,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     // Get active notes list.
     auto& actMan = get_note_activation_manager();
     const auto& activeNotes = actMan.get_active_notes();
+    const auto& activeHolds = actMan.get_active_holds();
+    const auto& lastingHolds = actMan.get_lasting_holds();
 
     auto render_normal = [&](const Note& note) {
         glm::vec2 pos = get_note_pos(note, nowTime, noteSpeed);
@@ -523,11 +525,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     if (state == 0) {
         // Render additional background
-        for (const auto& [time, noteID] : activeNotes) {
+        for (const auto& [time, noteID] : lastingHolds) {
             const auto& note = get_note_pool_manager().get_note(noteID);
-            if (note.type != 2 || note.time > nowTime)
-                continue;
-
             render_hold(note, 0);
         }
         return ptr - vertexBuffer;
@@ -535,10 +534,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     if (state == 1) {
         // Render hold bg.
-        for (const auto& [time, noteID] : activeNotes) {
+        for (const auto& [time, noteID] : activeHolds) {
             const auto& note = get_note_pool_manager().get_note(noteID);
-            if (note.type != 2)
-                continue;
 
             render_hold(note, 1);
         }
@@ -546,7 +543,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     }
 
     // Render hold edges.
-    for (const auto& [time, noteID] : activeNotes) {
+    for (const auto& [time, noteID] : activeHolds) {
         const auto& note = get_note_pool_manager().get_note(noteID);
         if (note.type != 2)
             continue;

@@ -11,7 +11,8 @@ class NoteActivationManager {
     double noteSpeed;
     std::pair<double, double> timeRange, timeRangeMin;
 
-    std::vector<std::pair<double, std::string>> activeNotes;
+    std::vector<std::pair<double, std::string>> activeNotes, activeHolds,
+        lastingHolds;
 
    public:
     // Set the range settings.
@@ -25,7 +26,16 @@ class NoteActivationManager {
         const {
         return activeNotes;
     }
+    const std::vector<std::pair<double, std::string>>& get_active_holds()
+        const {
+        return activeHolds;
+    }
+    const std::vector<std::pair<double, std::string>>& get_lasting_holds()
+        const {
+        return lastingHolds;
+    }
     void bitwrite_active_notes(char* buffer) const;
+    void bitwrite_lasting_holds(char* buffer) const;
     size_t get_bitwrite_bound() const {
         return (NOTE_ID_LENGTH + 1) * activeNotes.size();
     }
