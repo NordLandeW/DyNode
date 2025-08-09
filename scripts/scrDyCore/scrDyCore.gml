@@ -166,7 +166,7 @@ function dyc_note_deserialization(buffer) {
 }
 
 /// @param {Struct.sNoteProp} noteProp 
-function dyc_update_note(noteProp, record = false) {
+function dyc_update_note(noteProp, record = false, recursive = false) {
     // Check if noteProp is sNoteProp type.
     if(!variable_struct_exists(noteProp, "copy"))
         noteProp = new sNoteProp(noteProp);
@@ -188,16 +188,25 @@ function dyc_update_note(noteProp, record = false) {
         operation_step_add(OPERATION_TYPE.MOVE, origProp, noteProp);
     }
 
-    if(noteProp.noteType == NOTE_TYPE.HOLD) {
-        // Sync the subnote's data.
-        var subNote = dyc_get_note(noteProp.subNoteID);
-        subNote.position = noteProp.position;
-        subNote.side = noteProp.side;
-        subNote.width = noteProp.width;
-        subNote.beginTime = noteProp.time;
-        subNote.time = noteProp.time + noteProp.lastTime;
-        
-        dyc_update_note(subNote, false);
+    if(!recursive) {
+        if(noteProp.noteType == NOTE_TYPE.HOLD) {
+            // Sync the subnote's data.
+            var subNote = dyc_get_note(noteProp.subNoteID);
+            subNote.position = noteProp.position;
+            subNote.side = noteProp.side;
+            subNote.width = noteProp.width;
+            subNote.beginTime = noteProp.time;
+            subNote.time = noteProp.time + noteProp.lastTime;
+            
+            dyc_update_note(subNote, false, false);
+        }
+        else if(noteProp.noteType == NOTE_TYPE.SUB) {
+            // Sync the father's data.
+            var parentNote = dyc_get_note(noteProp.subNoteID);
+            parentNote.lastTime = noteProp.time - parentNote.time;
+    
+            dyc_update_note(parentNote, false, false);
+        }
     }
 
     if(result < 0)
