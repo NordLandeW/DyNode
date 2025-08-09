@@ -183,20 +183,19 @@ var _music_resync_request = false;
 
     var noteCount = dyc_get_note_count();
 
-	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, noteCount);
-	
     var _editMode = editor_get_editmode();
-    while(chartNotesArrayAt < noteCount &&
-        dyc_get_note_time_at_index(chartNotesArrayAt) <= nowTime) {
-            if(_editMode == 5 && objMain.nowPlaying)
-                note_hit(dyc_get_note_at_index(chartNotesArrayAt), true);
-            chartNotesArrayAt ++;
-        }
 
-    while(chartNotesArrayAt > 0 &&
-        dyc_get_note_time_at_index(chartNotesArrayAt-1) > nowTime){
-            chartNotesArrayAt --;
-        }
+    if(_editMode == 5 && objMain.nowPlaying) {
+        while(chartNotesArrayAt < noteCount &&
+            dyc_get_note_time_at_index(chartNotesArrayAt) <= nowTime) {
+                if(!note_hit(dyc_get_note_at_index(chartNotesArrayAt), true))
+                    break;
+                chartNotesArrayAt ++;
+            }
+    }
+    
+    chartNotesArrayAt = dyc_get_note_index_upperbound(nowTime);
+	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, noteCount);
 
 #endregion
 

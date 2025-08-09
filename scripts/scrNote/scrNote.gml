@@ -355,7 +355,7 @@ function note_emit_particles(number, note, parttype) {
 /// @param {Bool} displayEffects 
 function note_hit(note, displayEffects) {
 	if(!objMain.nowPlaying || objMain.topBarMousePressed)
-		return;
+		return false;
 
 		
 	// Play Sound
@@ -367,16 +367,19 @@ function note_hit(note, displayEffects) {
 		objMain._sidehinter_hit(note.side-1, note.time + note.lastTime);
 
 	if(!displayEffects)
-		return;
+		return false;
+
+	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT 
+	   && global.shadowCount >= MAX_SHADOW_COUNT)
+		return false;
+
+	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
 
 	// Create Shadow
 	if(note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER") {
 		objMain.mixerShadow[note.side-1]._hit();
 	}
-	else {
-		if(global.shadowCount >= MAX_SHADOW_COUNT)
-			return;
-		
+	else if(global.shadowCount < MAX_SHADOW_COUNT) {
 		var _x, _y;
 		if(note.side == 0) {
 			_x = note_pos_to_x(note.position, note.side);
@@ -397,5 +400,5 @@ function note_hit(note, displayEffects) {
 		_inst._prop_init();
 	}
 
-	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
+	return true;
 }
