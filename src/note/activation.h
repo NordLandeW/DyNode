@@ -9,7 +9,7 @@ class NoteActivationManager {
    private:
     double currentTime;
     double noteSpeed;
-    std::pair<double, double> timeRange;
+    std::pair<double, double> timeRange, timeRangeMin;
 
     std::vector<std::pair<double, std::string>> activeNotes;
 
@@ -21,11 +21,17 @@ class NoteActivationManager {
     void recalculate();
 
     // Get the currently active notes.
-    const std::vector<std::pair<double, std::string>>& get_active_notes() const;
+    const std::vector<std::pair<double, std::string>>& get_active_notes()
+        const {
+        return activeNotes;
+    }
     void bitwrite_active_notes(char* buffer) const;
     size_t get_bitwrite_bound() const {
         return (NOTE_ID_LENGTH + 1) * activeNotes.size();
     }
+
+    NoteActivationManager operator=(const NoteActivationManager& other) =
+        delete;
 };
 
 NoteActivationManager& get_note_activation_manager();

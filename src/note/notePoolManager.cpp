@@ -304,7 +304,7 @@ void NotePoolManager::array_sort() {
         return a->lastTime > b->lastTime;
     };
 
-    static auto single_array_pop = [&](std::vector<nptr>& array) {
+    auto single_array_pop = [&](std::vector<nptr>& array) {
         while (!array.empty() && array.back() == nullptr) {
             array.pop_back();
         }

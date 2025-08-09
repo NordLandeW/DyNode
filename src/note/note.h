@@ -59,28 +59,28 @@ struct Note {
 
     void write(char *buffer) {
         char *ptr = buffer;
-        bitwrite<int>(ptr, side);
-        bitwrite<int>(ptr, type);
-        bitwrite<double>(ptr, time);
-        bitwrite<double>(ptr, width);
-        bitwrite<double>(ptr, position);
-        bitwrite<double>(ptr, lastTime);
-        bitwrite<double>(ptr, beginTime);
-        bitwrite<string>(ptr, noteID);
-        bitwrite<string>(ptr, subNoteID);
+        bitwrite(ptr, side);
+        bitwrite(ptr, type);
+        bitwrite(ptr, time);
+        bitwrite(ptr, width);
+        bitwrite(ptr, position);
+        bitwrite(ptr, lastTime);
+        bitwrite(ptr, beginTime);
+        bitwrite(ptr, noteID);
+        bitwrite(ptr, subNoteID);
     }
 
     void read(const char *&buffer) {
         const char *ptr = buffer;
-        bitread<int>(ptr, side);
-        bitread<int>(ptr, type);
-        bitread<double>(ptr, time);
-        bitread<double>(ptr, width);
-        bitread<double>(ptr, position);
-        bitread<double>(ptr, lastTime);
-        bitread<double>(ptr, beginTime);
-        bitread<string>(ptr, noteID);
-        bitread<string>(ptr, subNoteID);
+        bitread(ptr, side);
+        bitread(ptr, type);
+        bitread(ptr, time);
+        bitread(ptr, width);
+        bitread(ptr, position);
+        bitread(ptr, lastTime);
+        bitread(ptr, beginTime);
+        bitread(ptr, noteID);
+        bitread(ptr, subNoteID);
     }
 };
 
