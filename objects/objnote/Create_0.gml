@@ -331,10 +331,11 @@ image_yscale = 1;
     	position = propertyStr.position;
     	lastTime = propertyStr.lastTime;
     	noteType = propertyStr.noteType;
-    	// noteID = propertyStr.noteID;
         subNoteID = propertyStr.subNoteID;
     	beginTime = propertyStr.beginTime;
-        assert(noteID == propertyStr.noteID);
+
+        if(noteType == NOTE_TYPE.HOLD && note_is_activated(subNoteID))
+            note_get_instance(subNoteID).pull_prop();
 
         lastAttachBar = -1;
     }

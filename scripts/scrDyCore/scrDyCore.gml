@@ -104,6 +104,7 @@ function dyc_update_note(noteProp, record = false) {
         subNote.side = noteProp.side;
         subNote.width = noteProp.width;
         subNote.beginTime = noteProp.time;
+        subNote.time = noteProp.time + noteProp.lastTime;
         
         dyc_update_note(subNote, false);
     }
