@@ -210,3 +210,10 @@ DYCORE_API double DyCore_get_active_notes(char* buffer) {
     man.bitwrite_active_notes(buffer);
     return 0;
 }
+
+DYCORE_API double DyCore_get_note_index_upper_bound(double time) {
+    auto& noteMan = get_note_pool_manager();
+    noteMan.array_sort_request();
+    int upperBound = noteMan.get_index_upperbound(time);
+    return upperBound;
+}
