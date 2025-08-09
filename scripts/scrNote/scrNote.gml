@@ -337,14 +337,14 @@ function note_emit_particles(number, note, parttype) {
 	var _ang = (note.side == 0 ? 0 : (note.side == 1 ? 270 : 90));
 	with(objMain) {
 		_partemit_init(partEmit, _x1, _x2, _y1, _y2);
-		if(note.noteType < 2) {
+		if(parttype == 0) {
 			_parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
 			_parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
 
 			part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, number);
 			part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, number);
 		}
-		else if(note.noteType == 2) {
+		else if(parttype == 1) {
 			_parttype_hold_init(partTypeHold, 1, _ang);
 			part_emitter_burst(partSysNote, partEmit, partTypeHold, number);
 		}
