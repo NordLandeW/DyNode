@@ -57,30 +57,30 @@ struct Note {
                sizeof(char) * (noteID.size() + subNoteID.size() + 4);
     }
 
-    void bitwrite(char *buffer) {
+    void write(char *buffer) {
         char *ptr = buffer;
-        bitwrite_int(ptr, side);
-        bitwrite_int(ptr, type);
-        bitwrite_double(ptr, time);
-        bitwrite_double(ptr, width);
-        bitwrite_double(ptr, position);
-        bitwrite_double(ptr, lastTime);
-        bitwrite_double(ptr, beginTime);
-        bitwrite_string(ptr, noteID);
-        bitwrite_string(ptr, subNoteID);
+        bitwrite<int>(ptr, side);
+        bitwrite<int>(ptr, type);
+        bitwrite<double>(ptr, time);
+        bitwrite<double>(ptr, width);
+        bitwrite<double>(ptr, position);
+        bitwrite<double>(ptr, lastTime);
+        bitwrite<double>(ptr, beginTime);
+        bitwrite<string>(ptr, noteID);
+        bitwrite<string>(ptr, subNoteID);
     }
 
-    void bitread(const char *&buffer) {
+    void read(const char *&buffer) {
         const char *ptr = buffer;
-        bitread_int(ptr, side);
-        bitread_int(ptr, type);
-        bitread_double(ptr, time);
-        bitread_double(ptr, width);
-        bitread_double(ptr, position);
-        bitread_double(ptr, lastTime);
-        bitread_double(ptr, beginTime);
-        bitread_string(ptr, noteID);
-        bitread_string(ptr, subNoteID);
+        bitread<int>(ptr, side);
+        bitread<int>(ptr, type);
+        bitread<double>(ptr, time);
+        bitread<double>(ptr, width);
+        bitread<double>(ptr, position);
+        bitread<double>(ptr, lastTime);
+        bitread<double>(ptr, beginTime);
+        bitread<string>(ptr, noteID);
+        bitread<string>(ptr, subNoteID);
     }
 };
 

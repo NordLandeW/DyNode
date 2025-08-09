@@ -48,7 +48,7 @@ DYCORE_API double DyCore_clear_notes() {
 // @return 0 on success, -1 on failure.
 DYCORE_API double DyCore_insert_note(const char* prop) {
     Note note;
-    note.bitread(prop);
+    note.read(prop);
     return insert_note(note);
 }
 
@@ -97,7 +97,7 @@ bool get_note_bitwise(const std::string& noteID, char* prop) {
     }
     try {
         auto note = get_note_pool_manager().get_note(noteID);
-        note.bitwrite(prop);
+        note.write(prop);
     } catch (const std::exception& e) {
         print_debug_message("Error: " + std::string(e.what()));
         return false;
@@ -107,7 +107,7 @@ bool get_note_bitwise(const std::string& noteID, char* prop) {
 bool get_note_bitwise(int index, char* prop) {
     try {
         auto note = get_note_pool_manager()[index];
-        note.bitwrite(prop);
+        note.write(prop);
     } catch (const std::exception& e) {
         print_debug_message("Error: " + std::string(e.what()));
         return false;
@@ -120,7 +120,7 @@ bool get_note_bitwise(int index, char* prop) {
 bool get_note_bitwise_direct(int index, char* prop) {
     try {
         auto note = get_note_pool_manager().get_note_direct(index);
-        note.bitwrite(prop);
+        note.write(prop);
     } catch (const std::exception& e) {
         print_debug_message("Error: " + std::string(e.what()));
         return false;

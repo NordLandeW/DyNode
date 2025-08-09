@@ -130,7 +130,7 @@ void NotePoolManager::set_note_bitwise(const std::string& noteID,
     }  // Release the manager lock
 
     double origTime = note_ptr->time;
-    note_ptr->bitread(prop);
+    note_ptr->read(prop);
     if (origTime != note_ptr->time)
         set_ooo();
 }

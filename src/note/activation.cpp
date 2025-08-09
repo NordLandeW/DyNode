@@ -59,9 +59,9 @@ void NoteActivationManager::recalculate() {
 
 void NoteActivationManager::bitwrite_active_notes(char* buffer) const {
     char* ptr = buffer;
-    bitwrite_int(ptr, activeNotes.size());
+    bitwrite<int>(ptr, activeNotes.size());
     for (const auto& note : activeNotes) {
-        bitwrite_string(ptr, note.second);
+        bitwrite<string>(ptr, note.second);
     }
 }
 
