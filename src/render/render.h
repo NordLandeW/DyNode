@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-const double HOLD_BG_LIGHTNESS = 0.52;
+const double HOLD_BG_LIGHTNESS = 0.3;
 
 // NORMAL: A single, non-segmented sprite
 //   data: none
