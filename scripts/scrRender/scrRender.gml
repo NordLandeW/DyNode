@@ -13,6 +13,9 @@ function NoteRenderer() constructor {
     cacheBuff = buffer_create(20 * 1024, buffer_fast, 1);
     vertBuff = vertex_create_buffer_from_buffer(cacheBuff, vertFormat);
 
+    // Hold Particles timer.
+    holdParticlesTimer = 0;
+
     static render_state = function(state) {
         /// @type {Real} 
         var size = DyCore_render_active_notes(
@@ -57,6 +60,21 @@ function NoteRenderer() constructor {
         render_state(2);
 
         gpu_pop_state();
+
+        // Emit holds particles.
+        holdParticlesTimer += get_delta_time() / 1000;
+        holdParticlesTimer = min(holdParticlesTimer, 5 * PARTICLE_HOLD_DELAY);
+
+        var partNum = floor(holdParticlesTimer / PARTICLE_HOLD_DELAY);
+        holdParticlesTimer -= partNum * PARTICLE_HOLD_DELAY;
+
+        if(partNum > 0) {
+            var lastingHolds = dyc_get_lasting_holds();
+            for(var i = 0, l = array_length(lastingHolds); i < l; i++) {
+                var hold = dyc_get_note(lastingHolds[i]);
+                note_emit_particles(PARTICLE_NOTE_LAST * partNum, hold, 1);
+            }
+        }
     }
 }
 

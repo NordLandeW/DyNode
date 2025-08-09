@@ -554,6 +554,37 @@ function dyc_update_active_notes() {
     DyCore_cac_active_notes(objMain.nowTime, objMain.playbackSpeed);
 }
 
+/// @description This function will not update active notes.
+function dyc_get_lasting_holds() {
+    static _lastingHolds = [];
+    static lastUpdateTime = -1;
+    static buffer = buffer_create(1024 * 1024, buffer_fixed, 1);
+
+    if(lastUpdateTime != global.frameCurrentTime) {
+        lastUpdateTime = global.frameCurrentTime;
+        delete _lastingHolds;
+        _lastingHolds = [];
+    }
+    else return _lastingHolds;
+
+    var boundSize = DyCore_get_active_notes_bound();
+    if(boundSize > buffer_get_size(buffer)) {
+        buffer_resize(buffer, boundSize);
+        buffer_set_used_size(buffer, boundSize);
+    }
+
+    DyCore_get_lasting_holds(buffer_get_address(buffer));
+    buffer_seek(buffer, buffer_seek_start, 0);
+    var count = buffer_read(buffer, buffer_u32);
+
+    array_resize(_lastingHolds, count);
+    for(var i = 0; i < count; i++) {
+        _lastingHolds[i] = buffer_read(buffer, buffer_string);
+    }
+
+    return _lastingHolds;
+}
+
 function dyc_add_sprite_data(data) {
     try {
         return DyCore_add_sprite_data(json_stringify(data));
