@@ -793,8 +793,6 @@ function _setup_xml_compability_variables() {
 
 /// surprise
 function chart_randomize() {
-	if(editor_get_editmode() == 5)
-		editor_set_editmode(4);
 	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
 		var _str = dyc_get_note_at_index_direct(i);
 		if(_str.noteType == 3) continue;
@@ -811,9 +809,6 @@ function chart_randomize() {
 
 /// For advanced property modifications.
 function advanced_expr() {
-	if(editor_get_editmode() == 5)
-		editor_set_editmode(4);
-
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
 		var _scope_str = _global?"你正在对谱面的所有音符进行高级操作。":"你正在对选定的音符进行高级操作。";
