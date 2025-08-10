@@ -1068,8 +1068,9 @@ function vars_init() {
 
 function switch_debug_info() {
 	with(objMain) {
-		showDebugInfo = !showDebugInfo;
-		announcement_adjust("anno_debug_info", showDebugInfo);
+		showDebugInfo ++;
+		showDebugInfo %= 3;
+		announcement_adjust("anno_debug_info", showDebugInfo > 0);
 	}
 }
 

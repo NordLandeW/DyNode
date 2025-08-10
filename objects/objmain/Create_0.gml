@@ -208,7 +208,7 @@ depth = 0;
     volumeMain = 1.0;           // Music sound volume
     volumeHit = 1.0;            // Hit sound volume
     
-    showDebugInfo = DEBUG_MODE;
+    showDebugInfo = DEBUG_MODE ? 1 : 0;
     showStats = 0;
     showBar = false;
     fadeOtherNotes = false;

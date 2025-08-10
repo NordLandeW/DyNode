@@ -198,14 +198,14 @@ function dyc_update_note(noteProp, record = false, recursive = false) {
             subNote.beginTime = noteProp.time;
             subNote.time = noteProp.time + noteProp.lastTime;
             
-            dyc_update_note(subNote, false, false);
+            dyc_update_note(subNote, false, true);
         }
         else if(noteProp.noteType == NOTE_TYPE.SUB) {
             // Sync the father's data.
             var parentNote = dyc_get_note(noteProp.subNoteID);
             parentNote.lastTime = noteProp.time - parentNote.time;
     
-            dyc_update_note(parentNote, false, false);
+            dyc_update_note(parentNote, false, true);
         }
     }
 

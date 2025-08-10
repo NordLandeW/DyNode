@@ -118,6 +118,7 @@
     {"id":{"name":"fDynamix16","path":"fonts/fDynamix16/fDynamix16.yy",},},
     {"id":{"name":"fDynamix20","path":"fonts/fDynamix20/fDynamix20.yy",},},
     {"id":{"name":"fDynamix48","path":"fonts/fDynamix48/fDynamix48.yy",},},
+    {"id":{"name":"fMono10","path":"fonts/fMono10/fMono10.yy",},},
     {"id":{"name":"fMono16","path":"fonts/fMono16/fMono16.yy",},},
     {"id":{"name":"fOrbitron48","path":"fonts/fOrbitron48/fOrbitron48.yy",},},
     {"id":{"name":"scribble_fallback_font","path":"fonts/scribble_fallback_font/scribble_fallback_font.yy",},},

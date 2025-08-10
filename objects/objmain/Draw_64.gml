@@ -54,29 +54,41 @@ if(showStats > 0) {
 if(!showDebugInfo) return;
 
 var _debug_str = "";
-_debug_str += "DyNode " + VERSION + "\n";
-_debug_str += "by NordLandeW x NagaseIori\n";
-_debug_str += "FPS: " + string(fps) + "\nRFPS: "+string(fps_real)+"\n";
-_debug_str += "DSPD: " + string(animTargetPlaybackSpeed)+"\n";
-_debug_str += "MSPD: " + string(musicSpeed)+"\n";
-_debug_str += "TIME: " + string(nowTime)+"\n";
-_debug_str += "NCNT: " + string(dyc_get_note_count())+"\n";
-// _debug_str += "MUSICTIME: " + string(FMODGMS_Chan_Get_Position(channel)) + "\n";
-// _debug_str += "MUSICDELAY: " + string(sfmod_channel_get_position(channel, sampleRate) - nowTime) + "\n";
-_debug_str += "FMOD CPU Usage: " + string(FMODGMS_Sys_Get_CPUUsage()) + "\n";
-_debug_str += "Project Compression Level: " + string(DYCORE_COMPRESSION_LEVEL) + "\n";
-
-// var _stat = gc_get_stats();
-// _debug_str += "T_TIME: " + string(_stat.traversal_time) + "\n";
-// _debug_str += "C_TIME: " + string(_stat.collection_time) + "\n";
-_debug_str += "INST_C: " + string(instance_count) + "\n";
-_debug_str += "V_STATUS: " + string(video_get_status()) + "\n";
-_debug_str += "editorside: " + string(editor_get_editside()) + "\n";
-_debug_str += $"SAMPLERATE: {sampleRate}\n";
-_debug_str += $"Lst_key: {keyboard_lastkey}\n";
-if(instance_exists(editor))
-	_debug_str += "EDITMODE: " + string(editor_get_editmode())+ "\n";
-draw_set_font(fMono16);
+if(showDebugInfo == 1) {
+	_debug_str += "DyNode " + VERSION + "\n";
+	_debug_str += "by NordLandeW x NagaseIori\n";
+	_debug_str += "FPS: " + string(fps) + "\nRFPS: "+string(fps_real)+"\n";
+	_debug_str += "DSPD: " + string(animTargetPlaybackSpeed)+"\n";
+	_debug_str += "MSPD: " + string(musicSpeed)+"\n";
+	_debug_str += "TIME: " + string(nowTime)+"\n";
+	_debug_str += "NCNT: " + string(dyc_get_note_count())+"\n";
+	// _debug_str += "MUSICTIME: " + string(FMODGMS_Chan_Get_Position(channel)) + "\n";
+	// _debug_str += "MUSICDELAY: " + string(sfmod_channel_get_position(channel, sampleRate) - nowTime) + "\n";
+	_debug_str += "FMOD CPU Usage: " + string(FMODGMS_Sys_Get_CPUUsage()) + "\n";
+	_debug_str += "Project Compression Level: " + string(DYCORE_COMPRESSION_LEVEL) + "\n";
+	
+	// var _stat = gc_get_stats();
+	// _debug_str += "T_TIME: " + string(_stat.traversal_time) + "\n";
+	// _debug_str += "C_TIME: " + string(_stat.collection_time) + "\n";
+	_debug_str += "INST_C: " + string(instance_count) + "\n";
+	_debug_str += "V_STATUS: " + string(video_get_status()) + "\n";
+	_debug_str += "editorside: " + string(editor_get_editside()) + "\n";
+	_debug_str += $"SAMPLERATE: {sampleRate}\n";
+	_debug_str += $"Lst_key: {keyboard_lastkey}\n";
+	if(instance_exists(editor))
+		_debug_str += "EDITMODE: " + string(editor_get_editmode())+ "\n";
+		
+	draw_set_font(fMono16);
+}
+else if(showDebugInfo == 2) {
+	_debug_str += DyCore_profile_report();
+	draw_set_color_alpha(c_black, 0.75);
+	draw_rectangle(0, 0, BASE_RES_W, BASE_RES_H, false);
+	draw_set_font(fMono10);
+}
+else {
+	_debug_str += "No Debug Information Available\n";
+}
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
 draw_set_color_alpha(c_white, 1);
