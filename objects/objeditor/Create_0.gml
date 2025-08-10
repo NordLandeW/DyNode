@@ -4,8 +4,8 @@
 depth = -10000;
 
 // Editors
-editorMode = 4;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy
-editorModeBeforeCopy = 4;
+editorMode = 5;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy
+editorModeBeforeCopy = editorMode;
 editorSide = 0;                             // 0 down 1 left 2 right
 editorLRSide = false;                       // Special mode
 editorLRSideLock = false;                   // For special mode lock
