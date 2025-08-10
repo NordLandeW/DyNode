@@ -586,7 +586,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     if (concurrency > 1 &&
         activeNotes.size() > MULTITHREAD_RENDERING_THRESHOLD) {
-        tf::Executor executor;
+        static tf::Executor executor;
 
         auto render_pass =
             [&](const NoteActivationManager::ActiveLists& activeList,
