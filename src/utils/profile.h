@@ -19,6 +19,8 @@ struct ProfileData {
     double max_duration = 0.0;
     double last_duration = 0.0;
     std::vector<double> all_durations;
+    size_t next_duration_index = 0;
+    static constexpr size_t MAX_DURATIONS = 10000;
 
     void record(double duration) {
         total_duration += duration;
@@ -28,7 +30,13 @@ struct ProfileData {
         if (duration > max_duration)
             max_duration = duration;
         last_duration = duration;
-        all_durations.push_back(duration);
+
+        if (all_durations.size() < MAX_DURATIONS) {
+            all_durations.push_back(duration);
+        } else {
+            all_durations[next_duration_index] = duration;
+            next_duration_index = (next_duration_index + 1) % MAX_DURATIONS;
+        }
     }
 
     double average_duration() const {
@@ -124,16 +132,19 @@ class Profiler {
             int lag_count = 0;
             double max_lag_duration = 0.0;
 
-            if (data.call_count > 1) {
-                std::sort(data.all_durations.begin(), data.all_durations.end());
+            if (data.all_durations.size() > 1) {
+                std::vector<double> sorted_durations = data.all_durations;
+                std::sort(sorted_durations.begin(), sorted_durations.end());
 
-                size_t p1_index = static_cast<size_t>(data.call_count * 0.01);
-                size_t p99_index = static_cast<size_t>(data.call_count * 0.99);
-                if (p99_index >= data.all_durations.size())
-                    p99_index = data.all_durations.size() - 1;
+                size_t p1_index =
+                    static_cast<size_t>(sorted_durations.size() * 0.01);
+                size_t p99_index =
+                    static_cast<size_t>(sorted_durations.size() * 0.99);
+                if (p99_index >= sorted_durations.size())
+                    p99_index = sorted_durations.size() - 1;
 
-                p1 = data.all_durations[p1_index];
-                p99 = data.all_durations[p99_index];
+                p1 = sorted_durations[p1_index];
+                p99 = sorted_durations[p99_index];
 
                 double avg = data.average_duration();
                 if (avg > 0) {
@@ -147,9 +158,9 @@ class Profiler {
                         }
                     }
                 }
-            } else if (data.call_count == 1) {
-                p1 = data.max_duration;
-                p99 = data.max_duration;
+            } else if (!data.all_durations.empty()) {
+                p1 = data.all_durations[0];
+                p99 = data.all_durations[0];
             }
 
             os << std::left << std::setw(50) << data.name << std::fixed

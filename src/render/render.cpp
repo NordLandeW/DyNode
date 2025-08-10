@@ -438,7 +438,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         glm::vec2 position = get_note_pos(note, nowTime, noteSpeed);
         const double alpha = get_note_alpha(note.side, position);
         const double rotation = get_note_rotation(note.side);
-        const SpriteData& edgeSprite = get_note_sprite(note);
+        const auto& edgeSprite = get_note_sprite(note);
         const auto& barSprite = get_sprite_manager().get_sprite("sprHold");
         const double spriteTileHeight = barSprite.size.y;
 
