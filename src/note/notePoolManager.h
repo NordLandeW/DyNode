@@ -1,5 +1,6 @@
 #pragma once
 #include <memory_resource>
+#include <string>
 
 #include "activation.h"
 #include "note.h"
@@ -22,6 +23,9 @@ class NotePoolManager {
     const Note &get_note(const std::string &noteID);
     const Note &get_note(int index) {
         return operator[](index);
+    }
+    const Note &get_note_unsafe(const std::string &noteID) {
+        return *get_note_pointer(noteID);
     }
     void get_notes(std::vector<Note> &outNotes, bool excludeSub) const;
     /// Returns a direct reference to the note at the given index.

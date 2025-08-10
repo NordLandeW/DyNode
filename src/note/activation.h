@@ -21,17 +21,15 @@ class NoteActivationManager {
     // Recalculate the active notes based on current range setting.
     void recalculate();
 
+    using ActiveLists = std::vector<std::pair<double, std::string>>;
     // Get the currently active notes.
-    const std::vector<std::pair<double, std::string>>& get_active_notes()
-        const {
+    const ActiveLists& get_active_notes() const {
         return activeNotes;
     }
-    const std::vector<std::pair<double, std::string>>& get_active_holds()
-        const {
+    const ActiveLists& get_active_holds() const {
         return activeHolds;
     }
-    const std::vector<std::pair<double, std::string>>& get_lasting_holds()
-        const {
+    const ActiveLists& get_lasting_holds() const {
         return lastingHolds;
     }
     void bitwrite_active_notes(char* buffer) const;

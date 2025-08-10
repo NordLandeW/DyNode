@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "utils.h"
 
+#include <Windows.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdio>

@@ -3,6 +3,7 @@
 #include "bitio.h"
 #include "layout.h"
 #include "notePoolManager.h"
+#include "profile.h"
 
 void NoteActivationManager::set_range(double curTime, double curSpeed) {
     currentTime = curTime;
@@ -22,6 +23,8 @@ void NoteActivationManager::set_range(double curTime, double curSpeed) {
 }
 
 void NoteActivationManager::recalculate() {
+    PROFILE_SCOPE("Note Activation Manager Recalculate");
+
     activeNotes.clear();
     activeHolds.clear();
     lastingHolds.clear();

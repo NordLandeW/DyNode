@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 const double HOLD_BG_LIGHTNESS = 0.3;
+const int MULTITHREAD_RENDERING_THRESHOLD = 10000;
 
 // NORMAL: A single, non-segmented sprite
 //   data: none

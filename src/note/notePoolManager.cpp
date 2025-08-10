@@ -11,6 +11,7 @@
 
 #include "note.h"
 #include "notePoolManager.h"
+#include "profile.h"
 #include "taskflow/core/executor.hpp"
 #include "utils.h"
 
@@ -289,6 +290,7 @@ void NotePoolManager::array_markdel_index(const NoteMemoryInfo& info) {
 
 // Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
+    PROFILE_SCOPE("Note Pool Manager Array Sort");
     static auto noteArray_cmp = [](const nptr& a, const nptr& b) {
         if (a == nullptr)
             return false;

@@ -3,6 +3,7 @@
 #include "api.h"
 #include "gm.h"
 #include "render.h"
+#include "utils.h"
 
 DYCORE_API double DyCore_add_sprite_data(const char* spriteData) {
     auto j = nlohmann::json::parse(spriteData);
@@ -35,8 +36,8 @@ DYCORE_API double DyCore_render_active_notes(char* vertexBuffer, double nowTime,
             render_active_notes(vertexBuffer, nowTime, noteSpeed, state);
         return static_cast<double>(result);
     } catch (const std::exception& e) {
-        throw_error_event(std::string("Error rendering active notes: ") +
-                          e.what());
+        print_debug_message(std::string("Error rendering active notes: ") +
+                            e.what());
         return -1;
     }
 }

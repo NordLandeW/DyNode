@@ -1,13 +1,20 @@
 #include "render.h"
 
+#include <algorithm>
+#include <format>
 #include <iostream>
+#include <memory_resource>
 #include <stdexcept>
 #include <string>
+#include <taskflow/algorithm/for_each.hpp>
+#include <taskflow/taskflow.hpp>
 
 #include "activation.h"
 #include "layout.h"
 #include "note.h"
 #include "notePoolManager.h"
+#include "profile.h"
+#include "utils.h"
 #include "vertex.h"
 
 void SpriteManager::add_sprite(const SpriteData& data) {
@@ -392,6 +399,8 @@ void draw_sprite_part(char*& vertBuf, const SpriteData& sprite,
 //   2: Render other parts
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state) {
+    PROFILE_SCOPE(std::format("Render Active Notes (State {})", state));
+    const bool detailedProfiling = false;
     char* ptr = vertexBuffer;
 
     // Get active notes list.
@@ -400,7 +409,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     const auto& activeHolds = actMan.get_active_holds();
     const auto& lastingHolds = actMan.get_lasting_holds();
 
-    auto render_normal = [&](const Note& note) {
+    auto render_normal = [&](char*& vertBuf, const Note& note) {
         glm::vec2 pos = get_note_pos(note, nowTime, noteSpeed);
         double alpha = get_note_alpha(note.side, pos);
         double rot = get_note_rotation(note.side);
@@ -409,7 +418,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         glm::vec2 size = spriteData.size;
         size.x = get_note_pixel_width(note);
 
-        draw_sprite(ptr, spriteData, pivot, pos, size, rot,
+        draw_sprite(vertBuf, spriteData, pivot, pos, size, rot,
                     {255, 255, 255, static_cast<int>(alpha * 255)});
     };
 
@@ -418,7 +427,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     //   0: render addition bg
     //   1: render bg
     //   2: render edge
-    auto render_hold = [&](const Note& note, int renderType) {
+    auto render_hold = [&](char*& vertBuf, const Note& note, int renderType) {
         static auto in_between = [](double value, double limit1,
                                     double limit2) {
             if (limit1 > limit2)
@@ -488,12 +497,12 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                     }
                     if (renderType == 1) {
                         draw_sprite(
-                            ptr, barSprite, pivot, position, size, rotation,
+                            vertBuf, barSprite, pivot, position, size, rotation,
                             {255, 255, 255, static_cast<int>(alpha * 255)});
                     } else {
                         const auto& bgSprite =
                             get_sprite_manager().get_sprite("sprHoldGrey");
-                        draw_sprite(ptr, bgSprite, pivot, position, size,
+                        draw_sprite(vertBuf, bgSprite, pivot, position, size,
                                     rotation,
                                     {0, 255, 0,
                                      static_cast<int>(alpha * 255 *
@@ -512,7 +521,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                         position.x += edgeSprite.paddingBottom *
                                       (note.side == 1 ? -1 : 1);
                     }
-                    draw_sprite(ptr, edgeSprite, pivot, position, size,
+                    draw_sprite(vertBuf, edgeSprite, pivot, position, size,
                                 rotation,
                                 {255, 255, 255, static_cast<int>(alpha * 255)});
                 }
@@ -526,8 +535,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     if (state == 0) {
         // Render additional background
         for (const auto& [time, noteID] : lastingHolds) {
-            const auto& note = get_note_pool_manager().get_note(noteID);
-            render_hold(note, 0);
+            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
+            render_hold(ptr, note, 0);
         }
         return ptr - vertexBuffer;
     }
@@ -535,38 +544,137 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     if (state == 1) {
         // Render hold bg.
         for (const auto& [time, noteID] : activeHolds) {
-            const auto& note = get_note_pool_manager().get_note(noteID);
+            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
 
-            render_hold(note, 1);
+            render_hold(ptr, note, 1);
         }
         return ptr - vertexBuffer;
     }
 
-    // Render hold edges.
-    for (const auto& [time, noteID] : activeHolds) {
-        const auto& note = get_note_pool_manager().get_note(noteID);
-        if (note.type != 2)
-            continue;
+    int concurrency = hardware_concurrency();
 
-        render_hold(note, 2);
-    }
+    static std::array<std::byte, 64 * 1024 * 1024> baseBuffer;
+    static std::pmr::monotonic_buffer_resource monoBuffer{
+        baseBuffer.data(), baseBuffer.size(), std::pmr::new_delete_resource()};
+    static std::pmr::unsynchronized_pool_resource pool(&monoBuffer);
 
-    // Render normal notes.
-    for (const auto& [time, noteID] : activeNotes) {
-        const auto& note = get_note_pool_manager().get_note(noteID);
-        if (note.type != 0)
-            continue;
+    struct Task {
+        char* buffer;
+        int l, r;
+        char* ptr;
+        Task(int l, int r) : l(l), r(r) {
+            if (l > r) {
+                throw std::invalid_argument("Invalid task range");
+            }
+            size_t bytes = 1ll * (r - l + 1) * 2040;
+            buffer = (char*)pool.allocate(bytes, 1);
+            ptr = (char*)buffer;
+        }
+        ~Task() {
+            if (buffer)
+                pool.deallocate(buffer, 1ll * (r - l + 1) * 2040);
+        }
 
-        render_normal(note);
-    }
+        Task(const Task& task) = delete;
+        Task& operator=(const Task&) = delete;
 
-    // Render chain notes.
-    for (const auto& [time, noteID] : activeNotes) {
-        const auto& note = get_note_pool_manager().get_note(noteID);
-        if (note.type != 1)
-            continue;
+        Task(Task&& other) noexcept
+            : buffer(other.buffer), l(other.l), r(other.r), ptr(other.ptr) {
+            other.buffer = nullptr;
+        }
+    };
 
-        render_normal(note);
+    if (concurrency > 1 &&
+        activeNotes.size() > MULTITHREAD_RENDERING_THRESHOLD) {
+        tf::Executor executor;
+
+        auto render_pass =
+            [&](const NoteActivationManager::ActiveLists& activeList,
+                int type) {
+                PROFILE_SCOPE_CONDITIONAL("RenderPass#" + std::to_string(type),
+                                          detailedProfiling);
+                tf::Taskflow taskflow;
+                std::vector<Task> tasks;
+                {
+                    PROFILE_SCOPE_CONDITIONAL(
+                        "RenderPassTaskGeneration#" + std::to_string(type),
+                        detailedProfiling);
+                    int blockSize = std::ceil(
+                        static_cast<double>(activeList.size()) / concurrency);
+                    for (int i = 0; i * blockSize < activeList.size(); i++) {
+                        tasks.emplace_back(
+                            i * blockSize,
+                            std::min((i + 1) * blockSize - 1,
+                                     static_cast<int>(activeList.size() - 1)));
+                    }
+
+                    taskflow.for_each(
+                        tasks.begin(), tasks.end(), [&](Task& task) {
+                            for (int i = task.l; i <= task.r; i++) {
+                                const auto& [time, noteID] = activeList[i];
+                                const auto& note =
+                                    get_note_pool_manager().get_note_unsafe(
+                                        noteID);
+                                if (note.type != type)
+                                    continue;
+                                switch (note.type) {
+                                    case 0:
+                                    case 1:
+                                        render_normal(task.ptr, note);
+                                        break;
+                                    case 2:
+                                        render_hold(task.ptr, note, 2);
+                                        break;
+                                }
+                            }
+                        });
+                }
+                {
+                    PROFILE_SCOPE_CONDITIONAL(
+                        "RenderPassTaskExecution#" + std::to_string(type),
+                        detailedProfiling);
+                    executor.run(taskflow).wait();
+                }
+                {
+                    PROFILE_SCOPE_CONDITIONAL(
+                        "RenderPassTaskBufferCopy#" + std::to_string(type),
+                        detailedProfiling);
+                    for (auto& task : tasks) {
+                        memcpy(ptr, task.buffer, task.ptr - (char*)task.buffer);
+                        ptr += task.ptr - (char*)task.buffer;
+                    }
+                }
+            };
+        render_pass(activeHolds, 2);
+        render_pass(activeNotes, 0);
+        render_pass(activeNotes, 1);
+    } else {
+        // Render hold edges.
+        for (const auto& [time, noteID] : activeHolds) {
+            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
+            if (note.type != 2)
+                continue;
+
+            render_hold(ptr, note, 2);
+        }
+
+        // Render normal notes.
+        for (const auto& [time, noteID] : activeNotes) {
+            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
+            if (note.type != 0)
+                continue;
+
+            render_normal(ptr, note);
+        }
+
+        // Render chain notes.
+        for (const auto& [time, noteID] : activeNotes) {
+            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
+            if (note.type != 1)
+                continue;
+
+            render_normal(ptr, note);
+        }
     }
 
     return ptr - vertexBuffer;
