@@ -9,6 +9,9 @@ editorSelectOccupied = false;
 editorSelectDragOccupied = false;
 editorSelectInbound = false;
 
+editorModeSwitching --;
+editorModeSwitching = max(editorModeSwitching, 0);
+
 editorSelectCount = 0;
 var _note_found = false;
 

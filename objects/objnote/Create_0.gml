@@ -86,7 +86,7 @@ image_yscale = 1;
     animPlaySpeedMul = 1;
     animTargetA = 1;
     animTargetLstA = lastAlpha;
-    image_alpha = 1;
+    image_alpha = editor_mode_is_switching()?1:0;
     
     // Particles Varaiables
 #macro PARTICLE_HOLD_DELAY (33)     // in ms

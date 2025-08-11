@@ -6,6 +6,7 @@ depth = -10000;
 // Editors
 editorMode = 5;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy
 editorModeBeforeCopy = editorMode;
+editorModeSwitching = 0;                    // flag is set when editor mode is switching
 editorSide = 0;                             // 0 down 1 left 2 right
 editorLRSide = false;                       // Special mode
 editorLRSideLock = false;                   // For special mode lock

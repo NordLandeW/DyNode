@@ -8,11 +8,16 @@ function editor_set_editmode(mode) {
 			editorModeBeforeCopy = editorMode;
 		}
 		editorMode = mode;
+		editorModeSwitching = 2;
 	}
 }
 
 function editor_get_editmode() {
     return objEditor.editorMode;
+}
+
+function editor_mode_is_switching() {
+    return objEditor.editorModeSwitching > 0;
 }
 
 function editor_get_default_width() {
