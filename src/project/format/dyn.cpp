@@ -28,10 +28,13 @@ json conversion_v0_to_v1(const json& input) {
 
         // Add metadata. Specifically for DyNode pre v0.1.19.
         output["metadata"] = json::object();
-        output["metadata"]["settings"] = origProjectObject["settings"];
+        output["metadata"]["settings"] = json::object();
+        if (origProjectObject.contains("settings"))
+            output["metadata"]["settings"] = origProjectObject["settings"];
         output["metadata"]["stats"] = json::object();
-        output["metadata"]["stats"]["projectTime"] =
-            origProjectObject["projectTime"];
+        if (origProjectObject.contains("projectTime"))
+            output["metadata"]["stats"]["projectTime"] =
+                origProjectObject["projectTime"];
     }
     // Deal with chartObject.
     print_debug_message("  Converting chart object...");
