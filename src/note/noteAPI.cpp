@@ -150,7 +150,7 @@ DYCORE_API double DyCore_get_note_at_index_direct(double index,
 
 DYCORE_API double DyCore_get_note_time_at_index(double index) {
     auto& noteMan = get_note_pool_manager();
-    int time;
+    double time;
     try {
         time = noteMan[static_cast<int>(index)].time;
     } catch (const std::exception& e) {
