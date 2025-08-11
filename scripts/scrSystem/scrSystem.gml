@@ -614,11 +614,6 @@ function project_save_as(_file = "") {
 		charter: "",
 		artist: ""
 	}));
-	DyCore_set_chart_path(json_stringify({
-		music: objManager.musicPath,
-		image: objManager.backgroundPath,
-		video: objManager.videoPath
-	}));
 	
 	try {
 		project_file_duplicate(
@@ -631,6 +626,12 @@ function project_save_as(_file = "") {
 	} catch (e) {
 		announcement_warning("复制音乐/背景/视频文件时出现错误。[scale, 0.7]\n"+string(e));
 	}
+
+	DyCore_set_chart_path(json_stringify({
+		music: objManager.musicPath,
+		image: objManager.backgroundPath,
+		video: objManager.videoPath
+	}));
 
 	// Trigger an async saving project event.
 	DyCore_save_project(_file, DYCORE_COMPRESSION_LEVEL);
