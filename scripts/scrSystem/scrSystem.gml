@@ -1009,11 +1009,21 @@ function load_config() {
 
 	// Version check.
 	if(_con[$ "version"] != VERSION) {
-		if(version_cmp(VERSION, _con[$ "version"]) > 0)
+		var _oldVersion = _con[$ "version"];
+		if(version_cmp(VERSION, _oldVersion) > 0)
 			announcement_play(i18n_get("version_higher", VERSION));
 		else
 			announcement_warning(i18n_get("version_lower", VERSION));
+		
+		// Old version workarounds.
+		// Before v0.1.19-dev.4 - Reset latencies
+		if(version_cmp(_oldVersion, "v0.1.19-dev.4") < 0) {
+			global.FMOD_MP3_DELAY = 0;
+			global.musicDelay = 0;
+			announcement_play(i18n_get("update_before_0_1_19"), 5000);
+		}
 	}
+
 	
 	return md5_file(pth);
 }

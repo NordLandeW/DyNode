@@ -196,6 +196,7 @@
         "clear_all_notes": "已清除全部音符。",
         "anno_dycore_error": "程序核心出现错误。\n错误信息: $0",
         "dyn_old_format_conversion_failed": "转换旧版 DYN 文件格式失败。\n错误信息: $0",
-        "dyn_chart_import_failed": "导入 DYN 谱面文件失败。\n错误信息: $0"
+        "dyn_chart_import_failed": "导入 DYN 谱面文件失败。\n错误信息: $0",
+        "update_before_0_1_19": "检测到来自特定旧版本的设置。新版本修复了有关音乐延迟的主要问题，因此旧版本的延迟设置已经被清空。"
     }
 }
