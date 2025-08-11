@@ -168,8 +168,8 @@ projectTime += round(delta_time / 1000);
     	if(!nowPlaying || keycheck_down(vk_enter)) {
         	if(nowTime >= musicLength) nowTime = 0;
             FMODGMS_Chan_ResumeChannel(channel);
-            sfmod_channel_set_position(nowTime-resumeDelay, channel, sampleRate);
-            time_source_start(timesourceResumeDelay);
+			nowPlaying = true;
+            sfmod_channel_set_position(nowTime, channel, sampleRate);
             // nowTime = sfmod_channel_get_position(channel, sampleRate);
 
 			// Multiple hacks are used for video resume,

@@ -24,14 +24,6 @@ depth = 0;
 
 #region Time Sources
 	
-	// To prevent unstable delay from music to chart
-	resumeDelay = 15;
-	timesourceResumeDelay =
-		time_source_create(time_source_game, resumeDelay/1000,
-		time_source_units_seconds, function() {
-            nowPlaying = true;
-            nowTime = sfmod_channel_get_position(channel, sampleRate);
-	    }, [], 1, time_source_expire_after);
 	timesourceSyncVideo = 
 		time_source_create(time_source_game, 0.1,
 		time_source_units_seconds, function() {
@@ -445,8 +437,6 @@ function time_music_sync() {
 	
 	// Set the fmod channel
 	sfmod_channel_set_position(nowTime, channel, sampleRate);
-	// Resync with fmod's position because of fmod's lower precision
-    nowTime = sfmod_channel_get_position(channel, sampleRate);
     
     // Sync with the video position
     if(bgVideoLoaded) {

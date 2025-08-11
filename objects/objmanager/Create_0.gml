@@ -23,6 +23,8 @@
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DYCORE_BUFFER_ADDRESS (buffer_get_address(global.__DyCore_Buffer))
 #macro DEBUG_MODE (debug_mode)
+#macro FMOD_DSP_BUFFERSIZE (256)
+#macro FMOD_DSP_BUFFERCOUNT (4)
 math_set_epsilon(0.00000001);				// 1E-8
 
 // Announcement init
@@ -114,7 +116,7 @@ display_reset(global.graphics.AA, global.graphics.VSync);
     }
     
     // Initialize the system
-    FMODGMS_Sys_Set_DSPBufferSize(1024, 4);
+    FMODGMS_Sys_Set_DSPBufferSize(FMOD_DSP_BUFFERSIZE, FMOD_DSP_BUFFERCOUNT);
     FMODGMS_Sys_Initialize(32);
     
     // Create the pitch shift effect

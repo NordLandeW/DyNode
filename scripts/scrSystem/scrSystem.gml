@@ -22,7 +22,6 @@ function map_close() {
 		instance_destroy(objShadowMIX);
 		instance_destroy(objTopBar);
 		
-		time_source_destroy(timesourceResumeDelay);
 		time_source_destroy(timesourceSyncVideo);
 		part_emitter_destroy_all(partSysNote);
 		part_system_destroy(partSysNote);
@@ -1135,15 +1134,14 @@ function stat_kps(_time, _range) {
 
 #region FMOD Functions
 
-function sfmod_channel_get_position(channel, spr) {
-    var _ret = FMODGMS_Chan_Get_Position(channel);
-    _ret = _ret - global.FMOD_MP3_DELAY * objMain.usingMP3 - global.musicDelay;
-    return _ret;
-}
-
 function sfmod_channel_set_position(pos, channel, spr) {
     pos = pos + global.FMOD_MP3_DELAY * objMain.usingMP3 + global.musicDelay;
+	pos += sfmod_get_dsp_latency();
     FMODGMS_Chan_Set_Position(channel, pos);
+}
+
+function sfmod_get_dsp_latency() {
+	return FMOD_DSP_BUFFERSIZE / objMain.sampleRate * 1000 * (FMOD_DSP_BUFFERCOUNT - 1.5);
 }
 
 #endregion
