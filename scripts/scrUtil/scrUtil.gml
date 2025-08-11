@@ -1008,3 +1008,7 @@ function extern_quick_sort(array, type) {
 		array[i] = buffer_read(buff, buffer_f64);
 	}
 }
+
+function is_relative_path(path) {
+	return filename_name(path) == path;
+}

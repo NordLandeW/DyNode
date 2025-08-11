@@ -525,7 +525,7 @@ function project_load(_file = "") {
     
     var _path_deal = function(_pth, _propath) {
     	// Check if is relative path.
-		if(filename_name(_pth) == _pth)
+		if(is_relative_path(_pth))
 			return _propath + _pth;
     	return _pth;
     }
@@ -652,7 +652,7 @@ function project_file_duplicate(_project) {
 	var _nmu = _new_file_path(_mu, _propath);
 	
 	var _process = function(_pro, _varname, _file, _nfile) {
-		if(filename_path(_file)=="") return;	// If already relative path
+		if(is_relative_path(_file) == "") return;	// If already relative path
 		if(file_exists(_file)) {
 			if(!file_exists(_nfile))
 				file_copy(_file, _nfile);
@@ -664,6 +664,7 @@ function project_file_duplicate(_project) {
 				file_bin_close(_f);
 				file_bin_close(_nf);
 				if(_fs != _nfs) {
+					show_debug_message($"File sizes differ, creating a copy. {_file} -> {_nfile}");
 					_nfile = filename_path(_nfile)+filename_name_no_ext(_nfile)+"_"+random_id(4)+filename_ext(_nfile);
 					file_copy(_file, _nfile);
 				}
