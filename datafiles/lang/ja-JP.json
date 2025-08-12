@@ -42,6 +42,8 @@
         "autoupdate_process_err_2": "更新ファイルの解凍中にエラーが発生しました。更新を中止します。",
         "anno_project_load_complete": "プロジェクトの読み込みが完了しました。",
         "anno_project_load_failed": "打开项目失败。错误信息: $0",
+        "anno_project_sideload_complete": "已为导入的谱面创建了一个默认项目。",
+        "anno_project_sideload_failed": "导入谱面失败。\n错误信息: $0",
         "anno_project_save_complete": "プロジェクトの保存が完了しました。",
         "anno_project_save_failed": "プロジェクトの保存に失敗しました。エラーメッセージ: $0",
         "anno_prefix_warn": "警告",
