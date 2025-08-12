@@ -40,6 +40,13 @@ function map_close() {
 		DyCore_clear_notes();
 		global.noteIDMan.clear();
 		global.activationMan.clear();
+
+		with(objManager) {
+			musicPath = "";
+			backgroundPath = "";
+			videoPath = "";
+			projectPath = "";
+		}
 	}
 	
 	instance_destroy(objMain);
