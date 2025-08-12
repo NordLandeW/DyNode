@@ -42,6 +42,8 @@
         "autoupdate_process_err_2": "解壓更新檔時發生錯誤。更新已中止。",
         "anno_project_load_complete": "開啟專案完成。",
         "anno_project_load_failed": "打开项目失败。错误信息: $0",
+        "anno_project_sideload_complete": "已为导入的谱面创建了一个默认项目。",
+        "anno_project_sideload_failed": "导入谱面失败。\n错误信息: $0",
         "anno_project_save_complete": "專案保存完成。",
         "anno_project_save_failed": "專案儲存失敗。錯誤資訊: $0",
         "anno_prefix_warn": "警告",
