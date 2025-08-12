@@ -1,4 +1,6 @@
 
+#macro PLAYBACK_EMPTY_TIME (1000)
+
 depth = 0;
 
 // Make Original Background Layer Invisible

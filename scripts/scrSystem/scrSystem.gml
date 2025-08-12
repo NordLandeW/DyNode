@@ -566,7 +566,8 @@ function project_sideload(_file) {
 
 	announcement_play("anno_project_sideload_complete");
 
-	// Check if exist other projects.
+	// Check if other projects exist.
+	var _chartPath = filename_path(_file);
 	var _dynFiles = file_find_first(_chartPath + "*.dyn", fa_none);
 	if(_dynFiles != "") {
 		announcement_warning(i18n_get("anno_project_sideload_warning"));

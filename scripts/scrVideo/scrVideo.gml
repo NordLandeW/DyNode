@@ -42,24 +42,26 @@ function safe_video_update() {
             safe_video_seek_to(nowTime);
         
         surface_set_target(bgVideoSurf);
-            draw_clear_alpha(c_black, 0);
-            var _status = video_draw();
-            if(_status[0] == -1) {
-                // announcement_error("video_playback_error");
-                //! Bug in runtime 2023.11
-                //! Occasional error message will occur.
-                show_debug_message_safe("VIDEO PLAYBACK ERROR.");
-                // safe_video_free();
-                // bgVideoLoaded = false;
-            }
-            else if(_status[0] == 0 && surface_exists(_status[1])) {
-                var _w = surface_get_width(_status[1]), _h = surface_get_height(_status[1]);
-                var _wscl = BASE_RES_W / _w;
-                var _hscl = BASE_RES_H / _h;
-                var _scl = max(_wscl, _hscl); // Centre & keep ratios
-                var _nx = BASE_RES_W/2 - _scl * _w / 2;
-                var _ny = BASE_RES_H/2 - _scl * _h / 2;
-                draw_surface_ext(_status[1], _nx, _ny, _scl, _scl, 0, c_white, 1);
+            draw_clear_alpha(c_black, 1);
+            if(nowTime >= 0) {
+                var _status = video_draw();
+                if(_status[0] == -1) {
+                    // announcement_error("video_playback_error");
+                    //! Bug in runtime 2023.11
+                    //! Occasional error message will occur.
+                    show_debug_message_safe("VIDEO PLAYBACK ERROR.");
+                    // safe_video_free();
+                    // bgVideoLoaded = false;
+                }
+                else if(_status[0] == 0 && surface_exists(_status[1])) {
+                    var _w = surface_get_width(_status[1]), _h = surface_get_height(_status[1]);
+                    var _wscl = BASE_RES_W / _w;
+                    var _hscl = BASE_RES_H / _h;
+                    var _scl = max(_wscl, _hscl); // Centre & keep ratios
+                    var _nx = BASE_RES_W/2 - _scl * _w / 2;
+                    var _ny = BASE_RES_H/2 - _scl * _h / 2;
+                    draw_surface_ext(_status[1], _nx, _ny, _scl, _scl, 0, c_white, 1);
+                }
             }
         surface_reset_target();
     }

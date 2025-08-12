@@ -51,8 +51,8 @@ var _music_resync_request = false;
         }
     }
     
-    if(nowPlaying && keycheck(vk_enter)) {
-    	nowTime = 0;
+    if(nowPlaying && keycheck_down(vk_enter)) {
+    	nowTime = -PLAYBACK_EMPTY_TIME;
     	_music_resync_request = true;
     }
 

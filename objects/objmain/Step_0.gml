@@ -93,8 +93,8 @@ projectTime += round(delta_time / 1000);
     
     if(keycheck_down(vk_enter)) {		// Replay Mode
     	editor_set_editmode(5);
-    	nowTime = 0;
-    	animTargetTime = 0;
+    	nowTime = -PLAYBACK_EMPTY_TIME;
+    	animTargetTime = -PLAYBACK_EMPTY_TIME;
     	reset_scoreboard();
     }
     
@@ -166,11 +166,10 @@ projectTime += round(delta_time / 1000);
     if(keycheck_down(vk_space) || keycheck_down(vk_enter)) {
     	_set_channel_speed(musicSpeed);
     	if(!nowPlaying || keycheck_down(vk_enter)) {
-        	if(nowTime >= musicLength) nowTime = 0;
+        	if(nowTime >= musicLength && !keycheck_down(vk_enter)) nowTime = 0;
             FMODGMS_Chan_ResumeChannel(channel);
 			nowPlaying = true;
             sfmod_channel_set_position(nowTime, channel, sampleRate);
-            // nowTime = sfmod_channel_get_position(channel, sampleRate);
 
 			// Multiple hacks are used for video resume,
 			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
