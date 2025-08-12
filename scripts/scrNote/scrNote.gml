@@ -368,9 +368,12 @@ function note_hit(note, displayEffects) {
 
 	if(!displayEffects)
 		return false;
+	
+	var shadowFun = irandom_range(0, 100) <= 90;
+	var shadowGo = global.shadowCount < MAX_SHADOW_COUNT || shadowFun;
 
 	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT 
-	   && global.shadowCount >= MAX_SHADOW_COUNT)
+	   && !shadowGo)
 		return false;
 
 	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
@@ -379,7 +382,7 @@ function note_hit(note, displayEffects) {
 	if(note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER") {
 		objMain.mixerShadow[note.side-1]._hit();
 	}
-	else if(global.shadowCount < MAX_SHADOW_COUNT) {
+	else if(shadowGo) {
 		var _x, _y;
 		if(note.side == 0) {
 			_x = note_pos_to_x(note.position, note.side);
