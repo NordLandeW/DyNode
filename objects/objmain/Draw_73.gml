@@ -28,6 +28,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         manually_set_view_size(BASE_RES_W, BASE_RES_H);
         with(objShadow)
             draw_self();
+        manually_reset_view_size();
         shader_reset();
     surface_reset_target();
     gpu_pop_state();
@@ -50,7 +51,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         }
     }
 
-    draw_surface_ext(shadowSurf, 0, 0, 1, 1, 0, c_white, piano?1:SHADOW_LAYER_ALPHA);
+    draw_surface_stretched_ext(shadowSurf, 0, 0, BASE_RES_W, BASE_RES_H, c_white, piano?1:SHADOW_LAYER_ALPHA);
     if(global.themeAt > 0) {
         shader_reset();
     }
