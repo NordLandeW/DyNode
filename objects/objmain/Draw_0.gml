@@ -10,22 +10,23 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 		
 		draw_set_font(global._notoFont);
 		// Shadow
-		draw_set_color_alpha(c_black, 0.4);
+		draw_set_color_alpha(c_black, 0.4 * titleAlpha);
 		draw_text(_nx, 44 + _yoffset, chartTitle);
-		draw_set_color_alpha(c_white, 1);
+		draw_set_color_alpha(c_white, 1 * titleAlpha);
 		draw_text(_nx, 37 + _yoffset, chartTitle);
 		draw_set_alpha(1.0);
 	}
 	else {
 		scribble(chartTitle).starting_format("fOrbitron48s", c_white)
 		.align(fa_left, fa_middle)
+		.blend(c_white, titleAlpha)
 		.transform(0.7, 0.7)
 		.draw(_nx, 42 + _yoffset);
 	}
 	
 	// Draw Difficulty
 	draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 
-		_nx, 77 + _yoffset, 0.67, 0.67, 0, c_white, 1);
+		_nx, 77 + _yoffset, 0.67, 0.67, 0, c_white, titleAlpha);
     	
 
 // Draw targetline
