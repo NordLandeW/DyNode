@@ -565,6 +565,14 @@ function project_sideload(_file) {
 	}
 
 	announcement_play("anno_project_sideload_complete");
+
+	// Check if exist other projects.
+	var _dynFiles = file_find_first(_chartPath + "*.dyn", fa_none);
+	if(_dynFiles != "") {
+		announcement_warning(i18n_get("anno_project_sideload_warning"));
+	}
+	file_find_close();
+
 	return 1;
 }
 
