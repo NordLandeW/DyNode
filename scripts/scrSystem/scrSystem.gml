@@ -510,44 +510,43 @@ function project_sideload(_file) {
 			// Automatically detect image & music files.
 			var _chartPath = filename_path(_file);
 
-			// Find the largest music file.
-			var _musFile = "", _musSize = -1;
-			var _musCurFile = file_find_first(_chartPath + "*.mp3", fa_none);
-			while(_musCurFile != "") {
-				var _musCurSize = file_get_size(_chartPath + _musCurFile);
-				if(_musCurSize > _musSize) {
-					_musFile = _musCurFile;
-					_musSize = _musCurSize;
+			var _search_largest_file = function(path, mask, size = -1) {
+				var _resultFile = "";
+				var _curFile = file_find_first(path + mask, fa_none);
+				while(_curFile != "") {
+					var _curSize = file_get_size(path + _curFile);
+					if(_curSize > size) {
+						size = _curSize;
+						_resultFile = _curFile;
+					}
+					_curFile = file_find_next();
 				}
-				_musCurFile = file_find_next();
+				file_find_close();
+				return [_resultFile, size];
 			}
-			file_find_close();
+
+			// Find the largest music file.
+			var _musFile = "", _musSize = -1, musPostfixes = ["*.mp3", "*.wav", "*.ogg", "*.flac"];
+			for(var i = 0; i < array_length(musPostfixes); i++) {
+				var result = _search_largest_file(_chartPath, musPostfixes[i], _musSize);
+				if(result[1] > _musSize) {
+					_musFile = result[0];
+					_musSize = result[1];
+				}
+			}
 			if(_musFile != "") {
 				music_load(_chartPath + _musFile);
 			}
 
 			// Find the largest image file.
-			var _imgFile = "", _imgSize = -1;
-			var _imgCurFile = file_find_first(_chartPath + "*.png", fa_none);
-			while(_imgCurFile != "") {
-				var _imgCurSize = file_get_size(_chartPath + _imgCurFile);
-				if(_imgCurSize > _imgSize) {
-					_imgFile = _imgCurFile;
-					_imgSize = _imgCurSize;
+			var _imgFile = "", _imgSize = -1, imgPostfixes = ["*.png", "*.jpg", "*.jpeg"];
+			for(var i = 0; i < array_length(imgPostfixes); i++) {
+				var result = _search_largest_file(_chartPath, imgPostfixes[i], _imgSize);
+				if(result[1] > _imgSize) {
+					_imgFile = result[0];
+					_imgSize = result[1];
 				}
-				_imgCurFile = file_find_next();
 			}
-			file_find_close();
-			_imgCurFile = file_find_first(_chartPath + "*.jpg", fa_none);
-			while(_imgCurFile != "") {
-				var _imgCurSize = file_get_size(_chartPath + _imgCurFile);
-				if(_imgCurSize > _imgSize) {
-					_imgFile = _imgCurFile;
-					_imgSize = _imgCurSize;
-				}
-				_imgCurFile = file_find_next();
-			}
-			file_find_close();
 
 			if(_imgFile != "") {
 				background_load(_chartPath + _imgFile);
