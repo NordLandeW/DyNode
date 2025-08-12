@@ -700,7 +700,8 @@ function project_save_as(_file = "") {
 				backgroundPath: objManager.backgroundPath,
 				videoPath: objManager.videoPath,
 				musicPath: objManager.musicPath,
-			}
+			},
+			filename_path(_file)
 		);
 	} catch (e) {
 		announcement_warning("复制音乐/背景/视频文件时出现错误。[scale, 0.7]\n"+string(e));
@@ -714,15 +715,28 @@ function project_save_as(_file = "") {
 
 	// Trigger an async saving project event.
 	DyCore_save_project(_file, DYCORE_COMPRESSION_LEVEL);
+	objManager.nextProjectPath = _file;
 
 	return 1;
 }
 
-function project_file_duplicate(_project) {
+function project_save_callback() {
+	if(objManager.autosaving) {
+		if(editor_get_editmode() != 5)  // Ignore announcement when edit mode is playback.
+			announcement_play("autosave_complete");
+		objManager.autosaving = false;
+	}
+	else
+		announcement_play("anno_project_save_complete");
+
+	objManager.projectPath = objManager.nextProjectPath;
+	objManager.nextProjectPath = "";
+}
+
+function project_file_duplicate(_project, _propath) {
 	var _bg = _project.backgroundPath;
 	var _vd = _project.videoPath;
 	var _mu = _project.musicPath;
-	var _propath = filename_path(objManager.projectPath);
 	var _new_file_path = function (_old_path, _propath) {
 		return _propath + filename_name(_old_path);
 	}

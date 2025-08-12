@@ -23,13 +23,7 @@ function DyCoreManager() constructor {
         switch(event[$ "type"]) {
             case DYCORE_ASYNC_EVENT_TYPE.PROJECT_SAVING:
                 if(event[$ "status"] == 0) {
-                    if(objManager.autosaving) {
-                        if(editor_get_editmode() != 5)  // Ignore announcement when edit mode is playback.
-                            announcement_play("autosave_complete");
-                        objManager.autosaving = false;
-                    }
-                    else
-                        announcement_play("anno_project_save_complete");
+                    project_save_callback();
                 }
                 else {
                     announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));

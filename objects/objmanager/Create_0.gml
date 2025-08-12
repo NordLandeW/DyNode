@@ -191,6 +191,8 @@ else
 
 	// chartPath is deprecated in version v0.1.16
 	projectPath = "";
+	// temporary variables before project is saved completely
+	nextProjectPath = "";
 	backgroundPath = "";
 	musicPath = "";
 	videoPath = "";
