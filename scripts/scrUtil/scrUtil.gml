@@ -1020,3 +1020,16 @@ function file_get_size(file) {
 	file_bin_close(f);
 	return s;
 }
+
+/// @description Specifically for manually setting the view size for surface. Viewport is not changed.
+function manually_set_view_size(width, height) {
+    matrix_set(matrix_view, matrix_build_lookat(
+        width / 2, height / 2, -36000, width / 2, height / 2, 0, 0, 1, 0
+    ));
+    matrix_set(matrix_projection, matrix_multiply( 
+          matrix_build_projection_ortho(width, height, 0.001, 36000),
+         [1, 0, 0, 0, 
+          0, -1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1]));
+}

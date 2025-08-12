@@ -3,15 +3,7 @@
 creditsSurf = surface_checkate(creditsSurf, surfW, surfH);
 
 surface_set_target(creditsSurf);
-    matrix_set(matrix_view, matrix_build_lookat(
-        width / 2, height / 2, -36000, width / 2, height / 2, 0, 0, 1, 0
-    ));
-    matrix_set(matrix_projection, matrix_multiply( 
-          matrix_build_projection_ortho(width, height, 0.001, 36000),
-         [1, 0, 0, 0, 
-          0, -1, 0, 0,
-          0, 0, 1, 0,
-          0, 0, 0, 1]));
+    manually_set_view_size(width, height);
     draw_clear_alpha(c_black, 0);
     var _ele = scribble(i18n_get(text))
         .starting_format(font, c_white)

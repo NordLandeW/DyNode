@@ -17,23 +17,45 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Shadows
 
+#macro SHADOW_LAYER_ALPHA (0.7)
+
+    var shadowSurf = surface_create(view_wport[0], view_hport[0]);
+    surface_set_target(shadowSurf);
+    gpu_push_state();
+    draw_clear_alpha(c_black, 0);
+        shader_set(shd_prealpha);
+        gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+        manually_set_view_size(BASE_RES_W, BASE_RES_H);
+        with(objShadow)
+            draw_self();
+        shader_reset();
+    surface_reset_target();
+    gpu_pop_state();
+
+    gpu_push_state();
+    var piano = false;
     if(global.themeAt == 2) {
         shader_set(shd_mono);
         gpu_set_blendmode(bm_add);
+        piano = true;
     }
-    else if(global.themeAt > 0) {
-        // Else if a customized theme
-        shader_set(shd_hsv_trans);
-        var hsv = theme_get_color_hsv();
-        shader_set_uniform_q("u_hue", hsv[0]);
-        shader_set_uniform_q("u_saturation", hsv[1]);
+    else if(global.themeAt >= 0) {
+        gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+        if(global.themeAt > 0) {
+            // Else if a customized theme
+            shader_set(shd_hsv_trans);
+            var hsv = theme_get_color_hsv();
+            shader_set_uniform_q("u_hue", hsv[0]);
+            shader_set_uniform_q("u_saturation", hsv[1]);
+        }
     }
-    with(objShadow)
-        draw_self();
+
+    draw_surface_ext(shadowSurf, 0, 0, 1, 1, 0, c_white, piano?1:SHADOW_LAYER_ALPHA);
     if(global.themeAt > 0) {
         shader_reset();
-        gpu_set_blendmode(bm_normal);
     }
+    gpu_pop_state();
+    surface_free_f(shadowSurf);
 
 // Draw Note Particles
 
