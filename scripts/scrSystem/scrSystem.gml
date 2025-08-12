@@ -502,14 +502,78 @@ function map_add_offset(_offset = "", record = false) {
 
 #region PROJECT FUNCTIONS
 
+function project_sideload(_file) {
+	try {
+		map_load(_file);
+
+		if(string_lower(filename_ext(_file)) != ".dy") {
+			// Automatically detect image & music files.
+			var _chartPath = filename_path(_file);
+
+			// Find the largest music file.
+			var _musFile = "", _musSize = -1;
+			var _musCurFile = file_find_first(_chartPath + "*.mp3", fa_none);
+			while(_musCurFile != "") {
+				var _musCurSize = file_get_size(_chartPath + _musCurFile);
+				if(_musCurSize > _musSize) {
+					_musFile = _musCurFile;
+					_musSize = _musCurSize;
+				}
+				_musCurFile = file_find_next();
+			}
+			file_find_close();
+			if(_musFile != "") {
+				music_load(_chartPath + _musFile);
+			}
+
+			// Find the largest image file.
+			var _imgFile = "", _imgSize = -1;
+			var _imgCurFile = file_find_first(_chartPath + "*.png", fa_none);
+			while(_imgCurFile != "") {
+				var _imgCurSize = file_get_size(_chartPath + _imgCurFile);
+				if(_imgCurSize > _imgSize) {
+					_imgFile = _imgCurFile;
+					_imgSize = _imgCurSize;
+				}
+				_imgCurFile = file_find_next();
+			}
+			file_find_close();
+			_imgCurFile = file_find_first(_chartPath + "*.jpg", fa_none);
+			while(_imgCurFile != "") {
+				var _imgCurSize = file_get_size(_chartPath + _imgCurFile);
+				if(_imgCurSize > _imgSize) {
+					_imgFile = _imgCurFile;
+					_imgSize = _imgCurSize;
+				}
+				_imgCurFile = file_find_next();
+			}
+			file_find_close();
+
+			if(_imgFile != "") {
+				background_load(_chartPath + _imgFile);
+			}
+		}
+	} catch (e) {
+		announcement_error(i18n_get("anno_project_sideload_failed", [string(e)]));
+		return -1;
+	}
+
+	announcement_play("anno_project_sideload_complete");
+	return 1;
+}
+
 function project_load(_file = "") {
 	if(_file == "") 
-		_file = get_open_filename_ext("DyNode File (*.dyn)|*.dyn", map_get_alt_title() + ".dyn", program_directory, 
+		_file = get_open_filename_ext("DyNode File / Chart Files (*.dyn;*.xml;*.dy)|*.dyn;*.xml;*.dy", map_get_alt_title() + ".dyn", program_directory, 
         "Load Project 打开项目");
     
     if(_file == "") return 0;
-    
-    map_reset();
+
+	map_reset();
+
+	if(string_lower(filename_ext(_file)) != ".dyn") {
+		return project_sideload(_file);
+	}
     
 	var result = dyc_project_load(_file);
 	if(result < 0) {

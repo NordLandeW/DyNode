@@ -1012,3 +1012,11 @@ function extern_quick_sort(array, type) {
 function is_relative_path(path) {
 	return filename_name(path) == path;
 }
+
+function file_get_size(file) {
+	var f = file_bin_open(file, 0);
+	if(f == -1) throw $"File not found: {file}";
+	var s = file_bin_size(f);
+	file_bin_close(f);
+	return s;
+}
