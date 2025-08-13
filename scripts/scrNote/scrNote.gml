@@ -113,7 +113,7 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 				side: prop.side,
 				width: prop.width,
 				position: prop.position,
-				lastTime: prop.lastTime,
+				lastTime: 0,
 				noteType: NOTE_TYPE.SUB,
 				noteID: prop.subNoteID,
 				subNoteID: prop.noteID,
