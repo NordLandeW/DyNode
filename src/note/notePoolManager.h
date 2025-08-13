@@ -32,7 +32,7 @@ class NotePoolManager {
     /// This is unsafe and should only be used when you are sure the index is
     /// valid.
     const Note &get_note_direct(int index);
-    void set_note(const std::string &noteID, const Note &note);
+    void set_note(const Note &note);
     void set_note_bitwise(const std::string &noteID, const char *prop);
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
@@ -40,6 +40,9 @@ class NotePoolManager {
     void access_all_notes_safe(std::function<void(Note &)> executor);
     void access_all_notes_parallel(std::function<void(Note &)> executor);
     void access_all_notes_parallel_safe(std::function<void(Note &)> executor);
+    void sync_head_note_to_sub(const Note &note);
+    void sync_hold_note_length(const Note &note);
+
     int get_index(const std::string &noteID);
     bool release_note(std::string noteID);
     bool release_note(const Note &note);

@@ -105,18 +105,20 @@ const Note& NotePoolManager::get_note_direct(int index) {
     return *noteArray[index];
 }
 
-void NotePoolManager::set_note(const std::string& noteID, const Note& note) {
+void NotePoolManager::set_note(const Note& note) {
     nptr note_ptr;
     {
         std::lock_guard<std::mutex> lock(mtxNoteOps);
-        if (!note_exists(noteID)) {
-            throw std::runtime_error("Note not found: " + noteID);
+        if (!note_exists(note.noteID)) {
+            throw std::runtime_error("Note not found: " + note.noteID);
         }
-        note_ptr = get_note_pointer(noteID);
+        note_ptr = get_note_pointer(note.noteID);
     }  // Release the manager lock
     if (note_ptr->time != note.time)
         set_ooo();
     *note_ptr = note;
+    if (note_ptr->type == 2)
+        sync_head_note_to_sub(note);
 }
 
 void NotePoolManager::set_note_bitwise(const std::string& noteID,
@@ -134,6 +136,8 @@ void NotePoolManager::set_note_bitwise(const std::string& noteID,
     note_ptr->read(prop);
     if (origTime != note_ptr->time)
         set_ooo();
+    if (note_ptr->type == 2)
+        sync_head_note_to_sub(*note_ptr);
 }
 
 void NotePoolManager::access_note(const std::string& noteID,
@@ -147,7 +151,12 @@ void NotePoolManager::access_note(const std::string& noteID,
         note_ptr = get_note_pointer(noteID);
     }  // Release the manager lock
 
+    double origTime = note_ptr->time;
     executor(*note_ptr);
+    if (origTime != note_ptr->time)
+        set_ooo();
+    sync_head_note_to_sub(*note_ptr);
+    sync_hold_note_length(*note_ptr);
 }
 
 // This function is unsafe (DEADLOCK RISK). Do not access notePoolManager in
@@ -156,7 +165,12 @@ void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
     std::lock_guard<std::mutex> lock(mtxNoteOps);
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
+            double origTime = note_ptr->time;
             executor(*note_ptr);
+            if (origTime != note_ptr->time)
+                set_ooo();
+            sync_head_note_to_sub(*note_ptr);
+            sync_hold_note_length(*note_ptr);
         }
     }
 }
@@ -175,7 +189,12 @@ void NotePoolManager::access_all_notes_safe(
         }
     }
     for (const auto& note_ptr : notes) {
+        double origTime = note_ptr->time;
         executor(*note_ptr);
+        if (origTime != note_ptr->time)
+            set_ooo();
+        sync_head_note_to_sub(*note_ptr);
+        sync_hold_note_length(*note_ptr);
     }
 }
 
@@ -188,7 +207,12 @@ void NotePoolManager::access_all_notes_parallel(
     tf::Taskflow taskflow;
     taskflow.for_each(noteArray.begin(), noteArray.end(), [&](nptr note_ptr) {
         if (note_ptr) {
+            double origTime = note_ptr->time;
             executor(*note_ptr);
+            if (origTime != note_ptr->time)
+                set_ooo();
+            sync_head_note_to_sub(*note_ptr);
+            sync_hold_note_length(*note_ptr);
         }
     });
     tfexecutor.run(taskflow).wait();
@@ -208,9 +232,37 @@ void NotePoolManager::access_all_notes_parallel_safe(
     }
     tf::Executor tfexecutor;
     tf::Taskflow taskflow;
-    taskflow.for_each(notes.begin(), notes.end(),
-                      [&](nptr note_ptr) { executor(*note_ptr); });
+    taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
+        double origTime = note_ptr->time;
+        executor(*note_ptr);
+        if (origTime != note_ptr->time)
+            set_ooo();
+        sync_head_note_to_sub(*note_ptr);
+        sync_hold_note_length(*note_ptr);
+    });
     tfexecutor.run(taskflow).wait();
+}
+
+void NotePoolManager::sync_head_note_to_sub(const Note& note) {
+    if (note.type != 2)
+        return;
+    auto subNote = get_note_pointer(note.subNoteID);
+    if (subNote) {
+        subNote->beginTime = note.time;
+        subNote->position = note.position;
+        subNote->width = note.width;
+        subNote->side = note.side;
+    }
+}
+
+void NotePoolManager::sync_hold_note_length(const Note& note) {
+    if (note.type < 2)
+        return;
+    nptr holdNote = get_note_pointer(note.noteID);
+    nptr subNote = get_note_pointer(note.subNoteID);
+    if (holdNote->type == 3)
+        std::swap(holdNote, subNote);
+    holdNote->lastTime = subNote->time - holdNote->time;
 }
 
 void NotePoolManager::clear_notes() {

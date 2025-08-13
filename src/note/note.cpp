@@ -94,7 +94,7 @@ int modify_note(const Note& note) {
                             note.noteID);
         return -1;
     }
-    get_note_pool_manager().set_note(note.noteID, note);
+    get_note_pool_manager().set_note(note);
     return 0;
 }
 
