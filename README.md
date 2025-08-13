@@ -1,6 +1,6 @@
 <p align="center"><img src="https://user-images.githubusercontent.com/31349569/191138861-2cf74238-67f6-49b3-9b75-e8fe7e192827.png" style="display:block; margin:auto; width:300px"></p>
 
-<h1 align="center">DyNode 0.1.18.1</h1>
+<h1 align="center">DyNode</h1>
 <p align="center">Yet another Dynamix charting tool.</b></p>
 <br>
 <br>
@@ -60,13 +60,21 @@ Clean Shapes (under MIT License) Copyright (c) 2020 Juju Adams
 
 SNAP (under MIT License) Copyright (c) 2020 Juju Adams
 
-[JSON](https://json.nlohmann.me/home/license/) (under MIT License) Copyright © 2013-2022 Niels Lohmann
-
 [delaunator-cpp](https://github.com/abellgithub/delaunator-cpp/blob/master/LICENSE)  (under MIT License) Copyright (c) 2018 Volodymyr Bilonenko
 
 FMODGMS (under [BSD 2-Clause "Simplified" License](https://github.com/mstop4/FMODGMS/blob/master/LICENSE)) Copyright (c) 2016-2017, M.S.T.O.P.
 
 Zstandard (under BSD License) Copyright (c) Meta Platforms, Inc. and affiliates
+
+[Lua](https://www.lua.org/license.html) (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.
+
+sol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz
+
+pugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine
+
+[JSON](https://json.nlohmann.me/home/license/) (under MIT License) Copyright © 2013-2022 Niels Lohmann
+
+taskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang
 
 -------------------
 

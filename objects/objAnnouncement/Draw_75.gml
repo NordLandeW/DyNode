@@ -10,7 +10,7 @@ draw_scribble_box(element, _nx, _ny, image_alpha * 0.6);
 
 element
     .blend(c_white, image_alpha)
-    .msdf_shadow(c_black, image_alpha * 0.5, 0, 3)
+    .msdf_shadow(c_black, image_alpha * 0.5, 0, 2)
     .draw(_nx, _ny);
 
 if(element.region_detect(_nx, _ny, mouse_x, mouse_y) == "update" && mouse_isclick_l()) {

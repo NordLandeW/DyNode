@@ -1,194 +1,160 @@
 
+function NoteIDManager() constructor {
+
+	/// @type {Any} Map noteID to instance.ID.
+	noteIDMap = {};
+
+	static update = function(noteID, instID) {
+		noteIDMap[$ noteID] = instID;
+	}
+
+	/// @description Get the instance ID by noteID.
+	/// @param {String} noteID
+	/// @returns {Id.Instance.objNote} The instance ID of the note.
+	static get = function(noteID) {
+		if(!variable_struct_exists(noteIDMap, noteID)) {
+			return -1;
+		}
+		return noteIDMap[$ noteID];
+	}
+
+	static remove = function(noteID) {
+		if(variable_struct_exists(noteIDMap, noteID)) {
+			variable_struct_remove(noteIDMap, noteID);
+		}
+	}
+
+	static clear = function() {
+		delete noteIDMap;
+		noteIDMap = {};
+	}
+}
+
+global.noteIDMan = new NoteIDManager();
+
 function _outbound_check(_x, _y, _side) {
     if(_side == 0 && _y < -100)
         return true;
-    else if(_side == 1 && _x >= global.resolutionW / 2)
+    else if(_side == 1 && _x >= BASE_RES_W / 2)
         return true;
-    else if(_side == 2 && _x <= global.resolutionW / 2)
+    else if(_side == 2 && _x <= BASE_RES_W / 2)
         return true;
     else
         return false;
 }
 
 function _outroom_check(_x, _y) {
-	return !pos_inbound(_x, _y, 0, 0, global.resolutionW, global.resolutionH);
+	return !pos_inbound(_x, _y, 0, 0, BASE_RES_W, BASE_RES_H);
 }
 
 function _outbound_check_t(_time, _side) {
     var _pos = note_time_to_y(_time, _side);
     if(_side == 0 && _pos < -100)
         return true;
-    else if(_side == 1 && _pos >= global.resolutionW / 2)
+    else if(_side == 1 && _pos >= BASE_RES_W / 2)
         return true;
-    else if(_side == 2 && _pos <= global.resolutionW / 2)
+    else if(_side == 2 && _pos <= BASE_RES_W / 2)
         return true;
     else
         return false;
 }
 
 function _outscreen_check(_x, _y, _side) {
-	return _side == 0? !in_between(_x, 0, global.resolutionW) : !in_between(_y, 0, global.resolutionH);
+	return _side == 0? !in_between(_x, 0, BASE_RES_W) : !in_between(_y, 0, BASE_RES_H);
 }
 
 function note_recac_stats() {
 	if(!(in_between(objMain.showStats, 1, 2)))
 		return;
 
-	stat_reset();
-	var _arr = objMain.chartNotesArray
-	for(var i=0, l=array_length(_arr); i<l; i++)
-		if(_arr[i].time != INF) {
-			stat_count(_arr[i].side, _arr[i].noteType);
-		}
+	var result = json_parse(DyCore_note_count());
+	objMain.statCount = result;
 }
 
-function note_sort_all() {
-	var startTime = get_timer();
-    var _f = function (_x) {
-		return _x.time;
+function note_sort_all(forced = false) {
+	if(!forced && !objEditor.editorNoteSortRequest) return;
+	objEditor.editorNoteSortRequest = false;
+	
+	var result = DyCore_sort_notes();
+	
+	if(result == 0) {
+		note_recac_stats();
 	}
-    objMain.chartNotesArray = extern_index_sort(objMain.chartNotesArray, _f);
-	var endTime = get_timer();
-	show_debug_message("Note sorting took " + string((endTime - startTime)/1000) + "ms");
-    
-    // Update arrayPos & Flush deleted notes
-	startTime = get_timer();
-    with(objMain) {
-    	chartNotesCount = array_length(chartNotesArray);
-    	
-    	for(var i=0; i<chartNotesCount; i++) {
-			chartNotesArray[i].index = i;
-		}
-    	
-		var notes_to_delete = 0, p = array_length(chartNotesArray) - 1;
-    	while(p >= 0) {
-			if(chartNotesArray[p].inst < 0) {
-				notes_to_delete++;
-			}
-			p--;
-    	}
-		array_resize(chartNotesArray, chartNotesCount - notes_to_delete);
-    }
-
-	note_recac_stats();
-	endTime = get_timer();
-	show_debug_message("Note recalculation took " + string((endTime - startTime)/1000) + "ms");
 }
 
 function note_sort_request() {
 	objEditor.editorNoteSortRequest = true;
 }
 
-function build_note(_id, _type, _time, _position, _width, 
-	_subid, _side, _record = false, _selecting = false) {
-    var _obj = undefined;
-    switch(_type) {
-        case "NORMAL":
-        case 0:
-            _obj = objNote;
-            break;
-        case "CHAIN":
-        case 1:
-            _obj = objChain;
-            break;
-        case "HOLD":
-        case 2:
-            _obj = objHold;
-            break;
-        case "SUB":
-        case 3:
-            _obj = objHoldSub;
-            break;
-        default:
-            return;
-    }
-	/// @type {Id.Instance.objNote} 
-    var _inst = instance_create_depth(0, 0, 0, _obj);
-    _inst.width = real(_width);
-    _inst.side = real(_side);
-	_inst.time = _time;
-    _inst.position = real(_position);
-    _inst.nid = _id;
-    _inst.sid = _subid;
-    
-    with(_inst) {
-    	_prop_init(true);
-    	if(noteType == 2) _prop_hold_update();
-    	if(_selecting) set_state(NOTE_STATES.SELECTED);
-    }
-    with(objMain) {
-        array_push(chartNotesArray, _inst.get_prop(true));
-		DyCore_insert_note(json_stringify(_inst.get_prop()));
-        if(ds_map_exists(chartNotesMap[_inst.side], _id)) {
-            show_error_async("Duplicate Note ID " + _id + " in side " 
-                + string(_side), false);
-            return -999;
-        }
-        chartNotesMap[_inst.side][? _id] = _inst;
-        
-        note_sort_request();
-    }
-    
-    if(_record)
-    	operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(), -1);
-    
-    return _inst;
-}
+function build_note(prop, record = false, selecting = false, randomID = false) {
+	prop = SnapDeepCopy(prop);
+	var _isHold = prop.noteType == NOTE_TYPE.HOLD;
+	if(!variable_struct_exists(prop, "noteID") || prop.noteID == "")
+		randomID = true;
 
-function build_hold(_id, _time, _position, _width, _subid, _subtime,
-					_side, _record = false, _selecting = false) {
-	var _sinst = build_note(_subid, 3, _subtime, _position, _width, -1, _side,
-							false, _selecting);
-	var _inst = build_note(_id, 2, _time, _position, _width, _subid, 
-						   _side, false, _selecting);
-	_sinst.beginTime = _time;
-	// assert(_inst.sinst == _sinst);
-	if(_record)
-		operation_step_add(OPERATION_TYPE.ADD, _inst.get_prop(), -1);
-	return _inst;
-}
-
-
-function build_note_withprop(prop, record = false, selecting = false) {
-	if(prop.noteType < 2) {
-		return build_note(random_id(9), prop.noteType, prop.time, prop.position, 
-			prop.width, "-1", prop.side, record, selecting);
+	if(randomID) {
+		prop.noteID = note_generate_id();
+		if(_isHold) {
+			prop.subNoteID = note_generate_id();
+		}
 	}
-	else {
-		return build_hold(random_id(9), prop.time, prop.position, prop.width,
-						  random_id(9), prop.time + prop.lastTime,
-						  prop.side, record, selecting);
+	if(!_isHold) prop.subNoteID = "";
+
+	var _newNote = new sNoteProp(prop);
+
+	switch(prop.noteType) {
+		case NOTE_TYPE.NORMAL:
+		case NOTE_TYPE.CHAIN:
+			dyc_create_note(_newNote, record);
+			break;
+		case NOTE_TYPE.HOLD:
+			var _newSubNote = new sNoteProp({
+				time: prop.time + prop.lastTime,
+				side: prop.side,
+				width: prop.width,
+				position: prop.position,
+				lastTime: prop.lastTime,
+				noteType: NOTE_TYPE.SUB,
+				noteID: prop.subNoteID,
+				subNoteID: prop.noteID,
+				beginTime: prop.time
+			});
+			dyc_create_note(_newSubNote, false);
+			dyc_create_note(_newNote, record);
+			break;
+		case NOTE_TYPE.SUB:
+			throw "Cannot directly create sub notes."
+	}
+
+	if(selecting) {
+		note_activate(_newNote.noteID);
+		var _inst = note_get_instance(_newNote.noteID);
+		_inst.select();
 	}
 }
 
 // This function can only be accessed in destroy event.
-/// @param {Id.Instance.objNote} _inst
-function note_delete(_inst, _record = false) {
-	if(!note_exists(_inst)) {
-		show_debug_message("!!!Warning!!! You're trying to delete an unexisting/deactiaved note.")
+/// @param {String} noteID
+function note_delete(noteID, _record = false) {
+	if(noteID == "") {
 		return;
 	}
-	if(_inst.deleting || _inst.get_array_pos() < 0) {
-		return;
+
+	if(note_is_activated(noteID)) {
+		var _inst = note_get_instance(noteID);
+		note_deactivate_instance(_inst);
 	}
+
 	try {
-		with(objMain) {
-	        var i = _inst.get_array_pos();
-	        if(chartNotesArray[i].inst == _inst) {
-	        	chartNotesArray[i] = chartNotesArray[i].inst.get_prop();
-				DyCore_delete_note(json_stringify(chartNotesArray[i]));
-	        	if(_record)
-	        		operation_step_add(OPERATION_TYPE.REMOVE, 
-	        						   SnapDeepCopy(chartNotesArray[i]), -1);
-	        	
-	        	ds_map_delete(chartNotesMap[chartNotesArray[i].side], _inst.nid);
-	            chartNotesArray[i].time = INF;
-	            chartNotesArray[i].inst = -10;
-	        }
-	        else {
-	        	throw "Note id in array not matching instance id."
-	        }
-	    }
+		var _prop = dyc_get_note(noteID);
+		if(_record)
+			operation_step_add(OPERATION_TYPE.REMOVE, _prop, -1);
+		var result = DyCore_delete_note(noteID);
+		if(_prop.noteType == NOTE_TYPE.HOLD) {
+			note_delete(_prop.subNoteID, false);
+		}
+		if(result < 0)
+			throw "DyCore note deletion failed.";
 	} catch (e) {
 		announcement_error($"音符删除出现错误。请将谱面导出并备份以避免问题进一步恶化。您可以选择将该信息反馈开发者以帮助我们解决问题。错误信息：{e}");
 	}
@@ -198,80 +164,36 @@ function note_delete(_inst, _record = false) {
 
 function note_delete_all() {
 	with(objMain) {
-		chartNotesArray = [];
 		chartNotesArrayAt = 0;
-		chartNotesCount = 0;
-		ds_map_clear(chartNotesMap[0]);
-		ds_map_clear(chartNotesMap[1]);
-		ds_map_clear(chartNotesMap[2]);
 		
-		note_activate_all();
-		with(objNote) deleting = true;
 		instance_destroy(objNote);
 		DyCore_clear_notes();
 	}
 }
 
 function note_delete_all_manually(_record = true) {
-	note_activate_all();
-	with(objNote) {
-		if(noteType != 3) {
-			recordRequest = _record;
-			instance_destroy();
-		}
+	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
+		var _str = dyc_get_note_at_index(i);
+		note_delete(_str.noteID, _record);
 	}
 }
 
-function notes_array_update() {
-	with(objMain) {
-		chartNotesCount = array_length(chartNotesArray);
-		var i=0, l=chartNotesCount;
-		for(; i<l; i++) if(chartNotesArray[i].time != INF) {
-			chartNotesArray[i].inst.update_prop();
-			chartNotesArray[i].index = i;
-		}
+function note_check_and_activate(index_or_ID) {
+	var _str;
+	if(is_string(index_or_ID)) {
+		if(note_is_activated(index_or_ID)) return 0;
+		_str = dyc_get_note(index_or_ID);
 	}
-	note_sort_request();
-}
-
-function notes_reallocate_id() {
-	with(objMain) {
-		var i=0, l=chartNotesCount;
-		ds_map_clear(chartNotesMap[0]);
-		ds_map_clear(chartNotesMap[1]);
-		ds_map_clear(chartNotesMap[2]);
-		for(; i<l; i++) {
-			var _inst = chartNotesArray[i].inst;
-			_inst.nid = string(i);
-			chartNotesMap[_inst.side][? _inst.nid] = _inst;
-		}
-		for(i=0; i<l; i++) {
-			var _inst = chartNotesArray[i].inst;
-			if(_inst.noteType == 2)
-				_inst.sid = _inst.sinst.nid;
-			else
-				_inst.sid = "-1";
-		}
+	else {
+		_str = dyc_get_note_at_index(index_or_ID);
+		if(note_is_activated(_str.noteID)) return 0;
 	}
-}
-
-function note_check_and_activate(_posistion_in_array) {
-	var _struct = objMain.chartNotesArray[_posistion_in_array];
-	if(_struct.inst > 0)
-		_struct.index = _posistion_in_array;
-	else
-		return 0;
-	if(note_exists(_struct.inst)) {
-		return 0;
-	}
-	var _str = _struct;
 	var _note_inbound = !_outbound_check_t(_str.time, _str.side) && _str.time >= objMain.nowTime;
 	var _hold_intersect = _str.noteType >= 2 &&
 		(_str.noteType == 2? (_str.time <= objMain.nowTime && _str.time + _str.lastTime >= objMain.nowTime):
 			(_str.beginTime <= objMain.nowTime && _str.time >= objMain.nowTime));
-	if(_note_inbound || _hold_intersect || _str.inst.stateType != NOTE_STATES.OUT) {
-		// instance_activate_object(_str.inst);
-		note_activate(_str.inst);
+	if(_note_inbound || _hold_intersect) {
+		note_activate(_str.noteID);
 		return 1;
 	}
 	else if(!_note_inbound && _outbound_check_t(_str.time, !(_str.side))) {
@@ -280,28 +202,71 @@ function note_check_and_activate(_posistion_in_array) {
 	return 0;
 }
 
-function note_deactivate(inst) {
-	instance_deactivate_object(inst);
-	global.activationMan.deactivate(inst);
+/// @param {Id.Instance.objNote} inst
+function note_deactivate_instance(inst) {
+	if(!note_is_activated(inst)) return;
+	if(inst.noteType == 3) return;
+	inst.detach();
+
+	// ! Only for now. 
+	// Release the instance back to objectPool.
+	if(inst.noteType == NOTE_TYPE.HOLD)
+		instance_destroy(inst.sinst);
+	instance_destroy(inst);
 }
 
-function note_activate(inst) {
-	instance_activate_object(inst);
-	global.activationMan.activate(inst);
-}
+function note_activate(noteID, trackHead = true) {
+	if(note_is_activated(noteID)) return;
+	// Get note object from objectPool.
+	var _prop = dyc_get_note(noteID);
+	if(_prop.noteType == NOTE_TYPE.SUB && trackHead) {
+		// If is a sub note, get the main note.
+		var _mainNote = dyc_get_note(_prop.subNoteID);
+		if(_mainNote == undefined) {
+			throw "Sub note " + noteID + " has no main note.";
+			return;
+		}
+		if(note_is_activated(_mainNote.noteID)) {
+			// If the main note is already activated, just return.
+			return;
+		}
+		_prop = _mainNote;
+		noteID = _prop.noteID;
+	}
 
-function note_activate_all() {
-	instance_activate_object(objNote);
-	global.activationMan.activate_all();
+	/// @type {Id.Instance.objNote} 
+	var _inst = instance_create_depth(0, 0, 0, _note_get_object_asset(_prop.noteType));
+	_inst.attach(noteID);
+	global.activationMan.track(_inst);
+
+	// show_debug_message($"Trying activate the note: {noteID}, {_inst.noteType}");
 }
 
 function note_deactivate_all() {
-	with(objNote) global.activationMan.deactivate(id);
+	global.activationMan.deactivate_all();
 	instance_deactivate_object(objNote);
 }
 
-function note_exists(inst) {
-	return global.activationMan.is_activated(inst);
+function note_get_instance(noteID) {
+	return global.noteIDMan.get(noteID);
+}
+
+function note_exists(inst_or_noteID) {
+	// If is noteID
+	if(is_string(inst_or_noteID)) {
+		inst_or_noteID = note_get_instance(inst_or_noteID)
+		if(inst_or_noteID < 0) return false;
+	}
+	return global.activationMan.is_tracked(inst_or_noteID);
+}
+
+function note_is_activated(inst_or_noteID) {
+	// If is noteID
+	if(is_string(inst_or_noteID)) {
+		inst_or_noteID = note_get_instance(inst_or_noteID)
+		if(inst_or_noteID < 0) return false;
+	}
+	return global.activationMan.is_activated(inst_or_noteID);
 }
 
 function note_select_reset(inst = undefined) {
@@ -314,30 +279,129 @@ function note_select_reset(inst = undefined) {
 		}
 }
 
-function note_activation_reset() {
-	note_deactivate_all();
+function note_generate_id() {
+	return DyCore_generate_note_id();
+}
+
+/// @param {Struct.sNoteProp} note
+function note_get_pixel_width(note) {
+	return note.width * 300 / (note.side == 0 ? 1:2) - 30
+		 + _note_get_lrpadding_total(note.noteType);
+}
+
+/// @param {Any} number The number of particles to emit.
+/// @param {Struct.sNoteProp} note The note's property.
+/// @param {Real} parttype The type of particle to emit. 0: Normal; 1: Hold
+function note_emit_particles(number, note, parttype) {
+	if(!objMain.nowPlaying)
+		return;
+	
+	if(!global.particleEffects)
+		return;
+	
+	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
+		return;
+
+		
+        
+	// Emit Particles
+	var _x, _y, _x1, _x2, _y1, _y2;
+	var pWidth = note_get_pixel_width(note);
+	if(note.side == 0) {
+		_x = note_pos_to_x(note.position, note.side);
+		_x1 = _x - pWidth / 2;
+		_x2 = _x + pWidth / 2;
+		_y = BASE_RES_H - objMain.targetLineBelow;
+		_y1 = _y;
+		_y2 = _y;
+	}
+	else {
+		_x = note.side == 1 ? objMain.targetLineBeside : 
+							BASE_RES_W - objMain.targetLineBeside;
+		_x1 = _x;
+		_x2 = _x;
+		_y = note_pos_to_x(note.position, note.side);
+		_y1 = _y - pWidth / 2;
+		_y2 = _y + pWidth / 2; 
+	}
+	
+	// Emit particles on mixer's position
+	var _mixer = note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER";
+	if(_mixer) {
+		_y = objMain.mixerX[note.side-1];
+		var _mixerH = sprite_get_height(sprMixer);
+		_y1 = _y - _mixerH / 2;
+		_y2 = _y + _mixerH / 2;
+	}
+
+	var _ang = (note.side == 0 ? 0 : (note.side == 1 ? 270 : 90));
 	with(objMain) {
-		ds_map_clear(deactivationQueue);
-		for(var i=0; i<chartNotesCount; i++)
-			note_check_and_activate(i);
+		_partemit_init(partEmit, _x1, _x2, _y1, _y2);
+		if(parttype == 0) {
+			_parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
+			_parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
+
+			part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, number);
+			part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, number);
+		}
+		else if(parttype == 1) {
+			_parttype_hold_init(partTypeHold, 1, _ang);
+			part_emitter_burst(partSysNote, partEmit, partTypeHold, number);
+		}
 	}
 }
 
-// Prevent extra sub notes.
-function note_extra_sub_removal() {
-	var _dcnt = 0;
-	for(var i=0, l=array_length(objMain.chartNotesArray); i<l; i++)
-		if(objMain.chartNotesArray[i].inst > 0) {
-			/// @self Id.Instance.objNote
-			with(objMain.chartNotesArray[i].inst) {
-				if(noteType == 3 && finst<0) {
-					instance_destroy();
-					_dcnt ++;
-				}
-			}
-		}
-	if(_dcnt > 0) {
-		announcement_warning(i18n_get("extra_sub_fix", string(_dcnt)));
-		note_sort_all();
+/// @param {Struct.sNoteProp} note
+/// @param {Bool} displayEffects 
+function note_hit(note, displayEffects) {
+	if(!objMain.nowPlaying || objMain.topBarMousePressed)
+		return false;
+
+		
+	// Play Sound
+	if(objMain.hitSoundOn)
+		audio_play_sound(sndHit, 0, 0);
+	
+	// Update side hinter.
+	if(note.side > 0)
+		objMain._sidehinter_hit(note.side-1, note.time + note.lastTime);
+
+	if(!displayEffects)
+		return false;
+	
+	var shadowFun = irandom_range(0, 100) <= 90;
+	var shadowGo = global.shadowCount < MAX_SHADOW_COUNT || shadowFun;
+
+	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT 
+	   && !shadowGo)
+		return false;
+
+	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
+
+	// Create Shadow
+	if(note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER") {
+		objMain.mixerShadow[note.side-1]._hit();
 	}
+	else if(shadowGo) {
+		var _x, _y;
+		if(note.side == 0) {
+			_x = note_pos_to_x(note.position, note.side);
+			_y = BASE_RES_H - objMain.targetLineBelow;
+		}
+		else {
+			_x = note.side == 1 ? objMain.targetLineBeside : 
+								BASE_RES_W - objMain.targetLineBeside;
+			_y = note_pos_to_x(note.position, note.side);
+		}
+		var _shadow = objShadow;
+		
+		/// @self Id.Instance.objShadow
+		var _inst = instance_create_depth(_x, _y, -100, _shadow), _scl = 1;
+		_inst.nowWidth = note_get_pixel_width(note);
+		_inst.visible = true;
+		_inst.image_angle = (note.side == 0 ? 0 : (note.side == 1 ? 270 : 90));
+		_inst._prop_init();
+	}
+
+	return true;
 }

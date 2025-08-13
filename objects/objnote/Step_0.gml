@@ -1,5 +1,10 @@
-
 var _editMode = editor_get_editmode();
+
+// If notes are being dragged, prevent pulling properties
+if(_editMode < 5) {
+    if(can_pull())
+        pull_prop();
+}
 
 _prop_init();
 
@@ -18,10 +23,11 @@ else {
     selectTolerance = false;
 }
 
-state();
+if(_editMode == 5) {
+    set_state(NOTE_STATES.OUT);
+}
 
-if(_editMode < 5)
-    update_prop();
+state();
 
 selectUnlock = false;
 
@@ -64,13 +70,13 @@ if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
 }
 
 // If no longer visible then deactivate self
-if(!drawVisible && nodeAlpha < EPS && infoAlpha < EPS && !note_exists(finst)) {
-	note_deactivate(id);
+if(!drawVisible && nodeAlpha < EPS && infoAlpha < EPS && !note_is_activated(finst)) {
+	note_deactivate_instance(id);
 	return;
 }
 
 // Update Highlight Line's Position
-if(_editMode < 5 && objEditor.editorHighlightLine && note_exists(id)) {
+if(_editMode < 5 && objEditor.editorHighlightLine && note_is_activated(id)) {
 	if(stateType == NOTE_STATES.SELECTED && isDragging || stateType == NOTE_STATES.ATTACH_SUB || stateType == NOTE_STATES.DROP_SUB
 		|| ((stateType == NOTE_STATES.ATTACH || stateType == NOTE_STATES.DROP) && id == editor_get_note_attaching_center())) {
 		objEditor.editorHighlightTime = time;

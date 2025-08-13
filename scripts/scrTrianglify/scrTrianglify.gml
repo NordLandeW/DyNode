@@ -1,42 +1,36 @@
 function trianglify_draw(tri_struct, colors, threshold = 0) {
 	var w = tri_struct.width;
 	var h = tri_struct.height;
-	var _surf = surface_create(w, h);
 	var _temp = [];
 	
 	for(var i=0; i<array_length(tri_struct.points); i++)
 		array_push(_temp, tri_struct.points[i].x, tri_struct.points[i].y);
-	
-	surface_set_target(_surf);
-		gpu_set_blendmode_ext(bm_one, bm_zero);
-		draw_clear_alpha(c_black, 0);
-		draw_set_alpha(1);
-		// Triangulation
-		var _arr = json_parse(DyCore_delaunator(json_stringify(_temp)));
-		draw_set_color(c_white);
-		draw_primitive_begin(pr_trianglelist);
-		for(var i=0; i<array_length(_arr); i++) {
-			_arr[i].c = __trisys_centroid(_arr[i]);
-			// Sparkle Effect
-			// _arr[i].c = __trisys_spakle(_arr[i].c, w, h);
-			
-			var _color = __2corner_color_merge(colors, _arr[i].c[0], _arr[i].c[1], w, h);
-			_color = __trisys_mouselight(_color, _arr[i].c[0], _arr[i].c[1], colors[2]);
-			draw_set_color(_color);
-			var _alp = _arr[i].c[1]/h;
-			_alp = max(_alp - threshold, 0);
-			_alp = lerp(0, 1, _alp/(1-threshold));
-			draw_vertex_color(_arr[i].p1[0], _arr[i].p1[1], _color, 1);
-			draw_vertex_color(_arr[i].p2[0], _arr[i].p2[1], _color, 1);
-			draw_vertex_color(_arr[i].p3[0], _arr[i].p3[1], _color, 1);
-		}
-		draw_primitive_end();
-		gpu_set_blendmode(bm_normal);
-	surface_reset_target();
+
+	gpu_push_state();
+	gpu_set_blendmode_ext(bm_one, bm_zero);
+	draw_clear_alpha(c_black, 0);
 	draw_set_alpha(1);
-	
-	return _surf;
-	
+	// Triangulation
+	var _arr = json_parse(DyCore_delaunator(json_stringify(_temp)));
+	draw_set_color(c_white);
+	draw_primitive_begin(pr_trianglelist);
+	for(var i=0; i<array_length(_arr); i++) {
+		_arr[i].c = __trisys_centroid(_arr[i]);
+		// Sparkle Effect
+		// _arr[i].c = __trisys_spakle(_arr[i].c, w, h);
+		
+		var _color = __2corner_color_merge(colors, _arr[i].c[0], _arr[i].c[1], w, h);
+		_color = __trisys_mouselight(_color, _arr[i].c[0], _arr[i].c[1], colors[2]);
+		draw_set_color(_color);
+		var _alp = _arr[i].c[1]/h;
+		_alp = max(_alp - threshold, 0);
+		_alp = lerp(0, 1, _alp/(1-threshold));
+		draw_vertex_color(_arr[i].p1[0], _arr[i].p1[1], _color, 1);
+		draw_vertex_color(_arr[i].p2[0], _arr[i].p2[1], _color, 1);
+		draw_vertex_color(_arr[i].p3[0], _arr[i].p3[1], _color, 1);
+	}
+	draw_primitive_end();
+	gpu_pop_state();
 }
 
 function trianglify_generate(w, h, speedRange, cellSize=75, variance=0.75) {
@@ -82,7 +76,7 @@ function trianglify_step(tri_struct) {
 	}
 }
 
-function __trisys_spakle(pos, w, h, jitterFactor = 0.15) {
+function __trisys_sparkle(pos, w, h, jitterFactor = 0.15) {
 	return [
 		pos[0]+(random(1)-0.5)*jitterFactor*w,
 		pos[1]+(random(1)-0.5)*jitterFactor*h,

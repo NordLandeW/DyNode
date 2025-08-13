@@ -14,19 +14,3 @@ if(_type == "video_start") {
 	bgVideoDisplay = true;
 	bgVideoReloading = false;
 }
-// ! Deprecated part
-else if(_type == "video_end") {
-	if(bgVideoDestroying) {
-		bgVideoDestroying = false;
-		return;
-	}
-	
-	// Idk why i have to add this line but this does work
-	if(objManager.videoPath != "") {
-		video_load(objManager.videoPath, false);
-		bgVideoReloading = true;
-		bgVideoDisplay = false;
-		show_debug_message_safe("Video reloading.");
-	}
-}
-// ! Deprecated part ends

@@ -7,7 +7,7 @@ noteType = 2;
 holdAlpha = 0.8;
 bgLightness = 0.52;
 
-image_yscale = 0.6 * global.scaleYAdjust;
+image_yscale = 0.6;
 
 originalHeight = sprite_get_height(sprHoldEdge);
 pHeight = originalHeight; // Height in Pixels base on sprHoldEdge
@@ -20,45 +20,41 @@ _prop_init(true);
 
 // In-Function
 
-	_prop_hold_update = function () {
-        if(sinst > 0 || (sid != -1 && ds_map_exists(objMain.chartNotesMap[side], sid))) {
-            if(sinst <= 0)
-		        sinst = objMain.chartNotesMap[side][? sid]
+	_prop_hold_update = function (sync_to_array = true) {
+		if(stateType == NOTE_STATES.OUT) {
+			return;
+		}
+		if(!note_exists(sinst))
+			return;
 
-		    if(stateType != NOTE_STATES.OUT)
-		    	note_activate(sinst);
-    
-		    // Being destroyed
-		    if(!instance_exists(sinst))
-		        return;
-    
-		    // Sync the properties
-		    sinst.position = position;
-		    sinst.width = width;
-		    sinst.depth = depth;
-		    sinst.side = side;
-		    sinst.finst = id;
-		    sinst.time = max(sinst.time, time+0.0001);
-		    
-		    if(fixedLastTime != -1)
-		    	sinst.time = time + fixedLastTime;
-		    
-		    sinst.beginTime = time;
-		    sinst.update_prop();
-			sinst._prop_init(true);
-    
-    		subFading = false;
-		    pHeight = max(0, objMain.playbackSpeed * 
-		    	(sinst.time - max(time, selectTolerance?0:objMain.nowTime)))
-		        + dFromBottom + uFromTop;
-		    if(!global.simplify) {
-				subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
-		    	pHeight = max(pHeight, originalHeight);
-		    }
-		    lastTime = sinst.time - time;
-		    lastTime = max(lastTime, 1);
+		// Sync the properties
+		sinst.position = position;
+		sinst.width = width;
+		sinst.depth = depth;
+		sinst.side = side;
+		sinst.finst = id;
+		sinst.time = max(sinst.time, time+0.0001);
+		
+		if(fixedLastTime != -1)
+			sinst.time = time + fixedLastTime;
+		
+		sinst.beginTime = time;
+		if(sync_to_array)
+			sinst.update_prop();
+		sinst._prop_init(true);
+
+		subFading = false;
+		pHeight = max(0, objMain.playbackSpeed * 
+			(sinst.time - max(time, selectTolerance?-9999999:objMain.nowTime)))
+			+ dFromBottom + uFromTop;
+		if(!global.simplify) {
+			subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
+			pHeight = max(pHeight, originalHeight);
+		}
+		lastTime = sinst.time - time;
+		lastTime = max(lastTime, 1);
+		if(sync_to_array)
 			update_prop();
-        }
     }
     
     _prop_hold_update();
@@ -76,10 +72,10 @@ _prop_init(true);
 		if(!selectTolerance) {
 		    if(side == 0) {
 			    _nx = x;
-			    _ny = min(y, global.resolutionH - objMain.targetLineBelow);
+			    _ny = min(y, BASE_RES_H - objMain.targetLineBelow);
 			}
 			else {
-			    _nx = side == 2? min(x, global.resolutionW - objMain.targetLineBeside) :
+			    _nx = side == 2? min(x, BASE_RES_W - objMain.targetLineBeside) :
 			                    max(x, objMain.targetLineBeside);
 			    _ny = y;
 			}
@@ -90,30 +86,30 @@ _prop_init(true);
 		}
 			
 		var _h = sprite_get_height(sprHold), _th = pHeight - dFromBottom - uFromTop,
-		_w = sprite_get_width(sprHold), _rw = pWidth - lFromLeft - rFromRight;
+		_w = sprite_get_width(sprHold), _rw = pWidth - _note_get_lrpadding_total(noteType);
 		var _sclx = _rw / _w;
 		var _scly = pHeight;
 		    
 		// Optimization
-		if(side == 0 && _ny > global.resolutionH + _h) {
-		    var _extra = floor((_ny - global.resolutionH - _h) / _h) * _h;
+		if(side == 0 && _ny > BASE_RES_H + _h) {
+		    var _extra = floor((_ny - BASE_RES_H - _h) / _h) * _h;
 		    _ny -= _extra;
 		    _th -= _extra;
 		    _scly -= _extra;
 		}
-		else if(side >= 1 && !in_between(_nx, -_h, global.resolutionW+_h)) {
-		    var _extra = floor(max(-_h-_nx, _nx-global.resolutionW-_h) / _h) * _h;
+		else if(side >= 1 && !in_between(_nx, -_h, BASE_RES_W+_h)) {
+		    var _extra = floor(max(-_h-_nx, _nx-BASE_RES_W-_h) / _h) * _h;
 		    _nx += (side == 1?1:-1) * _extra;
 		    _th -= _extra;
 		    _scly -= _extra;
 		}
 		    
-		if(side == 0 && _th > global.resolutionH + 2*_h)
-		    _th -= floor((_th - global.resolutionH - 2*_h) / _h) * _h;
-		else if(side >= 1 && _th > global.resolutionW + 2*_h)
-		    _th -= floor((_th - global.resolutionW - 2*_h) / _h) * _h;
+		if(side == 0 && _th > BASE_RES_H + 2*_h)
+		    _th -= floor((_th - BASE_RES_H - 2*_h) / _h) * _h;
+		else if(side >= 1 && _th > BASE_RES_W + 2*_h)
+		    _th -= floor((_th - BASE_RES_W - 2*_h) / _h) * _h;
 		    
-		_scly = min(_scly, (side==0?global.resolutionH:global.resolutionW)+3*_h) / originalHeight;
+		_scly = min(_scly, (side==0?BASE_RES_H:BASE_RES_W)+3*_h) / originalHeight;
 			
 		if(!_draw_edge) {
 		    // Draw Green Blend (Old Workaround)
@@ -213,8 +209,6 @@ _prop_init(true);
 
     dFromBottom = 26;
     uFromTop = 13; 
-    lFromLeft = 12;
-    rFromRight = 12;
 
 // Simplification Color Configuration
 

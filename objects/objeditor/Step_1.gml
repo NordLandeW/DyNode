@@ -9,6 +9,9 @@ editorSelectOccupied = false;
 editorSelectDragOccupied = false;
 editorSelectInbound = false;
 
+editorModeSwitching --;
+editorModeSwitching = max(editorModeSwitching, 0);
+
 editorSelectCount = 0;
 var _note_found = false;
 
@@ -127,6 +130,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			origProp = get_prop();
 	    			position = 5 - position;
 	    			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                    update_prop();
 	    		}
 	    	}
             operation_merge_last_request(1, OPERATION_TYPE.MIRROR);
@@ -138,7 +142,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			var prop = get_prop();
 	    			prop.position = 5 - prop.position;
 	    			note_select_reset(id);
-	    			build_note_withprop(prop, true, true);
+	    			build_note(prop, true, true, true);
 	    		}
 	    	}
             operation_merge_last_request(1, OPERATION_TYPE.MIRROR);
@@ -153,6 +157,7 @@ editorSelectMultiple = editorSelectCount > 1;
 			    		side = 1 + (!(side - 1));
 			    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
 			    		_found ++;
+                        update_prop();
 			    	}
 	    	}
 	    	if(_found>0) {
@@ -173,7 +178,7 @@ editorSelectMultiple = editorSelectCount > 1;
 		    			var prop = get_prop();
 			    		prop.side = 1 + (!(prop.side - 1));
 			    		note_select_reset(id);
-			    		build_note_withprop(prop, true, true);
+			    		build_note(prop, true, true, true);
 			    		_found ++;
 			    	}
 	    	}
@@ -193,6 +198,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    			origProp = get_prop();
 			    	width = editor_get_default_width();
 			    	operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                    update_prop();
 	    		}
             operation_merge_last_request(1, OPERATION_TYPE.SETWIDTH);
 	    	announcement_play(i18n_get("notes_set_width", [string_format(editor_get_default_width(), 1, 2),
@@ -202,11 +208,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
-			    		recordRequest = true;
-			    		instance_destroy();
 			    		var _prop = get_prop();
+			    		note_delete(noteID, true);
 			    		_prop.noteType = 0;
-			    		build_note_withprop(_prop, true, true);
+			    		build_note(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["NOTE", string(editor_select_count())]));
@@ -215,11 +220,10 @@ editorSelectMultiple = editorSelectCount > 1;
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
-			    		recordRequest = true;
-			    		instance_destroy();
 			    		var _prop = get_prop();
+			    		note_delete(noteID, true);
 			    		_prop.noteType = 1;
-			    		build_note_withprop(_prop, true, true);
+			    		build_note(_prop, true, true, true);
 			    	}
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["CHAIN", string(editor_select_count())]));
@@ -243,7 +247,7 @@ editorSelectMultiple = editorSelectCount > 1;
             editor_set_editside(3);
     }
     if(editorLRSide && !editorLRSideLock && !editor_select_is_area()) {
-        editorSide = mouse_x*2 < global.resolutionW? 1:2;
+        editorSide = mouse_x*2 < BASE_RES_W? 1:2;
     }
     if(editorSide != editorLastSide) {
         _attach_sync_request = true;
@@ -359,10 +363,10 @@ editorSelectMultiple = editorSelectCount > 1;
                         _str.time,
                         _str.lastTime
                         ));
-                    if(_str.inst == attachRequestCenter) {
+                    if(_str.noteID == attachRequestCenterID) {
                         show_debug_message("Set attaching center.");
                         editorNoteAttachingCenter = i;
-                        attachRequestCenter = undefined;
+                        attachRequestCenterID = undefined;
                     }
                 }
                 if(_side_mask == 1 || _side_mask == 2 || _side_mask == 4) {
@@ -415,8 +419,7 @@ editorSelectMultiple = editorSelectCount > 1;
                 array_push(_newCopyStack, get_prop());
                 _cnt ++;
                 if(objEditor.cutRequest || objEditor.attachRequest) {
-                    recordRequest = true;
-                    instance_destroy();
+                    note_delete(noteID, true);
                 }
             }
         }
@@ -424,7 +427,7 @@ editorSelectMultiple = editorSelectCount > 1;
             return sign(_a.time == _b.time? _a.position - _b.position : _a.time - _b.time); });
         
         if(_cnt == 0) {
-            attachRequestCenter = undefined;
+            attachRequestCenterID = undefined;
             singlePaste = false;
         }
         else {

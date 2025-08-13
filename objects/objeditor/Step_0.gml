@@ -2,6 +2,7 @@
 
 #region Beatlines
     
+    var timingPoints = dyc_get_timingpoints();
     animBeatlineTargetAlphaM = editorMode != 5 && array_length(timingPoints);
     beatlineAlphaMul = lerp_a(beatlineAlphaMul, animBeatlineTargetAlphaM, animSpeed);
     if(array_length(timingPoints)) {
@@ -58,6 +59,7 @@
             if(objEditor.editorWidthAdjustTime > objEditor.editorWidthAdjustTimeThreshold)
                 origProp = get_prop();
             width += _delta_width * 0.05;
+            update_prop();
         }
         editorWidthAdjustTime = 0;
     }

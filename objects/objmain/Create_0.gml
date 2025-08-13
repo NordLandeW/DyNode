@@ -1,4 +1,6 @@
 
+#macro PLAYBACK_EMPTY_TIME (1000)
+
 depth = 0;
 
 // Make Original Background Layer Invisible
@@ -17,22 +19,13 @@ depth = 0;
     
 #region Optimization
 
-	deactivationQueue = ds_map_create();
 	savingProjectId = {id: -1, buffer: undefined}; // The project being saved async
 	savingExportId = {id: -1, buffer: undefined}; // The map being export async
-	
+
 #endregion
 
 #region Time Sources
 	
-	// To prevent unstable delay from music to chart
-	resumeDelay = 15;
-	timesourceResumeDelay =
-		time_source_create(time_source_game, resumeDelay/1000,
-		time_source_units_seconds, function() {
-            nowPlaying = true;
-            nowTime = sfmod_channel_get_position(channel, sampleRate);
-	    }, [], 1, time_source_expire_after);
 	timesourceSyncVideo = 
 		time_source_create(time_source_game, 0.1,
 		time_source_units_seconds, function() {
@@ -47,20 +40,20 @@ depth = 0;
 
 // Target Line
 
-    targetLineBelow = 137*global.resolutionH/1080;
-    targetLineBeside = 112*global.resolutionW/1920;
+    targetLineBelow = 137;
+    targetLineBeside = 112;
     targetLineBelowH = 6;
     targetLineBesideW = 4;
     
     function _position_update() {
-        targetLineBelow = 137*global.resolutionH/1080;
-        targetLineBeside = 112*global.resolutionW/1920;
+        targetLineBelow = 137;
+        targetLineBeside = 112;
     }
 
 // Top Progress Bar
 
-    topBarH = 5*global.scaleYAdjust;
-    topBarMouseH = 20*global.scaleYAdjust;
+    topBarH = 5;
+    topBarMouseH = 20;
     topBarMouseInbound = false;
     topBarMousePressed = false;
     topBarMouseLastX = 0;
@@ -82,7 +75,7 @@ depth = 0;
     
     #macro MIXER_AVERAGE_TIME_THRESHOLD 10 // ms
     
-    mixerX = array_create(2, global.resolutionH/2);
+    mixerX = array_create(2, BASE_RES_H/2);
     mixerNextX = array_create(2, note_pos_to_x(2.5, 1));
     mixerSpeed = 0.5;
     mixerMaxSpeed = 250; // px per frame
@@ -95,10 +88,11 @@ depth = 0;
     /// @description Return struct with x and time.
     function mixer_get_next_x(side) {
     	var found = false, beginTime = 0, result = 0, accum = 0;
-        for(var i=chartNotesArrayAt; i<chartNotesCount
-        	&& (chartNotesArray[i].time - nowTime) * playbackSpeed / global.resolutionW <= MIXER_REACTION_RANGE; i++)
-        	if(chartNotesArray[i].side == side) {
-        		var _note = chartNotesArray[i];
+        for(var i=chartNotesArrayAt, l=dyc_get_note_count(); i<l; i++) {
+            var _note = dyc_get_note_at_index(i);
+            if((_note.time - nowTime) * playbackSpeed / BASE_RES_W > MIXER_REACTION_RANGE)
+                break;
+        	if(_note.side == side) {
         		if(!found) {
         			found = true;
         			beginTime = _note.time;
@@ -108,9 +102,10 @@ depth = 0;
         		result += _note.position * (1 / _note.width);
         		accum += 1/_note.width;
         	}
+        }
         if(!found) return undefined;
         result /= accum;
-        return {x: note_pos_to_x(result, side), time: beginTime};
+        return [note_pos_to_x(result, side), beginTime];
     }
 
 #endregion
@@ -140,8 +135,8 @@ depth = 0;
             if(nowTime < sideLastHitTime[i]) continue;
             if(sideHinterState[i] == -1)
             {
-                for(var j=chartNotesArrayAt; j<chartNotesCount; j++) {
-                    var _note = chartNotesArray[j];
+                for(var j=chartNotesArrayAt, l=dyc_get_note_count(); j<l; j++) {
+                    var _note = dyc_get_note_at_index(j);
                     if(_note.time - nowTime > SIDEHINT_SEARCH_TIME) break;
                     if(_note.side == i + 1) {
                         if(_note.time - sideLastHitTime[i] >= SIDEHINT_AHEAD_TIME) {
@@ -174,15 +169,9 @@ depth = 0;
     chartMusicFile = "";
     chartFile = "";
     
-    /// @type {Array<Any>}
-    chartNotesArray = [];				// Type is objNote.get_prop()'s return struct.
     /// @type {Array<Array<Id.Instance.objNote>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
-    chartNotesCount = 0;
-    chartNotesMap = array_create(3);
-    for(var i=0; i<3; i++)
-        chartNotesMap[i] = ds_map_create();
 
 #endregion
 
@@ -213,7 +202,7 @@ depth = 0;
     volumeMain = 1.0;           // Music sound volume
     volumeHit = 1.0;            // Hit sound volume
     
-    showDebugInfo = DEBUG_MODE;
+    showDebugInfo = DEBUG_MODE ? 1 : 0;
     showStats = 0;
     showBar = false;
     fadeOtherNotes = false;
@@ -239,13 +228,11 @@ depth = 0;
     // Bottom
         bottomDim = 0.6;
         bottomBgBlurIterations = 3;
-        bottomInfoSurf = -1;
     
     // Background
         bgDim = 0.65;
         
         // Image
-        bgImageFile = "";
         bgImageSpr = -1;
         
         // Video
@@ -253,7 +240,6 @@ depth = 0;
         bgVideoDisplay = false;
         bgVideoPaused = false;
         bgVideoLength = 0;
-        bgVideoPath = "";
         bgVideoReloading = false;
         bgVideoDestroying = false;
         bgVideoSurf = undefined;
@@ -274,7 +260,7 @@ depth = 0;
         
         // Kawase Blur
 
-		kawaseArr = kawase_create(global.resolutionW, targetLineBelow, bottomBgBlurIterations);
+		kawaseArr = kawase_create(BASE_RES_W, targetLineBelow, bottomBgBlurIterations);
 
 #endregion
 
@@ -405,7 +391,7 @@ function time_set(time, animated = true, inbound = -1) {
 	if(inbound > 0) {
 		// If above screen
 		if(time > nowTime) 
-			time -= pix_to_note_time(global.resolutionH - targetLineBelow - inbound);
+			time -= pix_to_note_time(BASE_RES_H - targetLineBelow - inbound);
 		else
 			time -= pix_to_note_time(inbound);
 	}
@@ -430,7 +416,7 @@ function time_add(offset, animated = true) {
 
 // Check if given [time] is inbound.
 function time_inbound(time) {
-	return time>nowTime && note_time_to_pix(time - nowTime) + targetLineBelow < global.resolutionH;
+	return time>nowTime && note_time_to_pix(time - nowTime) + targetLineBelow < BASE_RES_H;
 }
 
 // Make the specific time range inbound.
@@ -453,8 +439,6 @@ function time_music_sync() {
 	
 	// Set the fmod channel
 	sfmod_channel_set_position(nowTime, channel, sampleRate);
-	// Resync with fmod's position because of fmod's lower precision
-    nowTime = sfmod_channel_get_position(channel, sampleRate);
     
     // Sync with the video position
     if(bgVideoLoaded) {
@@ -522,12 +506,6 @@ function _set_channel_speed(spd) {
 	}
 	
 }
-
-#endregion
-
-#region Draw Extra Variables
-
-drawQueue = [array_create(1024), array_create(1024), array_create(1024)];
 
 #endregion
 

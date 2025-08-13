@@ -11,7 +11,5 @@ text = variable_instance_get(id, "text");
 scl = variable_instance_get(id, "scl");
 font = variable_instance_get(id, "font");
 
-creditsSurf = surface_create(width, height);
-
 nowY = height + 50;
 nowX = 10;

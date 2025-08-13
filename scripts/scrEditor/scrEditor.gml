@@ -8,11 +8,16 @@ function editor_set_editmode(mode) {
 			editorModeBeforeCopy = editorMode;
 		}
 		editorMode = mode;
+		editorModeSwitching = 2;
 	}
 }
 
 function editor_get_editmode() {
     return objEditor.editorMode;
+}
+
+function editor_mode_is_switching() {
+    return objEditor.editorModeSwitching > 0;
 }
 
 function editor_get_default_width() {
@@ -162,7 +167,7 @@ function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false) {
 }
 
 function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
-    var _nw = global.resolutionW, _nh = global.resolutionH;
+    var _nw = BASE_RES_W, _nh = BASE_RES_H;
     
     var _time = y_to_note_time(_y, _side);
     var _nowat = 0;
@@ -172,8 +177,9 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
 	    	bar: undefined
     	};
 	
-	if(!objEditor.editorGridYEnabled || !array_length(objEditor.timingPoints)) return _ret;
-    
+	var timingPoints = dyc_get_timingpoints();
+	if(!objEditor.editorGridYEnabled || !array_length(timingPoints)) return _ret;
+
     with(objEditor) {
         var targetLineBelow = objMain.targetLineBelow;
         var targetLineBeside = objMain.targetLineBeside;
@@ -220,10 +226,8 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
         });
         
         if(_side == 0) {
-            // if(_ry >= 0 && _ry <= _nh - targetLineBelow && _rt + _eps <= _nexttime)
             if((in_between(_ry, 0, _nh - targetLineBelow) || _ignore_boundary) && _rt + _eps <= _nexttime)
                 _ret = _f_genret(_ry, _rd, _rt);
-            // else if(_rby >= 0 && _rby <= _nh - targetLineBelow && _rbt + _eps <= _nexttime)
             else if((in_between(_rby, 0, _nh - targetLineBelow) || _ignore_boundary) && _rbt + _eps <= _nexttime)
                 _ret = _f_genret(_rby, _rbd, _rbt);
         }
@@ -284,7 +288,7 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
         if(_lasttime != -1 && _type == 2) {
         	sinst = instance_create(x, y, objHoldSub);
         	sinst.dummy = true;
-        	_prop_hold_update();
+        	_prop_hold_update(false);
         }
     }
     
@@ -315,7 +319,7 @@ function editor_note_duplicate_quick() {
 			note_select_reset(id);
 			var _prop = get_prop();
 			_prop.time += spacing;
-			build_note_withprop(_prop, true, true);
+			build_note(_prop, true, true, true);
 			operation_merge_last_request(1, OPERATION_TYPE.DUPLICATE);
 		}
 	}
@@ -386,7 +390,6 @@ function operation_synctime_set(time) {
 	with(objEditor) {
 		operationSyncTime[0] = min(operationSyncTime[0], time);
 		operationSyncTime[1] = max(operationSyncTime[1], time);
-		show_debug_message_safe("OPERATION SYNC TIME SET:"+string(operationSyncTime));
 	}
 }
 function operation_synctime_sync() {
@@ -436,18 +439,19 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 		operation_synctime_set(_from.time);
 	switch(_type) {
 		case OPERATION_TYPE.ADD:
-			return build_note_withprop(_from, false, true);
+			return build_note(_from, false, true);
 			break;
 		case OPERATION_TYPE.MOVE:
-			note_activate(_from.inst);
-			_from.inst.set_prop(_to);
-			_from.inst.note_outscreen_check();
-			if(!_safe_)
-				_from.inst.select();
+			dyc_update_note(_to);
+			if(!_safe_) {
+				note_activate(_to.noteID);
+				var _inst = note_get_instance(_to.noteID);
+				_inst.select();
+				_inst.pull_prop();
+			}
 			break;
 		case OPERATION_TYPE.REMOVE:
-			note_activate(_from.inst);
-			instance_destroy(_from.inst);
+			note_delete(_from.noteID, false);
 			break;
 		case OPERATION_TYPE.TPADD:
 			timing_point_add(_from.time, _from.beatLength, _from.meter);
@@ -460,30 +464,12 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			_tp.time = _to.time;
 			_tp.beatLength = _to.beatLength;
 			_tp.meter = _to.meter;
+			dyc_timingpoints_change(_tp.time, _tp);
 			break;
 		case OPERATION_TYPE.OFFSET:
 			map_add_offset(_from);
 			break;
 	}
-}
-
-function operation_refresh_inst(_origi, _nowi) {
-	with(objEditor) {
-		for(var i=0, l=array_length(operationStack); i<l; i++) {
-			var _ops = operationStack[i].ops;
-			for(var ii=0, ll=array_length(_ops); ii<ll; ii++) if(variable_struct_exists(_ops[ii].fromProp, "inst")) {
-				if(_ops[ii].fromProp.inst == _origi)
-					_ops[ii].fromProp.inst = _nowi;
-				if(_ops[ii].toProp != -1 && _ops[ii].toProp.inst == _origi)
-					_ops[ii].toProp.inst = _nowi;
-				if(_ops[ii].fromProp.sinst == _origi)
-					_ops[ii].fromProp.sinst = _nowi;
-				if(_ops[ii].toProp != -1 && _ops[ii].toProp.sinst == _origi)
-					_ops[ii].toProp.sinst = _nowi;
-			}
-		}
-	}
-	
 }
 
 function operation_undo() {
@@ -503,8 +489,6 @@ function operation_undo() {
 					break;
 				case OPERATION_TYPE.REMOVE:
 					var _inst = operation_do(OPERATION_TYPE.ADD, _ops[i].fromProp);
-					operation_refresh_inst(_ops[i].fromProp.inst, _inst);
-					operation_refresh_inst(_ops[i].fromProp.sinst, _inst.sinst);
 					break;
 				case OPERATION_TYPE.TPADD:
 					operation_do(OPERATION_TYPE.TPREMOVE, _ops[i].fromProp);
@@ -527,8 +511,6 @@ function operation_undo() {
 		
 		announcement_play(i18n_get("undo", [operation_get_name(_type), string(array_length(_ops))]));
 		note_sort_request();
-		if(l > MAX_SELECTION_LIMIT) note_activation_reset();
-		// show_debug_message_safe("POINTER: "+ string(operationPointer));
 	}
 	
 }
@@ -548,8 +530,6 @@ function operation_redo() {
 					break;
 				case OPERATION_TYPE.ADD:
 					var _inst = operation_do(OPERATION_TYPE.ADD, _ops[i].fromProp);
-					operation_refresh_inst(_ops[i].fromProp.inst, _inst);
-					operation_refresh_inst(_ops[i].fromProp.sinst, _inst.sinst);
 					break;
 				case OPERATION_TYPE.REMOVE:
 				case OPERATION_TYPE.TPADD:
@@ -608,25 +588,22 @@ function operation_merge_last_request_revoke() {
 
 // The number of timing points' count.
 function timing_point_count() {
-	return array_length(objEditor.timingPoints);
+	return dyc_get_timingpoints_count();
 }
 
 // Sort the "timingPoints" array
 function timing_point_sort() {
-    var _f = function(_a, _b) {
-        return sign(_a.time - _b.time);
-    }
-    array_sort(objEditor.timingPoints, _f);
+    dyc_timingpoints_sort();
 }
 
 // Add a timing point to "timingPoints" array
 function timing_point_add(_t, _l, _b, record = false) {
-    with(objEditor) {
-        array_push(timingPoints, new sTimingPoint(_t, _l, _b));
-        timing_point_sort();
-    }
+    var _tp = new sTimingPoint(_t, _l, _b);
+    dyc_insert_timingpoint(_tp);
+    timing_point_sort();
+
     if(record)
-    	operation_step_add(OPERATION_TYPE.TPADD, new sTimingPoint(_t, _l, _b), -1);
+    	operation_step_add(OPERATION_TYPE.TPADD, _tp, -1);
 }
 
 function timing_point_create(record = false) {
@@ -691,9 +668,7 @@ function timing_point_change(tp, record = false) {
 		if(_fixable)
 			timing_fix(tp, _tpAfter);
 
-		tp.meter = _tpAfter.meter;
-		tp.beatLength = _tpAfter.beatLength;
-		tp.time = _tpAfter.time;
+        dyc_timingpoints_change(tp.time, _tpAfter);
 
 		if(record)
 			operation_step_add(OPERATION_TYPE.TPCHANGE, _tpBefore, _tpAfter);
@@ -707,132 +682,112 @@ function timing_point_change(tp, record = false) {
 }
 
 function timing_fix(tpBefore, tpAfter) {
-	with(objEditor) {
-		var l = array_length(timingPoints);
-		var at = -1;
-		for(var i=0; i<l; i++)
-			if(timingPoints[i] == tpBefore) {
-				at = i;
-				break;
-			}
-		// Get affected time range.
-		var _timeL = tpBefore.time, _timeR = at+1 == l? 1000000000: timingPoints[at+1].time - 1;
-		var _timeM = at - 1 < 0 ? -1000000000: timingPoints[at-1].time;
-		var _noteArr = objMain.chartNotesArray;
-		var nl = array_length(_noteArr);
-		// Get affected notes.
-		var _affectedNotes = [];
-		for(var i=0; i<nl; i++)
-			if(in_between(_noteArr[i].time, _timeL, _timeR))
-				array_push(_affectedNotes, _noteArr[i]);
-		if(array_length(_affectedNotes) == 0)
-			return;
-		var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
-		if(!_que) return;
-		var _bar = [];
-		nl = array_length(_affectedNotes);
-		// Caculate the notes' bars before.
-		for(var i=0; i<nl; i++)
-			array_push(_bar, time_to_bar_dyn(_affectedNotes[i].time, _timeR));
-		tpBefore.beatLength = tpAfter.beatLength;
-		var _cross_timing_warning = false;
-		// Convert bar to the new time.
-		for(var i=0; i<nl; i++) {
-			var _prop = _affectedNotes[i].inst.get_prop();
-			_prop.time = bar_to_time_dyn(_bar[i]);
-			// Add the offset's delta.
-			_prop.time += tpAfter.time - tpBefore.time;
-			_prop.lastTime = -1;	// Detatch the sub and the hold.
-			if(_prop.time > _timeR)
-				_cross_timing_warning = true;
-			_affectedNotes[i].inst.set_prop(_prop, true);
+	var timingPoints = dyc_get_timingpoints();
+	var l = array_length(timingPoints);
+	var at = -1;
+	for(var i=0; i<l; i++)
+		if(timingPoints[i].time == tpBefore.time) {
+			at = i;
+			break;
 		}
-		if(tpAfter.time < _timeM)
-			_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
-		note_sort_request();
-		if(_cross_timing_warning)
-			announcement_warning("timing_fix_cross_warning");
+	// Get affected time range.
+	var _timeL = tpBefore.time, _timeR = at+1 == l? 1000000000: timingPoints[at+1].time - 1;
+	var _timeM = at - 1 < 0 ? -1000000000: timingPoints[at-1].time;
+	var nl = DyCore_get_note_count();
+	// Get affected notes.
+	var _affectedNotes = [];
+	
+	var _cross_timing_warning = false;
+	for(var i=0; i<nl; i++)
+		if(in_between(dyc_get_note_time_at_index(i), _timeL, _timeR))
+			array_push(_affectedNotes, dyc_get_note_at_index(i));
+	if(array_length(_affectedNotes) == 0)
+		return;
+	var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
+	if(!_que) return;
+	nl = array_length(_affectedNotes);
+	// Caculate note's new time.
+	for(var i=0; i<nl; i++) {
+		var _prop = SnapDeepCopy(_affectedNotes[i]);
+		_prop.time = (_prop.time - tpBefore.time) * (tpAfter.beatLength / tpBefore.beatLength) + tpAfter.time;
+		if(_prop.time > _timeR)
+			_cross_timing_warning = true;
+		dyc_update_note(_prop, true);
 	}
+	if(tpAfter.time < _timeM)
+		_cross_timing_warning = true;	// Timing's offset conflicts with another timing.
+	note_sort_request();
+	if(_cross_timing_warning)
+		announcement_warning("timing_fix_cross_warning");
 }
 
 // To get current timing at [_time].
 /// @returns {Struct.sTimingPoint} 
 function timing_point_get_at(_time, _precise = false) {
-	with(objEditor) {
-		if(array_length(timingPoints) == 0) return undefined;
-		/// @self Struct.sTimingPoint
-		var _ret = timingPoints[
-			max(array_upper_bound(
-				timingPoints,
-				_time,
-				function(array, at) { return array[at].time; }) - 1, 0)
-			];
+    var timingPoints = dyc_get_timingpoints();
+	if(array_length(timingPoints) == 0) return undefined;
+	/// @self Struct.sTimingPoint
+	var _ret = timingPoints[
+		max(array_upper_bound(
+			timingPoints,
+			_time,
+			function(array, at) { return array[at].time; }) - 1, 0)
+		];
 		
-		if(!_precise || abs(_time - _ret.time) < 5)
-			return _ret;
-		else
-			return undefined;
-	}
+	if(!_precise || abs(_time - _ret.time) < 5)
+		return _ret;
+	else
+		return undefined;
 }
 
 function timing_point_delete_at(_time, record = false) {
-	with(objEditor) {
-		for(var i=0, l=array_length(timingPoints); i<l; i++)
-			if(abs(timingPoints[i].time-_time) <= 1) {
-				var _tp = timingPoints[i];
-				announcement_play(
-					i18n_get("remove_timing_point", [format_time_ms(_tp.time),
-    					string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]),
-					5000);
+    var timingPoints = dyc_get_timingpoints();
+	for(var i=0, l=array_length(timingPoints); i<l; i++)
+		if(abs(timingPoints[i].time-_time) <= 1) {
+			var _tp = timingPoints[i];
+			announcement_play(
+				i18n_get("remove_timing_point", [format_time_ms(_tp.time),
+    				string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]),
+				5000);
     			
-    			
-    			if(record)
-    				operation_step_add(OPERATION_TYPE.TPREMOVE, _tp, -1);
-				array_delete(timingPoints, i, 1);
-				l--;
-				i--;
-			}
-	}
+    		if(record)
+    			operation_step_add(OPERATION_TYPE.TPREMOVE, _tp, -1);
+            
+            dyc_timingpoints_delete_at(_tp.time);
+		}
 }
 
 // Duplicate the last timing point at certain point
 function timing_point_duplicate(_time) {
-	with(objEditor) {
-		if(array_length(timingPoints) == 0) {
-			announcement_error("error_no_timing_point");
-			return;
-		}
-		var _tp = timingPoints[array_length(timingPoints) - 1];
-    	timing_point_add(_time, _tp.beatLength, _tp.meter, true);
-    	
-    	announcement_play(
-    		i18n_get("copy_timing_point", [format_time_ms(_time), 
-    			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]), 
-			5000);
-    	
+    var timingPoints = dyc_get_timingpoints();
+	if(array_length(timingPoints) == 0) {
+		announcement_error("error_no_timing_point");
+		return;
 	}
+	var _tp = timingPoints[array_length(timingPoints) - 1];
+	timing_point_add(_time, _tp.beatLength, _tp.meter, true);
+	
+	announcement_play(
+		i18n_get("copy_timing_point", [format_time_ms(_time), 
+			string(mspb_to_bpm(_tp.beatLength)), string(_tp.meter)]), 
+		5000);
 }
 
 // Reset the "timingPoints" array
 function timing_point_reset() {
-    with(objEditor) {
-        var _l = array_length(timingPoints);
-        for(var i=0; i<_l; i++) {
-            delete timingPoints[i];
-        }
-        timingPoints = [];
-    }
+    dyc_timingpoints_reset();
 }
 
 // For Compatibility
 function _setup_xml_compability_variables() {
-	if(array_length(objEditor.timingPoints) == 0)
+	if(dyc_get_timingpoints_count() == 0)
 		return false;
 	with(objMain) {
 		// These variables only for xml export.
-		chartBeatPerMin = mspb_to_bpm(objEditor.timingPoints[0].beatLength);
+		var timingPoints = dyc_get_timingpoints();
+		chartBeatPerMin = mspb_to_bpm(timingPoints[0].beatLength);
 		chartBarPerMin = chartBeatPerMin / 4;
-		chartTimeOffset = -objEditor.timingPoints[0].time;
+		chartTimeOffset = -timingPoints[0].time;
 		chartBarOffset = time_to_bar(chartTimeOffset);
 			
 		return true;
@@ -843,44 +798,34 @@ function _setup_xml_compability_variables() {
 
 /// surprise
 function chart_randomize() {
-	note_activate_all();
-	with(objNote) {
-		if(noteType != 3) {
-			origProp = get_prop();
-			position = random(5);
-			side = irandom_range(0, 2);
-			width = random_range(0.5, 5);
-			operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-			_prop_init(true);
-			update_prop();
-		}
-		operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
+	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
+		var _str = dyc_get_note_at_index_direct(i);
+		if(_str.noteType == 3) continue;
+		var origProp = SnapDeepCopy(_str);
+		_str.position = random(5);
+		_str.side = irandom_range(0, 2);
+		_str.width = random_range(0.5, 5);
+		operation_step_add(OPERATION_TYPE.MOVE, origProp, _str);
+		dyc_update_note(_str);
 	}
-	notes_array_update();
-	note_activation_reset();
+	operation_merge_last_request(1, OPERATION_TYPE.RANDOMIZE);
+	note_sort_all(true);
 }
 
 /// For advanced property modifications.
 function advanced_expr() {
-	if(editor_get_editmode() == 5)
-		editor_set_editmode(4);
-
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
 		var _scope_str = _global?"你正在对谱面的所有音符进行高级操作。":"你正在对选定的音符进行高级操作。";
 		var _expr = get_string(_scope_str+"请填写表达式：", editorLastExpr);
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
-		var _success = 1;
-		
-		if(_global)
-			note_activate_all();
-		
-		with(objNote) {
-			if(noteType != 3)
-			if(_global || stateType == NOTE_STATES.SELECTED) {
-				var _prop = get_prop();
-				var _nprop = get_prop();
+		var _success = true;
+		var _exec = function(_noteProp, _expr) {
+			if(_noteProp.noteType != 3) {
+				/// @type {Any} 
+				var _prop = SnapDeepCopy(_noteProp);
+				var _nprop = SnapDeepCopy(_noteProp);
 				
 				expr_init(); // Reset symbol table
 				expr_set_var("time", _prop.time);
@@ -890,17 +835,17 @@ function advanced_expr() {
 				expr_set_var("htime", _prop.time);
 				expr_set_var("etime", _prop.time + _prop.lastTime);
 				
-				_success = _success && expr_exec(_expr);
-				
-				if(!_success) {
+				var _result = expr_exec(_expr);
+
+				if(!_result) {
 					announcement_error("advanced_expr_error");
-					break;
+					return false;
 				}
 				
 				_nprop.time = expr_get_var("time");
 				_nprop.position = expr_get_var("pos");
 				_nprop.width = expr_get_var("wid");
-				if(noteType == 2) {
+				if(_noteProp.noteType == 2) {
 					if(expr_get_var("htime") != _prop.time) {
 						_nprop.lastTime = _prop.lastTime - (expr_get_var("htime") - _prop.time);
 						_nprop.time = expr_get_var("htime");
@@ -911,22 +856,42 @@ function advanced_expr() {
 						_nprop.lastTime = expr_get_var("etime") - _nprop.time;
 				}
 				
-				set_prop(_nprop, true);
+				dyc_update_note(_nprop, true);
 				
 				delete _prop;
 				delete _nprop;
+				return true;
+			}
+			return true;
+		}
+		
+		if(_global) {
+			for(var i=0, l=DyCore_get_note_count(); i<l; i++) {
+				var _note = dyc_get_note_at_index_direct(i);
+				_success = _success && _exec(_note, _expr);
+				if(!_success) break;
+			}
+		}
+		else {
+			with(objNote) {
+				if(stateType == NOTE_STATES.SELECTED) {
+					_success = _success && _exec(get_prop(), _expr);
+					pull_prop();
+					if(!_success) return;
+				}
 			}
 		}
 		
 		if(_success)
 			announcement_play("表达式执行成功。");
+		else {
+			announcement_error("表达式执行失败。");
+		}
 			
 		editorLastExpr = _expr;
-		
-		notes_array_update();
-		note_sort_all();
-		if(_global)
-			note_activation_reset();
+
+		operation_merge_last_request(1, OPERATION_TYPE.EXPR);
+		note_sort_all(true);
 	}
 }
 
@@ -954,13 +919,12 @@ function editor_get_div() {
 }
 
 // error correction
-function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_to_instance = true) {
+function note_error_correction(_limit, _array, _sync_to_instance = true) {
 	if(_limit <= 0) {
 		announcement_error($"不合法的修正参数{_limit}。请使用大于零的误差。");
 		return;
 	}
 
-	note_activate_all();
 	var notes_to_fix = [];
 	for(var i=0, l=array_length(_array); i < l; i++) {
 		if(i==0) {
@@ -976,7 +940,7 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 					for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 						notes_to_fix[_i].time = notes_to_fix[0].time;
 						if(_sync_to_instance)
-							notes_to_fix[_i].inst.set_prop(notes_to_fix[_i]);
+							dyc_update_note(notes_to_fix[_i], true);
 					}
 				}
 				notes_to_fix = [_array[i]];
@@ -988,10 +952,9 @@ function note_error_correction(_limit, _array = objMain.chartNotesArray, _sync_t
 		for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
 			notes_to_fix[_i].time = notes_to_fix[0].time;
 			if(_sync_to_instance)
-				notes_to_fix[_i].inst.set_prop(notes_to_fix[_i]);
+				dyc_update_note(notes_to_fix[_i], true);
 		}
 	}
-	note_activation_reset();
 }
 
 function note_outbound_warning() {

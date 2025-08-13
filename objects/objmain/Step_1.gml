@@ -1,5 +1,12 @@
 /// @description Reset Tags & Time Update & Activate notes
 
+// Pull metadata from DyCore.
+
+var _metadata = dyc_chart_get_metadata();
+chartTitle = _metadata.title;
+chartDifficulty = _metadata.difficulty;
+chartSideType = _metadata.sideType;
+
 #region TIME UPDATE
 
 var _music_resync_request = false;
@@ -44,8 +51,8 @@ var _music_resync_request = false;
         }
     }
     
-    if(nowPlaying && keycheck(vk_enter)) {
-    	nowTime = 0;
+    if(nowPlaying && keycheck_down(vk_enter)) {
+    	nowTime = -PLAYBACK_EMPTY_TIME;
     	_music_resync_request = true;
     }
 
@@ -108,14 +115,14 @@ var _music_resync_request = false;
                 else {
                     if(nowPlaying) {
                         if(abs(topBarMouseLastX - mouse_x) >= 2) {
-                            musicProgress = mouse_x / global.resolutionW;
+                            musicProgress = mouse_x / BASE_RES_W;
                             nowTime = musicProgress * musicLength;
                             _music_resync_request = true;
                         }
                         topBarMouseLastX = mouse_x;
                     }
                     else {
-                        musicProgress = mouse_x / global.resolutionW;
+                        musicProgress = mouse_x / BASE_RES_W;
                         animTargetTime = musicProgress * musicLength;
                     }
                 }
@@ -144,13 +151,6 @@ var _music_resync_request = false;
     else {
         musicProgress = 0;
     }
-    
-// Time Jump
-
-    if(keycheck_down_ctrl(ord("L")) && chartNotesArrayAt<chartNotesCount)
-        animTargetTime = chartNotesArray[chartNotesArrayAt].time;
-    if(keycheck_down_ctrl(ord("K")) && chartNotesArrayAt>0)
-        animTargetTime = chartNotesArray[chartNotesArrayAt-1].time;
 
 // Update and Sync Time & musicTime
 
@@ -178,38 +178,35 @@ var _music_resync_request = false;
 	var _diff_delta = keycheck_down_ctrl(ord("P")) - keycheck_down_ctrl(ord("O"));
 	chartDifficulty += _diff_delta;
 	chartDifficulty = clamp(chartDifficulty, 0, global.difficultyCount - 1);
+    if(_diff_delta != 0)
+        dyc_chart_set_difficulty(chartDifficulty);
 
-    chartNotesCount = array_length(chartNotesArray)
+    var noteCount = dyc_get_note_count();
 
-	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, chartNotesCount);
-	
-    while(chartNotesArrayAt < chartNotesCount &&
-        chartNotesArray[chartNotesArrayAt].time <= nowTime) {
-            chartNotesArrayAt ++;
-            if(chartNotesArrayAt < chartNotesCount)
-                note_check_and_activate(chartNotesArrayAt);
-        }
+    var _editMode = editor_get_editmode();
 
-    while(chartNotesArrayAt > 0 &&
-        chartNotesArray[chartNotesArrayAt-1].time > nowTime){
-            chartNotesArrayAt --;
-            note_check_and_activate(chartNotesArrayAt);
-        }
+    if(_editMode == 5 && objMain.nowPlaying) {
+        while(chartNotesArrayAt < noteCount &&
+            dyc_get_note_time_at_index(chartNotesArrayAt) <= nowTime) {
+                if(!note_hit(dyc_get_note_at_index(chartNotesArrayAt), true))
+                    break;
+                chartNotesArrayAt ++;
+            }
+    }
+    
+    chartNotesArrayAt = dyc_get_note_index_upperbound(nowTime);
+	chartNotesArrayAt = clamp(chartNotesArrayAt, 0, noteCount);
 
 #endregion
 
 #region NOTES ACTIVATE & DEACTIVATE
 
-	// if(ds_map_size(deactivationQueue) > NOTE_DEACTIVATION_LIMIT)
-	// 	note_deactivate_flush();
-
-	var i=max(chartNotesArrayAt-3, 0), l=chartNotesCount;
-	var _editMode = editor_get_editmode();
-	for(; i<l; i++) {
-        if(_editMode == 5 && note_exists(chartNotesArray[i].inst))
-            continue;
-		if(note_check_and_activate(i) < 0)
-			break;
+    if(editor_get_editmode() < 5) {
+        var _activeNotes = dyc_get_active_notes(objMain.nowTime, objMain.playbackSpeed);
+        for(var i = 0; i < array_length(_activeNotes); i++) {
+            var note = _activeNotes[i];
+            note_check_and_activate(note);
+        }
     }
 
 #endregion

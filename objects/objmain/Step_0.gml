@@ -37,7 +37,7 @@ projectTime += round(delta_time / 1000);
     	background_reset();
     if(keycheck_down(vk_f5))
     	map_export_xml(false);
-    if(keycheck_down_ctrl(vk_f5) || keycheck_down(vk_f6))
+    if(keycheck_down(vk_f6))
     	map_export_xml(true);
     if(keycheck_down(vk_f11))
     	switch_debug_info();
@@ -79,6 +79,7 @@ projectTime += round(delta_time / 1000);
     		}
     		
 	    	chartSideType[_side] = _type;
+			dyc_chart_set_sidetype(chartSideType);
 	    	announcement_play(i18n_get("anno_switch_sidetype")+chartSideType[_side]);
     	}
     	else {
@@ -92,8 +93,8 @@ projectTime += round(delta_time / 1000);
     
     if(keycheck_down(vk_enter)) {		// Replay Mode
     	editor_set_editmode(5);
-    	nowTime = 0;
-    	animTargetTime = 0;
+    	nowTime = -PLAYBACK_EMPTY_TIME;
+    	animTargetTime = -PLAYBACK_EMPTY_TIME;
     	reset_scoreboard();
     }
     
@@ -135,7 +136,8 @@ projectTime += round(delta_time / 1000);
   
 #region Scoreboard Update
 
-    if(nowCombo != chartNotesArrayAt && chartNotesCount > 0) {
+	var noteCount = dyc_get_note_count();
+    if(nowCombo != chartNotesArrayAt && noteCount > 0) {
         var _hit = nowCombo < chartNotesArrayAt;
         if(_hit) {
             with(objPerfectIndc)
@@ -143,7 +145,7 @@ projectTime += round(delta_time / 1000);
         }
         var _val;
         nowCombo = chartNotesArrayAt;
-        _val = 1000000*nowCombo/chartNotesCount;
+        _val = 1000000*nowCombo/noteCount;
         with(scbLeft) {
             _update_score(_val, _hit);
         }
@@ -152,7 +154,7 @@ projectTime += round(delta_time / 1000);
             _update_score(_val, _hit, true);
         }
     }
-    if(chartNotesCount == 0) {
+    if(noteCount == 0) {
     	with(scbLeft) _update_score(0, 0);
     	with(scbRight) _update_score(0, 0, true);
     }
@@ -164,11 +166,10 @@ projectTime += round(delta_time / 1000);
     if(keycheck_down(vk_space) || keycheck_down(vk_enter)) {
     	_set_channel_speed(musicSpeed);
     	if(!nowPlaying || keycheck_down(vk_enter)) {
-        	if(nowTime >= musicLength) nowTime = 0;
+        	if(nowTime >= musicLength && !keycheck_down(vk_enter)) nowTime = 0;
             FMODGMS_Chan_ResumeChannel(channel);
-            sfmod_channel_set_position(nowTime-resumeDelay, channel, sampleRate);
-            time_source_start(timesourceResumeDelay);
-            // nowTime = sfmod_channel_get_position(channel, sampleRate);
+			nowPlaying = true;
+            sfmod_channel_set_position(nowTime, channel, sampleRate);
 
 			// Multiple hacks are used for video resume,
 			// so there is no need to add safe_video_resume or safe_video_seek_to at here.

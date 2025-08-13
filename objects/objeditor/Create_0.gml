@@ -4,8 +4,9 @@
 depth = -10000;
 
 // Editors
-editorMode = 4;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy
-editorModeBeforeCopy = 4;
+editorMode = 5;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy
+editorModeBeforeCopy = editorMode;
+editorModeSwitching = 0;                    // flag is set when editor mode is switching
 editorSide = 0;                             // 0 down 1 left 2 right
 editorLRSide = false;                       // Special mode
 editorLRSideLock = false;                   // For special mode lock
@@ -67,10 +68,6 @@ editorWidthAdjustTimeThreshold = 300;
     editorGridXEnabled = true;
     editorGridYEnabled = true;
     editorGridWidthEnabled = true;
-
-// Timings
-/// @type {Array<Struct.sTimingPoint>}  
-timingPoints = [];
 
 // Highlight lines
 highlightLineColorDownA = scribble_rgb_to_bgr(0xb6ffff);
@@ -156,11 +153,11 @@ beatlineEnabled = array_create(28, 0);
 
 beatlineHardWidth = 6;
 beatlineWidth = 3;
-beatlineHardLength = global.resolutionW * 0.9;
-beatlineLength = global.resolutionW * 0.75;
-beatlineLengthLong = global.resolutionW - objMain.targetLineBeside * 2;
-beatlineHardHeight = (global.resolutionH - objMain.targetLineBeside) * 0.95;
-beatlineHeight = (global.resolutionH - objMain.targetLineBeside) * 0.90;
+beatlineHardLength = BASE_RES_W * 0.9;
+beatlineLength = BASE_RES_W * 0.75;
+beatlineLengthLong = BASE_RES_W - objMain.targetLineBeside * 2;
+beatlineHardHeight = (BASE_RES_H - objMain.targetLineBeside) * 0.95;
+beatlineHeight = (BASE_RES_H - objMain.targetLineBeside) * 0.90;
 beatlineAlpha = [0, 0, 0];
 beatlineAlphaMul = 0;
 beatlineSideInfoX = resor_to_x(0.5)+beatlineHardLength/2;
@@ -176,7 +173,7 @@ copyStack = [];
 copyRequest = false;
 cutRequest = false;
 attachRequest = false;
-attachRequestCenter = undefined;
+attachRequestCenterID = undefined;
 copyMultipleSides = false;
 singlePaste = false;		// Only paste for one time then return (for attach mode)
 
@@ -225,10 +222,11 @@ function cut() {
 }
 
 /// Send attach request.
+/// @param {Id.Instance.objNote} inst - The note instance to attach to.
 function attach(inst) {
 	attachRequest = true;
 	singlePaste = true;
-    attachRequestCenter = inst;
+    attachRequestCenterID = inst.noteID;
 }
 
 set_div(4);			// Default divisor set to 4

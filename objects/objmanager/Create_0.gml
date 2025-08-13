@@ -2,7 +2,7 @@
 
 // Macros
 
-#macro VERSION "v0.1.18.1"
+#macro VERSION "v0.2.0"
 #macro BASE_RES_W 1920
 #macro BASE_RES_H 1080
 #macro BASE_FPS 60
@@ -16,13 +16,15 @@
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
 #macro USE_DSP_PITCHSHIFT (objMain.usingPitchShift)
-#macro MAX_SELECTION_LIMIT 4000
+#macro MAX_SELECTION_LIMIT 400
 #macro KPS_MEASURE_WINDOW 400
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
 #macro DYCORE_BUFFER_SIZE (50*1024*1024)	// 50MB
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DYCORE_BUFFER_ADDRESS (buffer_get_address(global.__DyCore_Buffer))
-#macro DEBUG_MODE (true)
+#macro DEBUG_MODE (debug_mode)
+#macro FMOD_DSP_BUFFERSIZE (256)
+#macro FMOD_DSP_BUFFERCOUNT (4)
 math_set_epsilon(0.00000001);				// 1E-8
 
 // Announcement init
@@ -30,8 +32,6 @@ math_set_epsilon(0.00000001);				// 1E-8
 announcements = [];
 
 // Global Configs
-global.resolutionW = 1920
-global.resolutionH = 1080
 global.fps = display_get_frequency();
 global.autosave = false;
 global.autoupdate = true;
@@ -85,17 +85,19 @@ global.noteTypeName = ["NORMAL", "CHAIN", "HOLD", "SUB"];
 global.__GUIManager = undefined;
 
 global.shadowCount = 0;
+// Used to distinguish different frames. Updated on begin step event.
+global.frameCurrentTime = 0;
 
 // Generate Temp Sprite
 
 global.sprLazer = generate_lazer_sprite(2048);
-global.sprHoldBG = generate_hold_sprite(global.resolutionW + 4*sprite_get_height(sprHold));
+global.sprHoldBG = generate_hold_sprite(BASE_RES_W + 4*sprite_get_height(sprHold));
 global.sprPauseShadow = generate_pause_shadow(200);
 
 // Set GUI & Window Resolution
 
-surface_resize(application_surface, global.resolutionW, global.resolutionH);
-display_set_gui_size(global.resolutionW, global.resolutionH);
+surface_resize(application_surface, BASE_RES_W, BASE_RES_H);
+display_set_gui_size(BASE_RES_W, BASE_RES_H);
 
 // Graphics settings init
 gpu_set_tex_filter(true);
@@ -114,7 +116,7 @@ display_reset(global.graphics.AA, global.graphics.VSync);
     }
     
     // Initialize the system
-    FMODGMS_Sys_Set_DSPBufferSize(1024, 4);
+    FMODGMS_Sys_Set_DSPBufferSize(FMOD_DSP_BUFFERSIZE, FMOD_DSP_BUFFERCOUNT);
     FMODGMS_Sys_Initialize(32);
     
     // Create the pitch shift effect
@@ -129,9 +131,7 @@ display_reset(global.graphics.AA, global.graphics.VSync);
     
 // DyCore Initialization
 
-if(DyCore_init() != "success") {
-	show_error("DyCore Initialized Failed.", false);
-}
+dyc_init();
 
 global.__DyCore_Buffer = buffer_create(DYCORE_BUFFER_SIZE, buffer_fixed, 1);
 global.__DyCore_Manager = new DyCoreManager();
@@ -160,6 +160,7 @@ scribble_font_bake_outline_8dir("fDynamix16", "fDynamix16o", c_white, true);
 
 windowDisplayRatio = 0.7;
 window_enable_borderless_fullscreen(true);
+
 window_set_fullscreen(global.fullscreen);
 if(os_type == os_windows)
 	window_command_hook(window_command_close);
@@ -167,6 +168,11 @@ if(os_type == os_windows)
 // Randomize
 
 randomize();
+
+// Debug Layer Init
+
+// if(debug_mode)
+// 	show_debug_overlay(true);
 
 // Init finished
 
@@ -185,6 +191,8 @@ else
 
 	// chartPath is deprecated in version v0.1.16
 	projectPath = "";
+	// temporary variables before project is saved completely
+	nextProjectPath = "";
 	backgroundPath = "";
 	musicPath = "";
 	videoPath = "";
@@ -308,7 +316,7 @@ function stop_autoupdate() {
 
 // Check For Update
 update_cleanup();
-if(global.autoupdate)
+if(global.autoupdate && !DEBUG_MODE)
 	_update_get_event_handle = http_get("https://api.github.com/repos/NordLandeW/DyNode/releases/latest");
 
 #endregion

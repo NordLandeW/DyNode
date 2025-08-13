@@ -1,4 +1,6 @@
 
+global.activationMan.track(id);
+
 enum NOTE_STATES {
     OUT,
     NORMAL,
@@ -13,10 +15,13 @@ enum NOTE_STATES {
 depth = 0;
 drawVisible = false;
 priority = int64(-10000000);
-image_yscale = global.scaleYAdjust;
+priorityRandomSeed = random(2);
+image_yscale = 1;
 
 // In-Variables
 
+    noteID = "";
+    subNoteID = "";
     stateType = NOTE_STATES.OUT;
     sprite = sprNote2;
     width = 2.0;
@@ -24,16 +29,13 @@ image_yscale = global.scaleYAdjust;
     side = 0;
     bar = 0;
     time = 0;
-    nid = -1;						// Note id
-    sid = -1;						// Sub id
     /// @type {Id.Instance.objHoldSub} 
     sinst = -999;					// Sub instance id
     /// @type {Id.Instance.objHold} 
     finst = -999;					// Father instance id
     noteType = 0;					// 0 Note 1 Chain 2 Hold
-    /// @type {Any} Pointer to chartNotesArray
-    arrayPointer = undefined;
-    deleting = false;
+    /// @type {Struct.sNoteProp} Note property structure
+    propertyStr = undefined;
     
     // For Editor
     origWidth = width;
@@ -84,22 +86,24 @@ image_yscale = global.scaleYAdjust;
     animPlaySpeedMul = 1;
     animTargetA = 1;
     animTargetLstA = lastAlpha;
-    image_alpha = 1;
+    image_alpha = editor_mode_is_switching()?1:0;
     
     // Particles Varaiables
 #macro PARTICLE_HOLD_DELAY (33)     // in ms
-    partNumber = 12;
-    partNumberLast = 1;
+#macro PARTICLE_NOTE_NUMBER (12)
+#macro PARTICLE_NOTE_LAST (1)
     partHoldTimer = 0;
     
-    // Correction Values
-    lFromLeft = 5;
-    rFromRight = 5;
     dFromBottom = 0;
     uFromTop = 0;
 
 // In-Functions
 
+    function _get_subnote_id() {
+        return subNoteID;
+    }
+
+    /// @description Initialize the note's properties using internal values.
     function _prop_init(forced = false) {
         if(editor_get_editmode() != 5 || forced) {
             priority = -20000000;
@@ -113,124 +117,21 @@ image_yscale = global.scaleYAdjust;
             // Properties Limitation
             width = max(width, 0.01);
             
-            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + lFromLeft + rFromRight;
-            pWidth = max(pWidth, originalWidth) * global.scaleXAdjust;
+            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + _note_get_lrpadding_total(noteType);
+            pWidth = max(pWidth, originalWidth);
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
-            priority = priority - get_array_pos()*16;
+            priority = priority - time * 16 - priorityRandomSeed;
             if(noteType == 3 && note_exists(finst))
                 priority = finst.priority;
         }
         
         noteprop_set_xy(position, time, side);
     }
-    _prop_hold_update = function() {}   // Place holder.
+    /// @description Update the hold's sub note properties. Including `update_prop()`
+    /// @param {Bool} sync_to_array If set to true, calls `update_prop()` on sinst and self.
+    _prop_hold_update = function(sync_to_array = true) {}   // Place holder.
 
-    function _emit_particle(_num, _type, _force = false) {
-        
-        if(!objMain.nowPlaying && !_force)
-            return;
-        
-        if(!global.particleEffects)
-            return;
-        
-        if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
-            return;
-        
-        // Emit Particles
-        var _x, _y, _x1, _x2, _y1, _y2;
-        if(side == 0) {
-            _x = x;
-            _x1 = x - pWidth / 2;
-            _x2 = x + pWidth / 2;
-            _y = global.resolutionH - objMain.targetLineBelow;
-            _y1 = _y;
-            _y2 = _y;
-        }
-        else {
-            _x = side == 1 ? objMain.targetLineBeside : 
-                             global.resolutionW - objMain.targetLineBeside;
-            _x1 = _x;
-            _x2 = _x;
-            _y = y;
-            _y1 = y - pWidth / 2;
-            _y2 = y + pWidth / 2; 
-        }
-        
-        // Emit particles on mixer's position
-        var _mixer = on_mixer_side();
-        if(_mixer) {
-            _y = objMain.mixerX[side-1];
-            var _mixerH = sprite_get_height(sprMixer);
-            _y1 = y - _mixerH / 2;
-            _y2 = y + _mixerH / 2;
-        }
-        
-        var _ang = image_angle, _scl = image_xscale;
-        with(objMain) {
-            _partemit_init(partEmit, _x1, _x2, _y1, _y2);
-            if(_type == 0) {
-                _parttype_noted_init(partTypeNoteDL, 1, _ang, _mixer);
-                _parttype_noted_init(partTypeNoteDR, 1, _ang+180, _mixer);
-
-                // part_particles_create(partSysNote, _x, _y, partTypeNoteDL, _num);
-                // part_particles_create(partSysNote, _x, _y, partTypeNoteDR, _num);
-                part_emitter_burst(partSysNote, partEmit, partTypeNoteDL, _num);
-                part_emitter_burst(partSysNote, partEmit, partTypeNoteDR, _num);
-            }
-            else if(_type == 1) {
-                _parttype_hold_init(partTypeHold, 1, _ang);
-                part_emitter_burst(partSysNote, partEmit, partTypeHold, _num);
-            }
-        }
-    }
-
-    /// @description Hit the side and create shadow.
-    function _create_shadow(_force = false) {
-        if(!objMain.nowPlaying && !_force)
-            return;
-        if(objMain.topBarMousePressed)
-        	return;
-        
-        // Play Sound
-        if(objMain.hitSoundOn)
-            audio_play_sound(sndHit, 0, 0);
-        
-        // Update side hinter.
-        if(side > 0)
-            objMain._sidehinter_hit(side-1, time + lastTime);
-        
-        // Create Shadow
-        if(side > 0 && objMain.chartSideType[side-1] == "MIXER") {
-            objMain.mixerShadow[side-1]._hit();
-        }
-        else {
-            if(global.shadowCount >= MAX_SHADOW_COUNT)
-                return;
-            
-        	var _x, _y;
-	        if(side == 0) {
-	            _x = x;
-	            _y = global.resolutionH - objMain.targetLineBelow;
-	        }
-	        else {
-	            _x = side == 1 ? objMain.targetLineBeside : 
-	                             global.resolutionW - objMain.targetLineBeside;
-	            _y = y;
-	        }
-	        var _shadow = objShadow;
-	        
-            /// @self Id.Instance.objShadow
-	        var _inst = instance_create_depth(_x, _y, -100, _shadow), _scl = 1;
-	        _inst.nowWidth = pWidth;
-	        _inst.visible = true;
-	        _inst.image_angle = image_angle;
-	        _inst._prop_init();
-        }
-        
-        _emit_particle(partNumber, 0);
-    }
-    
     function _mouse_inbound_check(_mode = 0) {
         switch _mode {
             case 0:
@@ -244,137 +145,111 @@ image_yscale = global.scaleYAdjust;
     }
 
     function get_array_pos() {
-        if(!is_struct(arrayPointer)) return -1;
-        return arrayPointer.index;
+        return dyc_get_note_array_index(noteID);
     }
 
     function get_prop(_set_pointer = false) {
-    	var _prop = {
+    	var _prop = new sNoteProp({
         	time : time,
         	side : side,
         	width : width,
         	position : position,
         	lastTime : lastTime,
         	noteType : noteType,
-        	inst : id,
-        	sinst: sinst,
-        	beginTime : beginTime,
-        	lastAttachBar: lastAttachBar,
-            index: get_array_pos()
-        };
+        	noteID : noteID,
+        	subNoteID: subNoteID,
+        	beginTime : beginTime
+        });
     	if(_set_pointer) {
-    		arrayPointer = _prop;
+    		propertyStr = _prop;
     	}
     	return _prop;
     }
     
-    function set_prop(props, record = false) {
-    	if(!is_struct(props))
-    		show_error("property must be a struct.", true);
-    	
-    	if(record)
-    		origProp = get_prop();
-    		
-    	time = props.time;
-    	side = props.side;
-    	width = props.width;
-    	position = props.position;
-    	lastTime = props.lastTime;
-    	noteType = props.noteType;
-    	beginTime = props.beginTime;
-    	
-    	if(variable_struct_exists(props, "lastAttachBar"))
-    		lastAttachBar = props.lastAttachBar;
-    	
-    	if(noteType == 2 && sinst > 0 && lastTime >= 0) {
-    		note_activate(sinst);
-    		sinst.time = time + lastTime;
-    		_prop_hold_update();
-    	}
-    	
-    	if(record)
-    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-    	
-        _prop_init(true);
-    	update_prop();
-    }
-    
     function update_prop() {
-        if(!is_struct(arrayPointer)) {
+        if(!is_struct(propertyStr)) {
             return;
         }
         var differs = false;
-        if(arrayPointer.time != time) {
-            arrayPointer.time = time;
+        if(propertyStr.time != time) {
+            propertyStr.time = time;
             differs = true;
         }
-        if(arrayPointer.side != side) {
-            arrayPointer.side = side;
+        if(propertyStr.side != side) {
+            propertyStr.side = side;
             differs = true;
         }
-        if(arrayPointer.width != width) {
-            arrayPointer.width = width;
+        if(propertyStr.width != width) {
+            propertyStr.width = width;
             differs = true;
         }
-        if(arrayPointer.position != position) {
-            arrayPointer.position = position;
+        if(propertyStr.position != position) {
+            propertyStr.position = position;
             differs = true;
         }
-        if(arrayPointer.lastTime != lastTime) {
-            arrayPointer.lastTime = lastTime;
+        if(propertyStr.lastTime != lastTime) {
+            propertyStr.lastTime = lastTime;
             differs = true;
         }
-        if(arrayPointer.noteType != noteType) {
-            arrayPointer.noteType = noteType;
+        if(propertyStr.noteType != noteType) {
+            propertyStr.noteType = noteType;
             differs = true;
         }
-        if(arrayPointer.inst != id) {
-            arrayPointer.inst = id;
-            differs = true;
-        }
-        if(arrayPointer.sinst != sinst) {
-            arrayPointer.sinst = sinst;
-            differs = true;
-        }
-        if(arrayPointer.beginTime != beginTime) {
-            arrayPointer.beginTime = beginTime;
-            differs = true;
-        }
-        if(arrayPointer.lastAttachBar != lastAttachBar) {
-            arrayPointer.lastAttachBar = lastAttachBar;
+        if(propertyStr.beginTime != beginTime) {
+            propertyStr.beginTime = beginTime;
             differs = true;
         }
 
-        if(differs)
-            DyCore_modify_note(json_stringify(arrayPointer));
+        if(differs) {
+            dyc_update_note(propertyStr);
+            if(note_exists(finst))
+                finst._prop_hold_update(true);
+            if(note_exists(sinst))
+                _prop_hold_update(true);
+        }
+    }
+
+    function can_pull() {
+        if(noteType < 2)
+            return stateType != NOTE_STATES.SELECTED;
+        if(noteType == 2)
+            return stateType != NOTE_STATES.SELECTED && 
+                (!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED);
+        if(noteType == 3)
+            return stateType != NOTE_STATES.SELECTED && 
+                (!note_exists(finst) || finst.stateType != NOTE_STATES.SELECTED);
     }
 
     function pull_prop() {
-        if(!is_struct(arrayPointer)) return;
-    	time = arrayPointer.time;
-    	side = arrayPointer.side;
-    	width = arrayPointer.width;
-    	position = arrayPointer.position;
-    	lastTime = arrayPointer.lastTime;
-    	noteType = arrayPointer.noteType;
-    	inst = arrayPointer.id;
-    	sinst = arrayPointer.sinst;
-    	beginTime = arrayPointer.beginTime;
-    	lastAttachBar = arrayPointer.lastAttachBar;
+        if(noteID == "") return;
+        propertyStr = dyc_get_note(noteID);
+    	time = propertyStr.time;
+    	side = propertyStr.side;
+    	width = propertyStr.width;
+    	position = propertyStr.position;
+    	lastTime = propertyStr.lastTime;
+    	noteType = propertyStr.noteType;
+        subNoteID = propertyStr.subNoteID;
+    	beginTime = propertyStr.beginTime;
+
+        if(noteType == NOTE_TYPE.HOLD && note_is_activated(subNoteID))
+            note_get_instance(subNoteID).pull_prop();
+
+        lastAttachBar = -1;
     }
     
     // If a note is moving out of screen, throw a warning.
+    _prop_init();
 	function note_outscreen_check() {
-		_prop_init();
         var _outbound = false;
         if(side == 0) {
             var _xl = x - pWidth / 2, _xr = x + pWidth / 2;
-            if(_xr <= 0 || _xl >= global.resolutionW)
+            if(_xr <= 0 || _xl >= BASE_RES_W)
                 _outbound = true;
         }
         else {
             var _yl = y - pWidth / 2, _yr = y + pWidth / 2;
-            if(_yr <= 0 || _yl >= global.resolutionH)
+            if(_yr <= 0 || _yl >= BASE_RES_H)
                 _outbound = true;
         }
 		if(_outbound)
@@ -388,7 +263,7 @@ image_yscale = global.scaleYAdjust;
 	}
 
     function cac_LR_side() {
-        return x < global.resolutionW / 2 ? 1:2;
+        return x < BASE_RES_W / 2 ? 1:2;
     }
 
     function change_side(to_side, vis_consistency = (objEditor.editorDefaultWidthMode == 1)) {
@@ -472,7 +347,7 @@ image_yscale = global.scaleYAdjust;
             if(time <= _limTime) {
                 // If the state in last step is SELECT then skip create_shadow
                 if(!selectUnlock)
-                    _create_shadow();
+                    note_hit(get_prop(), true);
                 set_state(NOTE_STATES.LAST);
                 state();
             }
@@ -509,16 +384,18 @@ image_yscale = global.scaleYAdjust;
         
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
         if(time + lastTime <= _limTime) {
-            set_state(NOTE_STATES.OUT);
-            image_alpha = lastTime == 0 ? 0 : image_alpha;
-            state();
+            if(!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED) {
+                set_state(NOTE_STATES.OUT);
+                image_alpha = lastTime == 0 ? 0 : image_alpha;
+                state();
+            }
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
             partHoldTimer += get_delta_time() / 1000;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
                 partHoldTimer -= PARTICLE_HOLD_DELAY;
-                _emit_particle(partNumberLast, 1, true);
+                note_emit_particles(PARTICLE_NOTE_LAST, get_prop(), 1);
             }
         }
         
@@ -533,14 +410,11 @@ image_yscale = global.scaleYAdjust;
         animTargetA = 0.0;
         animTargetLstA = lastAlphaL;
         
+        if(editor_get_editmode() == 5) return;
         if(time + lastTime> objMain.nowTime && !_outbound_check(x, y, side)) {
 	        drawVisible = true;
             set_state(NOTE_STATES.NORMAL);
 	        state();
-	    }
-	    
-	    if(noteType == 3 && time > objMain.nowTime && beginTime <= objMain.nowTime) {
-	    	note_activate(finst);
 	    }
     }
     
@@ -573,7 +447,7 @@ image_yscale = global.scaleYAdjust;
 	            		time = _time + origTime - _center.origTime;
 	            		_prop_init();
 		            	if(noteType == 2)
-		            		_prop_hold_update();
+		            		_prop_hold_update(false);
 	            	}
 	            }
             }
@@ -603,8 +477,14 @@ image_yscale = global.scaleYAdjust;
                 	editor_set_default_width(width);
                 if(noteType == 2) {
                 	if(fixedLastTime != -1) {
-                		build_hold(random_id(9), time, position, width, random_id(9), time + fixedLastTime, side, true,
-                                    _toSelectState);
+                        build_note({
+                            noteType: NOTE_TYPE.HOLD,
+                            time: time,
+                            position: position,
+                            width: width,
+                            lastTime: fixedLastTime,
+                            side: side
+                        }, true, _toSelectState, true);
                         if(_singlePaste) instance_destroy();
                         set_state(NOTE_STATES.ATTACH);
                 		return;
@@ -619,8 +499,13 @@ image_yscale = global.scaleYAdjust;
                     editor_lrside_lock_set(true);
                     return;
                 }
-                var _note = build_note(random_id(9), noteType, time, position, width, -1, side, true,
-                            _toSelectState);
+                build_note({
+                        noteType: noteType,
+                        time: time,
+                        position: position,
+                        width: width,
+                        side: side
+                    }, true, _toSelectState, true);
                 
                 note_outscreen_check();
                 
@@ -673,9 +558,14 @@ image_yscale = global.scaleYAdjust;
         function stateDropSub() {
             animTargetA = 1.0;
             if(mouse_check_button_released(mb_left)) {
-                var _subid = random_id(9);
-                var _teid = random_id(9);
-                build_hold(_teid, time, position, width, _subid, sinst.time, side, true);
+                build_note({
+                    noteType: NOTE_TYPE.HOLD,
+                    time: time,
+                    position: position,
+                    width: width,
+                    lastTime: sinst.time - time,
+                    side: side
+                }, true, false, true);
                 instance_destroy();
             }
         }
@@ -710,27 +600,6 @@ image_yscale = global.scaleYAdjust;
                             origSide = side;
                         }
                     }
-                }
-            }
-
-            // Stop dragging selected notes.
-            if(mouse_check_button_released(mb_left)) {
-                if(isDragging) {
-                    isDragging = false;
-                    
-                    if(noteType == 3)
-                        editor_lrside_lock_set(false);
-                    
-                    with(objNote) {
-                    	if(stateType == NOTE_STATES.SELECTED) {
-                    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
-                            update_prop();
-                    	}
-                    	
-                    	note_outscreen_check();
-                    }
-                    
-                    note_sort_request();
                 }
             }
 
@@ -783,11 +652,11 @@ image_yscale = global.scaleYAdjust;
                             time = origTime;
                             side = origSide;
                         }
-                        _prop_init();
                         if(noteType == 2) {
                             sinst.time = (ctrl_ishold() || editor_select_is_multiple()) ? time + origLength : origSubTime;
-                            _prop_hold_update();
+                            _prop_hold_update(false);
                         }
+                        _prop_init();
                     }
                 }
             } else {
@@ -797,10 +666,33 @@ image_yscale = global.scaleYAdjust;
                     objEditor.editorSelectedSingleInbound =
                         editor_select_compare(objEditor.editorSelectedSingleInbound, id);
             }
+
+            // Stop dragging selected notes.
+            if(mouse_check_button_released(mb_left)) {
+                if(isDragging) {
+                    isDragging = false;
+                    
+                    if(noteType == 3)
+                        editor_lrside_lock_set(false);
+                    
+                    with(objNote) {
+                    	if(stateType == NOTE_STATES.SELECTED) {
+                    		operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                            update_prop();
+
+                            if(noteType == 2)
+                                _prop_hold_update();
+                    	}
+                    	
+                    	note_outscreen_check();
+                    }
+                    
+                    note_sort_request();
+                }
+            }
             
             if((keycheck_down(vk_delete) || keycheck_down(vk_backspace)) && noteType != 3) {
-            	recordRequest = true;
-            	instance_destroy();
+            	note_delete(noteID, true);
             }
                 
             
@@ -832,11 +724,12 @@ image_yscale = global.scaleYAdjust;
 		    time += _timechg;
 		    position += _poschg;
 		    if(_timechg != 0) {
-                update_prop();
 		    	note_sort_request();
             }
-		    if(_timechg != 0 || _poschg != 0)
+		    if(_timechg != 0 || _poschg != 0) {
+                update_prop();
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+            }
         }
         
 function draw_event() {
@@ -849,6 +742,36 @@ function draw_event() {
         draw_sprite_ext(sprNote2, image_number, x, y + pWidth / 2 * (side == 1?-1:1), 
             image_xscale, image_yscale, image_angle, image_blend, image_alpha);
     }
+}
+
+function initialize_subnote() {
+    if(!note_exists(sinst)) {
+        // If the note is dummy, it will not have a subNoteID.
+        if(!dyc_note_exists(noteID)) return;
+        note_activate(subNoteID, false);
+        sinst = note_get_instance(subNoteID);
+    }
+}
+
+function attach(noteID) {
+    global.noteIDMan.update(noteID, id);
+    self.noteID = noteID;
+    pull_prop();
+
+    if(noteType == NOTE_TYPE.HOLD)
+        initialize_subnote();
+    
+    _prop_init(true);
+    if(noteType == NOTE_TYPE.HOLD)
+        _prop_hold_update(false);
+}
+
+function detach() {
+    global.noteIDMan.remove(noteID);
+    noteID = "";
+
+    if(noteType == 2)
+        sinst.detach();
 }
 
 set_state(NOTE_STATES.OUT);

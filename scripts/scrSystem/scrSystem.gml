@@ -13,27 +13,24 @@ function map_close() {
 	with(objMain) {
 		safe_video_free();
 		kawase_destroy(kawaseArr);
-		surface_free_f(bottomInfoSurf);
 		
 		note_delete_all();
 		instance_destroy(objScoreBoard);
 		instance_destroy(objPerfectIndc);
 		instance_destroy(objEditor);
 		instance_destroy(objShadow);
+		instance_destroy(objShadowMIX);
 		instance_destroy(objTopBar);
 		
-		time_source_destroy(timesourceResumeDelay);
+		time_source_destroy(timesourceSyncVideo);
 		part_emitter_destroy_all(partSysNote);
 		part_system_destroy(partSysNote);
 		part_type_destroy(partTypeNoteDL);
 		part_type_destroy(partTypeNoteDR);
+		part_type_destroy(partTypeHold);
 		
 		if(bgImageSpr != -1)
 		    sprite_delete(bgImageSpr);
-		
-		for(var i=0; i<3; i++)
-		    ds_map_destroy(chartNotesMap[i]);
-		ds_map_destroy(deactivationQueue);
 		
 		if(!is_undefined(music)) {
 			FMODGMS_Snd_Unload(music);
@@ -41,9 +38,22 @@ function map_close() {
 		}
 
 		DyCore_clear_notes();
+		global.noteIDMan.clear();
+		global.activationMan.clear();
+
+		with(objManager) {
+			musicPath = "";
+			backgroundPath = "";
+			videoPath = "";
+			projectPath = "";
+		}
 	}
 	
 	instance_destroy(objMain);
+
+	call_later(1, time_source_units_seconds, function() { gc_collect(); });
+	call_later(2, time_source_units_seconds, function() { gc_collect(); });
+	call_later(3, time_source_units_seconds, function() { gc_collect(); });
 }
 
 function map_reset() {
@@ -56,7 +66,6 @@ function map_load(_file = "") {
 	if(is_struct(_file)) {
 		map_load_struct(_file);
 		
-		note_activation_reset();
 		return;
 	}
 	var _direct = _file != "";
@@ -102,11 +111,7 @@ function map_load(_file = "") {
 	}
     
     // Notes information init & Remove extra sub notes.
-    notes_array_update();
-    note_extra_sub_removal();
-    note_sort_all();
-    notes_reallocate_id();
-    note_activation_reset();
+    note_sort_all(true);
     
     announcement_play("anno_import_chart_complete");
 }
@@ -115,21 +120,6 @@ function map_import_dym(_file, _direct = false) {
     var _buf = buffer_load(_file);
     var _str;
 	var _dy_format = false;
-	if(filename_ext(_file) == ".xml") {
-		_str = snap_alter_from_xml(SnapBufferReadXML(_buf, 0, buffer_get_size(_buf)));
-	}
-	else {
-		// Parse .dy format
-		_dy_format = true;
-		_str = json_parse(buffer_read(_buf, buffer_text));
-	}
-	static _arg_parser = function(_dy_format, arg) {
-		if(_dy_format)
-			return string(arg);
-		else
-			return arg.text;
-	}
-    buffer_delete(_buf);
 	var _import_info, _import_tp;
 	if(!_direct) {
 		_import_info = show_question_i18n("box_q_import_info");
@@ -138,213 +128,29 @@ function map_import_dym(_file, _direct = false) {
 		_import_info = true;
 		_import_tp = true;
 	}
-    var _note_id, _note_type, _note_time,
-        _note_position, _note_width, _note_subid;
-    var _barpm, _offset;
-    var _tp_lists = [], _nbpm;
 
-	var _temp_note_map = {}, chartStruct = {
-		charts: {
-			title: "",
-			difficulty: 0,
-			sidetype: ["PAD", "PAD"],
-			notes: []
-		},
-		timingPoints: [],
-	};
-
-	var _noteType_conversion = function (_type) {
-		if(_type == "NORMAL") return 0;
-		if(_type == "CHAIN") return 1;
-		if(_type == "HOLD") return 2;
-		if(_type == "SUB") return 3;
-	}
-    
-    // Import Information & bpm
-	if(variable_struct_exists(_str, "DynamixMap")) {
-		announcement_warning("dym_old_version_warning", 10000);
+	if(filename_ext(_file) == ".xml") {
+		dyc_chart_import_xml(_file, _import_info, _import_tp);
 		return;
-	}
-	else if(!variable_struct_exists(_str, "CMap")) {
-		announcement_error("bad_xml_chart_format");
-		return;
-	}
-
-	// Acquire basic map infos.
-    var _main = _str.CMap;
-	chartStruct.charts.title = _arg_parser(_dy_format, _main.m_path);
-	if(variable_struct_exists(_main, "m_leftRegion"))
-		chartStruct.charts.sidetype[0] = _arg_parser(_dy_format, _main.m_leftRegion);
-	else
-		chartStruct.charts.sidetype[0] = "PAD";
-	if(variable_struct_exists(_main, "m_rightRegion"))
-		chartStruct.charts.sidetype[1] = _arg_parser(_dy_format, _main.m_rightRegion);
-	else
-		chartStruct.charts.sidetype[1] = "PAD";
-	var chartID = _arg_parser(_dy_format, _main.m_mapID);
-    _barpm = real(_arg_parser(_dy_format, _main.m_barPerMin));
-	_offset = real(_arg_parser(_dy_format, _main.m_timeOffset));
-	
-	// Import 3 sides Notes.
-	var _import_fun = function (_dy_format, _arg_parser, _arr, _side, _temp_note_map) {
-		if(!variable_struct_exists(_arr, "m_notes"))
-			return;
-		_arr = _arr.m_notes;
-		if(!variable_struct_exists(_arr, "CMapNoteAsset"))
-			return;
-		_arr = _arr.CMapNoteAsset;
-		if(!is_array(_arr)) _arr = [_arr];
-		for(var i=0, l=array_length(_arr); i<l; i++) if(variable_struct_names_count(_arr[i]) >= 6) {
-			_note_id = _arg_parser(_dy_format, _arr[i].m_id);
-			_note_type = _arg_parser(_dy_format, _arr[i].m_type);
-			_note_time = _arg_parser(_dy_format, _arr[i].m_time);
-			_note_position = _arg_parser(_dy_format, _arr[i].m_position);
-			_note_width = _arg_parser(_dy_format, _arr[i].m_width);
-			_note_subid = _arg_parser(_dy_format, _arr[i].m_subId);
-
-			_note_id = $"{_note_id}_{_side}";
-			_note_subid = $"{_note_subid}_{_side}";
-
-			if(struct_exists(_temp_note_map, _note_id)) {
-				throw $"Duplicate note id found. Note ID_Side: {_note_id}";
-				return;
-			}
-			_temp_note_map[$ _note_id] = {
-				type: _note_type,
-				bar: real(_note_time),
-				position: real(_note_position) + real(_note_width) / 2,		// Position fix
-				width: real(_note_width),
-				subid: _note_subid,
-				side: _side
-			};
-		}
-	}
-	
-	try {
-		_import_fun(_dy_format, _arg_parser, _main.m_notes, 0, _temp_note_map);
-		_import_fun(_dy_format, _arg_parser, _main.m_notesLeft, 1, _temp_note_map);
-		_import_fun(_dy_format, _arg_parser, _main.m_notesRight, 2, _temp_note_map);
-	} catch (e) {
-		announcement_error("error_dym_note_load_failed");
-		show_debug_message(string(e));
-		return;
-	}
-
-	var _imp_dym = false;
-	if(variable_struct_exists(_main, "m_argument")) {
-		if(variable_struct_exists(_main.m_argument, "m_bpmchange") && variable_struct_exists(_main.m_argument.m_bpmchange, "CBpmchange")) {
-			_imp_dym = true;
-			try {
-				var _bpms = _main.m_argument.m_bpmchange.CBpmchange;
-				if(!is_array(_bpms)) _bpms = [_bpms];
-				for(var i=0, l=array_length(_bpms); i<l; i++) {
-					_note_time = real(_arg_parser(_dy_format, _bpms[i].m_time));
-					_nbpm = real(_arg_parser(_dy_format, _bpms[i].m_value));
-				
-					array_push(_tp_lists, {
-			    		time: _note_time,
-			    		barpm: _nbpm
-			    	});
-				}
-				
-				array_sort(_tp_lists, function (a, b) { return sign(a.time-b.time); });
-			}
-			catch (e) {
-				announcement_error("error_dym_bpm_load_failed");
-			}
-		}
-	}
-
-	chartStruct.charts.difficulty = difficulty_char_to_num(string_char_at(chartID, string_length(chartID)));
-    
-    // Import timing points info
-	if(_imp_dym) {
-		var _rtime = bar_to_time(-_offset, _barpm);
-		for(var i=0, l=array_length(_tp_lists); i<l; i++) {
-			var _ntime = _tp_lists[i].time;
-			if(i>0)
-				_ntime = bar_to_time(_ntime - _tp_lists[i-1].time, _tp_lists[i-1].barpm) + _rtime;
-			else
-				_ntime = _rtime;
-			_rtime = _ntime;
-			
-			array_push(
-				chartStruct.timingPoints,
-				new sTimingPoint(_ntime, bpm_to_mspb(_tp_lists[i].barpm*4), 4)
-			);
-		}
 	}
 	else {
-		array_push(
-			chartStruct.timingPoints,
-			new sTimingPoint(
-				bar_to_time(-_offset, _barpm),
-				bpm_to_mspb(_barpm*4),
-				4
-			)
-		);
-	}
-	timing_point_sort();
-    
-    // Fix every note's & tp's time
-    _offset = bar_to_time(_offset, _barpm);
-	var _note_ids = struct_get_names(_temp_note_map);
-	show_debug_message_safe($"Found {array_length(_note_ids)} notes.");
-	for(var j=0, _l=array_length(_note_ids); j<_l; j++) {
-		var _note = _temp_note_map[$ _note_ids[j]];
-		if(array_length(_tp_lists) > 1) {
-			var _ntime = _note.bar;
-			var _rtime = 0;
-			for(var i=1, l=array_length(_tp_lists); i<=l; i++) {
-				if(i == l || _tp_lists[i].time > _ntime) {
-					_rtime += bar_to_time(_ntime - _tp_lists[i-1].time, _tp_lists[i-1].barpm);
-					break;
-				}
-				_rtime += bar_to_time(_tp_lists[i].time - _tp_lists[i-1].time, _tp_lists[i-1].barpm);
-			}
-			_note.time = _rtime;
-		}
-		else
-			_note.time = bar_to_time(_note.bar, _barpm);    	 // Bar to Chart Time in ms
-		
-		_note.time = time_to_mtime(_note.time, _offset);         // Chart Time to Music Time in ms (Fix the offset to 0)
-	}
+		var result = dyc_chart_import_dy(_file, _import_info, _import_tp);
 
-	// Convert note maps to dyn format's note array.
-	for(var i=0, l=array_length(_note_ids); i<l; i++)
-	if(_temp_note_map[$ _note_ids[i]].type != "SUB")
-	{
-		var _note = _temp_note_map[$ _note_ids[i]];
-		_note.type = _noteType_conversion(_note.type);
-		var _convertedNote = {
-			side: _note.side,
-			time: _note.time,
-			noteType: _note.type,
-			lastTime: 0,
-			width: _note.width,
-			position: _note.position
-		};
-		if(_note.type == 2) {
-			_convertedNote.lastTime = _temp_note_map[$ _note.subid].time - _note.time;
+		// Read background & image from .dy format.
+		if(_import_info && result == 0) {
+			var _remix = dyc_chart_import_dy_get_remix();
+			var _music = convert_mime_base64_to_file("audio", _remix.music, objMain.chartTitle);
+			if(_music != "")
+				music_load(_music);
+			var _image = convert_mime_base64_to_file("image", _remix.bg, objMain.chartTitle);
+			if(_image != "")
+				image_load(_image);
+			var _video = convert_mime_base64_to_file("video", _remix.bg, objMain.chartTitle);
+			if(_video != "")
+				video_load(_video);
 		}
-		array_push(chartStruct.charts.notes, _convertedNote);
 	}
-
-	// Import dyn format's chart struct.
-	map_import_dyn_struct(chartStruct, _import_info, _import_tp);
     
-	// Read background & image from .dy format.
-    if(_import_info && _dy_format) {
-		var _music = convert_mime_base64_to_file("audio", _str.remix.music, objMain.chartTitle);
-		if(_music != "")
-			music_load(_music);
-		var _image = convert_mime_base64_to_file("image", _str.remix.bg, objMain.chartTitle);
-		if(_image != "")
-			image_load(_image);
-		var _video = convert_mime_base64_to_file("video", _str.remix.bg, objMain.chartTitle);
-		if(_video != "")
-			video_load(_video);
-	}
 }
 
 function map_import_osu(_file = "") {
@@ -396,16 +202,35 @@ function map_import_osu(_file = "") {
 	                			case 2:
 	                				var _x = real(_grid[i][0]);
 	                				var _y = real(_grid[i][1]);
-	                				build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+									build_note({
+										noteType: NOTE_TYPE.NORMAL,
+										time: _ntime,
+										position: _x / 512 * 5,
+										width: 1.0,
+										side: NOTE_SIDE.FRONT,
+									});
 	                				break;
 	                			case 3: // Mania Mode
 	                				var _x = real(_grid[i][0]);
 	                				if(_ntype & 128) { // If is a Mania Hold
 	                					var _subtim = real(string_copy(_grid[i][5], 1, string_pos(":", _grid[i][5])-1)) + _delay_time;
-	                					build_hold(random_id(9), _ntime, _x / 512 * 5, 1.0, random_id(9), _subtim, 0);
+										build_note({
+											time: _ntime,
+											noteType: NOTE_TYPE.HOLD,
+											position: _x / 512 * 5,
+											width: 1.0,
+											lastTime: _subtim - _ntime,
+											side: NOTE_SIDE.FRONT,
+										})
 	                				} 
 	                				else
-	                					build_note(random_id(9), 0, _ntime, _x / 512 * 5, 1.0, -1, 0);
+	                					build_note({
+	                						noteType: NOTE_TYPE.NORMAL,
+	                						time: _ntime,
+	                						position: _x / 512 * 5,
+	                						width: 1.0,
+	                						side: NOTE_SIDE.FRONT,
+	                					});
 	                				break;
 	                		}
                 		}
@@ -418,7 +243,7 @@ function map_import_osu(_file = "") {
     }
     
     timing_point_sort();
-    note_sort_all();
+    note_sort_all(true);
     
     announcement_play("anno_import_info_complete", 1000);
 }
@@ -426,27 +251,8 @@ function map_import_osu(_file = "") {
 function map_import_dyn(_file) {
 	var _import_info = show_question_i18n("box_q_import_info");
     var _import_tp = show_question_i18n("box_q_import_bpm");
-    
-	var _buf = buffer_load(_file);
-	/// @type {Any} 
-    var _str = __dyn_read_buffer(_buf);
-	buffer_delete(_buf);
-    
-    if(!is_struct(_str)) {
-    	show_error("Load failed.", true);
-		return;
-	}
-    
-	map_import_dyn_struct(_str, _import_info, _import_tp);
-}
 
-function map_import_dyn_struct(_str, _import_info, _import_tp) {
-	if(_import_tp) {
-		objEditor.timingPoints = array_concat(objEditor.timingPoints, _str.timingPoints);
-		timing_point_sort();
-	}
-	
-	map_load_struct(_str.charts, _import_info, _import_tp);
+	dyc_chart_import_dyn(_file, _import_info, _import_tp);
 }
 
 function map_set_title() {
@@ -460,6 +266,7 @@ function map_set_title() {
 		_title = string_replace_all(_title, "[", "[[")
 	
 	objMain.chartTitle = _title;
+	dyc_chart_set_title(_title);
 }
 
 function music_load(_file = "") {
@@ -584,171 +391,48 @@ function image_load(_file) {
     }
     
     var _spr = sprite_add(_file, 1, 0, 0, 0, 0);
+
     if(_spr < 0) {
         announcement_error("anno_graph_load_err");
         return;
     }
     
-    var _wscl = global.resolutionW / sprite_get_width(_spr);
-    var _hscl = global.resolutionH / sprite_get_height(_spr);
-    var _scl = max(_wscl, _hscl); // Centre & keep ratios
-    
-    var _nspr = compress_sprite(_spr, _scl, true);
-    
     with(objMain) {
         if(bgImageSpr != -1)
             sprite_delete(bgImageSpr);
         
-        bgImageSpr = _nspr;
+        bgImageSpr = _spr;
     }
     objManager.backgroundPath = _file;
-    sprite_delete(_spr);
 }
 
 function map_export_xml(_export_to_dym) {
-	if(array_length(objEditor.timingPoints) == 0) {
+	if(dyc_get_timingpoints_count() == 0) {
 		announcement_error("export_timing_error");
 		return;
 	}
 	
     var _file = "";
     var _mapid = (_export_to_dym?"_dym_":"_map_") + map_get_alt_title() + "_" + difficulty_num_to_char(objMain.chartDifficulty);
-    var _default_file_name = _mapid + "-";
-    _default_file_name += string(current_year) + "-";
-    _default_file_name += string(current_month) + "-";
-    _default_file_name += string(current_day) + "-";
-    _default_file_name += string(current_hour) + "-";
-    _default_file_name += string(current_minute) + "-";
-    _default_file_name += string(current_second);
+	var _default_file_name = $"{_mapid}-{current_year}-{current_month}-{current_day}-{current_hour}-{current_minute}-{current_second}";
 
 	var _file_title = _export_to_dym ? "Export Dynamaker-modified Chart as XML File 导出 DyM 谱面文件" : "Export Dynamix Chart as XML File 导出实机 XML 谱面文件";
     _file = get_save_filename_ext("XML File (*.xml)|*.xml", _default_file_name + ".xml", program_directory, _file_title);
     
     if(_file == "") return;
-    
-    // For Compatibility
-    notes_reallocate_id();
-    note_extra_sub_removal();
-	notes_array_update();				// Sync main notes array
+
 	// Init the xml export variables.
 	_setup_xml_compability_variables();
 
-	var _fix_dec = false;
     var _fix_error = _export_to_dym? false:show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
-	var _notes_array = SnapDeepCopy(objMain.chartNotesArray);
+	var _result = dyc_chart_export_xml(_file, _export_to_dym, _fix_error? global.offsetCorrection:0);
+	if(_result < 0)
+		announcement_error("anno_export_failed");
+	else
+		announcement_play("anno_export_complete");
 
-	// Correct the offset error
-	if(_fix_error) {
-		note_error_correction(global.offsetCorrection, _notes_array, false);
-	}
-    
-	/// @param {Array<Id.Instance.objNote>} _array 
-    var _gen_narray = function (_side, _dec, _dym, _array) {
-    	var _ret = [];
-    	var _bfun = _dym? time_to_bar_for_dym:time_to_bar;
-		var l = array_length(_array);
-    	for(var i=0; i<l; i++) with (_array[i]) {
-            if(side == _side) {
-            	var _time = _dec?round(time):time;
-            	if(!_dym)
-            		_time = mtime_to_time(_time);
-                array_push(_ret, {
-                	m_id : { text : inst.nid },
-                	m_type : { text : note_type_num_to_string(noteType) },
-                	m_time : { text : string_format(_bfun(_time), 1, EXPORT_XML_EPS) },
-                	m_position : { text : string_format(position - width / 2, 1, 4) },
-                	m_width : { text : width },
-                	m_subId: { text : inst.sid }
-                });
-            }
-        }
-        if(array_length(_ret) == 0)
-        	return { text : "" };
-        return {
-        	CMapNoteAsset : _ret
-        };
-    }
-    
-    var _narray = [_gen_narray(0, _fix_dec, _export_to_dym, _notes_array),
-    			   _gen_narray(1, _fix_dec, _export_to_dym, _notes_array),
-    			   _gen_narray(2, _fix_dec, _export_to_dym, _notes_array)];
-    
-    var _str = {
-    	CMap : {
-    		attributes : {
-    			"xmlns:xsi" : "http://www.w3.org/2001/XMLSchema-instance",
-    			"xmlns:xsd" : "http://www.w3.org/2001/XMLSchema"
-    		},
-    		m_path : { text : map_get_title() },
-	    	m_barPerMin : { text : string_format(objMain.chartBarPerMin, 1, EXPORT_XML_EPS) },
-	    	m_timeOffset : { text : string_format(objMain.chartBarOffset, 1, EXPORT_XML_EPS) },
-	    	m_leftRegion : { text : objMain.chartSideType[0] },
-	    	m_rightRegion : { text : objMain.chartSideType[1] },
-	    	m_mapID : { text : _mapid },
-	    	m_notes : {
-	    		m_notes : _narray[0]
-	    	},
-	    	m_notesLeft : {
-	    		m_notes : _narray[1]
-	    	},
-	    	m_notesRight : {
-	    		m_notes : _narray[2]
-	    	}
-    	}
-    }
-    
-    if(_export_to_dym) {
-    	var _rbar = 0;
-    	var _arr = [];
-    	
-    	with(objEditor) {
-    		var l = array_length(timingPoints);
-    		for(var i=0; i<l; i++) {
-    			if(i>0)
-    				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-    					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-    			
-    			array_push(_arr, {
-    				m_time : { text : string_format(_rbar, 1, EXPORT_XML_EPS) },
-    				m_value : { text : string_format(mspb_to_bpm(timingPoints[i].beatLength)/4, 1, EXPORT_XML_EPS) }
-    			});
-    		}
-    	}
-    	
-    	_str.CMap.m_argument = {
-    		m_bpmchange : {
-    			CBpmchange : _arr
-    		}
-    	}
-    }
-	_str = snap_alter_to_xml(_str);
-	
-	_str.prolog = {
-		attributes: {
-			version: "1.0"
-		}
-	};
-	
-	objMain.savingExportId = 
-		fast_file_save_async(_file, SnapToXML(_str));
-	
-	note_activation_reset();
-}
-
-function map_get_struct_without_notes() {
-	var _str = {
-		title: objMain.chartTitle,
-		difficulty: objMain.chartDifficulty,
-		sidetype: objMain.chartSideType,
-		
-		bpm: 0,			// ! Deprecated
-		barpm: 0,		// ! Deprecated
-		barused: 0,		// ! Deprecated
-		notes: []
-	}
-	
-	return _str;
+	show_debug_message("Export done.");
 }
 
 function map_load_struct(_str, _import_info = true, _import_tp = true) {
@@ -762,7 +446,7 @@ function map_load_struct(_str, _import_info = true, _import_tp = true) {
 	
 	var _arr = _str.notes;
 	for(var i=0, l=array_length(_arr); i<l; i++) 
-		build_note_withprop(_arr[i]);
+		build_note(_arr[i]);
 	
 	show_debug_message_safe("Load map from struct sucessfully.");
 }
@@ -811,22 +495,11 @@ function map_add_offset(_offset = "", record = false) {
 		_record = true;
 	}
 	
-	with(objEditor) {
-		for(var i=0, l=array_length(timingPoints); i<l; i++)
-			timingPoints[i].time += _offset;
-	}
+	dyc_timingpoints_add_offset(_offset);
 	
-	note_activate(objNote);
-	with(objMain) {
-		for(var i=0, l=array_length(chartNotesArray); i<l; i++) {
-			chartNotesArray[i].inst.time += _offset;
-		}
-	}
-	notes_array_update();
+	DyCore_note_add_offset(_offset);
 	
 	announcement_play(i18n_get("anno_add_offset", _offset));
-	
-	note_activation_reset();
 	
 	if(record)
 		operation_step_add(OPERATION_TYPE.OFFSET, _offset, -1);
@@ -836,38 +509,122 @@ function map_add_offset(_offset = "", record = false) {
 
 #region PROJECT FUNCTIONS
 
+function project_sideload(_file) {
+	try {
+		map_load(_file);
+
+		if(string_lower(filename_ext(_file)) != ".dy") {
+			// Automatically detect image & music files.
+			var _chartPath = filename_path(_file);
+
+			var _search_largest_file = function(path, mask, size = -1) {
+				var _resultFile = "";
+				var _curFile = file_find_first(path + mask, fa_none);
+				while(_curFile != "") {
+					var _curSize = file_get_size(path + _curFile);
+					if(_curSize > size) {
+						size = _curSize;
+						_resultFile = _curFile;
+					}
+					_curFile = file_find_next();
+				}
+				file_find_close();
+				return [_resultFile, size];
+			}
+
+			// Find the largest music file.
+			var _musFile = "", _musSize = -1, musPostfixes = ["*.mp3", "*.wav", "*.ogg", "*.flac"];
+			for(var i = 0; i < array_length(musPostfixes); i++) {
+				var result = _search_largest_file(_chartPath, musPostfixes[i], _musSize);
+				if(result[1] > _musSize) {
+					_musFile = result[0];
+					_musSize = result[1];
+				}
+			}
+			if(_musFile != "") {
+				music_load(_chartPath + _musFile);
+			}
+
+			// Find the largest image file.
+			var _imgFile = "", _imgSize = -1, imgPostfixes = ["*.png", "*.jpg", "*.jpeg"];
+			for(var i = 0; i < array_length(imgPostfixes); i++) {
+				var result = _search_largest_file(_chartPath, imgPostfixes[i], _imgSize);
+				if(result[1] > _imgSize) {
+					_imgFile = result[0];
+					_imgSize = result[1];
+				}
+			}
+
+			if(_imgFile != "") {
+				background_load(_chartPath + _imgFile);
+			}
+		}
+	} catch (e) {
+		announcement_error(i18n_get("anno_project_sideload_failed", [string(e)]));
+		return -1;
+	}
+
+	announcement_play("anno_project_sideload_complete");
+
+	// Check if other projects exist.
+	var _chartPath = filename_path(_file);
+	var _dynFiles = file_find_first(_chartPath + "*.dyn", fa_none);
+	if(_dynFiles != "") {
+		announcement_warning(i18n_get("anno_project_sideload_warning"));
+	}
+	file_find_close();
+
+	return 1;
+}
+
 function project_load(_file = "") {
 	if(_file == "") 
-		_file = get_open_filename_ext("DyNode File (*.dyn)|*.dyn", map_get_alt_title() + ".dyn", program_directory, 
+		_file = get_open_filename_ext("DyNode File / Chart Files (*.dyn;*.xml;*.dy)|*.dyn;*.xml;*.dy", map_get_alt_title() + ".dyn", program_directory, 
         "Load Project 打开项目");
     
     if(_file == "") return 0;
+
+	map_reset();
+
+	if(string_lower(filename_ext(_file)) != ".dyn") {
+		return project_sideload(_file);
+	}
     
-    var _buf = buffer_load(_file);
-    var _contents = __dyn_read_buffer(_buf);
-    buffer_delete(_buf);
-    var _propath = filename_path(_file);
+	var result = dyc_project_load(_file);
+	if(result < 0) {
+		show_debug_message("Project load failed. Terminated.");
+		return;
+	}
+	show_debug_message("Project loaded.");
+	var chartMetadata = dyc_chart_get_metadata();
+	var projectMetadata = dyc_project_get_metadata();
+	var path = dyc_chart_get_path();
+	var version = dyc_project_get_version();
+	var _propath = filename_path(_file);
     
     var _path_deal = function(_pth, _propath) {
-    	if(filename_path(_pth)=="") return _propath+_pth;
+    	// Check if is relative path.
+		if(is_relative_path(_pth))
+			return _propath + _pth;
     	return _pth;
     }
-    
-    map_reset();
+
+	objMain.chartTitle = chartMetadata[$ "title"];
+	objMain.chartDifficulty = chartMetadata[$ "difficulty"];
+	objMain.chartSideType = chartMetadata[$ "sideType"];
     
     with(objManager) {
-    	musicPath = _contents[$ "musicPath"];
-    	backgroundPath = _contents[$ "backgroundPath"];
-    	if(variable_struct_exists(_contents, "videoPath"))
-    		videoPath = _contents[$ "videoPath"];
+    	musicPath = path[$ "music"];
+    	backgroundPath = path[$ "image"];
+    	if(variable_struct_exists(path, "video"))
+    		videoPath = path[$ "video"];
     	else
     		videoPath = "";
 
 		objMain.animTargetTime = 0;
-		map_load(_contents[$ "charts"]);
 		
-		if(variable_struct_exists(_contents, "projectTime"))
-			projectTime = _contents[$ "projectTime"];
+		if(variable_struct_exists(projectMetadata[$"stats"], "projectTime"))
+			projectTime = projectMetadata[$"stats"][$ "projectTime"];
 		else
 			projectTime = 0;
 
@@ -878,18 +635,17 @@ function project_load(_file = "") {
 	    	background_load(_path_deal(videoPath, _propath));
 	    	
 	    timing_point_reset();
-	    objEditor.timingPoints = _contents[$ "timingPoints"];
 	    timing_point_sort();
 	    
 	    projectPath = _file;
 	    
-	    if(variable_struct_exists(_contents, "settings"))
-	    	project_set_settings(_contents[$ "settings"]);
+	    if(variable_struct_exists(projectMetadata, "settings"))
+	    	project_set_settings(projectMetadata[$ "settings"]);
     }
     
     /// Old version workaround
     
-	    if(version_cmp(_contents[$ "version"], "v0.1.5") < 0) {
+	    if(version_cmp(version, "v0.1.5") < 0) {
 	    	var _question = show_question_i18n(i18n_get("old_version_warn_1"));
 			if(_question)
 				map_add_offset(-64, true);
@@ -898,7 +654,7 @@ function project_load(_file = "") {
 	///
 
 	// Version update backup
-	if(_contents[$ "version"] != VERSION) {
+	if(version != VERSION) {
 		project_backup(objManager.projectPath);
 	}
     
@@ -922,47 +678,65 @@ function project_save_as(_file = "") {
 	var _contents;
 	var _corruption = false;
 	var _corruption_file_id = random_id(6);
-	
-	try {
-		_contents = {
-			version : VERSION,
-			musicPath: objManager.musicPath,
-			backgroundPath: objManager.backgroundPath,
-			videoPath: objManager.videoPath,
+
+	DyCore_set_project_version(VERSION);
+	DyCore_set_project_metadata(json_stringify({
+		stats : {
 			projectTime: objManager.projectTime,
-			timingPoints: objEditor.timingPoints,
-			charts: [],
-			settings: project_get_settings()
-		};
-		// DyCore will add the notes array to the contents.
-		_contents.charts = map_get_struct_without_notes();
-	
-		objManager.projectPath = _file;
-	} catch (e) {
-		_corruption = true;
-		
-		_file = $"{filename_path(_file)}{map_get_alt_title()}_{_corruption_file_id}.dyn";
-		
-		announcement_error($"保存项目时出现错误。原项目未改动，当前保存的项目位置为:{_file}\n错误信息:\n{e}");
-	}
+		},
+		settings: project_get_settings(),
+	}));
+	DyCore_set_chart_metadata(json_stringify({
+		title: objMain.chartTitle,
+		difficulty: objMain.chartDifficulty,
+		sideType: objMain.chartSideType,
+		charter: "",
+		artist: ""
+	}));
 	
 	try {
-		project_file_duplicate(_contents);
+		project_file_duplicate(
+			{
+				backgroundPath: objManager.backgroundPath,
+				videoPath: objManager.videoPath,
+				musicPath: objManager.musicPath,
+			},
+			filename_path(_file)
+		);
 	} catch (e) {
 		announcement_warning("复制音乐/背景/视频文件时出现错误。[scale, 0.7]\n"+string(e));
 	}
 
+	DyCore_set_chart_path(json_stringify({
+		music: objManager.musicPath,
+		image: objManager.backgroundPath,
+		video: objManager.videoPath
+	}));
+
 	// Trigger an async saving project event.
-	DyCore_save_project(json_stringify(_contents), _file, DYCORE_COMPRESSION_LEVEL);
-	
+	DyCore_save_project(_file, DYCORE_COMPRESSION_LEVEL);
+	objManager.nextProjectPath = _file;
+
 	return 1;
 }
 
-function project_file_duplicate(_project) {
+function project_save_callback() {
+	if(objManager.autosaving) {
+		if(editor_get_editmode() != 5)  // Ignore announcement when edit mode is playback.
+			announcement_play("autosave_complete");
+		objManager.autosaving = false;
+	}
+	else
+		announcement_play("anno_project_save_complete");
+
+	objManager.projectPath = objManager.nextProjectPath;
+	objManager.nextProjectPath = "";
+}
+
+function project_file_duplicate(_project, _propath) {
 	var _bg = _project.backgroundPath;
 	var _vd = _project.videoPath;
 	var _mu = _project.musicPath;
-	var _propath = filename_path(objManager.projectPath);
 	var _new_file_path = function (_old_path, _propath) {
 		return _propath + filename_name(_old_path);
 	}
@@ -971,7 +745,7 @@ function project_file_duplicate(_project) {
 	var _nmu = _new_file_path(_mu, _propath);
 	
 	var _process = function(_pro, _varname, _file, _nfile) {
-		if(filename_path(_file)=="") return;	// If already relative path
+		if(is_relative_path(_file) == "") return;	// If already relative path
 		if(file_exists(_file)) {
 			if(!file_exists(_nfile))
 				file_copy(_file, _nfile);
@@ -983,6 +757,7 @@ function project_file_duplicate(_project) {
 				file_bin_close(_f);
 				file_bin_close(_nf);
 				if(_fs != _nfs) {
+					show_debug_message($"File sizes differ, creating a copy. {_file} -> {_nfile}");
 					_nfile = filename_path(_nfile)+filename_name_no_ext(_nfile)+"_"+random_id(4)+filename_ext(_nfile);
 					file_copy(_file, _nfile);
 				}
@@ -1208,8 +983,8 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 	
 	var _below = 10;
 	var _beside = 10;
-	var _nx = global.resolutionW - _beside;
-	var _ny = global.resolutionH - _below;
+	var _nx = BASE_RES_W - _beside;
+	var _ny = BASE_RES_H - _below;
 	
 	if(_uniqueID == "null")
 		_uniqueID = random_id(8);
@@ -1236,7 +1011,7 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 	});
 	
 	array_push(objManager.announcements, _inst);
-	show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
+	// show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {
@@ -1329,11 +1104,21 @@ function load_config() {
 
 	// Version check.
 	if(_con[$ "version"] != VERSION) {
-		if(version_cmp(VERSION, _con[$ "version"]) > 0)
+		var _oldVersion = _con[$ "version"];
+		if(version_cmp(VERSION, _oldVersion) > 0)
 			announcement_play(i18n_get("version_higher", VERSION));
 		else
 			announcement_warning(i18n_get("version_lower", VERSION));
+		
+		// Old version workarounds.
+		// Before v0.1.19-dev.4 - Reset latencies
+		if(version_cmp(_oldVersion, "v0.1.19-dev.4") < 0) {
+			global.FMOD_MP3_DELAY = 0;
+			global.musicDelay = 0;
+			announcement_play(i18n_get("update_before_0_1_19"), 5000);
+		}
 	}
+
 	
 	return md5_file(pth);
 }
@@ -1380,8 +1165,6 @@ function vars_init() {
 	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
 	global.fpsAdjust = BASE_FPS / global.fps;
-	global.scaleXAdjust = global.resolutionW / BASE_RES_W;
-	global.scaleYAdjust = global.resolutionH / BASE_RES_H;
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();
@@ -1389,8 +1172,9 @@ function vars_init() {
 
 function switch_debug_info() {
 	with(objMain) {
-		showDebugInfo = !showDebugInfo;
-		announcement_adjust("anno_debug_info", showDebugInfo);
+		showDebugInfo ++;
+		showDebugInfo %= 3;
+		announcement_adjust("anno_debug_info", showDebugInfo > 0);
 	}
 }
 
@@ -1421,18 +1205,6 @@ function stat_reset() {
 		];
 }
 
-function stat_count(side, type) {
-	if(type > 2)
-		return;
-	
-	with(objMain) {
-		statCount[side][type] ++;
-		statCount[side][3] += 1 + (type == 2);
-		statCount[3][type] ++;
-		statCount[3][3] += 1 + (type == 2);
-	}
-}
-
 function stat_note_string(stype, ntype) {
 	with(objMain)
 		if(stype == 1) {
@@ -1460,28 +1232,21 @@ function stat_visible() {
 
 /// @description Caculate the avg notes' count between [_time-_range, _time] (in ms)
 function stat_kps(_time, _range) {
-	if(objMain.chartNotesCount == 0)
-		return 0;
-
-	var ff = function(array, at) { return array[at].time; }
-	var ub = array_upper_bound(objMain.chartNotesArray, _time, ff);
-	var lb = array_lower_bound(objMain.chartNotesArray, _time - _range, ff);
-	return (ub - lb) * 1000 / _range;
+	return DyCore_kps_count(_time, _range);
 }
 
 #endregion
 
 #region FMOD Functions
 
-function sfmod_channel_get_position(channel, spr) {
-    var _ret = FMODGMS_Chan_Get_Position(channel);
-    _ret = _ret - global.FMOD_MP3_DELAY * objMain.usingMP3 - global.musicDelay;
-    return _ret;
-}
-
 function sfmod_channel_set_position(pos, channel, spr) {
     pos = pos + global.FMOD_MP3_DELAY * objMain.usingMP3 + global.musicDelay;
+	pos += sfmod_get_dsp_latency();
     FMODGMS_Chan_Set_Position(channel, pos);
+}
+
+function sfmod_get_dsp_latency() {
+	return FMOD_DSP_BUFFERSIZE / objMain.sampleRate * 1000 * (FMOD_DSP_BUFFERCOUNT - 1.5);
 }
 
 #endregion
@@ -1511,38 +1276,6 @@ function global_add_delay(delay) {
 			nowTime -= delay;
 	save_config();
 	announcement_set("global_music_delay", global.musicDelay);
-}
-
-#endregion
-
-#region DYN File Format Functions
-
-/// @description To check if the buffer is compressed.
-function __dyn_is_compressed_buffer(buffer) {
-	return DyCore_is_compressed(buffer_get_address(buffer), buffer_get_size(buffer)) >= 0;
-}
-
-/// @description Convert compressed/uncompressed buffer to project struct.
-/// @param {Id.Buffer} buffer The given buffer.
-/// @returns {Struct} The final struct.
-function __dyn_read_buffer(buffer) {
-	var _json = "";
-	if(!__dyn_is_compressed_buffer(buffer)) {
-		// Fallback to text format.
-		buffer_seek(buffer, buffer_seek_start, 0);
-		_json = buffer_read(buffer, buffer_text);
-	}
-	else {
-		_json = DyCore_decompress_string(buffer_get_address(buffer), buffer_get_size(buffer));
-		if(_json == "failed")
-			throw "Decompress failed.";
-	}
-
-	var _str = json_parse(_json);
-
-	if(!is_struct(_str))
-		throw "Parse failed.";
-	return _str;
 }
 
 #endregion

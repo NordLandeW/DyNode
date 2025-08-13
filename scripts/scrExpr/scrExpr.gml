@@ -337,7 +337,6 @@ function expr_exec(expr_seq) {
 		}
 		// announcement_play($"已执行表达式：${_seqs[i]}");
 	}
-	operation_merge_last_request(1, OPERATION_TYPE.EXPR);
 	return 1;
 }
 

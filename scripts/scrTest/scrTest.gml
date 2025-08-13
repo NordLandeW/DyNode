@@ -105,7 +105,7 @@ function test_at_start() {
     show_debug_message("=====DEBUG======")
     var TEST_QUICK_SORT = false;
     var TEST_COMPRESSION = false;
-    var TEST_VERTEX_CONSTRUCTION = true;
+    var TEST_VERTEX_CONSTRUCTION = false;
 
     if(TEST_QUICK_SORT) {
         __test_quick_sort(10);

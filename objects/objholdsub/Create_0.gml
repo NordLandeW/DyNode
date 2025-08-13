@@ -9,5 +9,3 @@ sprite = sprHoldEdge2;
 
     dFromBottom = 26;
     uFromTop = 13; 
-    lFromLeft = 12;
-    rFromRight = 12;

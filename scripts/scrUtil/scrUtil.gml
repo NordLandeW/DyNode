@@ -93,7 +93,7 @@ function draw_rectangle_gradient(position, color, alpha) {
 
 // W Pixels Width
 function generate_pause_shadow(height, indent = 30) {
-	var width = global.resolutionW;
+	var width = BASE_RES_W;
 	var surf = surface_create(width, height+2*indent);
 	
 	gpu_set_blendmode_ext(bm_one, bm_zero);
@@ -139,22 +139,21 @@ function mspb_to_bpm(mspb) {
 
 // Especially for dym
 function time_to_bar_for_dym(time) {
-	with(objEditor) {
-		var _rbar = 0;
-		var l = array_length(timingPoints);
-		for(var i=0; i<l; i++) {
-			if(i>0)
-				_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-					mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-			if(time < timingPoints[0].time || 
-				i == l-1 ||
-				in_between(time, timingPoints[i].time, timingPoints[i+1].time)) 
-				{
-					return _rbar +
-						time_to_bar(time - timingPoints[i].time,
-							mspb_to_bpm(timingPoints[i].beatLength)/4);
-				}
-		}
+	var timingPoints = dyc_get_timingpoints();
+	var _rbar = 0;
+	var l = array_length(timingPoints);
+	for(var i=0; i<l; i++) {
+		if(i>0)
+			_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
+				mspb_to_bpm(timingPoints[i-1].beatLength)/4);
+		if(time < timingPoints[0].time || 
+			i == l-1 ||
+			in_between(time, timingPoints[i].time, timingPoints[i+1].time)) 
+			{
+				return _rbar +
+					time_to_bar(time - timingPoints[i].time,
+						mspb_to_bpm(timingPoints[i].beatLength)/4);
+			}
 	}
 	
 	show_error("CONVERSION FATAL ERROR", true);
@@ -163,52 +162,50 @@ function time_to_bar_for_dym(time) {
 // Accurate bar in DyNode's concept.
 // limit argument only used by timing_fix.
 function time_to_bar_dyn(time, limit = 0x7fffffff) {
-	with(objEditor) {
-		if (!array_length(timingPoints)) return 0;
-	
-		var totalBars = 1;
-		var nowAt = 0;
-		var l = array_length(timingPoints);
-	
-		while (nowAt + 1 != l && timingPoints[nowAt + 1].time <= time+1) {	// Error correction.
-			if(timingPoints[nowAt + 1].time > limit) break;
-			totalBars += ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
-				(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
-			nowAt++;
-		}
-	
-		var nowTP = timingPoints[nowAt];
-		var nowBeats = (time - nowTP.time) / nowTP.beatLength;
-		var nowBars = nowBeats / nowTP.meter;
-	
-		return totalBars + nowBars;
+	var timingPoints = dyc_get_timingpoints();
+	if (!array_length(timingPoints)) return 0;
+
+	var totalBars = 1;
+	var nowAt = 0;
+	var l = array_length(timingPoints);
+
+	while (nowAt + 1 != l && timingPoints[nowAt + 1].time <= time+1) {	// Error correction.
+		if(timingPoints[nowAt + 1].time > limit) break;
+		totalBars += ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
+			(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
+		nowAt++;
 	}
+
+	var nowTP = timingPoints[nowAt];
+	var nowBeats = (time - nowTP.time) / nowTP.beatLength;
+	var nowBars = nowBeats / nowTP.meter;
+
+	return totalBars + nowBars;
 }
 
 function bar_to_time_dyn(bar) {
-	with(objEditor) {
-		if (!array_length(timingPoints) || bar <= 0) return 0;
-	
-		var totalBars = 1;
-		var nowAt = 0;
-		var l = array_length(timingPoints);
-	
-		while (nowAt + 1 != l) {
-			var nextTotalBars = totalBars + ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
-				(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
-	
-			if (nextTotalBars > bar) break;
-			totalBars = nextTotalBars;
-			nowAt++;
-		}
-	
-		var nowTP = timingPoints[nowAt];
-		var remainingBars = bar - totalBars;
-		var remainingBeats = remainingBars * nowTP.meter;
-		var time = nowTP.time + remainingBeats * nowTP.beatLength;
-	
-		return time;
+	var timingPoints = dyc_get_timingpoints();
+	if (!array_length(timingPoints) || bar <= 0) return 0;
+
+	var totalBars = 1;
+	var nowAt = 0;
+	var l = array_length(timingPoints);
+
+	while (nowAt + 1 != l) {
+		var nextTotalBars = totalBars + ceil((timingPoints[nowAt + 1].time - timingPoints[nowAt].time) /
+			(timingPoints[nowAt].beatLength * timingPoints[nowAt].meter));
+
+		if (nextTotalBars > bar) break;
+		totalBars = nextTotalBars;
+		nowAt++;
 	}
+
+	var nowTP = timingPoints[nowAt];
+	var remainingBars = bar - totalBars;
+	var remainingBeats = remainingBars * nowTP.meter;
+	var time = nowTP.time + remainingBeats * nowTP.beatLength;
+
+	return time;
 }
 
 #endregion
@@ -223,35 +220,35 @@ function pix_to_note_time(_pixel) {
 
 function note_pos_to_x(_pos, _side) {
     if(_side == 0) {
-        return global.resolutionW/2 + (_pos-2.5)*300*global.scaleXAdjust;
+        return BASE_RES_W/2 + (_pos-2.5)*300;
     }
     else {
-        return global.resolutionH/2 + (2.5-_pos)*150*global.scaleYAdjust;
+        return BASE_RES_H/2 + (2.5-_pos)*150;
     }
 }
 function x_to_note_pos(_x, _side) {
 	if(_side == 0) {
-		return (_x - global.resolutionW / 2) / (300*global.scaleXAdjust) + 2.5;
+		return (_x - BASE_RES_W / 2) / (300) + 2.5;
 	}
 	else {
-		return 2.5 - (_x - global.resolutionH / 2) / (150*global.scaleYAdjust);
+		return 2.5 - (_x - BASE_RES_H / 2) / 150;
 	}
 }
 function y_to_note_time(_y, _side) {
 	if(_side == 0) {
-		return (global.resolutionH - objMain.targetLineBelow - _y) / objMain.playbackSpeed + objMain.nowTime;
+		return (BASE_RES_H - objMain.targetLineBelow - _y) / objMain.playbackSpeed + objMain.nowTime;
 	}
 	else {
-		_y = _side == 1? _y: global.resolutionW - _y;
+		_y = _side == 1? _y: BASE_RES_W - _y;
 		return (_y - objMain.targetLineBeside) / objMain.playbackSpeed + objMain.nowTime;
 	}
 }
 function note_time_to_y(_time, _side) {
 	if(_side == 0) {
-		return global.resolutionH - objMain.targetLineBelow - (_time - objMain.nowTime) * objMain.playbackSpeed;
+		return BASE_RES_H - objMain.targetLineBelow - (_time - objMain.nowTime) * objMain.playbackSpeed;
 	}
 	else {
-		return global.resolutionW / 2 + (_side == 1?-1:1) *  (global.resolutionW / 2 - 
+		return BASE_RES_W / 2 + (_side == 1?-1:1) *  (BASE_RES_W / 2 - 
 			(objMain.playbackSpeed * (_time - objMain.nowTime)) - objMain.targetLineBeside);
 	}
 }
@@ -286,10 +283,10 @@ function xy_to_noteprop(_x, _y, _side) {
 		};
 }
 function resor_to_x(ratio) {
-    return global.resolutionW * ratio;
+    return BASE_RES_W * ratio;
 }
 function resor_to_y(ratio) {
-    return global.resolutionH * ratio;
+    return BASE_RES_H * ratio;
 }
 #endregion
 
@@ -440,8 +437,8 @@ function file_path_fix(_file) {
 #region WINDOWS
 
 function window_reset() {
-	var _ratio = min(display_get_width() / global.resolutionW, display_get_height() / global.resolutionH) * objManager.windowDisplayRatio;
-	var w = global.resolutionW * _ratio, h = global.resolutionH * _ratio
+	var _ratio = min(display_get_width() / BASE_RES_W, display_get_height() / BASE_RES_H) * objManager.windowDisplayRatio;
+	var w = BASE_RES_W * _ratio, h = BASE_RES_H * _ratio
     window_set_rectangle(
 		(display_get_width() - w) * 0.5,
 		(display_get_height() - h) * 0.5,
@@ -686,7 +683,7 @@ function color_invert(col) {
 
 function assert(expression) {
 	if(!expression)
-		show_error("Assertion failed.", true);
+		throw "Assertion Failed.";
 }
 
 function filename_name_no_ext(file_name) {
@@ -1010,4 +1007,38 @@ function extern_quick_sort(array, type) {
 	for(var i=0, l=array_length(array); i<l; i++) {
 		array[i] = buffer_read(buff, buffer_f64);
 	}
+}
+
+function is_relative_path(path) {
+	return filename_name(path) == path;
+}
+
+function file_get_size(file) {
+	var f = file_bin_open(file, 0);
+	if(f == -1) throw $"File not found: {file}";
+	var s = file_bin_size(f);
+	file_bin_close(f);
+	return s;
+}
+
+/// @description Specifically for manually setting the view size for surface. Viewport is not changed.
+function manually_set_view_size(width, height) {
+	matrix_stack_push(matrix_get(matrix_view));
+	matrix_stack_push(matrix_get(matrix_projection));
+    matrix_set(matrix_view, matrix_build_lookat(
+        width / 2, height / 2, -36000, width / 2, height / 2, 0, 0, 1, 0
+    ));
+    matrix_set(matrix_projection, matrix_multiply( 
+          matrix_build_projection_ortho(width, height, 0.001, 36000),
+         [1, 0, 0, 0, 
+          0, -1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1]));
+}
+
+function manually_reset_view_size() {
+	matrix_set(matrix_projection, matrix_stack_top());
+	matrix_stack_pop();
+	matrix_set(matrix_view, matrix_stack_top());
+	matrix_stack_pop();
 }

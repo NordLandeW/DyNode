@@ -1,46 +1,32 @@
 /// @description Draw the Playview
 
-var _nw = global.resolutionW, _nh = global.resolutionH;
+var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Bottom
-    
-    if(!surface_exists(bottomInfoSurf)) {
-    	bottomInfoSurf = surface_create(global.resolutionW, targetLineBelow);
-    }
-    
-    surface_set_target(bottomInfoSurf);
-    	
-    		draw_clear_alpha(c_black, 0);
-    		var _nx = resor_to_x(0.017);
-	    	// Draw Title
-			if(has_cjk(chartTitle)) {
-				draw_set_halign(fa_left); draw_set_valign(fa_middle);
-				
-				draw_set_font(global._notoFont);
-				// Shadow
-				draw_set_color_alpha(c_black, 0.4);
-				draw_text(_nx, 44 * global.scaleYAdjust, chartTitle);
-				draw_set_color_alpha(c_white, 1);
-				draw_text(_nx, 37 * global.scaleYAdjust, chartTitle);
-				draw_set_alpha(1.0);
-			}
-			else {
-				scribble(chartTitle).starting_format("fOrbitron48s", c_white)
-		        .align(fa_left, fa_middle)
-			    .transform(global.scaleXAdjust * 0.7, global.scaleYAdjust * 0.7)
-			    .draw(_nx, 42 * global.scaleYAdjust);
-			}
-		    
-		    // Draw Difficulty
-		    draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 
-		        _nx, 77 * global.scaleYAdjust,
-		        0.67 * global.scaleXAdjust, 0.67 * global.scaleYAdjust, 0, c_white,
-		        1);
-	    
-    surface_reset_target();
-    
-    draw_surface_ext(bottomInfoSurf, 0, global.resolutionH - targetLineBelow,
-    	1.0, 1.0, 0, c_white, titleAlpha);
+	var _nx = resor_to_x(0.017), _yoffset = BASE_RES_H - targetLineBelow;
+	// Draw Title
+	if(has_cjk(chartTitle)) {
+		draw_set_halign(fa_left); draw_set_valign(fa_middle);
+		
+		draw_set_font(global._notoFont);
+		// Shadow
+		draw_set_color_alpha(c_black, 0.4 * titleAlpha);
+		draw_text(_nx, 44 + _yoffset, chartTitle);
+		draw_set_color_alpha(c_white, 1 * titleAlpha);
+		draw_text(_nx, 37 + _yoffset, chartTitle);
+		draw_set_alpha(1.0);
+	}
+	else {
+		scribble(chartTitle).starting_format("fOrbitron48s", c_white)
+		.align(fa_left, fa_middle)
+		.blend(c_white, titleAlpha)
+		.transform(0.7, 0.7)
+		.draw(_nx, 42 + _yoffset);
+	}
+	
+	// Draw Difficulty
+	draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 
+		_nx, 77 + _yoffset, 0.67, 0.67, 0, c_white, titleAlpha);
     	
 
 // Draw targetline
@@ -143,17 +129,22 @@ var _nw = global.resolutionW, _nh = global.resolutionH;
         shader_set(shd_mono);
 	}
 
-	// Draw Holds
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
-		chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
-		chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
-	// Draw Notes
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[0]); i<_cl; i++)
-		chartNotesArrayActivated[0][i].draw_event();
-	// Draw Chains
-	for(var i=0, _cl = array_length(chartNotesArrayActivated[1]); i<_cl; i++)
-		chartNotesArrayActivated[1][i].draw_event();
+	if(editor_get_editmode() == 5) {
+		global.noteRenderer.render();
+	}
+	else {
+		// Draw Holds
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
+			chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
+			chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
+		// Draw Notes
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[0]); i<_cl; i++)
+			chartNotesArrayActivated[0][i].draw_event();
+		// Draw Chains
+		for(var i=0, _cl = array_length(chartNotesArrayActivated[1]); i<_cl; i++)
+			chartNotesArrayActivated[1][i].draw_event();
+	}
 
     if(_piano) {
 		gpu_set_blendmode(bm_normal);
