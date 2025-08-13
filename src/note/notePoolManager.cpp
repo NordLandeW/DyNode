@@ -117,8 +117,9 @@ void NotePoolManager::set_note(const Note& note) {
     if (note_ptr->time != note.time)
         set_ooo();
     *note_ptr = note;
-    if (note_ptr->type == 2)
-        sync_head_note_to_sub(note);
+
+    sync_head_note_to_sub(*note_ptr);
+    sync_hold_note_length(*note_ptr);
 }
 
 void NotePoolManager::set_note_bitwise(const std::string& noteID,
@@ -134,10 +135,11 @@ void NotePoolManager::set_note_bitwise(const std::string& noteID,
 
     double origTime = note_ptr->time;
     note_ptr->read(prop);
+
     if (origTime != note_ptr->time)
         set_ooo();
-    if (note_ptr->type == 2)
-        sync_head_note_to_sub(*note_ptr);
+    sync_head_note_to_sub(*note_ptr);
+    sync_hold_note_length(*note_ptr);
 }
 
 void NotePoolManager::access_note(const std::string& noteID,
