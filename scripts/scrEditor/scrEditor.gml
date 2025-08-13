@@ -852,7 +852,7 @@ function advanced_expr() {
 					}
 					if(expr_get_var("len") != _prop.lastTime)
 						_nprop.lastTime = expr_get_var("len");
-					else
+					else if(expr_get_var("etime") != _prop.lastTime + _prop.time)
 						_nprop.lastTime = expr_get_var("etime") - _nprop.time;
 				}
 				
