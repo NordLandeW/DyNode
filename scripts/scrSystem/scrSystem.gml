@@ -40,6 +40,7 @@ function map_close() {
 		DyCore_clear_notes();
 		global.noteIDMan.clear();
 		global.activationMan.clear();
+		global.isSaving = false;
 
 		with(objManager) {
 			musicPath = "";
@@ -668,12 +669,19 @@ function project_save() {
 }
 
 function project_save_as(_file = "") {
+
+	if(global.isSaving) {
+		show_debug_message("Save operation is already in progress.");
+		return 0;
+	}
 	
 	if(_file == "")
 		_file = get_save_filename_ext("DyNode File (*.dyn)|*.dyn", map_get_alt_title() + ".dyn", program_directory, 
 	        "Project save as 项目另存为");
 	
 	if(_file == "") return 0;
+
+	global.isSaving = true;
 	
 	var _contents;
 	var _corruption = false;
@@ -720,7 +728,12 @@ function project_save_as(_file = "") {
 	return 1;
 }
 
-function project_save_callback() {
+function project_save_callback(event) {
+	global.isSaving = false;
+	if(event[$ "status"] < 0) {
+		announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));
+	}
+
 	if(objManager.autosaving) {
 		if(editor_get_editmode() != 5)  // Ignore announcement when edit mode is playback.
 			announcement_play("autosave_complete");

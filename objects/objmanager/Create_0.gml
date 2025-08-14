@@ -87,6 +87,8 @@ global.__GUIManager = undefined;
 global.shadowCount = 0;
 // Used to distinguish different frames. Updated on begin step event.
 global.frameCurrentTime = 0;
+// Used to prevent multiple saves from happening at once.
+global.isSaving = false;
 
 // Generate Temp Sprite
 

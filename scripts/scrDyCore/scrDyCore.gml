@@ -22,12 +22,7 @@ function DyCoreManager() constructor {
         show_debug_message(event);
         switch(event[$ "type"]) {
             case DYCORE_ASYNC_EVENT_TYPE.PROJECT_SAVING:
-                if(event[$ "status"] == 0) {
-                    project_save_callback();
-                }
-                else {
-                    announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));
-                }
+                project_save_callback(event);
                 break;
             case DYCORE_ASYNC_EVENT_TYPE.GENERAL_ERROR:
                 announcement_error(i18n_get("anno_dycore_error", event[$ "content"]));
