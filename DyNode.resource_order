@@ -38,7 +38,7 @@
     {"name":"Better_Scaling","order":4,"path":"extensions/Better_Scaling/Better_Scaling.yy",},
     {"name":"DyCore","order":9,"path":"extensions/DyCore/DyCore.yy",},
     {"name":"FMODGMS","order":1,"path":"extensions/FMODGMS/FMODGMS.yy",},
-    {"name":"libdlgmodule","order":2,"path":"extensions/libdlgmodule/libdlgmodule.yy",},
+    {"name":"libdlgmod","order":11,"path":"extensions/libdlgmod/libdlgmod.yy",},
     {"name":"window_command_hook","order":10,"path":"extensions/window_command_hook/window_command_hook.yy",},
     {"name":"fDynamix16","order":3,"path":"fonts/fDynamix16/fDynamix16.yy",},
     {"name":"fDynamix48","order":1,"path":"fonts/fDynamix48/fDynamix48.yy",},
