@@ -1,13 +1,13 @@
 #pragma once
 #include <cstdint>
-#include <mutex>
+#include <shared_mutex>
 
 #include "json.hpp"
 #include "project.h"
 
 class ProjectManager {
    private:
-    mutable std::mutex mtx;
+    mutable std::shared_mutex mtx;
     Project project;
     int currentChartIndex = 0;
     uint64_t chartMetadataLastModifiedTime = 0;
