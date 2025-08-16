@@ -708,8 +708,12 @@ function timing_fix(tpBefore, tpAfter) {
 	nl = array_length(_affectedNotes);
 	// Caculate note's new time.
 	for(var i=0; i<nl; i++) {
+		/// @type {Struct.sNoteProp} 
 		var _prop = SnapDeepCopy(_affectedNotes[i]);
+		if(_prop.noteType == NOTE_TYPE.SUB) continue;
 		_prop.time = (_prop.time - tpBefore.time) * (tpAfter.beatLength / tpBefore.beatLength) + tpAfter.time;
+		if(_prop.noteType == NOTE_TYPE.HOLD)
+			_prop.lastTime *= (tpAfter.beatLength / tpBefore.beatLength);
 		if(_prop.time > _timeR)
 			_cross_timing_warning = true;
 		dyc_update_note(_prop, true);
