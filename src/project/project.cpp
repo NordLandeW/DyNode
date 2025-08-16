@@ -120,7 +120,6 @@ void __async_save_project(SaveProjectParams params) {
 
         fs::rename(tempPath, finalPath);
         print_debug_message("Project save completed.");
-
     } catch (const std::exception &e) {
         if (fs::exists(tempPath))
             fs::remove(tempPath);

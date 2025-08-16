@@ -241,7 +241,6 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
 
         // Save remix part.
         lastRemix = doc["remix"];
-
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing DY: " +
                             string(e.what()));
