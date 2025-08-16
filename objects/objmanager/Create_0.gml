@@ -114,7 +114,7 @@ display_reset(global.graphics.AA, global.graphics.VSync);
     
     // Create the system
     if (FMODGMS_Sys_Create() < 0) {
-        show_error_async(i18n_get("FMOD_create_sys_err") + FMODGMS_Util_GetErrorMessage(), false);
+        show_error(i18n_get("FMOD_create_sys_err") + FMODGMS_Util_GetErrorMessage(), false);
     }
     
     // Initialize the system
