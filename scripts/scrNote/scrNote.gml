@@ -67,6 +67,7 @@ function note_recac_stats() {
 	if(!(in_between(objMain.showStats, 1, 2)))
 		return;
 
+	show_debug_message("Recaculating stats.");
 	var result = json_parse(DyCore_note_count());
 	objMain.statCount = result;
 }
@@ -75,11 +76,8 @@ function note_sort_all(forced = false) {
 	if(!forced && !objEditor.editorNoteSortRequest) return;
 	objEditor.editorNoteSortRequest = false;
 	
-	var result = DyCore_sort_notes();
-	
-	if(result == 0) {
-		note_recac_stats();
-	}
+	DyCore_sort_notes();
+	note_recac_stats();
 }
 
 function note_sort_request() {
@@ -131,6 +129,8 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 		var _inst = note_get_instance(_newNote.noteID);
 		_inst.select();
 	}
+
+	note_sort_request();
 }
 
 // This function can only be accessed in destroy event.
