@@ -71,7 +71,7 @@ function map_load(_file = "") {
 	}
 	var _direct = _file != "";
 	if(_file == "")
-	    _file = get_open_filename_ext(i18n_get("fileformat_chart") + " (*.xml;*.dyn;*dy;*.osu)|*.xml;*.dyn;*dy;*.osu", "", 
+	    _file = dyc_get_open_filename(i18n_get("fileformat_chart") + " (*.xml;*.dyn;*dy;*.osu)|*.xml;*.dyn;*dy;*.osu", "", 
 	        program_directory, "Load Dynamix Chart File 加载谱面文件");
         
     if(_file == "") return;
@@ -156,7 +156,7 @@ function map_import_dym(_file, _direct = false) {
 
 function map_import_osu(_file = "") {
     if(_file == "")
-	    _file = get_open_filename_ext("OSU Files (*.osu)|*.osu", "", 
+	    _file = dyc_get_open_filename("OSU Files (*.osu)|*.osu", "", 
 	        program_directory, "Load osu! Chart File 加载 osu! 谱面文件");
         
     if(_file == "") return;
@@ -272,7 +272,7 @@ function map_set_title() {
 
 function music_load(_file = "") {
     if(_file == "")
-	    _file = get_open_filename_ext("Music Files (*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid)|*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid", "", 
+	    _file = dyc_get_open_filename("Music Files (*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid)|*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid", "", 
 	        program_directory, "Load Music File 加载音乐文件");
         
     if(_file == "") return;
@@ -314,7 +314,7 @@ function music_load(_file = "") {
 
 function background_load(_file = "") {
 	if(_file == "")
-	    _file = get_open_filename_ext("Background Files (*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv)|*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv|JPG Files (*.jpg)|*.jpg|PNG Files (*.png)|*.png", "",
+	    _file = dyc_get_open_filename("Background Files (*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv)|*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv|JPG Files (*.jpg)|*.jpg|PNG Files (*.png)|*.png", "",
 	        program_directory, "Load Background File 加载背景文件");
         
     if(_file == "") return;
@@ -418,14 +418,14 @@ function map_export_xml(_export_to_dym) {
 	var _default_file_name = $"{_mapid}-{current_year}-{current_month}-{current_day}-{current_hour}-{current_minute}-{current_second}";
 
 	var _file_title = _export_to_dym ? "Export Dynamaker-modified Chart as XML File 导出 DyM 谱面文件" : "Export Dynamix Chart as XML File 导出实机 XML 谱面文件";
-    _file = get_save_filename_ext("XML File (*.xml)|*.xml", _default_file_name + ".xml", program_directory, _file_title);
+    _file = dyc_get_save_filename("XML File (*.xml)|*.xml", _default_file_name + ".xml", program_directory, _file_title);
     
     if(_file == "") return;
 
 	// Init the xml export variables.
 	_setup_xml_compability_variables();
 
-    var _fix_error = _export_to_dym? false:show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
+    var _fix_error = _export_to_dym? false:dyc_show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
 	var _result = dyc_chart_export_xml(_file, _export_to_dym, _fix_error? global.offsetCorrection:0);
 	if(_result < 0)
@@ -580,7 +580,7 @@ function project_sideload(_file) {
 
 function project_load(_file = "") {
 	if(_file == "") 
-		_file = get_open_filename_ext("DyNode File / Chart Files (*.dyn;*.xml;*.dy)|*.dyn;*.xml;*.dy", map_get_alt_title() + ".dyn", program_directory, 
+		_file = dyc_get_open_filename("DyNode File / Chart Files (*.dyn;*.xml;*.dy)|*.dyn;*.xml;*.dy", map_get_alt_title() + ".dyn", program_directory, 
         "Load Project 打开项目");
     
     if(_file == "") return 0;
@@ -676,7 +676,7 @@ function project_save_as(_file = "") {
 	}
 	
 	if(_file == "")
-		_file = get_save_filename_ext("DyNode File (*.dyn)|*.dyn", map_get_alt_title() + ".dyn", program_directory, 
+		_file = dyc_get_save_filename("DyNode File (*.dyn)|*.dyn", map_get_alt_title() + ".dyn", program_directory, 
 	        "Project save as 项目另存为");
 	
 	if(_file == "") return 0;

@@ -114,7 +114,6 @@
     {"id":{"name":"Better_Scaling","path":"extensions/Better_Scaling/Better_Scaling.yy",},},
     {"id":{"name":"DyCore","path":"extensions/DyCore/DyCore.yy",},},
     {"id":{"name":"FMODGMS","path":"extensions/FMODGMS/FMODGMS.yy",},},
-    {"id":{"name":"libdlgmod","path":"extensions/libdlgmod/libdlgmod.yy",},},
     {"id":{"name":"window_command_hook","path":"extensions/window_command_hook/window_command_hook.yy",},},
     {"id":{"name":"fDynamix16","path":"fonts/fDynamix16/fDynamix16.yy",},},
     {"id":{"name":"fDynamix20","path":"fonts/fDynamix20/fDynamix20.yy",},},

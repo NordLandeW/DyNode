@@ -625,7 +625,7 @@ function io_clear_diag() {
 }
 
 function show_question_i18n(str) {
-	return show_question(i18n_get(str));
+	return dyc_show_question(i18n_get(str));
 }
 
 function show_error_i18n(str, abort) {
@@ -633,7 +633,7 @@ function show_error_i18n(str, abort) {
 }
 
 function get_string_i18n(str, def) {
-	return get_string(i18n_get(str), def);
+	return dyc_get_string(i18n_get(str), def);
 }
 
 function show_debug_message_safe(str) {

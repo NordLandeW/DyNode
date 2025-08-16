@@ -54,7 +54,7 @@ function DyCoreManager() constructor {
 }
 
 function dyc_init() {
-    if(DyCore_init() != "success") {
+    if(DyCore_init(window_handle()) != "success") {
         show_error("DyCore Initialized Failed.", false);
     }
     /// Add sprites data.
@@ -585,4 +585,43 @@ function dyc_add_sprite_data(data) {
 
 function dyc_get_note_index_upperbound(time) {
     return DyCore_get_note_index_upper_bound(time);
+}
+
+function dyc_get_open_filename(filter, filename, dir, title) {
+    var result = DyCore_get_open_filename(filter, filename, dir, title);
+
+    if(result == "terminated") return "";
+    else if(result == "") {
+        announcement_error("Opening file save dialogue failed.");
+        return result;
+    }
+
+    return result;
+}
+
+function dyc_get_save_filename(filter, filename, dir, title) {
+    var result = DyCore_get_save_filename(filter, filename, dir, title);
+
+    if(result == "terminated") return "";
+    else if(result == "") {
+        announcement_error("Opening file save dialogue failed.");
+        return result;
+    }
+
+    return result;
+}
+
+function dyc_show_question(text) {
+    var result = DyCore_show_question(text);
+    return result > 0 ? true : false;
+}
+
+function dyc_get_string(prompt, default_text) {
+    var result = DyCore_get_string(prompt, default_text);
+    if(result == "<%$><.3>TERMINATED<!#><##>") return "";
+    else if(result == "") {
+        announcement_error("Opening input dialog failed.");
+        return result;
+    }
+    return result;
 }

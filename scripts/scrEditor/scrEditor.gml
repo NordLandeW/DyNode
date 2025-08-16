@@ -641,7 +641,7 @@ function timing_point_create(record = false) {
 
 function timing_point_change(tp, record = false) {
 	var _current_setting = $"{tp.time} , {mspb_to_bpm(tp.beatLength)} , {tp.meter}";
-	var _setting = get_string(i18n_get("timing_point_change", tp.time), _current_setting);
+	var _setting = dyc_get_string(i18n_get("timing_point_change", tp.time), _current_setting);
 	if(_setting == _current_setting || _setting == "")
 		return;
 	try {
@@ -703,7 +703,7 @@ function timing_fix(tpBefore, tpAfter) {
 			array_push(_affectedNotes, dyc_get_note_at_index(i));
 	if(array_length(_affectedNotes) == 0)
 		return;
-	var _que = show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
+	var _que = dyc_show_question(i18n_get("timing_fix_question", [_timeL, at+1 == l?objMain.musicLength:_timeR, array_length(_affectedNotes)]));
 	if(!_que) return;
 	nl = array_length(_affectedNotes);
 	// Caculate note's new time.
@@ -817,7 +817,7 @@ function advanced_expr() {
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
 		var _scope_str = _global?"你正在对谱面的所有音符进行高级操作。":"你正在对选定的音符进行高级操作。";
-		var _expr = get_string(_scope_str+"请填写表达式：", editorLastExpr);
+		var _expr = dyc_get_string(_scope_str+"请填写表达式：", editorLastExpr);
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
 		var _success = true;

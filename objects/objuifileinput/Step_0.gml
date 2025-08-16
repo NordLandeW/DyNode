@@ -1,10 +1,10 @@
 
 if(mouse_isclick_l() && mouse_inbound(x, y, x+maxWidth, y+scriHeight*2)) {
     if(fType == "Open") {
-        input = get_open_filename_ext(filter, fname, dir, fTitle);
+        input = dyc_get_open_filename(filter, fname, dir, fTitle);
     }
     else if(fType == "Save") {
-        input = get_save_filename_ext(filter, fname, dir, fTitle);
+        input = dyc_get_save_filename(filter, fname, dir, fTitle);
     }
 }
 
