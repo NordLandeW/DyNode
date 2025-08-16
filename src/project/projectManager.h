@@ -19,7 +19,7 @@ class ProjectManager {
     ProjectManager() {
         // Create a default chart.
         project.charts.push_back(Chart{.metadata = {
-                                           .title = "最終列車は25時",
+                                           .title = "Last Train at 25 O'clock",
                                            .sideType = {"MIXER", "PAD"},
                                            .difficulty = 3,
                                        }});

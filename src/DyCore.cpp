@@ -1,15 +1,11 @@
 ﻿
 #include "DyCore.h"
 
-#include <iostream>
+#include <windef.h>
+#include <winuser.h>
 
-// Initializes the DyCore library.
-//
-// @return "success" on successful initialization.
-DYCORE_API const char* DyCore_init() {
-    std::ios::sync_with_stdio(false);
-    return "success";
-}
+#include <cstring>
+#include <iostream>
 
 #ifdef WIN32
 #include <windows.h>
@@ -17,4 +13,48 @@ extern "C" {
 __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+
+HWND hwndParent = NULL;
+HMODULE hModule = NULL;
+
+HWND get_hwnd_handle() {
+    return hwndParent;
+}
+HMODULE get_hmodule() {
+    return hModule;
+}
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
+                      LPVOID lpReserved) {
+    switch (ul_reason_for_call) {
+        case DLL_PROCESS_ATTACH:
+            ::hModule = hModule;
+            break;
+        case DLL_THREAD_ATTACH:
+        case DLL_THREAD_DETACH:
+        case DLL_PROCESS_DETACH:
+            break;
+    }
+    return TRUE;
+}
 #endif  // def WIN32
+
+// Initializes the DyCore library.
+//
+// @return "success" on successful initialization.
+DYCORE_API const char* DyCore_init(const char* hwnd) {
+    std::ios::sync_with_stdio(false);
+    HWND hwndHandle = reinterpret_cast<HWND>(const_cast<char*>(hwnd));
+
+    // Check hwndHandle
+    if (hwndHandle == NULL) {
+        return "failed";
+    }
+    if (!IsWindow(hwndHandle)) {
+        return "failed";
+    }
+
+    hwndParent = hwndHandle;
+
+    return "success";
+}

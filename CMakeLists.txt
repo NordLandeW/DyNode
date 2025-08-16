@@ -43,7 +43,12 @@ FetchContent_MakeAvailable(glm)
 ## DyCore
 
 file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-add_library (DyCore SHARED ${DYCORE_SOURCES})
+
+if(WIN32)
+    set(DYCORE_RESOURCES res/resource.rc)
+endif()
+
+add_library (DyCore SHARED ${DYCORE_SOURCES} ${DYCORE_RESOURCES})
 target_include_directories(DyCore PRIVATE
     src/
     src/note
@@ -55,6 +60,7 @@ target_include_directories(DyCore PRIVATE
     lib/
     lib/pugixml
     lib/sol
+    res/
 )
 
 target_compile_definitions(DyCore PRIVATE 
