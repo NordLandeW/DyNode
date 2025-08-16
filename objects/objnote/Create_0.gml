@@ -696,7 +696,7 @@ image_yscale = 1;
             }
                 
             
-            if(keycheck_down(ord("T"))) {
+            if(keycheck_down(ord("T")) && editor_select_count() == 1) {
             	timing_point_duplicate(time);
 		    }
 		    if(keycheck_down_ctrl(vk_delete)) {
