@@ -525,7 +525,7 @@ function random_id(_length) {
 	var chrset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	var _ret = "", _l = string_length(chrset);
 	repeat(_length) {
-		_ret += string_char_at(chrset, irandom_range(1, _l));
+		_ret += string_char_at(chrset, dyc_irandom_range(1, _l));
 	}
 	return _ret;
 }

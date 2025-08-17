@@ -5,7 +5,7 @@ function __test_quick_sort(_size) {
     var st, et;
     var _test_array = array_create(_size, 0), _temp_array;
     for(var i=0; i<array_length(_test_array); i++)
-        _test_array[i] = irandom(_size);
+        _test_array[i] = dyc_irandom(_size);
     
     // array_sort
     _temp_array = SnapDeepCopy(_test_array);

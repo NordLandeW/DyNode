@@ -117,7 +117,7 @@ projectTime += round(delta_time / 1000);
     
     if(keycheck_down_ctrl(vk_f6)) {
     	chart_randomize();
-    	scribble_anim_wheel(random_range(15,20), random_range(9, 20), random_range(0.5, 5)*global.fpsAdjust);
+    	scribble_anim_wheel(dyc_random_range(15,20), dyc_random_range(9, 20), dyc_random_range(0.5, 5)*global.fpsAdjust);
     	announcement_play("[rainbow][wobble][wheel][scale,2]R A N D O M[/rainbow][/wobble][/wheel][/s]\n请谨慎保存谱面。");
     }
     

@@ -806,9 +806,9 @@ function chart_randomize() {
 		var _str = dyc_get_note_at_index_direct(i);
 		if(_str.noteType == 3) continue;
 		var origProp = SnapDeepCopy(_str);
-		_str.position = random(5);
-		_str.side = irandom_range(0, 2);
-		_str.width = random_range(0.5, 5);
+		_str.position = dyc_random(5);
+		_str.side = dyc_irandom_range(0, 2);
+		_str.width = dyc_random_range(0.5, 5);
 		operation_step_add(OPERATION_TYPE.MOVE, origProp, _str);
 		dyc_update_note(_str);
 	}

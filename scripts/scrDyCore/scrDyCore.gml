@@ -629,3 +629,15 @@ function dyc_get_string(prompt, default_text) {
 function dyc_random_range(min, max) {
     return DyCore_random_range(min, max);
 }
+
+function dyc_random(r) {
+    return dyc_random_range(0, r);
+}
+
+function dyc_irandom_range(min, max) {
+    return DyCore_irandom_range(min, max);
+}
+
+function dyc_irandom(r) {
+    return dyc_irandom_range(0, r);
+}

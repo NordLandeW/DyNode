@@ -44,7 +44,7 @@ function trianglify_generate(w, h, speedRange, cellSize=75, variance=0.75) {
     var bleedX = ((colCount * cellSize) - w) / 2;
     var bleedY = ((rowCount * cellSize) - h) / 2;
     var cellJitter = cellSize * variance;
-    var getJitter = function (c) { return (random(1) - 0.5) * c; } ;
+    var getJitter = function (c) { return (dyc_random(1) - 0.5) * c; } ;
     var halfCell = cellSize / 2;
     for(var i=0; i<colCount; i++)
     for(var j=0; j<rowCount; j++) {
@@ -53,10 +53,10 @@ function trianglify_generate(w, h, speedRange, cellSize=75, variance=0.75) {
     		x : -bleedX + i * cellSize + halfCell + _corner * getJitter(cellJitter),
     		y : -bleedY + j * cellSize + halfCell + _corner * getJitter(cellJitter),
     		vx : (in_between(i, 2, colCount - 3) && in_between(j, 2, rowCount - 3))
-    			* random_range(speedRange[0], speedRange[1]) * (irandom(1)*2-1)
+    			* dyc_random_range(speedRange[0], speedRange[1]) * (dyc_irandom(1)*2-1)
     			* global.fpsAdjust,
     		vy : (in_between(i, 2, colCount - 3) && in_between(j, 2, rowCount - 3))
-    			* random_range(speedRange[0], speedRange[1]) * (irandom(1)*2-1)
+    			* dyc_random_range(speedRange[0], speedRange[1]) * (dyc_irandom(1)*2-1)
     			* global.fpsAdjust
     	});
     }
@@ -78,8 +78,8 @@ function trianglify_step(tri_struct) {
 
 function __trisys_sparkle(pos, w, h, jitterFactor = 0.15) {
 	return [
-		pos[0]+(random(1)-0.5)*jitterFactor*w,
-		pos[1]+(random(1)-0.5)*jitterFactor*h,
+		pos[0]+(dyc_random(1)-0.5)*jitterFactor*w,
+		pos[1]+(dyc_random(1)-0.5)*jitterFactor*h,
 		];
 }
 

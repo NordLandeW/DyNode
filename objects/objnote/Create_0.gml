@@ -15,7 +15,7 @@ enum NOTE_STATES {
 depth = 0;
 drawVisible = false;
 priority = int64(-10000000);
-priorityRandomSeed = random(2);
+priorityRandomSeed = dyc_random(2);
 image_yscale = 1;
 
 // In-Variables
