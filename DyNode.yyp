@@ -483,6 +483,7 @@
     {"id":{"name":"shd_kawase_up","path":"shaders/shd_kawase_up/shd_kawase_up.yy",},},
     {"id":{"name":"shd_lazer","path":"shaders/shd_lazer/shd_lazer.yy",},},
     {"id":{"name":"shd_mono","path":"shaders/shd_mono/shd_mono.yy",},},
+    {"id":{"name":"shd_prealpha_mul","path":"shaders/shd_prealpha_mul/shd_prealpha_mul.yy",},},
     {"id":{"name":"shd_prealpha","path":"shaders/shd_prealpha/shd_prealpha.yy",},},
     {"id":{"name":"shd_unprealpha","path":"shaders/shd_unprealpha/shd_unprealpha.yy",},},
     {"id":{"name":"sndHit","path":"sounds/sndHit/sndHit.yy",},},
