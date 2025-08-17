@@ -54,8 +54,9 @@ function DyCoreManager() constructor {
 }
 
 function dyc_init() {
-    if(DyCore_init(window_handle()) != "success") {
-        show_error("DyCore Initialized Failed.", false);
+    var result = DyCore_init(window_handle());
+    if(result != "success") {
+        show_error($"DyCore Initialized Failed. Result: {result}", true);
     }
     /// Add sprites data.
     // Add sprNote2.
