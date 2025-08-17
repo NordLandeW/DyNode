@@ -16,13 +16,6 @@ depth = 0;
     musicLength = 0;
     usingMP3 = false;			// For Latency Workaround
     usingPitchShift = false;
-    
-#region Optimization
-
-	savingProjectId = {id: -1, buffer: undefined}; // The project being saved async
-	savingExportId = {id: -1, buffer: undefined}; // The map being export async
-
-#endregion
 
 #region Time Sources
 	
@@ -261,6 +254,13 @@ depth = 0;
         // Kawase Blur
 
 		kawaseArr = kawase_create(BASE_RES_W, targetLineBelow, bottomBgBlurIterations);
+
+#endregion
+
+#region Surfaces
+
+    shadowPingSurf = -999;
+    shadowPongSurf = -999;
 
 #endregion
 

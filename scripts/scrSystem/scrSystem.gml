@@ -13,6 +13,8 @@ function map_close() {
 	with(objMain) {
 		safe_video_free();
 		kawase_destroy(kawaseArr);
+		surface_free_f(shadowPingSurf);
+		surface_free_f(shadowPongSurf);
 		
 		note_delete_all();
 		instance_destroy(objScoreBoard);

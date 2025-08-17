@@ -607,6 +607,16 @@ function get_blur_shapesurf(func) {
 	return _surf;
 }
 
+function surface_check(_surf, _w, _h) {
+	if(!surface_exists(_surf))
+		return surface_create(_w, _h);
+	else if(surface_get_width(_surf) != _w || surface_get_height(_surf) != _h) {
+		surface_free_f(_surf);
+		return surface_create(_w, _h);
+	}
+	return _surf;
+}
+
 function surface_checkate(_surf, _w, _h) {
 	if(!surface_exists(_surf))
 		return surface_create(_w, _h);

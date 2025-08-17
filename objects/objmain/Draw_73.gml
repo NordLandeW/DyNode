@@ -20,7 +20,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 #macro SHADOW_LAYER_ALPHA (0.9)
 
     var piano = global.themeAt == 2;
-    var shadowPingSurf = surface_create(view_wport[0], view_hport[0]);
+    shadowPingSurf = surface_check(shadowPingSurf, view_wport[0], view_hport[0]);
     surface_set_target(shadowPingSurf);
     gpu_push_state();
     draw_clear_alpha(c_black, 0);
@@ -34,7 +34,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
     surface_reset_target();
     gpu_pop_state();
 
-    var shadowPongSurf = surface_create(view_wport[0], view_hport[0]);
+    shadowPongSurf = surface_check(shadowPongSurf, view_wport[0], view_hport[0]);
     surface_set_target(shadowPongSurf);
     gpu_push_state();
     draw_clear_alpha(c_black, 0);
@@ -67,8 +67,6 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         shader_reset();
     }
     gpu_pop_state();
-    surface_free_f(shadowPingSurf);
-    surface_free_f(shadowPongSurf);
 
 // Draw Note Particles
 
