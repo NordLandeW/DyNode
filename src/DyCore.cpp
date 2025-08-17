@@ -48,10 +48,10 @@ DYCORE_API const char* DyCore_init(const char* hwnd) {
 
     // Check hwndHandle
     if (hwndHandle == NULL) {
-        return "failed";
+        return "hwndfailed";
     }
     if (!IsWindow(hwndHandle)) {
-        return "failed";
+        return "hwndfailed";
     }
 
     hwndParent = hwndHandle;

@@ -1,6 +1,12 @@
 ﻿cmake_minimum_required (VERSION 3.28)
 
 project ("DyCore")
+
+if(MSVC OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
+    message(STATUS "Compiler is MSVC or Clang-cl, applying static linking runtime lib option")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 include(FetchContent)
 
 if(POLICY CMP0177)
@@ -69,11 +75,13 @@ target_compile_definitions(DyCore PRIVATE
 )
 
 if(MSVC)
+    message(STATUS "Compiler is MSVC or Clang-cl, applying MSVC-specific options")
     target_compile_options(DyCore PRIVATE
         $<$<CONFIG:RELEASE>:/O2>
         $<$<CONFIG:RELEASE>:/arch:AVX2>
     )
 else()
+    message(STATUS "Compiler is GCC/Clang (or other), applying GNU-style options")
     target_compile_options(DyCore PRIVATE
         $<$<CONFIG:RELEASE>:-O3>
         $<$<CONFIG:RELEASE>:-mavx2>
