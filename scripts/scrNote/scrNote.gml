@@ -369,7 +369,7 @@ function note_hit(note, displayEffects) {
 	if(!displayEffects)
 		return false;
 	
-	var shadowFun = irandom_range(0, 100) <= 90;
+	var shadowFun = dyc_random_range(0, 100) <= 90;
 	var shadowGo = global.shadowCount < MAX_SHADOW_COUNT || shadowFun;
 
 	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT 
