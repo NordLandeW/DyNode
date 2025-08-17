@@ -1,6 +1,5 @@
+#include "gm.h"
 #define NOMINMAX
-#include "utils.h"
-
 #include <Windows.h>
 
 #include <algorithm>
@@ -12,6 +11,8 @@
 #include <taskflow/taskflow.hpp>
 
 #include "api.h"
+#include "utils.h"
+
 
 namespace fs = std::filesystem;
 
@@ -185,4 +186,14 @@ uint64_t get_current_time() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
+}
+
+DYCORE_API double DyCore_random_range(double min, double max) {
+    if (min > max) {
+        throw_error_event("Invalid range");
+        return min;
+    }
+    static std::mt19937_64 mt19937;
+    std::uniform_real_distribution<double> dist(min, max);
+    return dist(mt19937);
 }
