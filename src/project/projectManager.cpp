@@ -53,7 +53,7 @@ Chart &ProjectManager::get_current_chart() {
 }
 
 void ProjectManager::clear_project() {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     project = Project();
     currentChartIndex = 0;
     chartMetadataLastModifiedTime = get_current_time();
@@ -68,7 +68,7 @@ void ProjectManager::load_project_from_file(const char *filePath) {
 }
 
 void ProjectManager::update_current_chart() {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     check_current_chart_set();
     auto &chart = get_current_chart();
     // Update timing points.
@@ -78,7 +78,7 @@ void ProjectManager::update_current_chart() {
 }
 
 void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     check_current_chart_set();
     get_current_chart().metadata = meta;
 
@@ -96,7 +96,7 @@ uint64_t ProjectManager::get_chart_metadata_last_modified_time() const {
 }
 
 void ProjectManager::set_chart_path(const ChartPath &path) {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     check_current_chart_set();
     get_current_chart().path = path;
 }
@@ -108,7 +108,7 @@ ChartPath ProjectManager::get_chart_path() {
 }
 
 void ProjectManager::set_version(const string &ver) {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     project.version = ver;
 }
 
@@ -118,7 +118,7 @@ string ProjectManager::get_version() const {
 }
 
 void ProjectManager::set_project_metadata(const nlohmann::json &meta) {
-    std::unique_lock<std::shared_mutex> lock(mtx);
+    std::lock_guard<std::shared_mutex> lock(mtx);
     project.metadata = meta;
 }
 

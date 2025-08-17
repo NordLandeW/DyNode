@@ -1,5 +1,6 @@
 #pragma once
 #include <memory_resource>
+#include <shared_mutex>
 #include <string>
 
 #include "activation.h"
@@ -76,7 +77,7 @@ class NotePoolManager {
     std::pmr::list<nptr> noteMemoryList;
 
     std::unordered_map<std::string, NoteMemoryInfo> noteInfoMap;
-    mutable std::mutex mtxNoteOps;
+    mutable std::shared_mutex mtxNoteOps;
     bool arrayOutOfOrder = false;
     int noteCount = 0;
 
