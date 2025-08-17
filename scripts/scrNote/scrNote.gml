@@ -371,6 +371,7 @@ function note_hit(note, displayEffects) {
 	
 	var shadowFun = dyc_random_range(0, 100) <= 90;
 	var shadowGo = global.shadowCount < MAX_SHADOW_COUNT || shadowFun;
+	shadowGo = shadowGo && (global.shadowCount < MAX_SHADOW_COUNT_HARD);
 
 	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT 
 	   && !shadowGo)
