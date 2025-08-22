@@ -85,6 +85,8 @@ class TimingManager {
     // Get the timing points array.
     void get_timing_points(std::vector<TimingPoint>& outPoints);
 
+    bool has_timing_point_at(double time);
+
     int count() {
         return timingPoints.size();
     }

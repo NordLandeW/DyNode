@@ -41,6 +41,33 @@ void TimingManager::get_timing_points(std::vector<TimingPoint>& outPoints) {
     outPoints = timingPoints;
 }
 
+const double TIMING_POINT_EPSILON = 1;
+bool TimingManager::has_timing_point_at(double time) {
+    sort();
+    auto it = std::lower_bound(
+        timingPoints.begin(), timingPoints.end(), time,
+        [](const TimingPoint& a, double b) { return a.time < b; });
+
+    // Check the element at the found position (or the one after the target
+    // time)
+    if (it != timingPoints.end()) {
+        if (std::abs(it->time - time) < TIMING_POINT_EPSILON) {
+            return true;
+        }
+    }
+
+    // Check the element before the found position (the one before the target
+    // time)
+    if (it != timingPoints.begin()) {
+        auto prev_it = std::prev(it);
+        if (std::abs(prev_it->time - time) < TIMING_POINT_EPSILON) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void TimingManager::change_timing_point_at_time(double time,
                                                 const TimingPoint& tp) {
     for (auto& point : timingPoints) {
