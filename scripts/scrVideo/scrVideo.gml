@@ -36,14 +36,14 @@ function safe_video_update() {
         if(video_get_status() <= 1)
             return false;
 
-        if(nowPlaying && nowTime > bgVideoLength - VIDEO_PAUSE_AHEAD_ENDING)
+        if((nowPlaying && nowTime > bgVideoLength - VIDEO_PAUSE_AHEAD_ENDING) || nowTime < 0)
             safe_video_pause();
-        else if(nowPlaying && editor_get_editmode() == 5 && bgVideoPaused)
+        else if(nowPlaying && editor_get_editmode() == 5 && bgVideoPaused && nowTime >= 0)
             safe_video_seek_to(nowTime);
         
         surface_set_target(bgVideoSurf);
             draw_clear_alpha(c_black, 1);
-            if(nowTime >= 0) {
+            if(nowTime >= 0 && !bgVideoPaused) {
                 var _status = video_draw();
                 if(_status[0] == -1) {
                     // announcement_error("video_playback_error");
