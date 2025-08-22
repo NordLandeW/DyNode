@@ -642,3 +642,7 @@ function dyc_irandom_range(min, max) {
 function dyc_irandom(r) {
     return dyc_irandom_range(0, r);
 }
+
+function dyc_has_timing_point_at_time(time) {
+    return DyCore_has_timing_point_at_time(time) > 0;
+}

@@ -598,12 +598,20 @@ function timing_point_sort() {
 
 // Add a timing point to "timingPoints" array
 function timing_point_add(_t, _l, _b, record = false) {
+	if(dyc_has_timing_point_at_time(_t)) {
+		announcement_error(i18n_get("timing_duplicate_error", [_t]));
+		return false;
+	}
+
+
     var _tp = new sTimingPoint(_t, _l, _b);
     dyc_insert_timingpoint(_tp);
     timing_point_sort();
 
     if(record)
     	operation_step_add(OPERATION_TYPE.TPADD, _tp, -1);
+	
+	return true;
 }
 
 function timing_point_create(record = false) {
@@ -632,14 +640,15 @@ function timing_point_create(record = false) {
 	_meter = real(_meter);
 	
 	_bpm = bpm_to_mspb(_bpm);
-	timing_point_add(_time, _bpm, _meter, record);
-	
-    announcement_play(
-    	i18n_get("add_timing_point", [format_time_ms(_time), string(mspb_to_bpm(_bpm)), string(_meter)]), 
-    	5000);
+
+	if(timing_point_add(_time, _bpm, _meter, record))
+		announcement_play(
+			i18n_get("add_timing_point", [format_time_ms(_time), string(mspb_to_bpm(_bpm)), string(_meter)]), 
+			5000);
 }
 
 function timing_point_change(tp, record = false) {
+	var _origTime = tp.time;
 	var _current_setting = $"{tp.time} , {mspb_to_bpm(tp.beatLength)} , {tp.meter}";
 	var _setting = dyc_get_string(i18n_get("timing_point_change", tp.time), _current_setting);
 	if(_setting == _current_setting || _setting == "")
@@ -650,6 +659,11 @@ function timing_point_change(tp, record = false) {
 		var _noffset = real(_arr[0]);
 		var _nbpm = real(_arr[1]);
 		var _nmeter = int64(_arr[2]);
+
+		if(_noffset != _origTime && dyc_has_timing_point_at_time(_noffset)) {
+			announcement_error(i18n_get("timing_duplicate_error", [_noffset]));
+			return;
+		}
 
 		var _tpBefore = SnapDeepCopy(tp);
 		var _tpAfter = SnapDeepCopy(tp);
