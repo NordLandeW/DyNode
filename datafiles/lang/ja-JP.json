@@ -171,6 +171,7 @@
         "timing_point_change_success": "$0 msにあるTiming Pointを変更しました：\nBPM：$1 拍子：$2/4",
         "timing_fix_question": "この変更は $0ms～$1ms にある $2 個のノートに影響します。これらのノートを新しいBPMに合わせて調整しますか？",
         "timing_fix_cross_warning": "調整後、他のTiming Point領域へノートが移動する可能性があります。\n問題があればCtrl+Zで元に戻せます。",
+        "timing_duplicate_error": "在 $0ms 上已经存在一个 Timing Point。\n当前不支持在同一时间上添加多个 Timing Point，请删除原有的 Timing Point 后重试操作。",
         "dym_old_version_warning": "DyNodeは古いバージョンのDynamaker譜面インポートをサポートしていません。\n最新バージョンのDynamakerで該当譜面を再エクスポートしてから再度インポートしてください。",
         "bad_dym_chart_format": "このXML/DY譜面形式はDyNodeではサポートされていません。DyNodeは現在、最新版のDynamakerからエクスポートされたXML/DY譜面のみに対応しています。\n譜面形式を確認後、再度インポートしてください。",
         "dym_import_failed": "XML/DY譜面ファイルのインポートに失敗しました。譜面の形式が正しいか確認してください。",
