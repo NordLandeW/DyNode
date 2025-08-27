@@ -351,7 +351,7 @@ void chart_export_xml(const char* filePath, bool isDym, double fixError) {
 
         // DyM format with multiple timing points
         double current_bar = 0;
-        double last_time = 0;
+        double last_time = timingPoints[0].time;
         double last_bpm = timingPoints[0].get_bpm();
 
         for (const auto& tp : timingPoints) {
@@ -423,7 +423,7 @@ void chart_export_xml(const char* filePath, bool isDym, double fixError) {
         auto bpm_root = arg_root.append_child("m_bpmchange");
 
         double current_bar = 0;
-        double last_time = 0;
+        double last_time = timingPoints[0].time;
         double last_bpm = timingPoints[0].get_bpm();
 
         for (const auto& tp : timingPoints) {
