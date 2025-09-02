@@ -157,6 +157,11 @@ function dyc_note_deserialization(buffer) {
 
 /// @param {Struct.sNoteProp} noteProp 
 function dyc_update_note(noteProp, record = false, recursive = false) {
+    if(!is_struct(noteProp)) {
+        announcement_error("Error in dyc_update_note: noteProp is not a struct.");
+        return;
+    }
+
     // Check if noteProp is sNoteProp type.
     if(!variable_struct_exists(noteProp, "copy"))
         noteProp = new sNoteProp(noteProp);

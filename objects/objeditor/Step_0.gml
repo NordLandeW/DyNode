@@ -56,19 +56,20 @@
     var _delta_width = wheelcheck_up_ctrl() - wheelcheck_down_ctrl();
     if(_delta_width != 0) {
         with(objNote) if(stateType == NOTE_STATES.SELECTED) {
-            if(objEditor.editorWidthAdjustTime > objEditor.editorWidthAdjustTimeThreshold)
-                origProp = get_prop();
+            if(!is_struct(origPropWidthAdjust))
+                origPropWidthAdjust = get_prop();
             width += _delta_width * 0.05;
             update_prop();
+            objEditor.editorWidthAdjustTime = 0;
         }
-        editorWidthAdjustTime = 0;
     }
     
     if(editorWidthAdjustTime < editorWidthAdjustTimeThreshold) {
         editorWidthAdjustTime += delta_time / 1000;
         if(editorWidthAdjustTime >= editorWidthAdjustTimeThreshold) {
             with(objNote) if(stateType == NOTE_STATES.SELECTED) {
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                operation_step_add(OPERATION_TYPE.MOVE, origPropWidthAdjust, get_prop());
+                origPropWidthAdjust = -1;
             }
             operation_merge_last_request(1, OPERATION_TYPE.SETWIDTH);
         }

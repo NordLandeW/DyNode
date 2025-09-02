@@ -101,8 +101,23 @@ function __test_vertex_construction(_size) {
     buffer_delete(buff);
 }
 
+function __test_misc() {
+
+    var _a = { bruh: "bruh" };
+    var _b = new sNoteProp();
+
+    if(variable_struct_exists(_a, "copy"))
+        show_debug_message("What?");
+    if(!variable_struct_exists(_b, "copy"))
+        show_debug_message("Bad judging statements.");
+    
+}
+
 function test_at_start() {
     show_debug_message("=====DEBUG======")
+    
+    __test_misc();
+
     var TEST_QUICK_SORT = false;
     var TEST_COMPRESSION = false;
     var TEST_VERTEX_CONSTRUCTION = false;

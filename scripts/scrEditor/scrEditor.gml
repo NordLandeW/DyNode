@@ -442,6 +442,10 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			return build_note(_from, false, true);
 			break;
 		case OPERATION_TYPE.MOVE:
+			if(!is_struct(_to)) {
+				announcement_error("Error in operation_do (MOVE): target property is not a struct.");
+				return;
+			}
 			dyc_update_note(_to);
 			if(!_safe_) {
 				note_activate(_to.noteID);

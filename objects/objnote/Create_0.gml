@@ -46,6 +46,7 @@ image_yscale = 1;
     origLength = 0;					// For hold
     origSubTime = 0;				// For hold's sub
     origProp = -1;					// For Undo & Redo
+    origPropWidthAdjust = -1;       // For Width Adjust Operations' Undo & Redo
     origSide = side;                // For special LR mode
     fixedLastTime = -1; 			// For hold's copy and paste
     isDragging = false;
