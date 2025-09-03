@@ -39,14 +39,14 @@ jobs:
           "yyp-path=$yyp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Setup Igor
-        uses: bscotch/igor-setup@v1
+        uses: bscotch/igor-setup@v3.0.1
         id: igor
         with:
           target-yyp: ${{ steps.find_yyp.outputs.yyp-path }}
           access-key: ${{ secrets.ACCESS_KEY }}
 
       - name: Build with Igor
-        uses: bscotch/igor-build@v1
+        uses: bscotch/igor-build@v1.0.6
         id: build
         with:
           yyp-path: ${{ steps.find_yyp.outputs.yyp-path }}
