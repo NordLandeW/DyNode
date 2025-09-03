@@ -8,7 +8,7 @@
 <a href="https://github.com/NordLandeW/DyNode/blob/main/LICENSE"><img src="https://img.shields.io/github/license/NordLandeW/DyNode?style=flat"></a> 
 <a href="https://crowdin.com/project/dynode"><img src="https://badges.crowdin.net/dynode/localized.svg"></a>
 <a href="https://deepwiki.com/NordLandeW/DyNode"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
-<a href="https://www.codefactor.io/repository/github/nordlandew/dycore"><img src="https://www.codefactor.io/repository/github/nordlandew/dycore/badge" alt="CodeFactor" /></a>
+<a href="https://www.codefactor.io/repository/github/nordlandew/dynode"><img src="https://www.codefactor.io/repository/github/nordlandew/dynode/badge" alt="CodeFactor" /></a>
   
 <br>
   <strong>
