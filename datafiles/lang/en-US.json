@@ -171,6 +171,7 @@
         "timing_point_change_success": "Timing Point at $0 ms changed to:\nBPM: $1 Meter: $2/4",
         "timing_fix_question": "This change affects $2 notes between $0 ms and $1 ms. Attempt to correct their timings to the new BPM?",
         "timing_fix_cross_warning": "Some notes may fall into another Timing Point's range after correction.\nIf issues occur, use Ctrl+Z to undo.",
+        "timing_duplicate_error": "A Timing Point already exists at $0ms.\\nAdding multiple Timing Points at the same time is currently not supported. Please delete the original Timing Point and try again.",
         "dym_old_version_warning": "DyNode does not support importing charts from older Dynamaker versions.\nPlease re-export the chart using the latest Dynamaker and then re-import.",
         "bad_dym_chart_format": "This XML/DY chart format is not supported by DyNode. DyNode currently only supports importing XML/DY charts exported from the latest version of Dynamaker.\nPlease check the chart format and try importing again.",
         "dym_import_failed": "Failed to import XML/DY chart file. Please check if the chart format is correct.",

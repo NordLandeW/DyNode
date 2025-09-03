@@ -171,6 +171,7 @@
         "timing_point_change_success": "位于 $0 ms 上的 Timing Point 被修改为:\nBPM: $1 节拍: $2/4",
         "timing_fix_question": "检测到修改该 Timing Point 将影响 $0ms 至 $1ms 上的 $2 个音符。是否尝试修正这些音符的时间到新的 BPM 上？",
         "timing_fix_cross_warning": "检测到有音符在修正后进入了另一个 Timing Point 的区域内。\n如果修正的结果出现问题，你可以随时使用 Ctrl + Z 撤销此修正操作。",
+        "timing_duplicate_error": "在 $0ms 上已经存在一个 Timing Point。\n当前不支持在同一时间上添加多个 Timing Point，请删除原有的 Timing Point 后重试操作。",
         "dym_old_version_warning": "DyNode 暂不支持导入来自过旧版本的 Dynamaker 谱面。\n你可以将该谱面读取到最新的 Dynamaker 版本后再次导出以更新谱面格式后重新导入。",
         "bad_dym_chart_format": "该 XML/DY 谱面格式不受 DyNode 支持。DyNode 目前仅支持读取从最新版 Dynamaker 导出的 XML/DY 谱面。\n请在检查谱面格式后重新导入谱面。",
         "dym_import_failed": "导入 XML/DY 谱面文件失败，请检查谱面格式是否正确。",

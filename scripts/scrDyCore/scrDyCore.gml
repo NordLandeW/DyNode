@@ -157,6 +157,11 @@ function dyc_note_deserialization(buffer) {
 
 /// @param {Struct.sNoteProp} noteProp 
 function dyc_update_note(noteProp, record = false, recursive = false) {
+    if(!is_struct(noteProp)) {
+        announcement_error("Error in dyc_update_note: noteProp is not a struct.");
+        return;
+    }
+
     // Check if noteProp is sNoteProp type.
     if(!variable_struct_exists(noteProp, "copy"))
         noteProp = new sNoteProp(noteProp);
@@ -641,4 +646,8 @@ function dyc_irandom_range(min, max) {
 
 function dyc_irandom(r) {
     return dyc_irandom_range(0, r);
+}
+
+function dyc_has_timing_point_at_time(time) {
+    return DyCore_has_timing_point_at_time(time) > 0;
 }

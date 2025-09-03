@@ -5,3 +5,94 @@ Build
 sprites.import.json
 # This is a cache file for speeding up subsequent pipeline operations. It should not be tracked in git.
 sprites.info.json
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+.vs/*
+x64/*
+out/*
+
+build
+.cache
+compile_commands.json
+.vscode
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+*.aps
+
+[Bb]uild/
+[Bb]uilds/
+[Rr]elease/
+[Dd]ebug/
+x64/
+x86/
+[Aa][Rr][Mm]64/
+out/
+bin/
+obj/
+
+.vs/
+
+*.psess
+*.vsp
+*.vspx
+*.log
+*.tlog
+*.trx
+*.testsettings
+
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+.vscode/
+
+packages/
+vcpkg_installed/
+
+# Upgrade logs
+UpgradeLog.htm
+UpgradeLog.XML
