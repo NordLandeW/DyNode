@@ -1,0 +1,61 @@
+name: Build GameMaker Project with DyCore
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+      # Prepare repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true # Enable Git LFS for large files
+
+      # Build DyCore C++ subproject
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure DyCore using CMake
+        working-directory: ./DyCore
+        run: cmake --preset=x64-release .
+
+      - name: Build and Install DyCore
+        working-directory: ./DyCore
+        run: cmake --build out/build/x64-release --config Release
+
+      # Build GameMaker project
+      - id: find_yyp
+        name: Find the .yyp file
+        run: |
+          $yyp = Get-ChildItem -Path ${{ github.workspace }} -Recurse -Filter *.yyp
+          Write-Output "YYP file found at: $yyp"
+          "yyp-path=$yyp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Setup Igor
+        uses: bscotch/igor-setup@v1
+        id: igor
+        with:
+          target-yyp: ${{ steps.find_yyp.outputs.yyp-path }}
+          access-key: ${{ secrets.ACCESS_KEY }}
+
+      - name: Build with Igor
+        uses: bscotch/igor-build@v1
+        id: build
+        with:
+          yyp-path: ${{ steps.find_yyp.outputs.yyp-path }}
+          user-dir: ${{ steps.igor.outputs.user-dir }}
+          yyc: true
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: ${{ steps.build.outputs.out-dir }}
+          retention-days: 5
