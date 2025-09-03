@@ -1,4 +1,4 @@
-name: Build GameMaker Project with DyCore
+name: Build GameMaker Project
 
 on:
   push:
@@ -25,6 +25,13 @@ jobs:
       # Build DyCore C++ subproject
       - name: Setup MSVC Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Find mt.exe
+        id: find_mt
+        run: |
+          $mtPath = (where.exe mt.exe | Select-Object -First 1)
+          Write-Output "Found mt.exe at: $mtPath"
+          "mt-path=$mtPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Configure DyCore using CMake
         working-directory: ./DyCore
@@ -57,9 +64,36 @@ jobs:
           user-dir: ${{ steps.igor.outputs.user-dir }}
           yyc: true
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Run Post-Build Script
+        id: post_build
+        run: |
+          # Find the .zip file produced by the build step
+          $zipFileObject = Get-ChildItem -Path "${{ steps.build.outputs.out-dir }}" -Filter *.zip | Select-Object -First 1
+          if (-not $zipFileObject) {
+            Write-Error "Error: No .zip file found in the build output directory."
+            exit 1
+          }
+          $zipPath = $zipFileObject.FullName
+          Write-Output "Processing artifact: $zipPath"
+
+          # Execute the python script with all required paths as arguments
+          python postbuild/main.py `
+            --mt-path "${{ steps.find_mt.outputs.mt-path }}" `
+            --zip-path "$zipPath" `
+            --manifest-path "postbuild/manifest.xml" `
+            --target-exe "DyNode.exe"
+
+          # Output the path of the modified zip file for the upload step
+          "modified-zip-path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: ${{ steps.build.outputs.out-dir }}
+          path: ${{ steps.post_build.outputs.modified-zip-path }}
           retention-days: 5
