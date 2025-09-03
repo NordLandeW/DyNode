@@ -3,6 +3,10 @@ name: Build GameMaker Project with DyCore
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "README.md"
+      - "LICENSE"
+      - "CREDITS"
   pull_request:
     branches: ["main"]
   workflow_dispatch: # Allow manual trigger
