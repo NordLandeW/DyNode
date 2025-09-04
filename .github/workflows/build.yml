@@ -96,4 +96,3 @@ jobs:
         with:
           name: windows-build
           path: ${{ steps.post_build.outputs.modified-zip-path }}
-          retention-days: 5
