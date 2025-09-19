@@ -653,8 +653,14 @@ function show_debug_message_safe(str) {
 
 function version_cmp(vera, verb) {
 	var _version_deal = function (ver) {
+		ver = string_trim(ver);
+		// Find the first blank char and split the string.
+		var _pos = string_pos(" ", ver);
+		if(_pos > 0)
+			ver = string_copy(ver, 1, _pos-1);
+
 		ver = string_replace(ver, "-dev", "@");
-		ver = string_replace(ver, "-", "@");
+		ver = string_replace(ver, "-", "@.");
 		ver = string_replace(ver, "@", ".0");
 		ver = string_replace(ver, "v", "");
 		return string_split(ver, ".");
