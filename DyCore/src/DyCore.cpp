@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "utils.h"
+#include "version.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -61,4 +62,16 @@ DYCORE_API const char* DyCore_init(const char* hwnd) {
     print_debug_message("DyCore Initialization finished. No errors.");
 
     return "success";
+}
+
+DYCORE_API const char* DyCore_get_version() {
+    return DYNODE_VERSION.c_str();
+}
+
+DYCORE_API double DyCore_is_release_build() {
+    if (DYNODE_BUILD_TYPE == "RELEASE") {
+        return 1.0;
+    } else {
+        return 0.0;
+    }
 }

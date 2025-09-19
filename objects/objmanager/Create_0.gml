@@ -2,7 +2,7 @@
 
 // Macros
 
-#macro VERSION "v0.2.0.4"
+#macro VERSION DyCore_get_version()
 #macro BASE_RES_W 1920
 #macro BASE_RES_H 1080
 #macro BASE_FPS 60

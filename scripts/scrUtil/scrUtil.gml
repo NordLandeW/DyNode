@@ -653,7 +653,9 @@ function show_debug_message_safe(str) {
 
 function version_cmp(vera, verb) {
 	var _version_deal = function (ver) {
-		ver = string_replace(ver, "-dev", ".-1");
+		ver = string_replace(ver, "-dev", "@");
+		ver = string_replace(ver, "-", "@");
+		ver = string_replace(ver, "@", ".0");
 		ver = string_replace(ver, "v", "");
 		return string_split(ver, ".");
 	}

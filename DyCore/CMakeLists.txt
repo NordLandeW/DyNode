@@ -46,6 +46,82 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+## Git versioning
+
+find_package(Git REQUIRED)
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} tag --points-at HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_EXACT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} status --porcelain
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_DIRTY_STATUS
+    ERROR_QUIET
+)
+
+if(GIT_EXACT_TAG)
+    set(DYNODE_BUILD_TYPE "RELEASE")
+    set(DYNODE_VERSION ${GIT_EXACT_TAG})
+
+    if(GIT_DIRTY_STATUS)
+        message(WARNING "Building a release version (${DYNODE_VERSION}) from a dirty repository!")
+        set(DYNODE_VERSION "${DYNODE_VERSION} (dirty)")
+    endif()
+
+else()
+    set(DYNODE_BUILD_TYPE "DEV")
+
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_LATEST_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-list ${GIT_LATEST_TAG}..HEAD --count
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMITS_SINCE_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    if(GIT_LATEST_TAG)
+        set(DYNODE_VERSION "${GIT_LATEST_TAG}-${GIT_COMMITS_SINCE_TAG} (${GIT_COMMIT_HASH})")
+    else()
+        set(DYNODE_VERSION "dev (${GIT_COMMIT_HASH})")
+    endif()
+
+    if(GIT_DIRTY_STATUS)
+        set(DYNODE_VERSION "${DYNODE_VERSION} (dirty)")
+    endif()
+endif()
+
+message(STATUS "Build Type: ${DYNODE_BUILD_TYPE}")
+message(STATUS "DyNode Version: ${DYNODE_VERSION}")
+
+
+set(VERSION_HEADER "${CMAKE_BINARY_DIR}/generated/version.h")
+configure_file(
+    src/version.h.in
+    ${VERSION_HEADER}
+)
+
 ## DyCore
 
 file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
@@ -67,6 +143,9 @@ target_include_directories(DyCore PRIVATE
     lib/pugixml
     lib/sol
     res/
+)
+target_include_directories(DyCore PRIVATE
+    ${CMAKE_BINARY_DIR}/generated
 )
 
 target_compile_definitions(DyCore PRIVATE 
