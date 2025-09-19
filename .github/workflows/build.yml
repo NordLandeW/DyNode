@@ -34,21 +34,9 @@ jobs:
           Write-Output "Found mt.exe at: $mtPath"
           "mt-path=$mtPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Check Git Status (After Configure) # <--- 关键调试步骤
-        run: |
-          echo "--- Git status after CMake configure ---"
-          git status
-          echo "----------------------------------------"
-
       - name: Configure DyCore using CMake
         working-directory: ./DyCore
         run: cmake --preset=x64-release .
-
-      - name: Check Git Status (After Build) # <--- 关键调试步骤
-        run: |
-          echo "--- Git status after CMake build ---"
-          git status
-          echo "------------------------------------"
 
       - name: Build and Install DyCore
         working-directory: ./DyCore
@@ -68,12 +56,6 @@ jobs:
         with:
           target-yyp: ${{ steps.find_yyp.outputs.yyp-path }}
           access-key: ${{ secrets.ACCESS_KEY }}
-
-      - name: Check Git Status (Before Igor) # <--- 关键调试步骤
-        run: |
-          echo "--- Git status before Igor ---"
-          git status
-          echo "------------------------------------"
 
       - name: Build with Igor
         uses: bscotch/igor-build@v1
