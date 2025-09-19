@@ -96,3 +96,6 @@ vcpkg_installed/
 # Upgrade logs
 UpgradeLog.htm
 UpgradeLog.XML
+
+# workflow igor
+runtimes/
