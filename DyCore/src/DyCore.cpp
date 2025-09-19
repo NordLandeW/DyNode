@@ -7,6 +7,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "utils.h"
+
 #ifdef WIN32
 #include <windows.h>
 extern "C" {
@@ -55,6 +57,8 @@ DYCORE_API const char* DyCore_init(const char* hwnd) {
     }
 
     hwndParent = hwndHandle;
+
+    print_debug_message("DyCore Initialization finished. No errors.");
 
     return "success";
 }
