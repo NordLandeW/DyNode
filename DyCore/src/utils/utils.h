@@ -7,6 +7,7 @@
 namespace fs = std::filesystem;
 
 void print_debug_message(std::string str);
+void print_debug_message(std::wstring str);
 fs::path convert_char_to_path(const char* filePath);
 std::string wstringToUtf8(const std::wstring& wstr);
 std::wstring s2ws(const std::string& str);

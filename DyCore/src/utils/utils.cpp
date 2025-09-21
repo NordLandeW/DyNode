@@ -1,7 +1,6 @@
 
+#include <string>
 #define NOMINMAX
-#include "utils.h"
-
 #include <Windows.h>
 
 #include <chrono>
@@ -11,11 +10,16 @@
 #include <random>
 #include <taskflow/taskflow.hpp>
 
+#include "utils.h"
+
 namespace fs = std::filesystem;
 
 // Prints a debug message to the console, prefixed with "[DyCore] ".
 void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
+}
+void print_debug_message(std::wstring str) {
+    std::wcout << L"[DyCore] " << str << std::endl;
 }
 
 // Converts a char* file path to a std::filesystem::path.

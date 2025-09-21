@@ -85,17 +85,22 @@ void __async_save_project(SaveProjectParams params) {
         // Write to file using std::ofstream
         print_debug_message("Open file at:" + params.filePath);
         finalPath = convert_char_to_path(params.filePath.c_str());
-        tempPath = finalPath.parent_path() /
-                   (finalPath.filename().string() + random_string(8) + ".tmp");
+        fs::path tempName = finalPath.filename();
+        tempName += random_string(8);
+        tempName += ".tmp";
+
+        tempPath = finalPath.parent_path() / tempName;
         std::ofstream file(tempPath, std::ios::binary);
         if (!file.is_open()) {
-            throw std::runtime_error("Error opening file: " +
-                                     tempPath.string());
+            print_debug_message(L"Error opening file for writing: " +
+                                tempPath.wstring());
+            throw std::runtime_error("Error opening file.");
         } else {
             file.write(chartBuffer.get(), cSize);
             if (file.fail()) {
-                throw std::runtime_error("Error writing to file: " +
-                                         tempPath.string());
+                print_debug_message(L"Error writing to file: " +
+                                    tempPath.wstring());
+                throw std::runtime_error("Error writing to file.");
             }
             file.close();
         }
@@ -105,9 +110,10 @@ void __async_save_project(SaveProjectParams params) {
         // Read the saved file.
         std::ifstream vfile(tempPath, std::ios::binary);
         if (!vfile.is_open()) {
+            print_debug_message(L"Error opening saved file for verification: " +
+                                tempPath.wstring());
             throw std::runtime_error(
-                "Error opening saved file for verification: " +
-                tempPath.string());
+                "Error opening saved file for verification.");
         } else {
             std::string buffer((std::istreambuf_iterator<char>(vfile)),
                                std::istreambuf_iterator<char>());

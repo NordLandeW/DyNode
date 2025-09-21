@@ -12,8 +12,9 @@ DYCORE_API const char* DyCore_get_save_filename(const char* filter,
                                                 const char* caption) {
     static std::string strResult;
     try {
-        auto result = get_save_filename(filter, default_filename,
-                                        initial_directory, caption);
+        auto result =
+            get_save_filename(filter, default_filename,
+                              convert_char_to_path(initial_directory), caption);
         strResult =
             result.has_value() ? wstringToUtf8(result->c_str()) : "terminated";
     } catch (const std::exception& e) {
@@ -29,8 +30,9 @@ DYCORE_API const char* DyCore_get_open_filename(const char* filter,
                                                 const char* caption) {
     static std::string strResult;
     try {
-        auto result = get_open_filename(filter, default_filename,
-                                        initial_directory, caption);
+        auto result =
+            get_open_filename(filter, default_filename,
+                              convert_char_to_path(initial_directory), caption);
         strResult =
             result.has_value() ? wstringToUtf8(result->c_str()) : "terminated";
     } catch (const std::exception& e) {
