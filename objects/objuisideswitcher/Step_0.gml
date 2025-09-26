@@ -1,5 +1,5 @@
 
-if(mouse_y < y - sideButtonWidth / 2 && in_between(mouse_x, x-sideButtonWidth/2, x+sideButtonWidth/2))
+if(mouse_y < y - sideButtonWidth / 2)
     choosing = 3;
 else if(mouse_x < x - sideButtonWidth / 2) choosing = 0;
 else if(mouse_x > x + sideButtonWidth / 2) choosing = 2;
