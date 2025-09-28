@@ -1,0 +1,6 @@
+#pragma once
+
+#include <string>
+
+const std::string GOOG_API_SECRET = "@GOOG_API_SECRET@";
+const std::string GOOG_MEASUREMENT_ID = "@GOOG_MEASUREMENT_ID@";

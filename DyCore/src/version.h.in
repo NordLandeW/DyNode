@@ -2,6 +2,5 @@
 
 #include <string>
 
-// clang-format off
 const std::string DYNODE_BUILD_TYPE = "@DYNODE_BUILD_TYPE@";  // RELEASE / DEV
 const std::string DYNODE_VERSION = "@DYNODE_VERSION@";

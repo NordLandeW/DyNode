@@ -1,6 +1,11 @@
 @echo off
 :: Build DyCore before running the project.
 
+:: Load environment variables from .env file
+for /f "usebackq delims=" %%a in ("%YYprojectDir%/.env") do (
+    set "%%a"
+)
+
 :: Set build mode here: "release" or "debug"
 set BUILD_MODE=release
 

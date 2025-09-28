@@ -122,6 +122,16 @@ configure_file(
     ${VERSION_HEADER}
 )
 
+message(STATUS "Checking for Google API secrets in environment variables...")
+set(GOOG_API_SECRET "$ENV{GOOG_API_SECRET}")
+set(GOOG_MEASUREMENT_ID "$ENV{GOOG_MEASUREMENT_ID}")
+
+set(CONFIG_HEADER "${CMAKE_BINARY_DIR}/generated/config.h")
+configure_file(
+    src/config.h.in
+    ${CONFIG_HEADER}
+)
+
 ## DyCore
 
 file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")

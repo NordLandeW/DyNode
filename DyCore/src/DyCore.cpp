@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "config.h"
 #include "utils.h"
 #include "version.h"
 
@@ -74,4 +75,12 @@ DYCORE_API double DyCore_is_release_build() {
     } else {
         return 0.0;
     }
+}
+
+DYCORE_API const char* DyCore_get_goog_measurement_id() {
+    return GOOG_MEASUREMENT_ID.c_str();
+}
+
+DYCORE_API const char* DyCore_get_goog_api_secret() {
+    return GOOG_API_SECRET.c_str();
 }

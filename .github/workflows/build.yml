@@ -36,6 +36,9 @@ jobs:
 
       - name: Configure DyCore using CMake
         working-directory: ./DyCore
+        env:
+          GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
+          GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
         run: cmake --preset=x64-release .
 
       - name: Build and Install DyCore
