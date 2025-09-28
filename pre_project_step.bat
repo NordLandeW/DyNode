@@ -1,4 +1,10 @@
 @echo off
+:: Exit if running in a CI environment (like GitHub Actions)
+if defined CI (
+    echo --- Skipping pre_project_step.bat in CI environment.
+    exit /b 0
+)
+
 :: Build DyCore before running the project.
 
 :: Load environment variables from .env file

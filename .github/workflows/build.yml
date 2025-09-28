@@ -95,8 +95,16 @@ jobs:
           # Output the path of the modified zip file for the upload step
           "modified-zip-path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Unzip Artifact for Upload
+        id: unzip
+        run: |
+          $zipPath = "${{ steps.post_build.outputs.modified-zip-path }}"
+          $unzipDir = "build-output"
+          Expand-Archive -Path $zipPath -DestinationPath $unzipDir
+          "unzip-dir=$unzipDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: ${{ steps.post_build.outputs.modified-zip-path }}
+          path: ${{ steps.unzip.outputs.unzip-dir }}
