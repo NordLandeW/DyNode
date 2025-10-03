@@ -154,6 +154,7 @@
     {"id":{"name":"objUISideSwitcher","path":"objects/objUISideSwitcher/objUISideSwitcher.yy",},},
     {"id":{"name":"objUIStringInput","path":"objects/objUIStringInput/objUIStringInput.yy",},},
     {"id":{"name":"objUITitle","path":"objects/objUITitle/objUITitle.yy",},},
+    {"id":{"name":"objUpdateManager","path":"objects/objUpdateManager/objUpdateManager.yy",},},
     {"id":{"name":"rCredits","path":"rooms/rCredits/rCredits.yy",},},
     {"id":{"name":"rInit","path":"rooms/rInit/rInit.yy",},},
     {"id":{"name":"rMain","path":"rooms/rMain/rMain.yy",},},

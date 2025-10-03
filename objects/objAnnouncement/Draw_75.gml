@@ -14,17 +14,17 @@ element
     .draw(_nx, _ny);
 
 if(element.region_detect(_nx, _ny, mouse_x, mouse_y) == "update" && mouse_isclick_l()) {
-	url_open(objManager._update_url);
+	url_open(objUpdateManager._update_url);
 }
 
 if(element.region_detect(_nx, _ny, mouse_x, mouse_y) == "update_2" && mouse_isclick_l()) {
-	objManager.start_update();
+	objUpdateManager.start_update();
 }
 
 if(element.region_detect(_nx, _ny, mouse_x, mouse_y) == "update_skip" && mouse_isclick_l()) {
-	objManager.skip_update();
+	objUpdateManager.skip_update();
 }
 
 if(element.region_detect(_nx, _ny, mouse_x, mouse_y) == "update_off" && mouse_isclick_l()) {
-	objManager.stop_autoupdate();
+	objUpdateManager.stop_autoupdate();
 }
