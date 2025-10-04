@@ -366,7 +366,6 @@
     {"id":{"name":"scrInput","path":"scripts/scrInput/scrInput.yy",},},
     {"id":{"name":"scrNote","path":"scripts/scrNote/scrNote.yy",},},
     {"id":{"name":"scrRender","path":"scripts/scrRender/scrRender.yy",},},
-    {"id":{"name":"scrSnapAlter","path":"scripts/scrSnapAlter/scrSnapAlter.yy",},},
     {"id":{"name":"scrSystem","path":"scripts/scrSystem/scrSystem.yy",},},
     {"id":{"name":"scrTest","path":"scripts/scrTest/scrTest.yy",},},
     {"id":{"name":"scrTrianglify","path":"scripts/scrTrianglify/scrTrianglify.yy",},},
