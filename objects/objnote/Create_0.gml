@@ -286,6 +286,13 @@ image_yscale = 1;
         return false;
     }
 
+    function update_orig_hold_prop() {
+        if(noteType == 2 && note_exists(sinst)) {
+            origLength = sinst.time - time;
+            origSubTime = sinst.time;
+        }
+    }
+
     _prop_init(true);
     
     // _outbound_check was moved to scrNote
@@ -305,10 +312,6 @@ image_yscale = 1;
                 break;
             case NOTE_STATES.SELECTED:
                 state = stateSelected;
-                if(note_exists(sinst)) {
-                    origLength = sinst.time - time;
-                    origSubTime = sinst.time;
-                }
                 break;
             case NOTE_STATES.ATTACH:
                 state = stateAttach;
@@ -599,6 +602,7 @@ image_yscale = 1;
                             origTime = time;
                             origPosition = position;
                             origSide = side;
+                            update_orig_hold_prop();
                         }
                     }
                 }
