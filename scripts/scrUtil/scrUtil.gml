@@ -115,18 +115,18 @@ function generate_pause_shadow(height, indent = 30) {
 
 #region TIME & BAR & BPM
 
-function time_to_bar(time, barpm = objMain.chartBarPerMin) {
+function time_to_bar(time, barpm) {
     return time * barpm / 60000;
 }
 
-function bar_to_time(offset, barpm = objMain.chartBarPerMin) {
+function bar_to_time(offset, barpm) {
     return offset * 60000 / barpm;
 }
 
-function mtime_to_time(mtime, offset = objMain.chartTimeOffset) {
+function mtime_to_time(mtime, offset) {
 	return mtime + offset;
 }
-function time_to_mtime(time, offset = objMain.chartTimeOffset) {
+function time_to_mtime(time, offset) {
 	return time - offset;
 }
 

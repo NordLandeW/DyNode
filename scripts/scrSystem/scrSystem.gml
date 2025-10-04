@@ -425,9 +425,6 @@ function map_export_xml(_export_to_dym) {
     
     if(_file == "") return;
 
-	// Init the xml export variables.
-	_setup_xml_compability_variables();
-
     var _fix_error = _export_to_dym? false:dyc_show_question(i18n_get("export_fix_error_question", global.offsetCorrection));
 
 	var _result = dyc_chart_export_xml(_file, _export_to_dym, _fix_error? global.offsetCorrection:0);

@@ -800,22 +800,6 @@ function timing_point_reset() {
     dyc_timingpoints_reset();
 }
 
-// For Compatibility
-function _setup_xml_compability_variables() {
-	if(dyc_get_timingpoints_count() == 0)
-		return false;
-	with(objMain) {
-		// These variables only for xml export.
-		var timingPoints = dyc_get_timingpoints();
-		chartBeatPerMin = mspb_to_bpm(timingPoints[0].beatLength);
-		chartBarPerMin = chartBeatPerMin / 4;
-		chartTimeOffset = -timingPoints[0].time;
-		chartBarOffset = time_to_bar(chartTimeOffset);
-			
-		return true;
-	}
-}
-
 #endregion
 
 /// surprise
