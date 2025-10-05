@@ -13,10 +13,12 @@ function editor_set_editmode(mode) {
 }
 
 function editor_get_editmode() {
+	if(!instance_exists(objEditor)) return -1;
     return objEditor.editorMode;
 }
 
 function editor_mode_is_switching() {
+	if(!instance_exists(objEditor)) return false;
     return objEditor.editorModeSwitching > 0;
 }
 
@@ -822,8 +824,8 @@ function chart_randomize() {
 function advanced_expr() {
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
-		var _scope_str = _global?"你正在对谱面的所有音符进行高级操作。":"你正在对选定的音符进行高级操作。";
-		var _expr = dyc_get_string(_scope_str+"请填写表达式：", editorLastExpr);
+		var _scope_str = _global?i18n_get("expr_global_scope"):i18n_get("expr_local_scope");
+		var _expr = dyc_get_string(_scope_str+i18n_get("expr_fillin"), editorLastExpr);
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
 		var _success = true;
@@ -888,15 +890,16 @@ function advanced_expr() {
 			}
 		}
 		
-		if(_success)
-			announcement_play("表达式执行成功。");
+		if(_success) {
+			announcement_play("expr_success");
+			operation_merge_last_request(1, OPERATION_TYPE.EXPR);
+		}
 		else {
-			announcement_error("表达式执行失败。");
+			announcement_error("expr_error");
 		}
 			
 		editorLastExpr = _expr;
 
-		operation_merge_last_request(1, OPERATION_TYPE.EXPR);
 		note_sort_all(true);
 	}
 }
@@ -922,45 +925,6 @@ function editor_set_div() {
 
 function editor_get_div() {
 	return objEditor.get_div();
-}
-
-// error correction
-function note_error_correction(_limit, _array, _sync_to_instance = true) {
-	if(_limit <= 0) {
-		announcement_error($"不合法的修正参数{_limit}。请使用大于零的误差。");
-		return;
-	}
-
-	var notes_to_fix = [];
-	for(var i=0, l=array_length(_array); i < l; i++) {
-		if(i==0) {
-			array_push(notes_to_fix, _array[i]);
-		}
-		else {
-			assert(_array[i].time >= _array[i-1].time);
-
-			if(_array[i].time - notes_to_fix[0].time <= _limit)
-				array_push(notes_to_fix, _array[i]);
-			else {
-				if(array_length(notes_to_fix) > 1) {
-					for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
-						notes_to_fix[_i].time = notes_to_fix[0].time;
-						if(_sync_to_instance)
-							dyc_update_note(notes_to_fix[_i], true);
-					}
-				}
-				notes_to_fix = [_array[i]];
-			}
-		}
-	}
-
-	if(array_length(notes_to_fix) > 1) {
-		for(var _i=1, _l=array_length(notes_to_fix); _i < _l; _i++) {
-			notes_to_fix[_i].time = notes_to_fix[0].time;
-			if(_sync_to_instance)
-				dyc_update_note(notes_to_fix[_i], true);
-		}
-	}
 }
 
 function note_outbound_warning() {
