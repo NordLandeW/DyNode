@@ -101,3 +101,4 @@ UpgradeLog.XML
 runtimes/
 
 .env
+.roo
