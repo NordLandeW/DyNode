@@ -60,7 +60,15 @@ def detect_languages() -> List[str]:
     codes: List[str] = []
     if LANG_DIR.exists():
         for item in LANG_DIR.glob("*.json"):
-            codes.append(item.stem)
+            try:
+                data = json.loads(item.read_text(encoding="utf-8"))
+                lang_code = data.get("lang")
+                if isinstance(lang_code, str) and lang_code:
+                    codes.append(lang_code)
+                else:
+                    logger.warning("Could not find valid 'lang' key in %s, skipping.", item.name)
+            except (IOError, json.JSONDecodeError) as e:
+                logger.warning("Could not read/parse %s: %s", item.name, e)
     # ensure source lang present
     if SOURCE_LANG not in codes:
         codes.append(SOURCE_LANG)

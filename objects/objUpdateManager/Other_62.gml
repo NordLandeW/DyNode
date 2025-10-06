@@ -15,14 +15,12 @@ if (async_load[? "id"] == _update_get_event_handle) {
 					_update_url = _result.html_url;
 					_update_filename = _result.assets[0].name;
 					_update_github_url = _result.assets[0].browser_download_url;
+					_update_github_body = _result.body;
 
 					show_debug_message("Filename: "+_update_filename+"\nURL: "+_update_github_url);
-					announcement_play("[scale, 1.5]"+i18n_get("autoupdate_found_1")+"[#aed581]" + _result.tag_name + 
-						"[/c][scale,1.2]\n[region,update_2][cycle,0,30]" + i18n_get("autoupdate_found_3") + "[/cycle][/region]\n" +
-						"[/c][scale,1]\n[region,update][cycle,130,150]" + i18n_get("autoupdate_found_2") + "[/cycle][/region]" +
-						"[/c][scale,0.8]\n[region,update_skip][c_white]" + i18n_get("autoupdate_found_4") + "[/cycle][/region]    " +
-						"[/c][scale,0.8][region,update_off][c_ltgray]" + i18n_get("autoupdate_found_5") + "[/cycle][/region]\n\n" +
-						"[c_ltgrey][scale, 1]"+format_markdown(_result.body)+"\n", 5000);
+
+					// Try fetching the info.json first.
+					start_fetch_info();
 				}
 			}
 		} catch (e) {
@@ -32,6 +30,55 @@ if (async_load[? "id"] == _update_get_event_handle) {
 	else if (async_load[? "status"] < 0) {
 		announcement_warning("autoupdate_err")
 	}
+}
+
+if(async_load[? "id"] == _update_fetch_info_event_handle) {
+	var _fallback_github = false;
+	if (async_load[? "status"] == 0) {
+		if(string(async_load[? "http_status"]) != "200") {
+			show_debug_message("Failed to fetch info.json from CDN. HTTP status: "+string(async_load[? "http_status"]));
+			_fallback_github = true;
+		}
+		else {
+			try {
+				var _result = json_parse(async_load[? "result"]);
+			
+				if(is_struct(_result) && variable_struct_exists(_result, "version") && variable_struct_exists(_result, "artifacts")) {
+					show_debug_message("Got info.json from CDN.");
+					if(version_cmp(_result.version, _update_version) == 0) {
+						_update_filename = _result.artifacts.windows;
+						_update_changelog = _result.changelog[$ i18n_get_lang()];
+					}
+					else {
+						show_debug_message("Version mismatch in info.json. Fallback to Github releases.");
+						_fallback_github = true;
+					}
+				}
+			} catch (e) {
+				show_debug_message("Failed to parse info.json from CDN. Fallback to Github releases.");
+				_fallback_github = true;
+			}
+		}
+	}
+	else if (async_load[? "status"] < 0) {
+		show_debug_message("Failed to fetch info.json from CDN.");
+		_fallback_github = true;
+	}
+	else {
+		// Content is still downloading.
+		return;
+	}
+
+	if(_fallback_github) {
+		_update_changelog = _update_github_body;
+	}
+	
+	announcement_play("[scale, 1.5]"+i18n_get("autoupdate_found_1")+"[#aed581]" + _update_version + 
+		"[/c][scale,1.2]\n[region,update_2][cycle,0,30]" + i18n_get("autoupdate_found_3") + "[/cycle][/region]\n" +
+		"[/c][scale,1]\n[region,update][cycle,130,150]" + i18n_get("autoupdate_found_2") + "[/cycle][/region]" +
+		"[/c][scale,0.8]\n[region,update_skip][c_white]" + i18n_get("autoupdate_found_4") + "[/cycle][/region]    " +
+		"[/c][scale,0.8][region,update_off][c_ltgray]" + i18n_get("autoupdate_found_5") + "[/cycle][/region]\n\n" +
+		"[c_ltgrey][scale, 1]"+format_markdown(_update_changelog)+"\n", 5000);
 }
 
 if (async_load[? "id"] == _update_download_event_handle) {

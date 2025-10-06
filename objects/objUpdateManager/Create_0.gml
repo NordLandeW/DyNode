@@ -6,15 +6,19 @@
 // Event handles
 _update_get_event_handle = undefined;
 _update_download_event_handle = undefined;
+_update_fetch_info_event_handle = undefined;
 _update_unzip_event_handle = undefined;
 
 _update_version = "";
 _update_url = "";
 _update_filename = "";
 _update_github_url = "";
+_update_github_body = "";
+_update_changelog = "";
 
 enum UPDATE_STATUS {
 	IDLE,
+	FETCH_INFO,		// try fetching info.json from cdn
 	CHECKING_I,
 	CHECKING_II,
 	DOWNLOADING,
@@ -37,9 +41,16 @@ function update_cleanup() {
 		show_debug_message("Cleanup error.");
 }
 
+function start_fetch_info() {
+	_update_fetch_info_event_handle = http_get(SOURCE_IORI + "info.json");
+	_update_status = UPDATE_STATUS.FETCH_INFO;
+}
+
 function start_update() {
-	if(_update_status != UPDATE_STATUS.IDLE)
+	if(_update_status != UPDATE_STATUS.FETCH_INFO) {
+		show_debug_message("Update process error: invalid state.");
 		return;
+	}
 	_update_status = UPDATE_STATUS.CHECKING_I;
 	_update_download_event_handle = http_get_file(_update_github_url, UPDATE_TARGET_FILE);
 	announcement_play("autoupdate_process_2");

@@ -22,9 +22,9 @@ function i18n_init() {
     global.i18nCount = 0;
     
     i18n_load("zh-cn");
-    i18n_load("zh-tw");
-    i18n_load("en-us");
-    i18n_load("ja-jp");
+    i18n_load("zh-TW");
+    i18n_load("en-US");
+    i18n_load("ja-JP");
     
     i18n_set_lang("zh-cn");
 }

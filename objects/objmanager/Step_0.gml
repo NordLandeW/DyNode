@@ -57,7 +57,7 @@ camera_set_view_size(view_camera[0], BASE_RES_W, BASE_RES_H);
 var _fmoderr = FMODGMS_Sys_Update();
 
 if(_fmoderr < 0) {
-    show_error("FMOD ERROR:\n"+FMODGMS_Util_GetErrorMessage(), false);
+    show_debug_message("FMOD ERROR:\n"+FMODGMS_Util_GetErrorMessage());
 }
 
 if(keycheck_down_ctrl(vk_f11)) {
