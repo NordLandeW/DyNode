@@ -339,14 +339,14 @@ def main():
     if args.version and args.version.strip() != computed_version:
         logger.warning("Provided version '%s' does not match computed version '%s'. Using provided value.", args.version, computed_version)
 
-    zip_name = f"DyNode-win-{version}.zip"
+    zip_name = f"DyNode-{version.lstrip('v')}-win.zip"
     zip_path = REPO_ROOT / zip_name
 
     # Zip artifact directory
     zip_artifact_directory(artifact_dir, zip_path)
 
     # Load pre-deploy outputs
-    _changelog_text = load_text(changelog_path)
+    changelog_data = json.loads(load_text(changelog_path))
     _releaselog_text = load_text(releaselog_path)
 
     # S3 upload
@@ -357,19 +357,23 @@ def main():
 
     s3_client = create_s3_client()
     # Upload zip
-    s3_zip_key = f"{s3_prefix}DyNode-win-{version}.zip"
+    s3_zip_key = f"{s3_prefix}{zip_name}"
     s3_upload_file(s3_client, bucket, s3_zip_key, zip_path)
 
-    # Upload changelog.json (stable name per design)
-    s3_changelog_key = f"{s3_prefix}changelog.json"
-    # Write validated changelog to a temp file to ensure consistent encoding
-    tmp_changelog = REPO_ROOT / ".deploy_changelog_tmp.json"
-    tmp_changelog.write_text(_changelog_text, encoding="utf-8")
+    # Inject artifact info and upload as info.json
+    if "artifacts" not in changelog_data:
+        changelog_data["artifacts"] = {}
+    changelog_data["artifacts"]["windows"] = zip_name
+    
+    info_json_content = json.dumps(changelog_data, ensure_ascii=False, indent=2)
+    s3_info_key = f"{s3_prefix}info.json"
+    tmp_info_json = REPO_ROOT / ".deploy_info_tmp.json"
+    tmp_info_json.write_text(info_json_content, encoding="utf-8")
     try:
-        s3_upload_file(s3_client, bucket, s3_changelog_key, tmp_changelog)
+        s3_upload_file(s3_client, bucket, s3_info_key, tmp_info_json)
     finally:
-        if tmp_changelog.exists():
-            tmp_changelog.unlink()
+        if tmp_info_json.exists():
+            tmp_info_json.unlink()
 
     # GitHub Release handled by workflow action by default.
     # This script can optionally perform release when not skipped.
