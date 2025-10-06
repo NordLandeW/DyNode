@@ -152,9 +152,9 @@ def write_outputs(version: str, has_tag: bool, translations: Dict[str, str], zh_
     OUTPUT_CHANGELOG.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info("Wrote %s", OUTPUT_CHANGELOG)
 
-    # Build releaselog.txt: zh-cn then en-US
+    # Build releaselog.txt: zh-cn then en-us
     zh = payload.get("zh-cn", zh_cn_text)
-    en = payload.get("en-US", zh_cn_text)
+    en = payload.get("en-us", zh_cn_text)
     release_text = f"{zh}\n\n---------\n{en}\n"
     OUTPUT_RELEASELOG.write_text(release_text, encoding="utf-8")
     logger.info("Wrote %s", OUTPUT_RELEASELOG)
