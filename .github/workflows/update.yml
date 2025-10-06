@@ -170,6 +170,6 @@ jobs:
           tag: ${{ needs.pre-deploy.outputs.version }}
           name: DyNode ${{ needs.pre-deploy.outputs.version }}
           bodyFile: pre-deploy/releaselog.txt
-          artifacts: DyNode-win-${{ needs.pre-deploy.outputs.version }}.zip
+          artifacts: DyNode-*-win.zip
           allowUpdates: true
           replacesArtifacts: true
