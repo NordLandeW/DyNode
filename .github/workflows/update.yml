@@ -1,0 +1,145 @@
+name: Update and Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build GameMaker Project"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  pre-deploy:
+    name: Pre-Deploy (translate & prepare changelog)
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pre.outputs.version }}
+      has_tag: ${{ steps.pre.outputs.has_tag }}
+      head_sha: ${{ steps.pick_ref.outputs.head_sha }}
+    steps:
+      - name: Select ref
+        id: pick_ref
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.pick_ref.outputs.head_sha }}
+          lfs: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install pre-deploy dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai pydantic
+      - name: Run pre-deploy script
+        id: pre
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python deploy/pre_deploy.py
+      - name: Upload pre-deploy artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy
+          path: |
+            changelog.json
+            releaselog.txt
+
+  deploy:
+    name: Deploy (S3 upload) and Release
+    needs: pre-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Select ref
+        id: pick_ref
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.pick_ref.outputs.head_sha }}
+          lfs: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install deploy dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 requests
+      - name: Download windows-build artifact (from triggering run)
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          name: windows-build
+          path: windows-build
+      - name: Download latest windows-build artifact (manual run)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: Build GameMaker Project
+          workflow_conclusion: success
+          branch: main
+          name: windows-build
+          path: windows-build
+      - name: Download pre-deploy artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pre-deploy
+          path: pre-deploy
+      - name: Prepare artifact directory
+        shell: bash
+        run: |
+          if [ -d "build-output" ] && [ ! -d "windows-build" ]; then
+            mv build-output windows-build
+          fi
+          test -d windows-build || { echo "windows-build directory not found"; exit 1; }
+      - name: Run deploy script (S3 upload)
+        env:
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          python deploy/deploy.py \
+            --artifact-dir "windows-build" \
+            --version "${{ needs.pre-deploy.outputs.version }}" \
+            --s3-prefix "dyn/" \
+            --changelog "pre-deploy/changelog.json" \
+            --releaselog "pre-deploy/releaselog.txt" \
+            --skip-release
+      - name: Publish GitHub Release
+        if: ${{ needs.pre-deploy.outputs.has_tag == 'true' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.pre-deploy.outputs.version }}
+          name: DyNode ${{ needs.pre-deploy.outputs.version }}
+          bodyFile: pre-deploy/releaselog.txt
+          artifacts: DyNode-win-${{ needs.pre-deploy.outputs.version }}.zip
+          allowUpdates: true
+          replacesArtifacts: true
