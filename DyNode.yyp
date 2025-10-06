@@ -120,6 +120,7 @@
     {"id":{"name":"fDynamix48","path":"fonts/fDynamix48/fDynamix48.yy",},},
     {"id":{"name":"fMono10","path":"fonts/fMono10/fMono10.yy",},},
     {"id":{"name":"fMono16","path":"fonts/fMono16/fMono16.yy",},},
+    {"id":{"name":"fMono16N","path":"fonts/fMono16N/fMono16N.yy",},},
     {"id":{"name":"fOrbitron48","path":"fonts/fOrbitron48/fOrbitron48.yy",},},
     {"id":{"name":"scribble_fallback_font","path":"fonts/scribble_fallback_font/scribble_fallback_font.yy",},},
     {"id":{"name":"__SnitchNativeMacros","path":"notes/__SnitchNativeMacros/__SnitchNativeMacros.yy",},},

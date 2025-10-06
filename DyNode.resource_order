@@ -55,6 +55,7 @@
     {"name":"fDynamix48","order":1,"path":"fonts/fDynamix48/fDynamix48.yy",},
     {"name":"fMono10","order":5,"path":"fonts/fMono10/fMono10.yy",},
     {"name":"fMono16","order":4,"path":"fonts/fMono16/fMono16.yy",},
+    {"name":"fMono16N","order":6,"path":"fonts/fMono16N/fMono16N.yy",},
     {"name":"fOrbitron48","order":2,"path":"fonts/fOrbitron48/fOrbitron48.yy",},
     {"name":"scribble_fallback_font","order":20,"path":"fonts/scribble_fallback_font/scribble_fallback_font.yy",},
     {"name":"__SnitchNativeMacros","order":11,"path":"notes/__SnitchNativeMacros/__SnitchNativeMacros.yy",},
