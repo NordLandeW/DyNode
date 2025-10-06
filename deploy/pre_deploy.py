@@ -50,8 +50,8 @@ def compute_version() -> Tuple[str, bool]:
         total = "0"
         try:
             total = run_git(["git", "rev-list", "--count", "HEAD"]).strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to count total commits: %s", e)
         version = f"v0.0.0-{total}"
         logger.warning("No tags found; falling back to version %s", version)
         return version, has_tag
@@ -86,7 +86,7 @@ def read_changelog_text() -> str:
 
 def translate_with_gemini(source_text: str, target_langs: List[str]) -> Dict[str, str]:
     # Remove source lang from targets if present
-    targets = [l for l in target_langs if l != SOURCE_LANG]
+    targets = [lang for lang in target_langs if lang != SOURCE_LANG]
     if not targets:
         return {}
     try:

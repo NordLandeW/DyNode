@@ -79,8 +79,8 @@ def compute_version() -> Tuple[str, bool, Optional[str]]:
         total = "0"
         try:
             total = run_git(["git", "rev-list", "--count", "HEAD"]).strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to count total commits: %s", e)
         version = f"v0.0.0-{total}"
         logger.warning("No tags found; falling back to version %s", version)
         return version, has_tag, None
@@ -269,6 +269,44 @@ def load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def handle_github_release(version: str, head_tag: str, zip_name: str, zip_path: Path, releaselog_text: str) -> None:
+    token = os.environ.get(ENV_GITHUB_TOKEN, "").strip()
+    repo_slug = os.environ.get(ENV_GITHUB_REPOSITORY, "").strip()
+    if not token or not repo_slug:
+        logger.error(
+            "Missing GitHub context. Ensure %s and %s are available in the environment.",
+            ENV_GITHUB_TOKEN,
+            ENV_GITHUB_REPOSITORY,
+        )
+        sys.exit(1)
+    try:
+        owner, repo = repo_slug.split("/", 1)
+    except ValueError:
+        logger.error("Invalid GITHUB_REPOSITORY format: %s", repo_slug)
+        sys.exit(1)
+
+    # Find or create release
+    release = gh_get_release_by_tag(owner, repo, head_tag, token)
+    release_name = f"DyNode {version}"
+    if release is None:
+        logger.info("Release for tag %s not found; creating ...", head_tag)
+        release = gh_create_release(owner, repo, head_tag, release_name, releaselog_text, token)
+    else:
+        logger.info("Release for tag %s exists; updating ...", head_tag)
+        release = gh_update_release(owner, repo, int(release["id"]), release_name, releaselog_text, token)
+
+    # Manage asset
+    assets = gh_list_assets(owner, repo, int(release["id"]), token)
+    for a in assets:
+        if a.get("name") == zip_name:
+            logger.info("Existing asset with same name found; deleting before upload.")
+            gh_delete_asset(owner, repo, int(a["id"]), token)
+
+    logger.info("Uploading release asset: %s", zip_name)
+    gh_upload_asset(release["upload_url"], zip_name, zip_path, token)
+    logger.info("Release asset uploaded.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deploy DyNode release artifacts")
     parser.add_argument("--artifact-dir", default=str(DEFAULT_ARTIFACT_DIR), help="Directory of the built Windows artifact (unzipped)")
@@ -338,41 +376,7 @@ def main():
     if skip_release:
         logger.info("Skipping GitHub Release per configuration (--skip-release or SKIP_GH_RELEASE).")
     elif has_tag and head_tag:
-        token = os.environ.get(ENV_GITHUB_TOKEN, "").strip()
-        repo_slug = os.environ.get(ENV_GITHUB_REPOSITORY, "").strip()
-        if not token or not repo_slug:
-            logger.error(
-                "Missing GitHub context. Ensure %s and %s are available in the environment.",
-                ENV_GITHUB_TOKEN,
-                ENV_GITHUB_REPOSITORY,
-            )
-            sys.exit(1)
-        try:
-            owner, repo = repo_slug.split("/", 1)
-        except ValueError:
-            logger.error("Invalid GITHUB_REPOSITORY format: %s", repo_slug)
-            sys.exit(1)
-
-        # Find or create release
-        release = gh_get_release_by_tag(owner, repo, head_tag, token)
-        release_name = f"DyNode {version}"
-        if release is None:
-            logger.info("Release for tag %s not found; creating ...", head_tag)
-            release = gh_create_release(owner, repo, head_tag, release_name, _releaselog_text, token)
-        else:
-            logger.info("Release for tag %s exists; updating ...", head_tag)
-            release = gh_update_release(owner, repo, int(release["id"]), release_name, _releaselog_text, token)
-
-        # Manage asset
-        assets = gh_list_assets(owner, repo, int(release["id"]), token)
-        for a in assets:
-            if a.get("name") == zip_name:
-                logger.info("Existing asset with same name found; deleting before upload.")
-                gh_delete_asset(owner, repo, int(a["id"]), token)
-
-        logger.info("Uploading release asset: %s", zip_name)
-        gh_upload_asset(release["upload_url"], zip_name, zip_path, token)
-        logger.info("Release asset uploaded.")
+        handle_github_release(version, head_tag, zip_name, zip_path, _releaselog_text)
     else:
         logger.info("HEAD is not tagged. Skipping GitHub Release (manual test mode).")
 
