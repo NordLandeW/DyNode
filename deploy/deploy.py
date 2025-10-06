@@ -360,12 +360,17 @@ def main():
     s3_zip_key = f"{s3_prefix}{zip_name}"
     s3_upload_file(s3_client, bucket, s3_zip_key, zip_path)
 
-    # Inject artifact info and upload as info.json
-    if "artifacts" not in changelog_data:
-        changelog_data["artifacts"] = {}
-    changelog_data["artifacts"]["windows"] = zip_name
+    # Restructure for info.json and upload
+    version = changelog_data.pop("version", "unknown")
+    info_data = {
+        "version": version,
+        "artifacts": {
+            "windows": zip_name
+        },
+        "changelog": changelog_data
+    }
     
-    info_json_content = json.dumps(changelog_data, ensure_ascii=False, indent=2)
+    info_json_content = json.dumps(info_data, ensure_ascii=False, indent=2)
     s3_info_key = f"{s3_prefix}info.json"
     tmp_info_json = REPO_ROOT / ".deploy_info_tmp.json"
     tmp_info_json.write_text(info_json_content, encoding="utf-8")

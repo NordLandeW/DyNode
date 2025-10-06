@@ -1,4 +1,4 @@
-name: Update and Release
+name: Deployment
 
 on:
   workflow_dispatch:
@@ -11,9 +11,39 @@ permissions:
   contents: read
 
 jobs:
+  check-release-tag:
+    name: Check Release Tag
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    outputs:
+      has_tag: ${{ steps.check.outputs.has_tag }}
+      head_sha: ${{ steps.pick_ref.outputs.head_sha }}
+    steps:
+      - name: Select ref
+        id: pick_ref
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "head_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Check if HEAD is tagged
+        id: check
+        shell: bash
+        run: |
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          sha="${{ steps.pick_ref.outputs.head_sha }}"
+          if git ls-remote --tags "$repo" | awk -v sha="$sha" '$1==sha && $2 ~ /^refs\/tags\// { found=1 } END { exit found?0:1 }'; then
+            echo "has_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_tag=false" >> $GITHUB_OUTPUT
+          fi
+
   pre-deploy:
-    name: Pre-Deploy (translate & prepare changelog)
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    name: Pre-Deploy
+    needs: check-release-tag
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.check-release-tag.outputs.has_tag == 'true') }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.pre.outputs.version }}
@@ -58,12 +88,12 @@ jobs:
             releaselog.txt
 
   deploy:
-    name: Deploy (S3 upload) and Release
+    name: Deploy and Publish Release
     needs: pre-deploy
     runs-on: ubuntu-latest
     environment:
       name: production
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    if: ${{ needs.pre-deploy.outputs.has_tag == 'true' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
       actions: read
