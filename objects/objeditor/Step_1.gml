@@ -108,7 +108,7 @@ editorSelectMultiple = editorSelectCount > 1;
     	announcement_set("beatline_style", beatlineStylesName[beatlineStyleCurrent]);
     }
     
-    if(keycheck_down(ord("0")))
+    if(keycheck_down(ord("0")) || keycheck_down(vk_numpad0))
     	advanced_expr();
     
     if(keycheck_down(ord("B"))) {
@@ -204,7 +204,7 @@ editorSelectMultiple = editorSelectCount > 1;
 	    	announcement_play(i18n_get("notes_set_width", [string_format(editor_get_default_width(), 1, 2),
 	    		string(editor_select_count())]));
 	    }
-	    if(keycheck_down_ctrl(ord("1"))) {
+	    if(keycheck_down_ctrl(ord("1")) || keycheck_down_ctrl(vk_numpad1)) {
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
@@ -216,7 +216,7 @@ editorSelectMultiple = editorSelectCount > 1;
             operation_merge_last_request(1, OPERATION_TYPE.SETTYPE);
 			announcement_play(i18n_get("notes_set_type", ["NOTE", string(editor_select_count())]));
 	    }
-	    if(keycheck_down_ctrl(ord("2"))) {
+	    if(keycheck_down_ctrl(ord("2")) || keycheck_down_ctrl(vk_numpad2)) {
 	    	with(objNote)
 	    		if(stateType == NOTE_STATES.SELECTED)
 			    	if(noteType < 2) {
@@ -254,8 +254,9 @@ editorSelectMultiple = editorSelectCount > 1;
     }
     
     // Editor Mode Switch
+    var _numpads = [vk_numpad0, vk_numpad1, vk_numpad2, vk_numpad3, vk_numpad4, vk_numpad5];
     for(var i=1; i<=5; i++)
-        if(keycheck_down(ord(string(i)))) {
+        if(keycheck_down(ord(string(i))) || keycheck_down(_numpads[i])) {
             if(editorMode != i)
                 _attach_reset_request = true;
             editor_set_editmode(i);
@@ -283,12 +284,12 @@ editorSelectMultiple = editorSelectCount > 1;
                 copyStack[i].position = 5 - copyStack[i].position;
             _attach_reset_request = true;
         }
-        if(keycheck_down_ctrl(ord("1"))) {
+        if(keycheck_down_ctrl(ord("1")) || keycheck_down_ctrl(vk_numpad1)) {
             for(var i=0, l=array_length(copyStack); i<l; i++)
                 copyStack[i].noteType = 0;
             _attach_reset_request = true;
         }
-        if(keycheck_down_ctrl(ord("2"))) {
+        if(keycheck_down_ctrl(ord("2")) || keycheck_down_ctrl(vk_numpad2)) {
             for(var i=0, l=array_length(copyStack); i<l; i++)
                 copyStack[i].noteType = 1;
             _attach_reset_request = true;
