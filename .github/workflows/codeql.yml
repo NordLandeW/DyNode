@@ -1,0 +1,69 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '17 0 * * 2'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+            os: ubuntu-latest
+          - language: python
+            build-mode: none
+            os: ubuntu-latest
+          - language: c-cpp
+            build-mode: manual
+            os: windows-2022
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        # queries: +security-extended,security-and-quality
+
+    - name: Setup MSVC Developer Command Prompt
+      if: matrix.language == 'c-cpp'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure DyCore (CMake preset)
+      if: matrix.language == 'c-cpp'
+      working-directory: ./DyCore
+      env:
+        GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
+        GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
+      run: cmake --preset=x64-release .
+
+    - name: Build DyCore
+      if: matrix.language == 'c-cpp'
+      working-directory: ./DyCore
+      run: cmake --build out/build/x64-release --config Release
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}"
