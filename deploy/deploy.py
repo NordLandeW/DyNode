@@ -127,12 +127,8 @@ def create_s3_client():
     secret_key = os.environ.get(ENV_S3_SECRET_KEY, "").strip()
 
     if not endpoint or not access_key or not secret_key:
-        logger.error(
-            "Missing S3 configuration. Ensure environment variables %s, %s, %s are set.",
-            ENV_S3_ENDPOINT,
-            ENV_S3_ACCESS_KEY,
-            ENV_S3_SECRET_KEY,
-        )
+        # Avoid logging exact environment variable names or values to prevent leaking sensitive information.
+        logger.error("Missing S3 configuration. Required S3 environment variables are not set.")
         sys.exit(1)
 
     import boto3 as _boto3
@@ -273,16 +269,14 @@ def handle_github_release(version: str, head_tag: str, zip_name: str, zip_path: 
     token = os.environ.get(ENV_GITHUB_TOKEN, "").strip()
     repo_slug = os.environ.get(ENV_GITHUB_REPOSITORY, "").strip()
     if not token or not repo_slug:
-        logger.error(
-            "Missing GitHub context. Ensure %s and %s are available in the environment.",
-            ENV_GITHUB_TOKEN,
-            ENV_GITHUB_REPOSITORY,
-        )
+        # Do not log exact environment variable names or values to avoid leaking sensitive information.
+        logger.error("Missing GitHub context. Required GitHub environment variables are not set.")
         sys.exit(1)
     try:
         owner, repo = repo_slug.split("/", 1)
     except ValueError:
-        logger.error("Invalid GITHUB_REPOSITORY format: %s", repo_slug)
+        # Avoid echoing environment-derived values in logs.
+        logger.error("Invalid repository slug format.")
         sys.exit(1)
 
     # Find or create release
@@ -352,7 +346,8 @@ def main():
     # S3 upload
     bucket = os.environ.get(ENV_S3_BUCKET, "").strip()
     if not bucket:
-        logger.error("S3 bucket not specified. Please set environment variable %s.", ENV_S3_BUCKET)
+        # Avoid logging environment variable names to prevent hinting at secret names.
+        logger.error("S3 bucket not specified. Required S3 configuration is missing.")
         sys.exit(1)
 
     s3_client = create_s3_client()
