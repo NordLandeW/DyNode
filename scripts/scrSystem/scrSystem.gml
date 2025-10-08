@@ -1177,7 +1177,6 @@ function vars_init() {
 	
 	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
-	global.fpsAdjust = BASE_FPS / global.fps;
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();

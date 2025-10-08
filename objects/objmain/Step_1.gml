@@ -43,11 +43,11 @@ var _music_resync_request = false;
     
     if(_timchange != 0 || _timscr != 0) {
         if(nowPlaying) {
-            nowTime += (_timchange * adtimeSpeed * global.fpsAdjust + _timscr * scrolltimeSpeed);
+            nowTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
             _music_resync_request = true;
         }
         else {
-            animTargetTime += (_timchange * adtimeSpeed * global.fpsAdjust + _timscr * scrolltimeSpeed);
+            animTargetTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
         }
     }
     
@@ -59,7 +59,7 @@ var _music_resync_request = false;
 // Time Operation
 
     if(nowPlaying && !(_timchange != 0 || _timscr != 0)) {
-    	nowTime += delta_time * musicSpeed / 1000;
+    	nowTime += global.timeManager.get_delta() * musicSpeed / 1000;
     }
     
         
@@ -88,9 +88,9 @@ var _music_resync_request = false;
                 animTargetTopBarIndicatorA = 0;
             
             topBarIndicatorA = lerp(topBarIndicatorA, 
-                animTargetTopBarIndicatorA, animSpeed * global.fpsAdjust);
-            
-            topBarTimeLastTime -= delta_time / 1000;
+                animTargetTopBarIndicatorA, animSpeed * global.timeManager.get_fps_scale());
+
+            topBarTimeLastTime -= global.timeManager.get_delta() / 1000;
             if(editor_get_editmode() < 5) topBarTimeLastTime = 1;
         	
             animTargetTopBarTimeGradA = topBarMouseInbound || topBarMousePressed;

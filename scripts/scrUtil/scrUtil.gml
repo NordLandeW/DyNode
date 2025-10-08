@@ -486,14 +486,14 @@ function lerp_lim(from, to, amount, limit) {
 function lerp_lim_a(from, to, amount, limit) {
 	var fix_parameter = 60 / 165;
     return lerp_lim(from, to, 
-        1 - power(1 - amount * fix_parameter, delta_time / 1000000 * 165),
-		limit * global.fpsAdjust);
+        1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165),
+		limit * global.timeManager.get_fps_scale());
 }
 
 function lerp_a(from, to, amount) {
 	if(from == to) return from;
 	var fix_parameter = 60 / 165;
-	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, delta_time / 1000000 * 165));
+	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165));
 }
 
 function lerp_safe(from, to, amount) {
@@ -509,7 +509,7 @@ function lerp_pos(from, to, amount) {
 }
 
 function lerp_a_pos(from, to, amount) {
-	return lerp_pos(from, to, amount * global.fpsAdjust);
+	return lerp_pos(from, to, amount * global.timeManager.get_fps_scale());
 }
 
 function create_scoreboard(_x, _y, _dep, _dig, _align, _lim) {

@@ -14,7 +14,7 @@
 
 #endif
 
-static FILE* ffmpeg_pipe = nullptr;
+FILE* ffmpeg_pipe = nullptr;
 
 std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
                                   std::string_view filename_utf8, int width,
@@ -67,7 +67,7 @@ std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
     cmd.append(std::to_string(height));
     cmd.append(" -r ");
     cmd.append(std::to_string(fps));
-    cmd.append(" -i - -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -y ");
+    cmd.append(" -i - -c:v libx265 -preset fast -crf 22 -pix_fmt yuv420p -y ");
     cmd.append(quoted_filename);
     return cmd;
 }
@@ -185,9 +185,9 @@ int Recorder::start_recording(const std::wstring& filename, int width,
 
 void Recorder::push_frame(const void* frameData, int frameSize) {
     if (!ffmpeg_pipe || !frameData || frameSize <= 0) {
-        throw std::runtime_error("Error: Invalid state in push_frame.");
+        print_debug_message("Warning: push_frame called with invalid state.");
+        return;
     }
-    print_debug_message("Debug: Pushing frame to FFmpeg.");
     size_t written =
         fwrite(frameData, 1, static_cast<size_t>(frameSize), ffmpeg_pipe);
     if (written != static_cast<size_t>(frameSize)) {

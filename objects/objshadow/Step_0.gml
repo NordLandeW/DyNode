@@ -1,5 +1,5 @@
 
-animLast += delta_time / 1000;
+animLast += global.timeManager.get_delta() / 1000;
 
 animState = animcurve_channel_evaluate(animCurvChan, min(animLast/animTime, 1));
 image_xscale = lerp(nowScaleX, nowScaleX * animTargetX, 1-animState);

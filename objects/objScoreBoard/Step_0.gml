@@ -10,7 +10,7 @@ alpha = lerp_a(alpha, animTargetAlpha, animSpeed);
 
 if(expandTimer <= expandTimeLimit) {
     scaleMul = 1.1;
-    expandTimer += delta_time / 1000;
+    expandTimer += global.timeManager.get_delta() / 1000;
 } else {
     scaleMul = 1;
 }

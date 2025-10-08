@@ -1,8 +1,12 @@
 
+#macro RECORDING_FPS 60
+#macro RECORDING_FPS_MAX 600
+
 function RecordManager() constructor {
 
     recording = false;
     frameBuffer = -1;
+    originalFPS = game_get_speed(gamespeed_fps);
 
     static _get_surface_buffer_size = function(surf) {
         return surface_get_width(surf) * surface_get_height(surf) * 4;
@@ -16,9 +20,12 @@ function RecordManager() constructor {
         }
 
         recording = true;
+        global.timeManager.set_mode_fixed(RECORDING_FPS);
+        originalFPS = game_get_speed(gamespeed_fps);
+        game_set_speed(RECORDING_FPS_MAX, gamespeed_fps);
         var w = surface_get_width(application_surface);
         var h = surface_get_height(application_surface);
-        var _fps = game_get_speed(gamespeed_fps);
+        var _fps = RECORDING_FPS;
 
         var err = DyCore_ffmpeg_start_recording(filename, w, h, _fps);
         if(err != 0) {
@@ -48,6 +55,9 @@ function RecordManager() constructor {
         recording = false;
         buffer_delete(frameBuffer);
         frameBuffer = -1;
+        global.timeManager.set_mode_default();
+        game_set_speed(originalFPS, gamespeed_fps);
+        show_debug_message("-- Recording finished.");
     }
 
 }

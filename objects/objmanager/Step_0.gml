@@ -135,13 +135,13 @@ if(keycheck_down(vk_escape)) {
 if(DEBUG_MODE) {
 	if(keycheck_down_ctrl(vk_numpad0))
 		project_auto_save();
-	
-	if(keycheck_down_ctrl(vk_numpad8)) {
-		_debug_start_record();
-	}
-	if(keycheck_down_ctrl(vk_numpad9)) {
-		_debug_stop_record();
-	}
+}
+// ! Debug Functions.
+if(keycheck_down_ctrl(vk_numpad8)) {
+	_debug_start_record();
+}
+if(keycheck_down_ctrl(vk_numpad9)) {
+	_debug_stop_record();
 }
 
 // Update project time

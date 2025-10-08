@@ -301,8 +301,6 @@ function note_emit_particles(number, note, parttype) {
 	
 	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
 		return;
-
-		
         
 	// Emit Particles
 	var _x, _y, _x1, _x2, _y1, _y2;
