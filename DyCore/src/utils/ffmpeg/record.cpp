@@ -153,7 +153,8 @@ bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 
     return true;
 #else
-    out = popen(cmdUtf8.c_str(), "w");
+    // TODO: Implement a safer method
+    // out = popen(cmdUtf8.c_str(), "w");
     return out != nullptr;
 #endif
 }

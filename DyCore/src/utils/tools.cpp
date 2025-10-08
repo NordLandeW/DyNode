@@ -45,15 +45,16 @@ bool is_FFmpeg_available() {
     return exit_code == 0;
 
 #else
-    FILE* pipe = popen("ffmpeg -version > /dev/null 2>&1", "r");
-    if (!pipe) {
-        return false;
-    }
+    // TODO: Implement a safer method
+    // FILE* pipe = popen("ffmpeg -version > /dev/null 2>&1", "r");
+    // if (!pipe) {
+    //     return false;
+    // }
 
-    int status = pclose(pipe);
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status) == 0;
-    }
+    // int status = pclose(pipe);
+    // if (WIFEXITED(status)) {
+    //     return WEXITSTATUS(status) == 0;
+    // }
     return false;
 #endif
 }
