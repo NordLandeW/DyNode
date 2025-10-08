@@ -70,7 +70,7 @@ var _music_resync_request = false;
             sfmod_channel_set_position(0, channel, sampleRate);
             channelPaused = true;
         }
-        else if(nowPlaying && channelPaused) {
+        else if(nowPlaying && channelPaused && !global.recordManager.is_recording()) {
             FMODGMS_Chan_ResumeChannel(channel);
             sfmod_channel_set_position(nowTime, channel, sampleRate);
             channelPaused = false;

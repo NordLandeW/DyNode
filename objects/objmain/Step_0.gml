@@ -166,7 +166,11 @@ projectTime += round(delta_time / 1000);
     	_set_channel_speed(musicSpeed);
     	if(!nowPlaying || keycheck_down(vk_enter)) {
         	if(nowTime >= musicLength && !keycheck_down(vk_enter)) nowTime = 0;
-            FMODGMS_Chan_ResumeChannel(channel);
+
+			// If is recording video, do not resume the music sound.
+			if(!global.recordManager.is_recording())
+	            FMODGMS_Chan_ResumeChannel(channel);
+			
 			nowPlaying = true;
             sfmod_channel_set_position(nowTime, channel, sampleRate);
 
