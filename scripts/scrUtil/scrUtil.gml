@@ -1060,3 +1060,4 @@ function manually_reset_view_size() {
 	matrix_set(matrix_view, matrix_stack_top());
 	matrix_stack_pop();
 }
+
