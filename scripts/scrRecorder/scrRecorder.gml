@@ -34,7 +34,7 @@ function RecordManager() constructor {
 
         // Get music path.
         if(instance_exists(objMain)) {
-            musicPath = get_definitive_path(filename_path(objManager.projectPath), objManager.musicPath);
+            musicPath = get_absolute_path(filename_path(objManager.projectPath), objManager.musicPath);
         }
 
         var err = dyc_ffmpeg_start_recording(filename, musicPath, w, h, _fps, PLAYBACK_EMPTY_TIME / 1000);

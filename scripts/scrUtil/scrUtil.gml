@@ -1042,7 +1042,7 @@ function is_relative_path(path) {
 	return filename_name(path) == path;
 }
 
-function get_definitive_path(dir, path) {
+function get_absolute_path(dir, path) {
 	if(is_relative_path(path))
 		return dir + path;
 	return path;
