@@ -30,8 +30,14 @@ function RecordManager() constructor {
         var w = RECORDING_RESOLUTION_W;
         var h = RECORDING_RESOLUTION_H;
         var _fps = RECORDING_FPS;
+        var musicPath = "";
 
-        var err = DyCore_ffmpeg_start_recording(filename, w, h, _fps);
+        // Get music path.
+        if(instance_exists(objMain)) {
+            musicPath = get_definitive_path(filename_path(objManager.projectPath), objManager.musicPath);
+        }
+
+        var err = dyc_ffmpeg_start_recording(filename, musicPath, w, h, _fps, PLAYBACK_EMPTY_TIME / 1000);
         if(err != 0) {
             show_debug_message("-- Failed to start recording. Error code: " + string(err));
         } else {
@@ -41,6 +47,7 @@ function RecordManager() constructor {
         frameBuffer = buffer_create(_get_surface_buffer_size(w, h), buffer_grow, 1);
         show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
         show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
+        show_debug_message("-- Music path: " + musicPath);
     }
 
     static push_frame = function() {
@@ -74,6 +81,8 @@ function RecordManager() constructor {
 
 function _debug_start_record() {
     global.recordManager.start_recording("test114514.mp4");
+    playview_start_replay();
+    playview_pause_and_resume(true);
 }
 
 function _debug_stop_record() {

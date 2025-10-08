@@ -1,5 +1,7 @@
 #include "api.h"
 
+#include <json.hpp>
+
 #include "record.h"
 #include "tools.h"
 
@@ -7,13 +9,19 @@ DYCORE_API double DyCore_ffmpeg_is_available() {
     return is_FFmpeg_available() ? 1.0 : 0.0;
 }
 
-DYCORE_API double DyCore_ffmpeg_start_recording(const char* filename,
-                                                double width, double height,
-                                                double fps) {
+DYCORE_API double DyCore_ffmpeg_start_recording(const char* parameter) {
     auto recorder = get_recorder();
+    nlohmann::json j = nlohmann::json::parse(parameter);
 
-    return recorder.start_recording(filename, (int)width, (int)height,
-                                    (int)fps);
+    std::string filename = j.value("filename", "output.mp4");
+    std::string musicPath = j.value("musicPath", "");
+    int width = j.value("width", 1920);
+    int height = j.value("height", 1080);
+    int fps = j.value("fps", 60);
+    double musicOffset = j.value("musicOffset", 0.0);
+
+    return recorder.start_recording(filename, musicPath, width, height, fps,
+                                    musicOffset);
 }
 
 DYCORE_API double DyCore_ffmpeg_push_frame(const char* data, double size) {

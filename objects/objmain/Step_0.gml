@@ -160,28 +160,7 @@ projectTime += round(delta_time / 1000);
 #region Muisc Pause & Resume
 
     if(keycheck_down(vk_space) || keycheck_down(vk_enter)) {
-    	_set_channel_speed(musicSpeed);
-    	if(!nowPlaying || keycheck_down(vk_enter)) {
-        	if(nowTime >= musicLength && !keycheck_down(vk_enter)) nowTime = 0;
-
-			// If is recording video, do not resume the music sound.
-			if(!global.recordManager.is_recording())
-	            FMODGMS_Chan_ResumeChannel(channel);
-			
-			nowPlaying = true;
-            sfmod_channel_set_position(nowTime, channel, sampleRate);
-
-			// Multiple hacks are used for video resume,
-			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
-        }
-        else {
-            FMODGMS_Chan_PauseChannel(channel);
-            nowPlaying = false;
-            
-            if(bgVideoLoaded) {
-            	safe_video_pause();
-            }
-        }
+		playview_pause_and_resume(keycheck_down(vk_enter));
     }
 
 #endregion

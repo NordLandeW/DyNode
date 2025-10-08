@@ -1042,6 +1042,12 @@ function is_relative_path(path) {
 	return filename_name(path) == path;
 }
 
+function get_definitive_path(dir, path) {
+	if(is_relative_path(path))
+		return dir + path;
+	return path;
+}
+
 function file_get_size(file) {
 	var f = file_bin_open(file, 0);
 	if(f == -1) throw $"File not found: {file}";

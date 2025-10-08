@@ -18,7 +18,9 @@ FILE* ffmpeg_pipe = nullptr;
 
 std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
                                             std::string_view filename_utf8,
-                                            int width, int height, int fps) {
+                                            std::string_view musicPath,
+                                            int width, int height, int fps,
+                                            double musicOffset) {
 #ifdef _WIN32
     // Windows: surround with double quotes and escape any embedded quotes.
     auto quote_arg = [](std::string_view s) {
@@ -67,9 +69,17 @@ std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
     cmd.append(std::to_string(height));
     cmd.append(" -r ");
     cmd.append(std::to_string(fps));
-    cmd.append(" -i - -y ");
+    cmd.append(" -i - ");
+    if (!musicPath.empty()) {
+        cmd.append("-itsoffset ");
+        cmd.append(std::to_string(musicOffset) + " ");
+        cmd.append("-i ");
+        cmd.append(quote_arg(musicPath));
+        cmd.append(" -map 0:v -map 1:a -c:a aac -b:a 192k ");
+    }
     cmd.append(" -c:v " + usingEncoder + " ");
     cmd.append(ffmpegEncoderOptions.at(usingEncoder));
+    cmd.append("-y ");
     cmd.append(quoted_filename);
     return cmd;
 }
@@ -161,10 +171,11 @@ bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 #endif
 }
 
-int Recorder::start_recording(const std::string& filename, int width,
-                              int height, int fps) {
-    std::string cmd =
-        build_ffmpeg_cmd_utf8(pixelFormat, filename, width, height, fps);
+int Recorder::start_recording(const std::string& filename,
+                              const std::string& musicPath, int width,
+                              int height, int fps, double musicOffset) {
+    std::string cmd = build_ffmpeg_cmd_utf8(pixelFormat, filename, musicPath,
+                                            width, height, fps, musicOffset);
     if (!open_ffmpeg_pipe_utf8(ffmpeg_pipe, cmd)) {
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
@@ -173,11 +184,13 @@ int Recorder::start_recording(const std::string& filename, int width,
     return 0;
 }
 
-int Recorder::start_recording(const std::wstring& filename, int width,
-                              int height, int fps) {
+int Recorder::start_recording(const std::wstring& filename,
+                              const std::wstring& musicPath, int width,
+                              int height, int fps, double musicOffset) {
     std::string utf8name = wstringToUtf8(filename);
-    std::string cmd =
-        build_ffmpeg_cmd_utf8(pixelFormat, utf8name, width, height, fps);
+    std::string utf8musicPath = wstringToUtf8(musicPath);
+    std::string cmd = build_ffmpeg_cmd_utf8(
+        pixelFormat, utf8name, utf8musicPath, width, height, fps, musicOffset);
     if (!open_ffmpeg_pipe_utf8(ffmpeg_pipe, cmd)) {
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
