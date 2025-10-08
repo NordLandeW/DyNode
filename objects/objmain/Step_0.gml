@@ -92,10 +92,7 @@ projectTime += round(delta_time / 1000);
     }
     
     if(keycheck_down(vk_enter)) {		// Replay Mode
-    	editor_set_editmode(5);
-    	nowTime = -PLAYBACK_EMPTY_TIME;
-    	animTargetTime = -PLAYBACK_EMPTY_TIME;
-    	reset_scoreboard();
+    	playview_start_replay();
     }
     
     if(keycheck_down(ord("U")))

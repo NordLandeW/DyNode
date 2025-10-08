@@ -1247,6 +1247,16 @@ function stat_kps(_time, _range) {
 	return DyCore_kps_count(_time, _range);
 }
 
+function playview_start_replay() {
+	if(!instance_exists(objMain)) return;
+	with(objMain) {
+    	editor_set_editmode(5);
+    	nowTime = -PLAYBACK_EMPTY_TIME;
+    	animTargetTime = -PLAYBACK_EMPTY_TIME;
+    	reset_scoreboard();
+	}
+}
+
 #endregion
 
 #region FMOD Functions
@@ -1275,9 +1285,11 @@ function reset_scoreboard() {
 	with(objScoreBoard) {
 		nowScore = 0;
 		animTargetScore = 0;
+		reset();
 	}
 	with(objPerfectIndc) {
 		nowTime = 99999;
+		reset();
 	}
 }
 
