@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 // Handle FFmpeg recording functionalities.
 class Recorder {
@@ -8,10 +9,18 @@ class Recorder {
     int recHeight = 0;
     int recFPS = 0;
     const std::string pixelFormat = "rgba";
-    const std::string FFmpegCommand =
-        "ffmpeg -f rawvideo -pix_fmt %s -s %dx%d -r %d -i - "
-        "-c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p "
-        "-y %s";
+    const std::unordered_map<std::string, std::string> ffmpegEncoderOptions = {
+        {"libx264", "-preset fast -crf 20 "},
+        {"libx265", "-preset fast -crf 22 "},
+        {"hevc_nvenc", "-preset p6 -cq 22 "},
+        {"h264_nvenc", "-preset p6 -cq 20 "},
+    };
+
+    std::string usingEncoder = "hevc_nvenc";
+
+    std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
+                                      std::string_view filename_utf8, int width,
+                                      int height, int fps);
 
    public:
     // Returns 0 on success, negative value on failure.

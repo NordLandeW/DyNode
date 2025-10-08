@@ -16,9 +16,9 @@
 
 FILE* ffmpeg_pipe = nullptr;
 
-std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
-                                  std::string_view filename_utf8, int width,
-                                  int height, int fps) {
+std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
+                                            std::string_view filename_utf8,
+                                            int width, int height, int fps) {
 #ifdef _WIN32
     // Windows: surround with double quotes and escape any embedded quotes.
     auto quote_arg = [](std::string_view s) {
@@ -67,8 +67,9 @@ std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
     cmd.append(std::to_string(height));
     cmd.append(" -r ");
     cmd.append(std::to_string(fps));
-    // cmd.append(" -i - -c:v libx265 -preset fast -crf 22 -pix_fmt yuv420p -y ");
-    cmd.append(" -i - -c:v hevc_nvenc -preset p6 -cq 22 -pix_fmt yuv420p -y ");
+    cmd.append(" -i - -y ");
+    cmd.append(" -c:v " + usingEncoder + " ");
+    cmd.append(ffmpegEncoderOptions.at(usingEncoder));
     cmd.append(quoted_filename);
     return cmd;
 }
