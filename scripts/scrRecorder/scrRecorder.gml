@@ -1,6 +1,8 @@
 
 #macro RECORDING_FPS 60
 #macro RECORDING_FPS_MAX 600
+#macro RECORDING_RESOLUTION_W 3840
+#macro RECORDING_RESOLUTION_H 2160
 
 function RecordManager() constructor {
 
@@ -8,8 +10,8 @@ function RecordManager() constructor {
     frameBuffer = -1;
     originalFPS = game_get_speed(gamespeed_fps);
 
-    static _get_surface_buffer_size = function(surf) {
-        return surface_get_width(surf) * surface_get_height(surf) * 4;
+    static _get_surface_buffer_size = function(w, h) {
+        return w * h * 4;
     }
 
     static start_recording = function(filename) {
@@ -23,8 +25,10 @@ function RecordManager() constructor {
         global.timeManager.set_mode_fixed(RECORDING_FPS);
         originalFPS = game_get_speed(gamespeed_fps);
         game_set_speed(RECORDING_FPS_MAX, gamespeed_fps);
-        var w = surface_get_width(application_surface);
-        var h = surface_get_height(application_surface);
+        resolution_set(RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, false);
+        
+        var w = RECORDING_RESOLUTION_W;
+        var h = RECORDING_RESOLUTION_H;
         var _fps = RECORDING_FPS;
 
         var err = DyCore_ffmpeg_start_recording(filename, w, h, _fps);
@@ -34,7 +38,9 @@ function RecordManager() constructor {
             show_debug_message("-- Recording started: " + filename);
         }
 
-        frameBuffer = buffer_create(_get_surface_buffer_size(application_surface), buffer_grow, 1);
+        frameBuffer = buffer_create(_get_surface_buffer_size(w, h), buffer_grow, 1);
+        show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
+        show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
     }
 
     static push_frame = function() {
@@ -58,6 +64,10 @@ function RecordManager() constructor {
         global.timeManager.set_mode_default();
         game_set_speed(originalFPS, gamespeed_fps);
         show_debug_message("-- Recording finished.");
+    }
+
+    static is_recording = function() {
+        return recording;
     }
 
 }

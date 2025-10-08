@@ -447,6 +447,17 @@ function window_reset() {
 	);
 }
 
+function resolution_set(width, height, updateViewport = true) {
+	surface_resize(application_surface, width, height);
+
+	if(updateViewport) {
+		view_wport[0] = width;
+		view_hport[0] = height;
+		view_xport[0] = 0;
+		view_yport[0] = 0;
+	}
+}
+
 #endregion
 
 function in_between(x, l, r) {

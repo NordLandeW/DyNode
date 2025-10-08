@@ -67,7 +67,8 @@ std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
     cmd.append(std::to_string(height));
     cmd.append(" -r ");
     cmd.append(std::to_string(fps));
-    cmd.append(" -i - -c:v libx265 -preset fast -crf 22 -pix_fmt yuv420p -y ");
+    // cmd.append(" -i - -c:v libx265 -preset fast -crf 22 -pix_fmt yuv420p -y ");
+    cmd.append(" -i - -c:v hevc_nvenc -preset p6 -cq 22 -pix_fmt yuv420p -y ");
     cmd.append(quoted_filename);
     return cmd;
 }
