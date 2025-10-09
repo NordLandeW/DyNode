@@ -11,9 +11,16 @@ function TimeManager() constructor {
     mode = TIME_MODE.DEFAULT;
     fixedSpeed = 60; // in fps
 
-    static get_delta = function() {
-        if(mode == TIME_MODE.DEFAULT) {
-            return delta_time;
+    static _clamped_delta = function() {
+        return min(100000, delta_time);
+    }
+
+    static get_delta = function(overwriteMode = -1) {
+        var _curMode = mode;
+        if(overwriteMode != -1) _curMode = overwriteMode;
+        
+        if(_curMode == TIME_MODE.DEFAULT) {
+            return _clamped_delta();
         } else {
             return 1000000 / fixedSpeed;
         }

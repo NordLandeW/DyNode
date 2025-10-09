@@ -919,11 +919,6 @@ function shader_set_texture(uniform, texture, shd = undefined) {
     texture_set_stage(_sampler, texture);
 }
 
-/// @description Get the safe delta time limited under 10FPS.
-function get_delta_time() {
-	return min(delta_time, 100000);
-}
-
 /// @description Delete an element from an array at a specific index without preserving order.
 /// @param {Array} arr The array to modify.
 /// @param {Real} index The index of the element to delete.

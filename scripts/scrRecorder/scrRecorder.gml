@@ -44,7 +44,7 @@ function RecordManager() constructor {
             show_debug_message("-- Recording started: " + filename);
         }
 
-        frameBuffer = buffer_create(_get_surface_buffer_size(w, h), buffer_grow, 1);
+        frameBuffer = buffer_create(_get_surface_buffer_size(w, h), buffer_fast, 1);
         show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
         show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
         show_debug_message("-- Music path: " + musicPath);
