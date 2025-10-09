@@ -357,7 +357,7 @@ function note_hit(note, displayEffects) {
 
 		
 	// Play Sound
-	if(objMain.hitSoundOn)
+	if(objMain.hitSoundOn && !global.recordManager.is_recording())
 		audio_play_sound(sndHit, 0, 0);
 	
 	// Update side hinter.
