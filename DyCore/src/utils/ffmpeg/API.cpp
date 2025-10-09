@@ -10,7 +10,7 @@ DYCORE_API double DyCore_ffmpeg_is_available() {
 }
 
 DYCORE_API double DyCore_ffmpeg_start_recording(const char* parameter) {
-    auto recorder = get_recorder();
+    auto &recorder = get_recorder();
     nlohmann::json j = nlohmann::json::parse(parameter);
 
     std::string filename = j.value("filename", "output.mp4");
@@ -25,14 +25,14 @@ DYCORE_API double DyCore_ffmpeg_start_recording(const char* parameter) {
 }
 
 DYCORE_API double DyCore_ffmpeg_push_frame(const char* data, double size) {
-    auto recorder = get_recorder();
+    auto &recorder = get_recorder();
 
     recorder.push_frame(data, (int)size);
     return 0;
 }
 
 DYCORE_API double DyCore_ffmpeg_finish_recording() {
-    auto recorder = get_recorder();
+    auto &recorder = get_recorder();
 
     recorder.finish_recording();
     return 0;

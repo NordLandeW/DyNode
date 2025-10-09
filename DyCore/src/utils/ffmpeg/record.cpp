@@ -14,8 +14,6 @@
 
 #endif
 
-FILE* ffmpeg_pipe = nullptr;
-
 std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
                                             std::string_view filename_utf8,
                                             std::string_view musicPath,
@@ -171,6 +169,29 @@ bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 #endif
 }
 
+void Recorder::writer_worker() {
+    while (recording_active || !frame_queue.empty()) {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        queue_cond.wait(
+            lock, [this] { return !frame_queue.empty() || !recording_active; });
+
+        if (!frame_queue.empty()) {
+            std::vector<char> frame_data = std::move(frame_queue.front());
+            frame_queue.pop();
+            lock.unlock();
+
+            if (ffmpeg_pipe) {
+                size_t written = fwrite(frame_data.data(), 1, frame_data.size(),
+                                        ffmpeg_pipe);
+                if (written != frame_data.size()) {
+                    print_debug_message(
+                        "Warning: Incomplete frame write to FFmpeg.");
+                }
+            }
+        }
+    }
+}
+
 int Recorder::start_recording(const std::string& filename,
                               const std::string& musicPath, int width,
                               int height, int fps, double musicOffset) {
@@ -180,6 +201,8 @@ int Recorder::start_recording(const std::string& filename,
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
     }
+    recording_active = true;
+    writer_thread = std::thread(&Recorder::writer_worker, this);
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
 }
@@ -195,23 +218,35 @@ int Recorder::start_recording(const std::wstring& filename,
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
     }
+    recording_active = true;
+    writer_thread = std::thread(&Recorder::writer_worker, this);
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
 }
 
 void Recorder::push_frame(const void* frameData, int frameSize) {
-    if (!ffmpeg_pipe || !frameData || frameSize <= 0) {
+    if (!recording_active || !frameData || frameSize <= 0) {
         print_debug_message("Warning: push_frame called with invalid state.");
         return;
     }
-    size_t written =
-        fwrite(frameData, 1, static_cast<size_t>(frameSize), ffmpeg_pipe);
-    if (written != static_cast<size_t>(frameSize)) {
-        print_debug_message("Warning: Incomplete frame write to FFmpeg.");
+    std::vector<char> frame_copy(static_cast<size_t>(frameSize));
+    memcpy(frame_copy.data(), frameData, static_cast<size_t>(frameSize));
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        frame_queue.push(std::move(frame_copy));
     }
+    queue_cond.notify_one();
 }
 
 void Recorder::finish_recording() {
+    if (recording_active) {
+        recording_active = false;
+        queue_cond.notify_one();
+        if (writer_thread.joinable()) {
+            writer_thread.join();
+        }
+    }
+
     if (!ffmpeg_pipe) {
 #ifdef _WIN32
         // Even if ffmpeg_pipe is null, ensure process handles are cleaned up.

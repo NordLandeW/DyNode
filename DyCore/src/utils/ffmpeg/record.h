@@ -1,10 +1,17 @@
 #pragma once
 
+#include <condition_variable>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
 #include <unordered_map>
+#include <vector>
 
 // Handle FFmpeg recording functionalities.
 class Recorder {
+    FILE* ffmpeg_pipe = nullptr;
+
     int recWidth = 0;
     int recHeight = 0;
     int recFPS = 0;
@@ -17,6 +24,15 @@ class Recorder {
     };
 
     std::string usingEncoder = "hevc_nvenc";
+
+    // For async writing
+    std::thread writer_thread;
+    std::queue<std::vector<char>> frame_queue;
+    std::mutex queue_mutex;
+    std::condition_variable queue_cond;
+    bool recording_active = false;
+
+    void writer_worker();
 
     std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
                                       std::string_view filename_utf8,
