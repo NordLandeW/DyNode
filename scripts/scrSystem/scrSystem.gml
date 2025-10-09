@@ -1247,9 +1247,21 @@ function stat_kps(_time, _range) {
 	return DyCore_kps_count(_time, _range);
 }
 
-function playview_start_replay() {
+function playview_start_replay(callback_func = undefined) {
 	if(!instance_exists(objMain)) return;
 	with(objMain) {
+		if(editor_get_editmode() != 5) {
+			call_later(0.5, time_source_units_seconds, function() {
+				playview_pause_and_resume(true);
+			});
+
+			if(callback_func != undefined)
+				call_later(0.5, time_source_units_seconds, callback_func);
+		}
+		else {
+			playview_pause_and_resume(true);
+		}
+
     	editor_set_editmode(5);
     	nowTime = -PLAYBACK_EMPTY_TIME;
     	animTargetTime = -PLAYBACK_EMPTY_TIME;

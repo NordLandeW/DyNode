@@ -157,10 +157,10 @@ projectTime += round(delta_time / 1000);
 
 #endregion
 
-#region Muisc Pause & Resume
+#region Music Pause & Resume
 
-    if(keycheck_down(vk_space) || keycheck_down(vk_enter)) {
-		playview_pause_and_resume(keycheck_down(vk_enter));
+    if(keycheck_down(vk_space)) {
+		playview_pause_and_resume(false);
     }
 
 #endregion

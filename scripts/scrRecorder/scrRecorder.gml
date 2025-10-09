@@ -80,9 +80,9 @@ function RecordManager() constructor {
 }
 
 function _debug_start_record() {
-    global.recordManager.start_recording("test114514.mp4");
-    playview_start_replay();
-    playview_pause_and_resume(true);
+    playview_start_replay(function() {
+        global.recordManager.start_recording("test114514.mp4");
+    });
 }
 
 function _debug_stop_record() {
