@@ -1250,6 +1250,9 @@ function stat_kps(_time, _range) {
 function playview_start_replay(callback_func = undefined) {
 	if(!instance_exists(objMain)) return;
 	with(objMain) {
+		if(nowPlaying) playview_pause_and_resume();	// Pause first.
+
+		_reset_all_particles();
 		if(editor_get_editmode() != 5) {
 			call_later(0.5, time_source_units_seconds, function() {
 				playview_pause_and_resume(true);
@@ -1260,6 +1263,9 @@ function playview_start_replay(callback_func = undefined) {
 		}
 		else {
 			playview_pause_and_resume(true);
+			
+			if(callback_func != undefined)
+				callback_func();
 		}
 
     	editor_set_editmode(5);
@@ -1339,6 +1345,15 @@ function global_add_delay(delay) {
 			nowTime -= delay;
 	save_config();
 	announcement_set("global_music_delay", global.musicDelay);
+}
+
+#endregion
+
+#region Other Events
+
+function on_playback_end() {
+	if(global.recordManager.is_recording())
+		global.recordManager.finish_recording();
 }
 
 #endregion

@@ -507,6 +507,10 @@ function _set_channel_speed(spd) {
 	
 }
 
+function _reset_all_particles() {
+    part_particles_clear(partSysNote);
+}
+
 #endregion
 
 _create_channel();	// Channel init.

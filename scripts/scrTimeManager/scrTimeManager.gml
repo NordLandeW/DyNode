@@ -15,12 +15,12 @@ function TimeManager() constructor {
         return min(100000, delta_time);
     }
 
-    static get_delta = function(overwriteMode = -1) {
+    static get_delta = function(overwriteMode = -1, clamped = true) {
         var _curMode = mode;
         if(overwriteMode != -1) _curMode = overwriteMode;
         
         if(_curMode == TIME_MODE.DEFAULT) {
-            return _clamped_delta();
+            return clamped ? _clamped_delta() : delta_time;
         } else {
             return 1000000 / fixedSpeed;
         }

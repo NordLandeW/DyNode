@@ -59,7 +59,7 @@ var _music_resync_request = false;
 // Time Operation
 
     if(nowPlaying && !(_timchange != 0 || _timscr != 0)) {
-    	nowTime += global.timeManager.get_delta() * musicSpeed / 1000;
+    	nowTime += global.timeManager.get_delta(-1, false) * musicSpeed / 1000;
     }
     
         
@@ -141,6 +141,10 @@ var _music_resync_request = false;
             safe_video_pause();
             
             nowPlaying = false;
+
+            // Trigger playback end event
+            if(editor_get_editmode() == 5)
+            	on_playback_end();
         }
         
         musicProgress = clamp(nowTime, 0, musicLength) / musicLength;
