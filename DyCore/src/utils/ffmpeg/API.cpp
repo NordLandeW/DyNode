@@ -9,7 +9,7 @@ DYCORE_API double DyCore_ffmpeg_is_available() {
     return is_FFmpeg_available() ? 1.0 : 0.0;
 }
 
-DYCORE_API double DyCore_ffmpeg_start_recording(const char* parameter) {
+DYCORE_API double DyCore_ffmpeg_start_recording(const char *parameter) {
     auto &recorder = get_recorder();
     nlohmann::json j = nlohmann::json::parse(parameter);
 
@@ -24,7 +24,7 @@ DYCORE_API double DyCore_ffmpeg_start_recording(const char* parameter) {
                                     musicOffset);
 }
 
-DYCORE_API double DyCore_ffmpeg_push_frame(const char* data, double size) {
+DYCORE_API double DyCore_ffmpeg_push_frame(const char *data, double size) {
     auto &recorder = get_recorder();
 
     recorder.push_frame(data, (int)size);

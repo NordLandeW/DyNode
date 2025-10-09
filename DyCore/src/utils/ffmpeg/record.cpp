@@ -282,8 +282,6 @@ void Recorder::finish_recording() {
 }
 
 Recorder& get_recorder() {
-    // ! This instance is not safe. A bug in main gamemaker runner seems will
-    // overwrite random memory in this instance and is hard to fix.
     static Recorder recorder;
     return recorder;
 }
