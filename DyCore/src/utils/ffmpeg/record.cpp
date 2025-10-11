@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -20,10 +21,11 @@
 #else
 
 #if defined(__has_include)
-#  if __has_include(<unistd.h>) && __has_include(<sys/types.h>) && __has_include(<sys/wait.h>) && __has_include(<fcntl.h>)
+#  if __has_include(<unistd.h>) && __has_include(<sys/types.h>) && __has_include(<sys/wait.h>) && __has_include(<fcntl.h>) && __has_include(<sys/stat.h>)
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #ifndef DYCORE_POSIX_AVAILABLE
@@ -38,6 +40,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #ifndef DYCORE_POSIX_AVAILABLE
@@ -204,7 +207,39 @@ bool run_command_capture_output_utf8(const std::string& cmd,
         }
         cargv.push_back(nullptr);
 
-        execvp(cargv[0], cargv.data());
+        // Resolve executable path securely and avoid PATH search
+        std::string exe = args[0];
+        if (exe.find('/') == std::string::npos) {
+            const char* penv = getenv("PATH");
+            if (penv) {
+                std::string p = penv;
+                size_t pos = 0;
+                while (pos <= p.size()) {
+                    size_t next = p.find(':', pos);
+                    std::string dir = p.substr(pos, (next == std::string::npos) ? std::string::npos : next - pos);
+                    pos = (next == std::string::npos) ? p.size() + 1 : next + 1;
+                    if (dir.empty() || dir[0] != '/')
+                        continue;  // ignore relative paths
+                    struct stat st{};
+                    if (stat(dir.c_str(), &st) != 0)
+                        continue;
+                    if ((st.st_mode & S_IWOTH) != 0)
+                        continue;  // skip world-writable dirs
+                    std::string candidate = dir;
+                    if (!candidate.empty() && candidate.back() != '/')
+                        candidate.push_back('/');
+                    candidate += exe;
+                    if (access(candidate.c_str(), X_OK) == 0) {
+                        exe = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+        if (exe.find('/') == std::string::npos) {
+            _exit(127);
+        }
+        execv(exe.c_str(), cargv.data());
         _exit(127);
     }
 
@@ -257,8 +292,7 @@ std::unordered_set<std::string> ffmpeg_detect_available_encoders() {
     std::unordered_set<std::string> result;
 
     std::string out;
-    if (!run_command_capture_output_utf8("ffmpeg -hide_banner -encoders",
-                                         out)) {
+    if (!run_command_capture_output_utf8("ffmpeg -hide_banner -encoders", out)) {
         print_debug_message(
             "ffmpeg_detect_available_encoders: failed to run ffmpeg -encoders");
         return result;
@@ -269,61 +303,41 @@ std::unordered_set<std::string> ffmpeg_detect_available_encoders() {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
 
-    bool has_h264 = false;
-    bool has_h265 = false;
-    bool has_nvenc = false;
-    bool has_intel = false;
-    bool has_amd = false;
+    enum Flags {
+        F_H264  = 1 << 0,
+        F_H265  = 1 << 1,
+        F_NVENC = 1 << 2,
+        F_INTEL = 1 << 3,
+        F_AMD   = 1 << 4
+    };
+    int flags = 0;
 
-    // CPU
-    if (has_token_word(lower, "libx264"))
-        has_h264 = true;
-    if (has_token_word(lower, "libx265"))
-        has_h265 = true;
+    struct Tok { const char* token; int set; };
+    const Tok toks[] = {
+        {"libx264",    F_H264},
+        {"libx265",    F_H265},
+        {"h264_nvenc", F_H264 | F_NVENC},
+        {"hevc_nvenc", F_H265 | F_NVENC},
+        {"h265_nvenc", F_H265 | F_NVENC},
+        {"h264_qsv",   F_H264 | F_INTEL},
+        {"hevc_qsv",   F_H265 | F_INTEL},
+        {"h265_qsv",   F_H265 | F_INTEL},
+        {"h264_amf",   F_H264 | F_AMD},
+        {"hevc_amf",   F_H265 | F_AMD},
+        {"h265_amf",   F_H265 | F_AMD},
+    };
 
-    // NVIDIA NVENC
-    if (has_token_word(lower, "h264_nvenc")) {
-        has_h264 = true;
-        has_nvenc = true;
-    }
-    if (has_token_word(lower, "hevc_nvenc") ||
-        has_token_word(lower, "h265_nvenc")) {
-        has_h265 = true;
-        has_nvenc = true;
-    }
-
-    // Intel QSV
-    if (has_token_word(lower, "h264_qsv")) {
-        has_h264 = true;
-        has_intel = true;
-    }
-    if (has_token_word(lower, "hevc_qsv") ||
-        has_token_word(lower, "h265_qsv")) {
-        has_h265 = true;
-        has_intel = true;
+    for (const auto& t : toks) {
+        if (has_token_word(lower, t.token)) {
+            flags |= t.set;
+        }
     }
 
-    // AMD AMF
-    if (has_token_word(lower, "h264_amf")) {
-        has_h264 = true;
-        has_amd = true;
-    }
-    if (has_token_word(lower, "hevc_amf") ||
-        has_token_word(lower, "h265_amf")) {
-        has_h265 = true;
-        has_amd = true;
-    }
-
-    if (has_h264)
-        result.insert("h264");
-    if (has_h265)
-        result.insert("h265");
-    if (has_nvenc)
-        result.insert("nvenc");
-    if (has_intel)
-        result.insert("intel");
-    if (has_amd)
-        result.insert("amd");
+    if (flags & F_H264)  result.insert("h264");
+    if (flags & F_H265)  result.insert("h265");
+    if (flags & F_NVENC) result.insert("nvenc");
+    if (flags & F_INTEL) result.insert("intel");
+    if (flags & F_AMD)   result.insert("amd");
 
     return result;
 }
@@ -518,7 +532,39 @@ bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
             cargv.push_back(const_cast<char*>(s.c_str()));
         cargv.push_back(nullptr);
 
-        execvp(cargv[0], cargv.data());
+        // Resolve executable path securely and avoid PATH search
+        std::string exe = args[0];
+        if (exe.find('/') == std::string::npos) {
+            const char* penv = getenv("PATH");
+            if (penv) {
+                std::string p = penv;
+                size_t pos = 0;
+                while (pos <= p.size()) {
+                    size_t next = p.find(':', pos);
+                    std::string dir = p.substr(pos, (next == std::string::npos) ? std::string::npos : next - pos);
+                    pos = (next == std::string::npos) ? p.size() + 1 : next + 1;
+                    if (dir.empty() || dir[0] != '/')
+                        continue;  // ignore relative paths
+                    struct stat st{};
+                    if (stat(dir.c_str(), &st) != 0)
+                        continue;
+                    if ((st.st_mode & S_IWOTH) != 0)
+                        continue;  // skip world-writable dirs
+                    std::string candidate = dir;
+                    if (!candidate.empty() && candidate.back() != '/')
+                        candidate.push_back('/');
+                    candidate += exe;
+                    if (access(candidate.c_str(), X_OK) == 0) {
+                        exe = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+        if (exe.find('/') == std::string::npos) {
+            _exit(127);
+        }
+        execv(exe.c_str(), cargv.data());
         _exit(127);
     }
 
