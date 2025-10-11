@@ -21,6 +21,12 @@ function RecordManager() constructor {
             return;
         }
 
+        if(!DyCore_ffmpeg_is_available()) {
+            show_debug_message("-- FFMPEG not available!");
+            // TODO: Show announcement.
+            return;
+        }
+
         recording = true;
         global.timeManager.set_mode_fixed(RECORDING_FPS);
         originalFPS = game_get_speed(gamespeed_fps);
