@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -14,44 +15,11 @@
 #include <Windows.h>
 #include <fcntl.h>
 #include <io.h>
-#ifndef DYCORE_POSIX_AVAILABLE
-#define DYCORE_POSIX_AVAILABLE 0
 #endif
 
-#else
-
-#if defined(__has_include)
-#  if __has_include(<unistd.h>) && __has_include(<sys/types.h>) && __has_include(<sys/wait.h>) && __has_include(<fcntl.h>) && __has_include(<sys/stat.h>)
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#ifndef DYCORE_POSIX_AVAILABLE
-#define DYCORE_POSIX_AVAILABLE 1
-#endif
-#else
-#ifndef DYCORE_POSIX_AVAILABLE
-#define DYCORE_POSIX_AVAILABLE 0
-#endif
-#endif
-#else
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#ifndef DYCORE_POSIX_AVAILABLE
-#define DYCORE_POSIX_AVAILABLE 1
-#endif
-#endif
-
-#endif
-
-// FFmpeg Encoders Availability Detection
+// FFmpeg Encoders Availability Detection and process helpers
 namespace {
+
 #ifdef _WIN32
 bool run_command_capture_output_utf8(const std::string& cmd,
                                      std::string& output) {
@@ -115,159 +83,14 @@ bool run_command_capture_output_utf8(const std::string& cmd,
     return true;
 }
 #else
-#if DYCORE_POSIX_AVAILABLE
-// Minimal shell-agnostic tokenizer that respects single/double quotes and
-// backslash escapes.
-static std::vector<std::string> parse_command_to_argv(const std::string& cmd) {
-    std::vector<std::string> argv;
-    std::string cur;
-    enum class State { Normal, InSingle, InDouble };
-    State st = State::Normal;
-    auto push_cur = [&]() {
-        if (!cur.empty()) {
-            argv.push_back(cur);
-            cur.clear();
-        }
-    };
-    const size_t N = cmd.size();
-    for (size_t i = 0; i < N; ++i) {
-        char ch = cmd[i];
-        if (st == State::Normal) {
-            if (std::isspace(static_cast<unsigned char>(ch))) {
-                push_cur();
-                continue;
-            }
-            if (ch == '\'') {
-                st = State::InSingle;
-                continue;
-            }
-            if (ch == '"') {
-                st = State::InDouble;
-                continue;
-            }
-            if (ch == '\\' && i + 1 < N) {
-                cur.push_back(cmd[++i]);
-                continue;
-            }
-            cur.push_back(ch);
-        } else if (st == State::InSingle) {
-            if (ch == '\'') {
-                st = State::Normal;
-            } else {
-                cur.push_back(ch);
-            }
-        } else {  // InDouble
-            if (ch == '"') {
-                st = State::Normal;
-            } else if (ch == '\\' && i + 1 < N) {
-                // Preserve common escapes inside double quotes
-                cur.push_back(cmd[++i]);
-            } else {
-                cur.push_back(ch);
-            }
-        }
-    }
-    push_cur();
-    return argv;
-}
-
-bool run_command_capture_output_utf8(const std::string& cmd,
-                                     std::string& output) {
-    // Build argv safely without invoking a shell.
-    std::vector<std::string> args = parse_command_to_argv(cmd);
-    if (args.empty()) {
-        return false;
-    }
-
-    int pipefd[2];
-    if (pipe(pipefd) != 0) {
-        return false;
-    }
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        // fork failed
-        close(pipefd[0]);
-        close(pipefd[1]);
-        return false;
-    }
-
-    if (pid == 0) {
-        // child: redirect stdout/stderr to pipe write-end
-        close(pipefd[0]);
-        dup2(pipefd[1], STDOUT_FILENO);
-        dup2(pipefd[1], STDERR_FILENO);
-        close(pipefd[1]);
-
-        // Build argv array
-        std::vector<char*> cargv;
-        cargv.reserve(args.size() + 1);
-        for (auto& s : args) {
-            cargv.push_back(const_cast<char*>(s.c_str()));
-        }
-        cargv.push_back(nullptr);
-
-        // Resolve executable path securely and avoid PATH search
-        std::string exe = args[0];
-        if (exe.find('/') == std::string::npos) {
-            const char* penv = getenv("PATH");
-            if (penv) {
-                std::string p = penv;
-                size_t pos = 0;
-                while (pos <= p.size()) {
-                    size_t next = p.find(':', pos);
-                    std::string dir = p.substr(pos, (next == std::string::npos) ? std::string::npos : next - pos);
-                    pos = (next == std::string::npos) ? p.size() + 1 : next + 1;
-                    if (dir.empty() || dir[0] != '/')
-                        continue;  // ignore relative paths
-                    struct stat st{};
-                    if (stat(dir.c_str(), &st) != 0)
-                        continue;
-                    if ((st.st_mode & S_IWOTH) != 0)
-                        continue;  // skip world-writable dirs
-                    std::string candidate = dir;
-                    if (!candidate.empty() && candidate.back() != '/')
-                        candidate.push_back('/');
-                    candidate += exe;
-                    if (access(candidate.c_str(), X_OK) == 0) {
-                        exe = candidate;
-                        break;
-                    }
-                }
-            }
-        }
-        if (exe.find('/') == std::string::npos) {
-            _exit(127);
-        }
-        execv(exe.c_str(), cargv.data());
-        _exit(127);
-    }
-
-    // parent
-    close(pipefd[1]);
-    char buffer[4096];
-    ssize_t n;
-    while ((n = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
-        output.append(buffer, static_cast<size_t>(n));
-    }
-    close(pipefd[0]);
-
-    int status = 0;
-    (void)waitpid(pid, &status, 0);
-
-    return true;
-}
-#else
 bool run_command_capture_output_utf8(const std::string& cmd,
                                      std::string& output) {
     (void)cmd;
     (void)output;
     print_debug_message(
-        "Error: POSIX process APIs are unavailable; cannot execute command "
-        "safely.");
+        "Not Implemented: POSIX process APIs are not supported in this build.");
     return false;
 }
-#endif
 #endif
 
 bool has_token_word(const std::string& haystack, const std::string& needle) {
@@ -285,6 +108,7 @@ bool has_token_word(const std::string& haystack, const std::string& needle) {
     }
     return false;
 }
+
 }  // namespace
 
 // Return available encoders: "h264", "h265", "nvenc", "intel", "amd"
@@ -364,24 +188,6 @@ std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
         out.push_back('"');
         return out;
     };
-#else
-    // POSIX shell (popen uses /bin/sh -c): use single quotes and escape single
-    // quotes. 'abc'def'  -> 'abc'\''def'
-    auto quote_arg = [](std::string_view s) {
-        std::string out;
-        out.reserve(s.size() + 2 + (s.size() / 8));
-        out.push_back('\'');
-        for (char ch : s) {
-            if (ch == '\'') {
-                out.append("'\\''");
-            } else {
-                out.push_back(ch);
-            }
-        }
-        out.push_back('\'');
-        return out;
-    };
-#endif
 
     const std::string quoted_filename = quote_arg(filename_utf8);
 
@@ -411,14 +217,24 @@ std::string Recorder::build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
     cmd.append("-y ");
     cmd.append(quoted_filename);
     return cmd;
+#else
+    (void)pixel_fmt;
+    (void)filename_utf8;
+    (void)musicPath;
+    (void)width;
+    (void)height;
+    (void)fps;
+    (void)musicOffset;
+    print_debug_message("Not Implemented: recording command construction is only supported on Windows.");
+    return std::string();
+#endif
 }
+
 #ifdef _WIN32
 PROCESS_INFORMATION g_ffmpeg_pi{};
-#elif DYCORE_POSIX_AVAILABLE
-static pid_t g_ffmpeg_pid = -1;
 #endif
 
-bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
+static bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 #ifdef _WIN32
     // Create a hidden FFmpeg process with its stdin connected to a pipe.
     SECURITY_ATTRIBUTES saAttr{};
@@ -496,102 +312,11 @@ bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 
     return true;
 #else
-#if DYCORE_POSIX_AVAILABLE
-    // POSIX: spawn FFmpeg without a shell and connect its stdin via a pipe.
-    std::vector<std::string> args = parse_command_to_argv(cmdUtf8);
-    if (args.empty()) {
-        print_debug_message("Error: Failed to build argv for FFmpeg.");
-        return false;
-    }
-
-    int pipe_stdin[2];
-    if (pipe(pipe_stdin) != 0) {
-        print_debug_message("Error: pipe() failed for FFmpeg stdin.");
-        return false;
-    }
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        print_debug_message("Error: fork() failed for FFmpeg.");
-        close(pipe_stdin[0]);
-        close(pipe_stdin[1]);
-        return false;
-    }
-
-    if (pid == 0) {
-        // child
-        // Connect read-end of pipe to stdin
-        dup2(pipe_stdin[0], STDIN_FILENO);
-        close(pipe_stdin[0]);
-        close(pipe_stdin[1]);
-
-        // Build argv
-        std::vector<char*> cargv;
-        cargv.reserve(args.size() + 1);
-        for (auto& s : args)
-            cargv.push_back(const_cast<char*>(s.c_str()));
-        cargv.push_back(nullptr);
-
-        // Resolve executable path securely and avoid PATH search
-        std::string exe = args[0];
-        if (exe.find('/') == std::string::npos) {
-            const char* penv = getenv("PATH");
-            if (penv) {
-                std::string p = penv;
-                size_t pos = 0;
-                while (pos <= p.size()) {
-                    size_t next = p.find(':', pos);
-                    std::string dir = p.substr(pos, (next == std::string::npos) ? std::string::npos : next - pos);
-                    pos = (next == std::string::npos) ? p.size() + 1 : next + 1;
-                    if (dir.empty() || dir[0] != '/')
-                        continue;  // ignore relative paths
-                    struct stat st{};
-                    if (stat(dir.c_str(), &st) != 0)
-                        continue;
-                    if ((st.st_mode & S_IWOTH) != 0)
-                        continue;  // skip world-writable dirs
-                    std::string candidate = dir;
-                    if (!candidate.empty() && candidate.back() != '/')
-                        candidate.push_back('/');
-                    candidate += exe;
-                    if (access(candidate.c_str(), X_OK) == 0) {
-                        exe = candidate;
-                        break;
-                    }
-                }
-            }
-        }
-        if (exe.find('/') == std::string::npos) {
-            _exit(127);
-        }
-        execv(exe.c_str(), cargv.data());
-        _exit(127);
-    }
-
-    // parent
-    close(pipe_stdin[0]);
-    FILE* f = fdopen(pipe_stdin[1], "wb");
-    if (!f) {
-        print_debug_message("Error: fdopen failed for FFmpeg stdin.");
-        close(pipe_stdin[1]);
-        // Ensure child is reaped
-        int status = 0;
-        (void)waitpid(pid, &status, 0);
-        return false;
-    }
-    // Disable buffering to reduce latency on frame writes.
-    setvbuf(f, nullptr, _IONBF, 0);
-    out = f;
-    g_ffmpeg_pid = pid;
-    return true;
-#else
-    // No POSIX process API available; cannot open FFmpeg pipe safely.
     (void)cmdUtf8;
     out = nullptr;
     print_debug_message(
-        "Error: POSIX process APIs are unavailable; cannot start FFmpeg.");
+        "Not Implemented: starting FFmpeg process is only supported on Windows.");
     return false;
-#endif
 #endif
 }
 
@@ -621,6 +346,7 @@ void Recorder::writer_worker() {
 int Recorder::start_recording(const std::string& filename,
                               const std::string& musicPath, int width,
                               int height, int fps, double musicOffset) {
+#ifdef _WIN32
     std::string cmd = build_ffmpeg_cmd_utf8(pixelFormat, filename, musicPath,
                                             width, height, fps, musicOffset);
     if (!open_ffmpeg_pipe_utf8(ffmpeg_pipe, cmd)) {
@@ -631,11 +357,22 @@ int Recorder::start_recording(const std::string& filename,
     writer_thread = std::thread(&Recorder::writer_worker, this);
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
+#else
+    (void)filename;
+    (void)musicPath;
+    (void)width;
+    (void)height;
+    (void)fps;
+    (void)musicOffset;
+    print_debug_message("Not Implemented: recording is only supported on Windows.");
+    return -1;
+#endif
 }
 
 int Recorder::start_recording(const std::wstring& filename,
                               const std::wstring& musicPath, int width,
                               int height, int fps, double musicOffset) {
+#ifdef _WIN32
     std::string utf8name = wstringToUtf8(filename);
     std::string utf8musicPath = wstringToUtf8(musicPath);
     std::string cmd = build_ffmpeg_cmd_utf8(
@@ -648,6 +385,16 @@ int Recorder::start_recording(const std::wstring& filename,
     writer_thread = std::thread(&Recorder::writer_worker, this);
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
+#else
+    (void)filename;
+    (void)musicPath;
+    (void)width;
+    (void)height;
+    (void)fps;
+    (void)musicOffset;
+    print_debug_message("Not Implemented: recording is only supported on Windows.");
+    return -1;
+#endif
 }
 
 void Recorder::push_frame(const void* frameData, int frameSize) {
@@ -665,6 +412,7 @@ void Recorder::push_frame(const void* frameData, int frameSize) {
 }
 
 void Recorder::finish_recording() {
+#ifdef _WIN32
     if (recording_active) {
         recording_active = false;
         queue_cond.notify_one();
@@ -674,7 +422,6 @@ void Recorder::finish_recording() {
     }
 
     if (!ffmpeg_pipe) {
-#ifdef _WIN32
         // Even if ffmpeg_pipe is null, ensure process handles are cleaned up.
         print_debug_message(
             "Warning: finish_recording called without active recording.");
@@ -685,12 +432,10 @@ void Recorder::finish_recording() {
             g_ffmpeg_pi.hThread = NULL;
             g_ffmpeg_pi.hProcess = NULL;
         }
-#endif
         return;
     }
 
     fflush(ffmpeg_pipe);
-#ifdef _WIN32
     fclose(ffmpeg_pipe);
     ffmpeg_pipe = nullptr;
 
@@ -702,15 +447,20 @@ void Recorder::finish_recording() {
         g_ffmpeg_pi.hProcess = NULL;
     }
 #else
-    fclose(ffmpeg_pipe);
-    ffmpeg_pipe = nullptr;
-#if DYCORE_POSIX_AVAILABLE
-    if (g_ffmpeg_pid > 0) {
-        int status = 0;
-        (void)waitpid(g_ffmpeg_pid, &status, 0);
-        g_ffmpeg_pid = -1;
+    // Gracefully stop writer thread if running; no external process management.
+    if (recording_active) {
+        recording_active = false;
+        queue_cond.notify_one();
+        if (writer_thread.joinable()) {
+            writer_thread.join();
+        }
     }
-#endif
+    if (ffmpeg_pipe) {
+        fflush(ffmpeg_pipe);
+        fclose(ffmpeg_pipe);
+        ffmpeg_pipe = nullptr;
+    }
+    print_debug_message("Not Implemented: finish_recording on non-Windows does not manage FFmpeg process.");
 #endif
 }
 
