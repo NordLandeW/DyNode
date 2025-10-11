@@ -59,6 +59,7 @@ global.PROJECT_COMPRESSION_LEVEL = 11;		// zstd compression level. (0~22)
 
 // Singletons init
 global.activationMan = new Activationmanager();
+global.recordManager = new RecordManager();
 
 // Themes Init
 
@@ -175,6 +176,12 @@ randomize();
 
 // if(debug_mode)
 // 	show_debug_overlay(true);
+
+// Check FFmpeg Availability
+
+if(DyCore_ffmpeg_is_available()) {
+	show_debug_message("FFmpeg is available.");
+}
 
 // Init finished
 

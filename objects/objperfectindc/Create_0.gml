@@ -40,3 +40,8 @@ function _hitit() {
     bloomAlpha = 1.0;
     nowTime = 0;
 }
+
+function reset() {
+    alpha = 0.0;
+    scaleMul = 1.0;
+}

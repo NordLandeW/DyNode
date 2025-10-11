@@ -43,3 +43,8 @@ function _update_score(_scr, _hit = true, _force = false) {
     animTargetScore = _scr;
     if(_force) nowScore = _scr;
 }
+
+function reset() {
+    alpha = 0;
+    scaleMul = 1.0;
+}

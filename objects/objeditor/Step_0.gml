@@ -65,7 +65,7 @@
     }
     
     if(editorWidthAdjustTime < editorWidthAdjustTimeThreshold) {
-        editorWidthAdjustTime += delta_time / 1000;
+        editorWidthAdjustTime += global.timeManager.get_delta() / 1000;
         if(editorWidthAdjustTime >= editorWidthAdjustTimeThreshold) {
             with(objNote) if(stateType == NOTE_STATES.SELECTED) {
                 operation_step_add(OPERATION_TYPE.MOVE, origPropWidthAdjust, get_prop());

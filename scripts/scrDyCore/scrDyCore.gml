@@ -651,3 +651,16 @@ function dyc_irandom(r) {
 function dyc_has_timing_point_at_time(time) {
     return DyCore_has_timing_point_at_time(time) > 0;
 }
+
+function dyc_ffmpeg_start_recording(filename, musicPath, width, height, fps, muiscOffset) {
+    return DyCore_ffmpeg_start_recording(json_stringify(
+        {
+            filename: filename,
+            musicPath: musicPath,
+            width: int64(width),
+            height: int64(height),
+            fps: int64(fps),
+            musicOffset: muiscOffset
+        }
+    ));
+}

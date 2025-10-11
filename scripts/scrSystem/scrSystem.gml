@@ -1177,7 +1177,6 @@ function vars_init() {
 	
 	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
-	global.fpsAdjust = BASE_FPS / global.fps;
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();
@@ -1248,6 +1247,61 @@ function stat_kps(_time, _range) {
 	return DyCore_kps_count(_time, _range);
 }
 
+function playview_start_replay(callback_func = undefined) {
+	if(!instance_exists(objMain)) return;
+	with(objMain) {
+		if(nowPlaying) playview_pause_and_resume();	// Pause first.
+
+		_reset_all_particles();
+		if(editor_get_editmode() != 5) {
+			call_later(0.5, time_source_units_seconds, function() {
+				playview_pause_and_resume(true);
+			});
+
+			if(callback_func != undefined)
+				call_later(0.5, time_source_units_seconds, callback_func);
+		}
+		else {
+			playview_pause_and_resume(true);
+			
+			if(callback_func != undefined)
+				callback_func();
+		}
+
+    	editor_set_editmode(5);
+    	nowTime = -PLAYBACK_EMPTY_TIME;
+    	animTargetTime = -PLAYBACK_EMPTY_TIME;
+    	reset_scoreboard();
+	}
+}
+
+function playview_pause_and_resume(forceResume = false) {
+	with(objMain) {
+    	_set_channel_speed(musicSpeed);
+    	if(!nowPlaying || forceResume) {
+        	if(nowTime >= musicLength && !forceResume) nowTime = 0;
+
+			// If is recording video, do not resume the music sound.
+			if(!global.recordManager.is_recording())
+	            FMODGMS_Chan_ResumeChannel(channel);
+			
+			nowPlaying = true;
+            sfmod_channel_set_position(nowTime, channel, sampleRate);
+
+			// Multiple hacks are used for video resume,
+			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
+        }
+        else {
+            FMODGMS_Chan_PauseChannel(channel);
+            nowPlaying = false;
+            
+            if(bgVideoLoaded) {
+            	safe_video_pause();
+            }
+        }
+	}
+}
+
 #endregion
 
 #region FMOD Functions
@@ -1276,9 +1330,11 @@ function reset_scoreboard() {
 	with(objScoreBoard) {
 		nowScore = 0;
 		animTargetScore = 0;
+		reset();
 	}
 	with(objPerfectIndc) {
 		nowTime = 99999;
+		reset();
 	}
 }
 
@@ -1289,6 +1345,15 @@ function global_add_delay(delay) {
 			nowTime -= delay;
 	save_config();
 	announcement_set("global_music_delay", global.musicDelay);
+}
+
+#endregion
+
+#region Other Events
+
+function on_playback_end() {
+	if(global.recordManager.is_recording())
+		global.recordManager.finish_recording();
 }
 
 #endregion
