@@ -16,14 +16,24 @@ class Recorder {
     int recHeight = 0;
     int recFPS = 0;
     const std::string pixelFormat = "rgba";
+    // Encoder options tuned for medium-to-high quality at reasonable speed.
     const std::unordered_map<std::string, std::string> ffmpegEncoderOptions = {
-        {"libx264", "-preset fast -crf 20 "},
-        {"libx265", "-preset fast -crf 22 "},
-        {"hevc_nvenc", "-preset p6 -cq 22 "},
-        {"h264_nvenc", "-preset p6 -cq 20 "},
-    };
+        // CPU
+        {"libx264",    "-preset fast -crf 20 "},  // H.264
+        {"libx265",    "-preset fast -crf 22 "},  // HEVC
 
-    std::string usingEncoder = "hevc_nvenc";
+        // NVIDIA NVENC
+        {"hevc_nvenc", "-preset p6 -cq 22 "},     // HEVC preferred
+        {"h264_nvenc", "-preset p6 -cq 20 "},     // H.264 fallback
+
+        // Intel Quick Sync Video (QSV)
+        {"hevc_qsv",   "-preset medium -rc icq -global_quality 23 "},
+        {"h264_qsv",   "-preset medium -rc icq -global_quality 21 "},
+
+        // AMD AMF
+        {"hevc_amf",   "-rc cqp -qp_i 23 -qp_p 23 -qp_b 23 "},
+        {"h264_amf",   "-rc cqp -qp_i 21 -qp_p 21 -qp_b 21 "},
+    };
 
     // For async writing
     std::thread writer_thread;
@@ -52,6 +62,7 @@ class Recorder {
     void push_frame(const void* frameData, int frameSize);
     // Finish recording.
     void finish_recording();
+    std::string get_default_encoder();
 };
 
 Recorder& get_recorder();
