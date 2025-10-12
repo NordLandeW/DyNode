@@ -1,11 +1,7 @@
 
-/*
-    Needed variables created:
-    str, lastTime, uniqueID
-*/
-str = variable_instance_get(id, "str");
-lastTime = variable_instance_get(id, "lastTime");
-uniqueID = variable_instance_get(id, "uniqueID");
+str = ""
+lastTime = 0
+uniqueID = ""
 
 _generate_element = function () {
 	element = scribble(cjk_prefix() + str)
@@ -13,7 +9,13 @@ _generate_element = function () {
 		.align(fa_right, fa_bottom)
 		.transform(0.8, 0.8);
 }
-_generate_element();
+
+init = function(str, lastTime, uniqueID) {
+	self.str = str;
+	self.lastTime = lastTime;
+	self.uniqueID = uniqueID;
+	_generate_element();
+}
 
 image_alpha = 0;
 animTargetAlpha = 1;

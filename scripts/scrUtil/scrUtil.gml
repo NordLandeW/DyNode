@@ -68,11 +68,21 @@ function draw_set_color_alpha(color, alpha) {
 	draw_set_alpha(alpha);
 }
 
-function draw_scribble_box(_ele, x, y, alpha) {
+function draw_scribble_anno_box(_ele, x, y, alpha) {
 	var _bbox = _ele.get_bbox(x, y);
 	
 	CleanRectangle(_bbox.left-5, _bbox.top-5, _bbox.right+5, _bbox.bottom+5)
 		.Blend(merge_color(theme_get().color, c_black, 0.4), alpha)
+		.Rounding(10)
+		.Draw();
+}
+
+function draw_scribble_anno_box_ext(_ele, x, y, alpha, olthick, olcolor, olalpha) {
+	var _bbox = _ele.get_bbox(x, y);
+	
+	CleanRectangle(_bbox.left-5, _bbox.top-5, _bbox.right+5, _bbox.bottom+5)
+		.Blend(merge_color(theme_get().color, c_black, 0.4), alpha)
+		.Border(olthick, olcolor, olalpha)
 		.Rounding(10)
 		.Draw();
 }

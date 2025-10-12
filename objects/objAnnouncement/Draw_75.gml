@@ -6,7 +6,7 @@ var _bbox = element.get_bbox(_nx, _ny);
 
 if(mouse_inbound(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom))
 	image_alpha = 1;
-draw_scribble_box(element, _nx, _ny, image_alpha * 0.6);
+draw_scribble_anno_box(element, _nx, _ny, image_alpha * 0.6);
 
 element
     .blend(c_white, image_alpha)

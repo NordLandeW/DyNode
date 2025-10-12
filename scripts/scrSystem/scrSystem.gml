@@ -1017,14 +1017,11 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 	}
 	if(_found) return;
 	
-	var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement, {
-		str: _str,
-		lastTime: time,
-		uniqueID: _uniqueID
-	});
+	/// @type {Id.Instance.objAnnouncement}
+	var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
+	_inst.init(_str, time, _uniqueID);
 	
 	array_push(objManager.announcements, _inst);
-	// show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {
