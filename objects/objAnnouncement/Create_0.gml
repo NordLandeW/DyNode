@@ -1,7 +1,24 @@
 
+#macro ANNO_BORDER_ANIMATION_TIME 1500
+
 str = ""
 lastTime = 0
 uniqueID = ""
+
+enum ANNO_STATE {
+	IDLE,
+	PROCESSING,
+	COMPLETE,
+	ERROR
+};
+
+enum ANNO_TYPE {
+	NORMAL,
+	TASK
+};
+
+annoType = ANNO_TYPE.NORMAL;
+annoState = ANNO_STATE.IDLE;
 
 _generate_element = function () {
 	element = scribble(cjk_prefix() + str)
@@ -10,11 +27,18 @@ _generate_element = function () {
 		.transform(0.8, 0.8);
 }
 
-init = function(str, lastTime, uniqueID) {
+init = function(str, lastTime, uniqueID, type = ANNO_TYPE.NORMAL) {
 	self.str = str;
 	self.lastTime = lastTime;
 	self.uniqueID = uniqueID;
+	self.annoType = type;
+	if(type == ANNO_TYPE.TASK) self.annoState = ANNO_STATE.PROCESSING;
 	_generate_element();
+}
+
+/// @param {Enum.ANNO_STATE} state 
+set_state = function(state) {
+	annoState = state;
 }
 
 image_alpha = 0;
