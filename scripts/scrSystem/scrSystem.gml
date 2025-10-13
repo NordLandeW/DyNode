@@ -1003,25 +1003,23 @@ function announcement_play(_str, time = 3000, _uniqueID = "null") {
 		_uniqueID = random_id(8);
 	
 	var _found = false;
-	with(objManager) {
-		var arr = announcements;
-		for(var i=0, l=array_length(arr); i<l; i++)
-			if(instance_exists(arr[i]) && arr[i].uniqueID == _uniqueID) {
-				_found = true;
-				with(arr[i]) {
-					str = _str;
-					lastTime = timer + time;
-					_generate_element();
-				}
+	var arr = global.announcementMan.announcements;
+	for(var i=0, l=array_length(arr); i<l; i++)
+		if(instance_exists(arr[i]) && arr[i].uniqueID == _uniqueID) {
+			_found = true;
+			with(arr[i]) {
+				str = _str;
+				lastTime = timer + time;
+				_generate_element();
 			}
-	}
+		}
 	if(_found) return;
 	
 	/// @type {Id.Instance.objAnnouncement}
 	var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
 	_inst.init(_str, time, _uniqueID);
 	
-	array_push(objManager.announcements, _inst);
+	array_push(arr, _inst);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {

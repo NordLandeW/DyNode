@@ -1,6 +1,6 @@
 /// @description Input check & Exts update
 
-#region Window command related
+#region Window command
 
 if(os_type == os_windows) {
 	if(keycheck_down(vk_f7)) {
@@ -22,32 +22,9 @@ else {
 
 #endregion
 
-#region Announcement update
+#region AnnoMan Step
 
-// Clear removed annos
-for(var i=0, l=array_length(announcements); i<l; i++) {
-	if(!instance_exists(announcements[i])) {
-		array_delete(announcements, i, 1);
-		i--;
-		l--;
-	}
-}
-
-// Caculate annos' Y
-var _h = 0;
-var _margin = 15;
-var _l = array_length(announcements);
-for(var i=array_length(announcements)-1; i>=0; i--) {
-	/// @self Id.Instance.objAnnouncement
-	with(announcements[i]) {
-		targetY = _h;
-		_h += element.get_bbox().height + _margin;
-		
-		if(_l - i > objManager.annoThresholdNumber)
-			lastTime = min(lastTime, timer + objManager.annoThresholdTime);
-	}
-}
-
+global.announcementMan.step();
 
 #endregion
 
