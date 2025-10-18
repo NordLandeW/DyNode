@@ -989,69 +989,6 @@ function theme_get_color_hsv() {
 
 #endregion
 
-#region ANNOUNCEMENT FUNCTIONS
-
-function announcement_play(_str, time = 3000, _uniqueID = "null") {
-	_str = i18n_get(_str);
-	
-	var _below = 10;
-	var _beside = 10;
-	var _nx = BASE_RES_W - _beside;
-	var _ny = BASE_RES_H - _below;
-	
-	if(_uniqueID == "null")
-		_uniqueID = random_id(8);
-	
-	var _found = false;
-	with(objManager) {
-		var arr = announcements;
-		for(var i=0, l=array_length(arr); i<l; i++)
-			if(instance_exists(arr[i]) && arr[i].uniqueID == _uniqueID) {
-				_found = true;
-				with(arr[i]) {
-					str = _str;
-					lastTime = timer + time;
-					_generate_element();
-				}
-			}
-	}
-	if(_found) return;
-	
-	var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement, {
-		str: _str,
-		lastTime: time,
-		uniqueID: _uniqueID
-	});
-	
-	array_push(objManager.announcements, _inst);
-	// show_debug_message_safe("NEW MD5 ANNO: " + _uniqueID);
-}
-
-function announcement_warning(str, time = 5000, uid = "null") {
-	str = i18n_get(str);
-	announcement_play("[c_warning][[" + i18n_get("anno_prefix_warn") + "] [/c]" + str, time, uid);
-}
-
-function announcement_error(str, time = 8000, uid = "null") {
-	str = i18n_get(str);
-	announcement_play("[#f44336][[" + i18n_get("anno_prefix_err") + "] " + str, time, uid);
-	show_debug_message_safe(str);
-}
-
-function announcement_adjust(str, val) {
-	str = i18n_get(str);
-	announcement_play(str + ": " + i18n_get(val?"anno_adjust_enabled":"anno_adjust_disabled"), 3000, md5_string_unicode(str));
-}
-
-function announcement_set(str, val) {
-	str = i18n_get(str);
-	if(is_real(val))
-		val = string_format(val, 1, 2);
-	announcement_play(str + ": " + i18n_get(string(val)), 3000, md5_string_unicode(str));
-}
-
-#endregion
-
 #region SYSTEM FUNCTIONS
 
 function get_config_path() {
@@ -1177,7 +1114,6 @@ function vars_init() {
 	
 	if(DEBUG_MODE) global.fps = 165;
 	game_set_speed(global.fps, gamespeed_fps);
-	global.fpsAdjust = BASE_FPS / global.fps;
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();
@@ -1248,6 +1184,61 @@ function stat_kps(_time, _range) {
 	return DyCore_kps_count(_time, _range);
 }
 
+function playview_start_replay(callback_func = undefined) {
+	if(!instance_exists(objMain)) return;
+	with(objMain) {
+		if(nowPlaying) playview_pause_and_resume();	// Pause first.
+
+		_reset_all_particles();
+		if(editor_get_editmode() != 5) {
+			call_later(0.5, time_source_units_seconds, function() {
+				playview_pause_and_resume(true);
+			});
+
+			if(callback_func != undefined)
+				call_later(0.5, time_source_units_seconds, callback_func);
+		}
+		else {
+			playview_pause_and_resume(true);
+			
+			if(callback_func != undefined)
+				callback_func();
+		}
+
+    	editor_set_editmode(5);
+    	nowTime = -PLAYBACK_EMPTY_TIME;
+    	animTargetTime = -PLAYBACK_EMPTY_TIME;
+    	reset_scoreboard();
+	}
+}
+
+function playview_pause_and_resume(forceResume = false) {
+	with(objMain) {
+    	_set_channel_speed(musicSpeed);
+    	if(!nowPlaying || forceResume) {
+        	if(nowTime >= musicLength && !forceResume) nowTime = 0;
+
+			// If is recording video, do not resume the music sound.
+			if(!global.recordManager.is_recording())
+	            FMODGMS_Chan_ResumeChannel(channel);
+			
+			nowPlaying = true;
+            sfmod_channel_set_position(nowTime, channel, sampleRate);
+
+			// Multiple hacks are used for video resume,
+			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
+        }
+        else {
+            FMODGMS_Chan_PauseChannel(channel);
+            nowPlaying = false;
+            
+            if(bgVideoLoaded) {
+            	safe_video_pause();
+            }
+        }
+	}
+}
+
 #endregion
 
 #region FMOD Functions
@@ -1276,9 +1267,11 @@ function reset_scoreboard() {
 	with(objScoreBoard) {
 		nowScore = 0;
 		animTargetScore = 0;
+		reset();
 	}
 	with(objPerfectIndc) {
 		nowTime = 99999;
+		reset();
 	}
 }
 
@@ -1289,6 +1282,15 @@ function global_add_delay(delay) {
 			nowTime -= delay;
 	save_config();
 	announcement_set("global_music_delay", global.musicDelay);
+}
+
+#endregion
+
+#region Other Events
+
+function on_playback_end() {
+	if(global.recordManager.is_recording())
+		global.recordManager.finish_recording();
 }
 
 #endregion

@@ -62,7 +62,7 @@ function NoteRenderer() constructor {
         gpu_pop_state();
 
         // Emit holds particles.
-        holdParticlesTimer += get_delta_time() / 1000;
+        holdParticlesTimer += global.timeManager.get_delta() / 1000;
         holdParticlesTimer = min(holdParticlesTimer, 5 * PARTICLE_HOLD_DELAY);
 
         var partNum = floor(holdParticlesTimer / PARTICLE_HOLD_DELAY);

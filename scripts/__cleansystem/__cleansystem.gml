@@ -1,10 +1,8 @@
-#macro __CLEAN_VERSION  "1.1.0"
-#macro __CLEAN_DATE     "2023-01-28"
 #macro __CLEAN_FLAG_A   65536  // 2^16
 #macro __CLEAN_FLAG_B   131072 // 2^17
 #macro __CLEAN_FLAG_AB  196608 // 2^16 + 2^17
 
-__CleanTrace("Welcome to Clean Shapes by @jujuadams, Alice Pedersen (@bakumoe), and @XorDev! This is version ", __CLEAN_VERSION, ", ", __CLEAN_DATE);
+__CleanTrace("Welcome to Clean Shapes by Juju Adams, Alice Pedersen, and XorDev! This is version ", CLEAN_VERSION, ", ", CLEAN_DATE);
 __CleanTrace("Made using a ton of shader code borrowed from Inigo Quilez");
 
 if (os_browser != browser_not_a_browser)
@@ -40,7 +38,7 @@ function __CleanTrace()
         ++_i;
     }
 
-    show_debug_message("Clean Shapes: " + _string);
+    show_debug_message("Clean Shapes " + string(CLEAN_VERSION) + ": " + _string);
 
     return _string;
 }
@@ -57,7 +55,7 @@ function __CleanError()
         ++_i;
     }
     
-    show_error("Clean Shapes:\n" + _string + "\n ", false);
+    show_error("Clean Shapes " + string(CLEAN_VERSION) + ":\n" + _string + "\n ", false);
     
     return _string;
 }
@@ -77,9 +75,6 @@ function __CleanDraw()
         
         CleanBatchDrawVertexBuffer(_vbuff, true);
     }
-    
-    var _selfPointer = self;
-    delete _selfPointer;
     
     return undefined;
 }
@@ -348,9 +343,9 @@ function __CleanBuildPolyline(_vbuff)
             vertex_position_3d(_vbuff, _x5, _y5, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             vertex_position_3d(_vbuff, _x6, _y6, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             
-            vertex_position_3d(_vbuff, _x3, _y3, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x3, _y3, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             vertex_position_3d(_vbuff, _x6, _y6, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
-            vertex_position_3d(_vbuff, _x4, _y4, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x4, _y4, _capStart); vertex_normal(_vbuff, _px2, _py2, 0); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px3, _py3, 0); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
         }
         
         
@@ -416,11 +411,11 @@ function __CleanBuildPolyline(_vbuff)
             
             //AB midpoint to B
             vertex_position_3d(_vbuff, _x1, _y1, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c01, _a01); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
-            vertex_position_3d(_vbuff, _x3, _y3, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
-            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x3, _y3, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
                                                                                                                     
             vertex_position_3d(_vbuff, _x1, _y1, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c01, _a01); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
-            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             vertex_position_3d(_vbuff, _x2, _y2, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c01, _a01); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             
             //B to BC midpoint
@@ -428,9 +423,9 @@ function __CleanBuildPolyline(_vbuff)
             vertex_position_3d(_vbuff, _x5, _y5, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             vertex_position_3d(_vbuff, _x6, _y6, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
                                                                                                                     
-            vertex_position_3d(_vbuff, _x3, _y3, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x3, _y3, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             vertex_position_3d(_vbuff, _x6, _y6, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c12, _a12); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
-            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1 , _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
+            vertex_position_3d(_vbuff, _x4, _y4, _join); vertex_normal(_vbuff, _px1, _py1, _px3); vertex_colour(_vbuff, _c1,  _a1 ); vertex_float3(_vbuff, _px2, _py2, _py3); vertex_float4(_vbuff, 0, 0, 0, 0); vertex_texcoord(_vbuff, _thickness, 0);
             
             _i += 2;
         }

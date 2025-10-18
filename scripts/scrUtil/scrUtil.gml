@@ -68,11 +68,22 @@ function draw_set_color_alpha(color, alpha) {
 	draw_set_alpha(alpha);
 }
 
-function draw_scribble_box(_ele, x, y, alpha) {
+function draw_scribble_anno_box(_ele, x, y, col, alpha) {
 	var _bbox = _ele.get_bbox(x, y);
 	
 	CleanRectangle(_bbox.left-5, _bbox.top-5, _bbox.right+5, _bbox.bottom+5)
-		.Blend(merge_color(theme_get().color, c_black, 0.4), alpha)
+		.Blend(merge_color(col, c_black, 0.4), alpha)
+		.Rounding(10)
+		.Draw();
+}
+
+function draw_scribble_anno_box_ext(_ele, x, y, col, alpha, borderThick, borderCol, borderAlp) {
+	var _bbox = _ele.get_bbox(x, y);
+	var _pad = 5 + borderThick / 2;
+	
+	CleanRectangle(_bbox.left-_pad, _bbox.top-_pad, _bbox.right+_pad, _bbox.bottom+_pad)
+		.Blend(merge_color(col, c_black, 0.4), alpha)
+		.Border(borderThick, borderCol, borderAlp)
 		.Rounding(10)
 		.Draw();
 }
@@ -447,6 +458,17 @@ function window_reset() {
 	);
 }
 
+function resolution_set(width, height, updateViewport = true) {
+	surface_resize(application_surface, width, height);
+
+	if(updateViewport) {
+		view_wport[0] = width;
+		view_hport[0] = height;
+		view_xport[0] = 0;
+		view_yport[0] = 0;
+	}
+}
+
 #endregion
 
 function in_between(x, l, r) {
@@ -486,14 +508,14 @@ function lerp_lim(from, to, amount, limit) {
 function lerp_lim_a(from, to, amount, limit) {
 	var fix_parameter = 60 / 165;
     return lerp_lim(from, to, 
-        1 - power(1 - amount * fix_parameter, delta_time / 1000000 * 165),
-		limit * global.fpsAdjust);
+        1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165),
+		limit * global.timeManager.get_fps_scale());
 }
 
 function lerp_a(from, to, amount) {
 	if(from == to) return from;
 	var fix_parameter = 60 / 165;
-	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, delta_time / 1000000 * 165));
+	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165));
 }
 
 function lerp_safe(from, to, amount) {
@@ -509,7 +531,7 @@ function lerp_pos(from, to, amount) {
 }
 
 function lerp_a_pos(from, to, amount) {
-	return lerp_pos(from, to, amount * global.fpsAdjust);
+	return lerp_pos(from, to, amount * global.timeManager.get_fps_scale());
 }
 
 function create_scoreboard(_x, _y, _dep, _dig, _align, _lim) {
@@ -908,11 +930,6 @@ function shader_set_texture(uniform, texture, shd = undefined) {
     texture_set_stage(_sampler, texture);
 }
 
-/// @description Get the safe delta time limited under 10FPS.
-function get_delta_time() {
-	return min(delta_time, 100000);
-}
-
 /// @description Delete an element from an array at a specific index without preserving order.
 /// @param {Array} arr The array to modify.
 /// @param {Real} index The index of the element to delete.
@@ -1031,6 +1048,12 @@ function is_relative_path(path) {
 	return filename_name(path) == path;
 }
 
+function get_absolute_path(dir, path) {
+	if(is_relative_path(path))
+		return dir + path;
+	return path;
+}
+
 function file_get_size(file) {
 	var f = file_bin_open(file, 0);
 	if(f == -1) throw $"File not found: {file}";
@@ -1060,3 +1083,4 @@ function manually_reset_view_size() {
 	matrix_set(matrix_view, matrix_stack_top());
 	matrix_stack_pop();
 }
+

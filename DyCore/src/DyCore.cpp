@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "config.h"
+#include "tools.h"
 #include "utils.h"
 #include "version.h"
 
@@ -59,6 +60,11 @@ DYCORE_API const char* DyCore_init(const char* hwnd) {
     }
 
     hwndParent = hwndHandle;
+
+    // Check FFmpeg availability
+    if (is_FFmpeg_available()) {
+        print_debug_message("FFmpeg is available.");
+    }
 
     print_debug_message("DyCore Initialization finished. No errors.");
 

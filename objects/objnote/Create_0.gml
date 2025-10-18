@@ -395,7 +395,7 @@ image_yscale = 1;
             }
         }
         else if(objMain.nowPlaying || editor_get_editmode() == 5) {
-            partHoldTimer += get_delta_time() / 1000;
+            partHoldTimer += global.timeManager.get_delta() / 1000;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
                 partHoldTimer -= PARTICLE_HOLD_DELAY;

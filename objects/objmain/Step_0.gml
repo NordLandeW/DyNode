@@ -92,10 +92,7 @@ projectTime += round(delta_time / 1000);
     }
     
     if(keycheck_down(vk_enter)) {		// Replay Mode
-    	editor_set_editmode(5);
-    	nowTime = -PLAYBACK_EMPTY_TIME;
-    	animTargetTime = -PLAYBACK_EMPTY_TIME;
-    	reset_scoreboard();
+    	playview_start_replay();
     }
     
     if(keycheck_down(ord("U")))
@@ -117,7 +114,7 @@ projectTime += round(delta_time / 1000);
     
     if(keycheck_down_ctrl(vk_f6)) {
     	chart_randomize();
-    	scribble_anim_wheel(dyc_random_range(15,20), dyc_random_range(9, 20), dyc_random_range(0.5, 5)*global.fpsAdjust);
+    	scribble_anim_wheel(dyc_random_range(15,20), dyc_random_range(9, 20), dyc_random_range(0.5, 5)*global.timeManager.get_fps_scale());
     	announcement_play("[rainbow][wobble][wheel][scale,2]R A N D O M[/rainbow][/wobble][/wheel][/s]\n请谨慎保存谱面。");
     }
     
@@ -160,27 +157,10 @@ projectTime += round(delta_time / 1000);
 
 #endregion
 
-#region Muisc Pause & Resume
+#region Music Pause & Resume
 
-    if(keycheck_down(vk_space) || keycheck_down(vk_enter)) {
-    	_set_channel_speed(musicSpeed);
-    	if(!nowPlaying || keycheck_down(vk_enter)) {
-        	if(nowTime >= musicLength && !keycheck_down(vk_enter)) nowTime = 0;
-            FMODGMS_Chan_ResumeChannel(channel);
-			nowPlaying = true;
-            sfmod_channel_set_position(nowTime, channel, sampleRate);
-
-			// Multiple hacks are used for video resume,
-			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
-        }
-        else {
-            FMODGMS_Chan_PauseChannel(channel);
-            nowPlaying = false;
-            
-            if(bgVideoLoaded) {
-            	safe_video_pause();
-            }
-        }
+    if(keycheck_down(vk_space)) {
+		playview_pause_and_resume(false);
     }
 
 #endregion
@@ -226,7 +206,7 @@ projectTime += round(delta_time / 1000);
 
 #region Side Hinter Update
 
-	sideHinterCheckTimer += delta_time / 1000;
+	sideHinterCheckTimer += global.timeManager.get_delta() / 1000;
 	if(sideHinterCheckTimer > SIDEHINT_CHECK_TIME) {
 		sideHinterCheckTimer = 0;
 		_sidehinter_check();
@@ -234,7 +214,7 @@ projectTime += round(delta_time / 1000);
 	for(var i=0; i<2; i++) 
 		if(sideHinterState[i] >= 0)
 		{
-			sideHinterTimer[i] += delta_time / 1000;
+			sideHinterTimer[i] += global.timeManager.get_delta() / 1000;
 			if(sideHinterTimer[i] >= SIDEHINT_STATE_TIME) {
 				sideHinterState[i] ++;
 				sideHinterTimer[i] -= SIDEHINT_STATE_TIME;

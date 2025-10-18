@@ -195,14 +195,14 @@ if(editorHighlightLine) {
     
     // LR
     CleanLine(_nx, 30, _nx, BASE_RES_H - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
-        .Thickness(10)
+        .Thickness(5)
         .Blend2(highlightLineColorSideA, 1,
             highlightLineColorSideB, 1)
         .Cap("round", "none")
         .Draw();
     _nx = BASE_RES_W - _nx;
     CleanLine(_nx, 30, _nx, BASE_RES_H - objMain.targetLineBelow - objMain.targetLineBelowH / 2)
-        .Thickness(10)
+        .Thickness(5)
         .Blend2(highlightLineColorSideA, 1,
             highlightLineColorSideB, 1)
         .Cap("round", "none")
