@@ -24,6 +24,7 @@ function AnnouncementManager() constructor {
                 with(arr[i]) {
                     str = msg;
                     lastTime = timer + duration;
+                    arr[i]._generate_element();
                 }
             }
     }
@@ -76,4 +77,32 @@ function AnnouncementManager() constructor {
             }
         }
     }
+}
+
+
+function announcement_play(_str, time = 3000, _uniqueID = "null", type = ANNO_TYPE.NORMAL) {
+	global.announcementMan.create_announcement(_str, time, _uniqueID, type);
+}
+
+function announcement_warning(str, time = 5000, uid = "null") {
+	str = i18n_get(str);
+	announcement_play("[c_warning][[" + i18n_get("anno_prefix_warn") + "] [/c]" + str, time, uid);
+}
+
+function announcement_error(str, time = 8000, uid = "null") {
+	str = i18n_get(str);
+	announcement_play("[#f44336][[" + i18n_get("anno_prefix_err") + "] " + str, time, uid);
+	show_debug_message_safe(str);
+}
+
+function announcement_adjust(str, val) {
+	str = i18n_get(str);
+	announcement_play(str + ": " + i18n_get(val?"anno_adjust_enabled":"anno_adjust_disabled"), 3000, md5_string_unicode(str));
+}
+
+function announcement_set(str, val) {
+	str = i18n_get(str);
+	if(is_real(val))
+		val = string_format(val, 1, 2);
+	announcement_play(str + ": " + i18n_get(string(val)), 3000, md5_string_unicode(str));
 }

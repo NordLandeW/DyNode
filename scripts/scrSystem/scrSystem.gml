@@ -989,64 +989,6 @@ function theme_get_color_hsv() {
 
 #endregion
 
-#region ANNOUNCEMENT FUNCTIONS
-
-function announcement_play(_str, time = 3000, _uniqueID = "null") {
-	_str = i18n_get(_str);
-	
-	var _below = 10;
-	var _beside = 10;
-	var _nx = BASE_RES_W - _beside;
-	var _ny = BASE_RES_H - _below;
-	
-	if(_uniqueID == "null")
-		_uniqueID = random_id(8);
-	
-	var _found = false;
-	var arr = global.announcementMan.announcements;
-	for(var i=0, l=array_length(arr); i<l; i++)
-		if(instance_exists(arr[i]) && arr[i].uniqueID == _uniqueID) {
-			_found = true;
-			with(arr[i]) {
-				str = _str;
-				lastTime = timer + time;
-				_generate_element();
-			}
-		}
-	if(_found) return;
-	
-	/// @type {Id.Instance.objAnnouncement}
-	var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
-	_inst.init(_str, time, _uniqueID);
-	
-	array_push(arr, _inst);
-}
-
-function announcement_warning(str, time = 5000, uid = "null") {
-	str = i18n_get(str);
-	announcement_play("[c_warning][[" + i18n_get("anno_prefix_warn") + "] [/c]" + str, time, uid);
-}
-
-function announcement_error(str, time = 8000, uid = "null") {
-	str = i18n_get(str);
-	announcement_play("[#f44336][[" + i18n_get("anno_prefix_err") + "] " + str, time, uid);
-	show_debug_message_safe(str);
-}
-
-function announcement_adjust(str, val) {
-	str = i18n_get(str);
-	announcement_play(str + ": " + i18n_get(val?"anno_adjust_enabled":"anno_adjust_disabled"), 3000, md5_string_unicode(str));
-}
-
-function announcement_set(str, val) {
-	str = i18n_get(str);
-	if(is_real(val))
-		val = string_format(val, 1, 2);
-	announcement_play(str + ": " + i18n_get(string(val)), 3000, md5_string_unicode(str));
-}
-
-#endregion
-
 #region SYSTEM FUNCTIONS
 
 function get_config_path() {
