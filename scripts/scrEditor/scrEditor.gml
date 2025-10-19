@@ -831,7 +831,7 @@ function advanced_expr() {
 		var _success = true;
 		var _exec = function(_noteProp, _expr) {
 			if(_noteProp.noteType != 3) {
-				/// @type {Any} 
+				/// @type {Struct.sNoteProp} 
 				var _prop = SnapDeepCopy(_noteProp);
 				var _nprop = SnapDeepCopy(_noteProp);
 				
@@ -840,6 +840,7 @@ function advanced_expr() {
 				expr_set_var("pos", _prop.position);
 				expr_set_var("wid", _prop.width);
 				expr_set_var("len", _prop.lastTime);
+				expr_set_var("side", _prop.side);
 				expr_set_var("htime", _prop.time);
 				expr_set_var("etime", _prop.time + _prop.lastTime);
 				
@@ -853,6 +854,7 @@ function advanced_expr() {
 				_nprop.time = expr_get_var("time");
 				_nprop.position = expr_get_var("pos");
 				_nprop.width = expr_get_var("wid");
+				_nprop.side = (expr_get_var("side") % 3 + 3) % 3;
 				if(_noteProp.noteType == 2) {
 					if(expr_get_var("htime") != _prop.time) {
 						_nprop.lastTime = _prop.lastTime - (expr_get_var("htime") - _prop.time);
