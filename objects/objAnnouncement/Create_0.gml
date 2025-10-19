@@ -39,6 +39,7 @@ init = function(str, lastTime, uniqueID, type = ANNO_TYPE.NORMAL) {
 /// @param {Enum.ANNO_STATE} state 
 set_state = function(state) {
 	annoState = state;
+	timer = 0;
 }
 
 image_alpha = 0;
@@ -48,5 +49,6 @@ shiftInX = -50;
 shiftTime = 500;
 shiftCurv = animcurve_get_channel(curvShiftIn, "curve1");
 timer = 0;
+anniTimer = 0;
 targetY = 0;
 nowShiftY = 0;

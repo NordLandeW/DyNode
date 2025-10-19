@@ -26,6 +26,13 @@ function TimeManager() constructor {
         }
     }
 
+    static get_delta_default = function(clamped = true) {
+        return get_delta(TIME_MODE.DEFAULT, clamped);
+    }
+    static get_delta_fixed = function(clamped = true) {
+        return get_delta(TIME_MODE.FIXED, clamped);
+    }
+
     static set_mode_default = function() {
         mode = TIME_MODE.DEFAULT;
     }

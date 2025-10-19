@@ -54,6 +54,8 @@ function RecordManager() constructor {
         show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
         show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
         show_debug_message("-- Music path: " + musicPath);
+
+        announcement_task("正在录制视频。", 5000, "recording");
     }
 
     static push_frame = function() {
@@ -77,6 +79,8 @@ function RecordManager() constructor {
         global.timeManager.set_mode_default();
         game_set_speed(originalFPS, gamespeed_fps);
         show_debug_message("-- Recording finished.");
+
+        announcement_task("视频录制完毕。", 5000, "recording", ANNO_STATE.COMPLETE);
     }
 
     static is_recording = function() {

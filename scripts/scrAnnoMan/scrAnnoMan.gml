@@ -17,19 +17,20 @@ function AnnouncementManager() constructor {
         return false;
     }
 
-    static update_announcement = function(annoID, msg, duration) {
+    static update_announcement = function(annoID, msg, duration, type, state) {
         var arr = announcements;
         for(var i=0, l=array_length(arr); i<l; i++)
-            if(instance_exists(arr[i]) && arr[i].uniqueID == annoID) {
+            if(instance_exists(arr[i]) && arr[i].uniqueID == annoID && arr[i].annoType == type) {
                 with(arr[i]) {
                     str = msg;
                     lastTime = timer + duration;
-                    arr[i]._generate_element();
+                    set_state(state);
+                    _generate_element();
                 }
             }
     }
 
-    static create_announcement = function(msg, duration, annoID) {
+    static create_announcement = function(msg, duration, annoID, type, state) {
         msg = i18n_get(msg);
 	
         var _below = 10;
@@ -41,13 +42,14 @@ function AnnouncementManager() constructor {
             annoID = random_id(8);
 
         if(is_existed(annoID)) {
-            update_announcement(annoID, msg, duration);
+            update_announcement(annoID, msg, duration, type, state);
             return;
         }
         
         /// @type {Id.Instance.objAnnouncement}
         var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
-        _inst.init(msg, duration, annoID);
+        _inst.init(msg, duration, annoID, type);
+        _inst.set_state(state);
         
         array_push(announcements, _inst);
     }
@@ -80,8 +82,12 @@ function AnnouncementManager() constructor {
 }
 
 
-function announcement_play(_str, time = 3000, _uniqueID = "null", type = ANNO_TYPE.NORMAL) {
-	global.announcementMan.create_announcement(_str, time, _uniqueID, type);
+function announcement_play(_str, time = 3000, _uniqueID = "null") {
+	global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.NORMAL, ANNO_STATE.IDLE);
+}
+
+function announcement_task(_str, time = 3000, _uniqueID = "null", state = ANNO_STATE.PROCESSING) {
+    global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.TASK, state);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {
