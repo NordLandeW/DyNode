@@ -13,10 +13,10 @@ if(mouse_inbound(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom))
 
 switch(annoState) {
 	case ANNO_STATE.ERROR:
-		_col = c_red;
+		_col = merge_color(c_red, c_white, 0.5);
 		break;
 	case ANNO_STATE.COMPLETE:
-		_col = c_green;
+		_col = merge_color(c_green, c_white, 0.5);
 		break;
 	default:
 		break;
