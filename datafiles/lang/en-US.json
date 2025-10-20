@@ -207,11 +207,11 @@
         "dyn_old_format_conversion_failed": "Failed to convert old DYN file format.\nError message: $0",
         "dyn_chart_import_failed": "Failed to import DYN chart file.\nError message: $0",
         "update_before_0_1_19": "Settings from a previous version have been detected.\nThe new version fixes a bug related to music latency, so the latency settings have been cleared.",
-        "recording_button": "录制谱面视频",
-        "recording_processing": "正在录制视频。\n[scale,0.8]规格: $0x$1 @ $2 FPS\n已完成: $3 %",
-        "recording_complete": "视频录制完毕。\n[scale,0.8]已保存至: $0",
-        "recording_failed": "视频录制失败。\n错误信息: $0",
-        "recording_savefile_dlg_title": "录制视频文件保存至",
-        "recording_no_ffmpeg": "未找到 FFmpeg 可执行文件。\n请确保 FFmpeg 已正确安装并且其路径已被添加至系统环境变量中。"
+        "recording_button": "Record Chart Video",
+        "recording_processing": "Recording video.\n[scale,0.8]Resolution: $0x$1 @ $2 FPS\nCompleted: $3 %",
+        "recording_complete": "Video recording complete.\n[scale,0.8]Saved to: $0",
+        "recording_failed": "Video recording failed.\nError message: $0",
+        "recording_savefile_dlg_title": "Save Video File To",
+        "recording_no_ffmpeg": "FFmpeg executable not found.\nPlease ensure FFmpeg is installed correctly and its path has been added to the system's environment variables."
     }
 }
