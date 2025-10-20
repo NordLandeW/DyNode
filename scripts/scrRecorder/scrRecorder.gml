@@ -98,6 +98,10 @@ function RecordManager() constructor {
 
 }
 
+function recording_default_filename() {
+    return $"{dyc_chart_get_title()}_{difficulty_num_to_name(dyc_chart_get_difficulty())}_recording.mp4";
+}
+
 function recording_start(filename = "") {
     if(!DyCore_ffmpeg_is_available()) {
         announcement_warning("recording_no_ffmpeg");
@@ -106,7 +110,7 @@ function recording_start(filename = "") {
 
 
     if(filename == "") {
-        var defaultFilename = objMain.chartTitle + "_recording.mp4";
+        var defaultFilename = recording_default_filename();
         filename = dyc_get_save_filename("Video File (*.mp4)|*.mp4", defaultFilename, objManager.projectPath, i18n_get("recording_savefile_dlg_title"));
     }
     if(filename == "") {
