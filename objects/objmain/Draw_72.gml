@@ -18,7 +18,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
     }
     
     // Video
-    if(bgVideoAlpha > EPS) 
+    if(bgVideoAlpha > EPS && !global.recordManager.is_recording()) 
 		safe_video_draw(0, 0, bgVideoAlpha);
 	else if(!bgVideoPaused && editor_get_editmode() != 5)
 		safe_video_pause();
@@ -80,7 +80,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 	
 	// Draw Pause Icon
 	
-	if(!showDebugInfo) {
+	if(!showDebugInfo || global.recordManager.is_recording()) {
 		draw_sprite_ext(sprPauseBar, 0,
 			resor_to_x(0.5) - pauseBarIndent / 2, blackBarFromTop,
 			1, 1, 0, c_white, standardAlpha);

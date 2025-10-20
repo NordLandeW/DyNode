@@ -36,7 +36,7 @@ function safe_video_update() {
         if(video_get_status() <= 1)
             return false;
 
-        if((nowPlaying && nowTime > bgVideoLength - VIDEO_PAUSE_AHEAD_ENDING) || nowTime < 0)
+        if((nowPlaying && nowTime > bgVideoLength - VIDEO_PAUSE_AHEAD_ENDING) || nowTime < 0 || global.recordManager.is_recording())
             safe_video_pause();
         else if(nowPlaying && editor_get_editmode() == 5 && bgVideoPaused && nowTime >= 0)
             safe_video_seek_to(nowTime);
