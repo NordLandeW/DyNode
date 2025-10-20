@@ -1,18 +1,20 @@
 /// @description Update perfect indic
 
+var dT = global.timeManager.get_delta();
+
 switch (animState) {
     case 0: // normal
         scaleMul = 1.0;
         break;
     case 1: // expanding
-        scaleMul += expandingSpeed * delta_time / 1000;
+        scaleMul += expandingSpeed * dT / 1000;
         if (scaleMul >= maximumScale) {
             scaleMul = maximumScale;
             animState = 2; // switch to shrinking
         }
         break;
     case 2: // shrinking
-        scaleMul -= shrinkingSpeed * delta_time / 1000;
+        scaleMul -= shrinkingSpeed * dT / 1000;
         if (scaleMul <= 1.0) {
             scaleMul = 1.0;
             animState = 0; // switch to normal
@@ -20,7 +22,7 @@ switch (animState) {
         break;
 }
 
-nowTime += delta_time / 1000;
+nowTime += dT / 1000;
 
 // Perfect Indicator Fade Out
 

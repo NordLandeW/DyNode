@@ -1,12 +1,43 @@
 
-var _nx = x + shiftInX * animcurve_channel_evaluate(shiftCurv, min(timer/shiftTime, 1));
+var _nx = x + shiftInX * animcurve_channel_evaluate(shiftCurv, min(anniTimer/shiftTime, 1));
 var _ny = y - nowShiftY;
+var _col = theme_get().color;
+var _borderthick = sin(anniTimer * 2 * pi / ANNO_BORDER_ANIMATION_TIME) * 2 + 2;
+var _borderalp = sin(anniTimer * 2 * pi / ANNO_BORDER_ANIMATION_TIME) * 0.5 + 0.5;
+var _bordercol = merge_color(_col, c_white, 0.5);
 
 var _bbox = element.get_bbox(_nx, _ny);
 
 if(mouse_inbound(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom))
 	image_alpha = 1;
-draw_scribble_box(element, _nx, _ny, image_alpha * 0.6);
+
+switch(annoState) {
+	case ANNO_STATE.ERROR:
+		_col = merge_color(c_red, c_white, 0.5);
+		break;
+	case ANNO_STATE.COMPLETE:
+		_col = merge_color(c_green, c_white, 0.5);
+		break;
+	default:
+		break;
+}
+
+switch (annoType) {
+	case ANNO_TYPE.NORMAL:
+		draw_scribble_anno_box(element, _nx, _ny, _col, image_alpha * 0.6);
+		break;
+	case ANNO_TYPE.TASK:
+		switch(annoState) {
+			default:
+				draw_scribble_anno_box(element, _nx, _ny, _col, image_alpha * 0.6);
+				break;
+			case ANNO_STATE.PROCESSING:
+				draw_scribble_anno_box_ext(element, _nx, _ny, _col, image_alpha * 0.6, 
+										   _borderthick, _bordercol, _borderalp * image_alpha);
+				break;
+		}
+		break;
+}
 
 element
     .blend(c_white, image_alpha)

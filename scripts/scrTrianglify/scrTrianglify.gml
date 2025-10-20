@@ -54,10 +54,10 @@ function trianglify_generate(w, h, speedRange, cellSize=75, variance=0.75) {
     		y : -bleedY + j * cellSize + halfCell + _corner * getJitter(cellJitter),
     		vx : (in_between(i, 2, colCount - 3) && in_between(j, 2, rowCount - 3))
     			* dyc_random_range(speedRange[0], speedRange[1]) * (dyc_irandom(1)*2-1)
-    			* global.fpsAdjust,
+    			* global.timeManager.get_fps_scale(),
     		vy : (in_between(i, 2, colCount - 3) && in_between(j, 2, rowCount - 3))
     			* dyc_random_range(speedRange[0], speedRange[1]) * (dyc_irandom(1)*2-1)
-    			* global.fpsAdjust
+    			* global.timeManager.get_fps_scale()
     	});
     }
     

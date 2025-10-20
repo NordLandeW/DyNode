@@ -22,6 +22,17 @@ if(keycheck_down(vk_tab)) {
                 return !is_undefined(objMain.channel);
             }
             );
+        _inst = new Button(
+            "record",
+            _nw - layoutBar.w/2, layout.fromTop + layout.paddingH,
+            i18n_get("recording_button"), function() {
+                recording_start();
+            },
+            function() {
+                return !global.recordManager.is_recording();
+            }
+        );
+        _inst.set_wh(layoutBar.w / 2,layoutBar.h + 10);
     }
     else {
         gui_manager_destroy();

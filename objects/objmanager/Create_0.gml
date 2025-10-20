@@ -27,10 +27,6 @@
 #macro FMOD_DSP_BUFFERCOUNT (4)
 math_set_epsilon(0.00000001);				// 1E-8
 
-// Announcement init
-/// @type {Array<Id.Instance.objAnnouncement>} 
-announcements = [];
-
 // Global Configs
 global.fps = display_get_frequency();
 global.autosave = false;
@@ -59,6 +55,8 @@ global.PROJECT_COMPRESSION_LEVEL = 11;		// zstd compression level. (0~22)
 
 // Singletons init
 global.activationMan = new Activationmanager();
+global.recordManager = new RecordManager();
+global.announcementMan = new AnnouncementManager();
 
 // Themes Init
 
@@ -176,6 +174,12 @@ randomize();
 // if(debug_mode)
 // 	show_debug_overlay(true);
 
+// Check FFmpeg Availability
+
+if(DyCore_ffmpeg_is_available()) {
+	show_debug_message("FFmpeg is available.");
+}
+
 // Init finished
 
 GoogHit("login", {
@@ -204,9 +208,6 @@ else
 
 #region Inner Variables
 
-	annoThresholdNumber = 7;
-	annoThresholdTime = 400;
-	annosY = [];
 	animAnnoSpeed = 1 / room_speed;
 	
 	/// @type {Any} 

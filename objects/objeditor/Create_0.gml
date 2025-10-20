@@ -151,8 +151,8 @@ beatlineNowMode = 3;
 beatlineDiv = -1;
 beatlineEnabled = array_create(28, 0);
 
-beatlineHardWidth = 6;
-beatlineWidth = 3;
+beatlineHardWidth = 3.5;
+beatlineWidth = 2;
 beatlineHardLength = BASE_RES_W * 0.9;
 beatlineLength = BASE_RES_W * 0.75;
 beatlineLengthLong = BASE_RES_W - objMain.targetLineBeside * 2;

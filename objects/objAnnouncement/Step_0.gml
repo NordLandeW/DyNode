@@ -1,8 +1,7 @@
 
-if(delta_time / 1000 < 100) {
-    timer += delta_time / 1000;
-}
-	
+if(annoState != ANNO_STATE.PROCESSING)
+    timer += global.timeManager.get_delta_default() / 1000;
+anniTimer += global.timeManager.get_delta_default() / 1000;
 
 if(lastTime < timer) {
     image_alpha -= objManager.animAnnoSpeed;

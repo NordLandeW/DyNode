@@ -19,7 +19,7 @@ function GUIElement() constructor {
     fontSize = 16;
     fontColor = c_white;
     // fontCJK = "sprMsdfNotoSans";
-    font = "fMono16";
+    font = "fMono16N";
     titlePadding = 5;
     
     // States
@@ -207,11 +207,12 @@ function GUIElement() constructor {
             .Draw();
         
         var _content = content;
+        var _scl = ascale * (has_cjk(content) ? 0.65 : 1);
         if(has_cjk(content)) _content = cjk_prefix() + content;
-        scribble(content, "GUI_"+content)
+        scribble(_content, "GUI_"+content)
             .starting_format(font, fontColor)
             .align(fa_center, fa_middle)
-            .scale(ascale, ascale)
+            .scale(_scl, _scl)
             .draw(_x, _y);
     } 
     static destroy = function() {

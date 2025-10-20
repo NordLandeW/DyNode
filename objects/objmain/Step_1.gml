@@ -43,11 +43,11 @@ var _music_resync_request = false;
     
     if(_timchange != 0 || _timscr != 0) {
         if(nowPlaying) {
-            nowTime += (_timchange * adtimeSpeed * global.fpsAdjust + _timscr * scrolltimeSpeed);
+            nowTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
             _music_resync_request = true;
         }
         else {
-            animTargetTime += (_timchange * adtimeSpeed * global.fpsAdjust + _timscr * scrolltimeSpeed);
+            animTargetTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
         }
     }
     
@@ -59,7 +59,7 @@ var _music_resync_request = false;
 // Time Operation
 
     if(nowPlaying && !(_timchange != 0 || _timscr != 0)) {
-    	nowTime += delta_time * musicSpeed / 1000;
+    	nowTime += global.timeManager.get_delta(-1, false) * musicSpeed / 1000;
     }
     
         
@@ -70,7 +70,7 @@ var _music_resync_request = false;
             sfmod_channel_set_position(0, channel, sampleRate);
             channelPaused = true;
         }
-        else if(nowPlaying && channelPaused) {
+        else if(nowPlaying && channelPaused && !global.recordManager.is_recording()) {
             FMODGMS_Chan_ResumeChannel(channel);
             sfmod_channel_set_position(nowTime, channel, sampleRate);
             channelPaused = false;
@@ -88,9 +88,9 @@ var _music_resync_request = false;
                 animTargetTopBarIndicatorA = 0;
             
             topBarIndicatorA = lerp(topBarIndicatorA, 
-                animTargetTopBarIndicatorA, animSpeed * global.fpsAdjust);
-            
-            topBarTimeLastTime -= delta_time / 1000;
+                animTargetTopBarIndicatorA, animSpeed * global.timeManager.get_fps_scale());
+
+            topBarTimeLastTime -= global.timeManager.get_delta() / 1000;
             if(editor_get_editmode() < 5) topBarTimeLastTime = 1;
         	
             animTargetTopBarTimeGradA = topBarMouseInbound || topBarMousePressed;
@@ -141,6 +141,10 @@ var _music_resync_request = false;
             safe_video_pause();
             
             nowPlaying = false;
+
+            // Trigger playback end event
+            if(editor_get_editmode() == 5)
+            	on_playback_end();
         }
         
         musicProgress = clamp(nowTime, 0, musicLength) / musicLength;
