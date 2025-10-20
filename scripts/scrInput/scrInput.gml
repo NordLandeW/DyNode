@@ -7,6 +7,8 @@ function InputManager() constructor {
     #macro INPUT_IO_RESET_TIME_THRESHOLD 75
     #macro INPUT_LOCK_RESET_TIME_THRESHOLD 250
     
+    frozen = false;
+
     // In-functions
 
     static _io_fix = function() {
@@ -55,6 +57,16 @@ function InputManager() constructor {
     static _direct_state_unlock = function() {
         directStateLock = false;
         directStateLockTimer = 0;
+    }
+
+    static freeze = function() {
+        frozen = true;
+    }
+    static unfreeze = function() {
+        frozen = false;
+    }
+    static is_frozen = function() {
+        return frozen;
     }
     
     last_mouse_x = 0;
@@ -199,23 +211,28 @@ function mouse_get_last_pos(button) {
 }
 
 function mouse_inbound(x1, y1, x2, y2) {
+    if(global.__InputManager.is_frozen()) return false;
     return pos_inbound(mouse_x, mouse_y, x1, y1, x2, y2);
 }
 function mouse_square_inbound(x, y, a) {
+    if(global.__InputManager.is_frozen()) return false;
     return pos_inbound(mouse_x, mouse_y, x-a/2, y-a/2, x+a/2, y+a/2);
 }
 function mouse_inbound_last_l(x1, y1, x2, y2) {
+    if(global.__InputManager.is_frozen()) return false;
     var _nx = global.__InputManager.lastMousePressedPos[0][0][0];
     var _ny = global.__InputManager.lastMousePressedPos[0][0][1];
     return pos_inbound(_nx, _ny, x1, y1, x2, y2);
 }
 function mouse_square_inbound_last_l(x, y, a) {
+    if(global.__InputManager.is_frozen()) return false;
     var _nx = global.__InputManager.lastMousePressedPos[0][0][0];
     var _ny = global.__InputManager.lastMousePressedPos[0][0][1];
     return pos_inbound(_nx, _ny, x-a/2, y-a/2, x+a/2, y+a/2);
 }
 
 function mouse_inbound_last_double_l(x1, y1, x2, y2) {
+    if(global.__InputManager.is_frozen()) return false;
     var _result = true;
     for(var i=0; i<2; i++) {
         var _nx = global.__InputManager.lastMousePressedPos[0][i][0];
@@ -230,18 +247,23 @@ function mouse_clear_hold() {
 }
 
 function mouse_ishold_l() {
+    if(global.__InputManager.is_frozen()) return false;
     return global.__InputManager.mouseHoldTime[0] > INPUT_MOUSE_HOLD_THRESHOLD;
 }
 function mouse_isclick_l() {
+    if(global.__InputManager.is_frozen()) return false;
     return global.__InputManager.mouseClick[0] > 0;
 }
 function mouse_ishold_r() {
+    if(global.__InputManager.is_frozen()) return false;
     return global.__InputManager.mouseHoldTime[1] > INPUT_MOUSE_HOLD_THRESHOLD;
 }
 function mouse_isclick_r() {
+    if(global.__InputManager.is_frozen()) return false;
     return global.__InputManager.mouseClick[1] > 0;
 }
 function mouse_isclick_double(button) {
+    if(global.__InputManager.is_frozen()) return false;
     return global.__InputManager.mouseClickDouble[button] > 0;
 }
 function mouse_clear_click() {
@@ -261,59 +283,74 @@ function input_direct_state_lock_get() {
 }
 
 function ctrl_ishold() {
+    if(global.__InputManager.is_frozen()) return false;
     return keyboard_check(vk_control);
 }
 function alt_ishold() {
+    if(global.__InputManager.is_frozen()) return false;
     return keyboard_check(vk_alt);
 }
 function ralt_ishold() {
+    if(global.__InputManager.is_frozen()) return false;
     return keyboard_check(vk_ralt);
 }
 function shift_ishold() {
+    if(global.__InputManager.is_frozen()) return false;
     return keyboard_check(vk_shift);
 }
 function nofunkey_ishold() {
     return !(ctrl_ishold()) && !(alt_ishold()) && !(shift_ishold());
 }
 function keycheck_ctrl(key) {
+    if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return ctrl_ishold() && keyboard_check(key);
 }
 function keycheck_down_ctrl(key) {
+    if(global.__InputManager.is_frozen()) return false;
     var _result = ctrl_ishold() && keyboard_check_pressed(key);
     if(_result) input_direct_state_lock();
     return _result;
 }
 function keycheck_shift(key) {
+    if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return shift_ishold() && keyboard_check(key);
 }
 function keycheck_down_shift(key) {
+    if(global.__InputManager.is_frozen()) return false;
     var _result = shift_ishold() && keyboard_check_pressed(key);
     if(_result) input_direct_state_lock();
     return _result;
 }
 
 function keycheck(key, nofun = true) {
+    if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check(key);
 }
 function keycheck_down(key, nofun = true) {
+    if(global.__InputManager.is_frozen()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check_pressed(key);
 }
 function keycheck_up(key) {
+    if(global.__InputManager.is_frozen()) return false;
     return keyboard_check_released(key);
 }
 function wheelcheck_up() {
+    if(global.__InputManager.is_frozen()) return false;
     return mouse_wheel_up() && nofunkey_ishold();
 }
 function wheelcheck_down() {
+    if(global.__InputManager.is_frozen()) return false;
     return mouse_wheel_down() && nofunkey_ishold();
 }
 function wheelcheck_up_ctrl() {
+    if(global.__InputManager.is_frozen()) return false;
     return mouse_wheel_up() && ctrl_ishold();
 }
 function wheelcheck_down_ctrl() {
+    if(global.__InputManager.is_frozen()) return false;
     return mouse_wheel_down() && ctrl_ishold();
 }
 

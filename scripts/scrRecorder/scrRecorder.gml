@@ -59,6 +59,8 @@ function RecordManager() constructor {
         show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
         show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
         show_debug_message("-- Music path: " + musicPath);
+
+        global.__InputManager.freeze();
     }
 
     static push_frame = function() {
@@ -86,6 +88,8 @@ function RecordManager() constructor {
         show_debug_message("-- Recording finished.");
 
         announcement_task(i18n_get("recording_complete", [targetFilePath]), 5000, "recording", ANNO_STATE.COMPLETE);
+        
+        global.__InputManager.unfreeze();
     }
 
     static is_recording = function() {
