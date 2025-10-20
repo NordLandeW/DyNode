@@ -6,15 +6,19 @@
 
 function RecordManager() constructor {
 
+    prepareRecording = false;
     recording = false;
     frameBuffer = -1;
     originalFPS = game_get_speed(gamespeed_fps);
+    targetFilePath = "";
 
     static _get_surface_buffer_size = function(w, h) {
         return w * h * 4;
     }
 
     static start_recording = function(filename) {
+
+        prepareRecording = false;
 
         if(recording) {
             show_debug_message("-- Already recording!");
@@ -32,6 +36,7 @@ function RecordManager() constructor {
         originalFPS = game_get_speed(gamespeed_fps);
         game_set_speed(RECORDING_FPS_MAX, gamespeed_fps);
         resolution_set(RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, false);
+        targetFilePath = filename;
         
         var w = RECORDING_RESOLUTION_W;
         var h = RECORDING_RESOLUTION_H;
@@ -54,8 +59,6 @@ function RecordManager() constructor {
         show_debug_message($"-- Frame buffer created. Size: {_get_surface_buffer_size(w, h)} bytes");
         show_debug_message($"-- Recording at {w}x{h} @ {_fps} FPS");
         show_debug_message("-- Music path: " + musicPath);
-
-        announcement_task("正在录制视频。", 5000, "recording");
     }
 
     static push_frame = function() {
@@ -64,6 +67,8 @@ function RecordManager() constructor {
         buffer_get_surface(frameBuffer, application_surface, 0);
         
         DyCore_ffmpeg_push_frame(buffer_get_address(frameBuffer), buffer_get_size(frameBuffer));
+
+        announcement_task(i18n_get("recording_processing", [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (objMain.nowTime / objMain.musicLength)]), 5000, "recording");
     }
 
     static finish_recording = function() {
@@ -80,13 +85,26 @@ function RecordManager() constructor {
         game_set_speed(originalFPS, gamespeed_fps);
         show_debug_message("-- Recording finished.");
 
-        announcement_task("视频录制完毕。", 5000, "recording", ANNO_STATE.COMPLETE);
+        announcement_task(i18n_get("recording_complete", [targetFilePath]), 5000, "recording", ANNO_STATE.COMPLETE);
     }
 
     static is_recording = function() {
-        return recording;
+        return recording || prepareRecording;
     }
 
+}
+
+function recording_start(filename = "") {
+    if(filename == "") {
+        var defaultFilename = objMain.chartTitle + "_recording.mp4";
+        filename = dyc_get_save_filename("Video File (*.mp4)|*.mp4", defaultFilename, objManager.projectPath, i18n_get("recording_savefile_dlg_title"));
+    }
+    global.recordManager.prepareRecording = true;
+    playview_start_replay(method({
+        filename: filename
+    }, function() {
+        global.recordManager.start_recording(filename);
+    }));
 }
 
 function _debug_start_record() {
