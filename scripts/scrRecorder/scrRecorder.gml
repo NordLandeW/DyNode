@@ -70,7 +70,10 @@ function RecordManager() constructor {
         
         DyCore_ffmpeg_push_frame(buffer_get_address(frameBuffer), buffer_get_size(frameBuffer));
 
-        announcement_task(i18n_get("recording_processing", [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (objMain.nowTime / objMain.musicLength)]), 5000, "recording");
+        announcement_task(
+            i18n_get("recording_processing", 
+                [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (max(objMain.nowTime, 0) / objMain.musicLength)]
+            ), 5000, "recording");
     }
 
     static finish_recording = function() {
