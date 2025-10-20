@@ -465,13 +465,18 @@ void Recorder::finish_recording() {
 }
 
 std::string Recorder::get_default_encoder() {
-    // Selection order: GPU HEVC > GPU H.264 > CPU HEVC > CPU H.264
+    // Selection order:
+    // 1) GPU HEVC  -> hevc_nvenc / hevc_qsv / hevc_amf
+    // 2) GPU H.264 -> h264_nvenc / h264_qsv / h264_amf
+    // 3) CPU HEVC  -> libx265
+    // 4) CPU H.264 -> libx264
+    // 5) Essentials/minimal builds -> libopenh264 -> mpeg4
     std::string enc_out;
     if (!run_command_capture_output_utf8("ffmpeg -hide_banner -encoders",
                                          enc_out)) {
         print_debug_message(
-            "Warning: Could not query FFmpeg encoders. Defaulting to libx264.");
-        return "libx264";
+            "Warning: Could not query FFmpeg encoders. Defaulting to mpeg4.");
+        return "mpeg4";
     }
 
     std::string lower = enc_out;
@@ -504,9 +509,15 @@ std::string Recorder::get_default_encoder() {
     if (has("libx264"))
         return "libx264";
 
+    // Essentials/other minimal builds
+    if (has("libopenh264"))
+        return "libopenh264";
+    if (has("mpeg4"))
+        return "mpeg4";
+
     print_debug_message(
-        "Warning: No suitable FFmpeg encoder found. Defaulting to libx264.");
-    return "libx264";
+        "Warning: No suitable FFmpeg encoder found. Defaulting to mpeg4.");
+    return "mpeg4";
 }
 
 Recorder& get_recorder() {

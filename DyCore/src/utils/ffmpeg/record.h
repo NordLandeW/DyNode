@@ -33,6 +33,10 @@ class Recorder {
         // AMD AMF
         {"hevc_amf",   "-rc cqp -qp_i 23 -qp_p 23 -qp_b 23 "},
         {"h264_amf",   "-rc cqp -qp_i 21 -qp_p 21 -qp_b 21 "},
+
+        // Essentials/other CPU fallbacks
+        {"libopenh264", "-b:v 5M -g 120 "},       // H.264 via Cisco OpenH264
+        {"mpeg4",       "-q:v 5 "},               // MPEG-4 Part 2 (widely available)
     };
 
     // For async writing
