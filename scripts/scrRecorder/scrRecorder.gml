@@ -95,10 +95,21 @@ function RecordManager() constructor {
 }
 
 function recording_start(filename = "") {
+    if(!DyCore_ffmpeg_is_available()) {
+        announcement_warning("recording_no_ffmpeg");
+        return;
+    }
+
+
     if(filename == "") {
         var defaultFilename = objMain.chartTitle + "_recording.mp4";
         filename = dyc_get_save_filename("Video File (*.mp4)|*.mp4", defaultFilename, objManager.projectPath, i18n_get("recording_savefile_dlg_title"));
     }
+    if(filename == "") {
+        show_debug_message("-- Recording cancelled (no filename).");
+        return;
+    }
+
     global.recordManager.prepareRecording = true;
     playview_start_replay(method({
         filename: filename
