@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "api.h"
 #include "config.h"
 #include "tools.h"
 #include "utils.h"
@@ -44,12 +45,19 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
 }
 #endif  // def WIN32
 
+std::filesystem::path programPath;
+
+std::filesystem::path get_program_path() {
+    return programPath;
+}
+
 // Initializes the DyCore library.
 //
 // @return "success" on successful initialization.
-DYCORE_API const char* DyCore_init(const char* hwnd) {
+DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
     std::ios::sync_with_stdio(false);
     HWND hwndHandle = reinterpret_cast<HWND>(const_cast<char*>(hwnd));
+    ::programPath = convert_char_to_path(programPath);
 
     // Check hwndHandle
     if (hwndHandle == NULL) {
@@ -67,6 +75,7 @@ DYCORE_API const char* DyCore_init(const char* hwnd) {
     }
 
     print_debug_message("DyCore Initialization finished. No errors.");
+    print_debug_message("Program path: " + ::programPath.string());
 
     return "success";
 }

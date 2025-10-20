@@ -1,12 +1,12 @@
 {
   "FolderOrderSettings":[
     {"name":"Animation Curves","order":12,"path":"folders/Animation Curves.yy",},
+    {"name":"Extensions","order":14,"path":"folders/Extensions.yy",},
     {"name":"Clean Shapes","order":11,"path":"folders/Extensions/Clean Shapes.yy",},
     {"name":"(System)","order":1,"path":"folders/Extensions/Clean Shapes/(System).yy",},
     {"name":"Batches","order":2,"path":"folders/Extensions/Clean Shapes/Batches.yy",},
     {"name":"Shapes","order":3,"path":"folders/Extensions/Clean Shapes/Shapes.yy",},
     {"name":"Transform","order":4,"path":"folders/Extensions/Clean Shapes/Transform.yy",},
-    {"name":"Extensions","order":14,"path":"folders/Extensions.yy",},
     {"name":"FMODGMS","order":1,"path":"folders/Extensions/FMODGMS.yy",},
     {"name":"Google Analytics","order":2,"path":"folders/Extensions/Google Analytics.yy",},
     {"name":"Kawase","order":3,"path":"folders/Extensions/Kawase.yy",},

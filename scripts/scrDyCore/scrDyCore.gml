@@ -54,7 +54,7 @@ function DyCoreManager() constructor {
 }
 
 function dyc_init() {
-    var result = DyCore_init(window_handle());
+    var result = DyCore_init(window_handle(), program_directory);
     if(result != "success") {
         show_error($"DyCore Initialized Failed. Result: {result}", true);
     }
