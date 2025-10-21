@@ -208,7 +208,7 @@
         "dyn_chart_import_failed": "匯入 DYN 譜面檔案失敗。\n錯誤資訊: $0",
         "update_before_0_1_19": "偵測到來自先前版本的設定。\n新版本修復了有關音樂延遲的錯誤，因此延遲設定已被清空。",
         "recording_button": "錄製譜面影片",
-        "recording_processing": "正在錄製影片。\n[scale,0.8]規格: $0x$1 @ $2 FPS\n已完成: $3 %",
+        "recording_processing": "正在录制视频。\n[scale,0.8]规格: $0x$1 @ $2 FPS\n编码器: $4\n已完成: $3 %",
         "recording_complete": "影片錄製完畢。\n[scale,0.8]已儲存至: $0",
         "recording_failed": "影片錄製失敗。\n錯誤資訊: $0",
         "recording_savefile_dlg_title": "錄製影片檔案儲存至",
