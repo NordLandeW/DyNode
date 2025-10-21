@@ -9,7 +9,7 @@
 
 #include "api.h"
 #include "config.h"
-#include "tools.h"
+#include "ffmpeg/base.h"
 #include "utils.h"
 #include "version.h"
 

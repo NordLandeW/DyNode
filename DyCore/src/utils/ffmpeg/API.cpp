@@ -2,8 +2,8 @@
 
 #include <json.hpp>
 
+#include "ffmpeg/base.h"
 #include "record.h"
-#include "tools.h"
 
 DYCORE_API double DyCore_ffmpeg_is_available() {
     return is_FFmpeg_available() ? 1.0 : 0.0;

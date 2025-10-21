@@ -5,7 +5,7 @@
 #include <sys/wait.h>  // For WEXITSTATUS
 #endif
 
-#include "tools.h"
+#include "base.h"
 
 /**
  * @brief Check if FFmpeg is available in the system's PATH.
