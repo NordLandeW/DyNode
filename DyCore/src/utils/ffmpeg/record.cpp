@@ -397,18 +397,55 @@ int Recorder::start_recording(const std::wstring& filename,
 #endif
 }
 
-void Recorder::push_frame(const void* frameData, int frameSize) {
-    if (!recording_active || !frameData || frameSize <= 0) {
-        print_debug_message("Warning: push_frame called with invalid state.");
-        return;
+int Recorder::push_frame(const void* frameData, int frameSize) {
+#ifdef _WIN32
+    auto fail = [&](const std::string& msg) -> int {
+        print_debug_message("Error: " + msg);
+        finish_recording();
+        return -1;
+    };
+
+    if (!frameData || frameSize <= 0) {
+        return fail("push_frame called with invalid parameters.");
     }
-    std::vector<char> frame_copy(static_cast<size_t>(frameSize));
-    memcpy(frame_copy.data(), frameData, static_cast<size_t>(frameSize));
-    {
-        std::lock_guard<std::mutex> lock(queue_mutex);
-        frame_queue.push(std::move(frame_copy));
+    if (!recording_active) {
+        return fail("push_frame called when recording is not active.");
     }
-    queue_cond.notify_one();
+    if (!ffmpeg_pipe) {
+        return fail("FFmpeg pipe is not available.");
+    }
+    if (g_ffmpeg_pi.hProcess == NULL) {
+        return fail("FFmpeg process handle is invalid.");
+    }
+
+    DWORD wait = WaitForSingleObject(g_ffmpeg_pi.hProcess, 0);
+    if (wait == WAIT_OBJECT_0) {
+        DWORD exit_code = 0;
+        GetExitCodeProcess(g_ffmpeg_pi.hProcess, &exit_code);
+        return fail("FFmpeg process has exited. Exit code: " + std::to_string(exit_code));
+    } else if (wait == WAIT_FAILED) {
+        return fail("WaitForSingleObject on FFmpeg process failed.");
+    }
+
+    try {
+        std::vector<char> frame_copy(static_cast<size_t>(frameSize));
+        memcpy(frame_copy.data(), frameData, static_cast<size_t>(frameSize));
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            frame_queue.push(std::move(frame_copy));
+        }
+        queue_cond.notify_one();
+        return 0;
+    } catch (const std::exception& e) {
+        return fail(std::string("Exception while enqueuing frame: ") + e.what());
+    }
+#else
+    (void)frameData;
+    (void)frameSize;
+    print_debug_message("Error: push_frame is not supported on non-Windows builds.");
+    finish_recording();
+    return -1;
+#endif
 }
 
 void Recorder::finish_recording() {

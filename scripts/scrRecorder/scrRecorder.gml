@@ -68,12 +68,35 @@ function RecordManager() constructor {
 
         buffer_get_surface(frameBuffer, application_surface, 0);
         
-        DyCore_ffmpeg_push_frame(buffer_get_address(frameBuffer), buffer_get_size(frameBuffer));
+        var err = DyCore_ffmpeg_push_frame(buffer_get_address(frameBuffer), buffer_get_size(frameBuffer));
+
+        if(err < 0) {
+            show_debug_message("-- Failed to push frame. Error code: " + string(err));
+            announcement_task(i18n_get("recording_failed", [err]), 5000, "recording", ANNO_STATE.ERROR);
+            global.recordManager.abort_recording();
+            return;
+        }
 
         announcement_task(
             i18n_get("recording_processing", 
                 [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (max(objMain.nowTime, 0) / objMain.musicLength)]
             ), 5000, "recording");
+    }
+
+    static abort_recording = function() {
+        if(!recording) {
+            show_debug_message("-- Not recording!");
+            return;
+        }
+        // No need to call `DyCore_ffmpeg_finish_recording`.
+        recording = false;
+        buffer_delete(frameBuffer);
+        frameBuffer = -1;
+        global.timeManager.set_mode_default();
+        game_set_speed(originalFPS, gamespeed_fps);
+        show_debug_message("-- Recording aborted.");
+
+        global.__InputManager.unfreeze();
     }
 
     static finish_recording = function() {

@@ -63,7 +63,8 @@ class Recorder {
                         const std::wstring& musicPath, int width, int height,
                         int fps, double musicOffset);
     // Push a frame to the recorder.
-    void push_frame(const void* frameData, int frameSize);
+    // Returns 0 on success, -1 on error or when FFmpeg is not working.
+    int push_frame(const void* frameData, int frameSize);
     // Finish recording.
     void finish_recording();
     std::string get_default_encoder();

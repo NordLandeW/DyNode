@@ -27,8 +27,8 @@ DYCORE_API double DyCore_ffmpeg_start_recording(const char *parameter) {
 DYCORE_API double DyCore_ffmpeg_push_frame(const char *data, double size) {
     auto &recorder = get_recorder();
 
-    recorder.push_frame(data, (int)size);
-    return 0;
+    int rc = recorder.push_frame(data, (int)size);
+    return static_cast<double>(rc);
 }
 
 DYCORE_API double DyCore_ffmpeg_finish_recording() {
