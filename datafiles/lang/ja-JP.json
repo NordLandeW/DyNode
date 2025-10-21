@@ -208,7 +208,7 @@
         "dyn_chart_import_failed": "DYN譜面ファイルのインポートに失敗しました。\nエラーメッセージ: $0",
         "update_before_0_1_19": "以前のバージョンからの設定が検出されました。\n新しいバージョンでは音楽の遅延に関する不具合が修正されたため、遅延設定はリセットされました。",
         "recording_button": "譜面ビデオを録画",
-        "recording_processing": "ビデオを録画しています。\n[scale,0.8]仕様: $0x$1 @ $2 FPS\n完了: $3 %",
+        "recording_processing": "正在录制视频。\n[scale,0.8]规格: $0x$1 @ $2 FPS\n编码器: $4\n已完成: $3 %",
         "recording_complete": "ビデオの録画が完了しました。\n[scale,0.8]保存先: $0",
         "recording_failed": "ビデオの録画に失敗しました。\nエラーメッセージ: $0",
         "recording_savefile_dlg_title": "録画ビデオファイルの保存先",
