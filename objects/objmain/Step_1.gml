@@ -59,7 +59,10 @@ var _music_resync_request = false;
 // Time Operation
 
     if(nowPlaying && !(_timchange != 0 || _timscr != 0)) {
-    	nowTime += global.timeManager.get_delta(-1, false) * musicSpeed / 1000;
+        var dT = global.timeManager.get_delta(-1, false) / 1000;
+        if(!global.recordManager.is_recording())
+            dT *= musicSpeed;
+    	nowTime += dT;
     }
     
         
