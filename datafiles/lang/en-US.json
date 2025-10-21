@@ -208,7 +208,7 @@
         "dyn_chart_import_failed": "Failed to import DYN chart file.\nError message: $0",
         "update_before_0_1_19": "Settings from a previous version have been detected.\nThe new version fixes a bug related to music latency, so the latency settings have been cleared.",
         "recording_button": "Record Chart Video",
-        "recording_processing": "正在录制视频。\n[scale,0.8]规格: $0x$1 @ $2 FPS\n编码器: $4\n已完成: $3 %",
+        "recording_processing": "Recording video.\n[scale,0.8]Size: $0x$1 @ $2 FPS\nEncoder: $4\nProgress: $3 %",
         "recording_complete": "Video recording complete.\n[scale,0.8]Saved to: $0",
         "recording_failed": "Video recording failed.\nError message: $0",
         "recording_savefile_dlg_title": "Save Video File To",
