@@ -79,7 +79,8 @@ function RecordManager() constructor {
 
         announcement_task(
             i18n_get("recording_processing", 
-                [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (max(objMain.nowTime, 0) / objMain.musicLength)]
+                [RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, RECORDING_FPS, 100 * (max(objMain.nowTime, 0) / objMain.musicLength),
+                DyCore_ffmpeg_get_using_decoder()]
             ), 5000, "recording");
     }
 

@@ -19,24 +19,24 @@ class Recorder {
     // Encoder options tuned for medium-to-high quality at reasonable speed.
     const std::unordered_map<std::string, std::string> ffmpegEncoderOptions = {
         // CPU
-        {"libx264",    "-preset fast -crf 20 "},  // H.264
-        {"libx265",    "-preset fast -crf 22 "},  // HEVC
+        {"libx264", "-preset fast -crf 20 "},  // H.264
+        {"libx265", "-preset fast -crf 22 "},  // HEVC
 
         // NVIDIA NVENC
-        {"hevc_nvenc", "-preset p6 -cq 22 "},     // HEVC preferred
-        {"h264_nvenc", "-preset p6 -cq 20 "},     // H.264 fallback
+        {"hevc_nvenc", "-preset p6 -cq 22 "},  // HEVC preferred
+        {"h264_nvenc", "-preset p6 -cq 20 "},  // H.264 fallback
 
         // Intel Quick Sync Video (QSV)
-        {"hevc_qsv",   "-preset medium -rc icq -global_quality 23 "},
-        {"h264_qsv",   "-preset medium -rc icq -global_quality 21 "},
+        {"hevc_qsv", "-preset medium -rc icq -global_quality 23 "},
+        {"h264_qsv", "-preset medium -rc icq -global_quality 21 "},
 
         // AMD AMF
-        {"hevc_amf",   "-rc cqp -qp_i 23 -qp_p 23 -qp_b 23 "},
-        {"h264_amf",   "-rc cqp -qp_i 21 -qp_p 21 -qp_b 21 "},
+        {"hevc_amf", "-rc cqp -qp_i 23 -qp_p 23 -qp_b 23 "},
+        {"h264_amf", "-rc cqp -qp_i 21 -qp_p 21 -qp_b 21 "},
 
         // Essentials/other CPU fallbacks
-        {"libopenh264", "-b:v 5M -g 120 "},       // H.264 via Cisco OpenH264
-        {"mpeg4",       "-q:v 5 "},               // MPEG-4 Part 2 (widely available)
+        {"libopenh264", "-b:v 5M -g 120 "},  // H.264 via Cisco OpenH264
+        {"mpeg4", "-q:v 5 "},                // MPEG-4 Part 2 (widely available)
     };
 
     // For async writing
@@ -53,6 +53,13 @@ class Recorder {
                                       std::string_view musicPath, int width,
                                       int height, int fps, double musicOffset);
 
+    // For encoder pre-flight check
+    static std::unordered_map<std::string, bool> encoder_availability_cache;
+    static std::mutex cache_mutex;
+    bool is_encoder_available(const std::string& encoder_name);
+
+    std::string usingDecoder = "";
+
    public:
     // Returns 0 on success, negative value on failure.
     int start_recording(const std::string& filename,
@@ -68,6 +75,10 @@ class Recorder {
     // Finish recording.
     void finish_recording();
     std::string get_default_encoder();
+
+    std::string get_using_decoder() {
+        return usingDecoder;
+    }
 };
 
 Recorder& get_recorder();

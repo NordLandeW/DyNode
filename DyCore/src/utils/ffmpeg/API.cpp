@@ -37,3 +37,10 @@ DYCORE_API double DyCore_ffmpeg_finish_recording() {
     recorder.finish_recording();
     return 0;
 }
+
+DYCORE_API const char *DyCore_ffmpeg_get_using_decoder() {
+    auto &recorder = get_recorder();
+    static std::string result;
+    result = recorder.get_using_decoder();
+    return result.c_str();
+}
