@@ -18,7 +18,7 @@ else {
     var _ny = y + scriHeight*2;
     CleanLine(x, _ny, x + maxWidth + lineShootDistance * gradAlpha, _ny)
         .Blend2(merge_color(fontColor, _col, gradAlpha), 1, fontColor, 1)
-        .Thickness(8)
+        .Thickness(4)
         .Cap("round", "round")
         .Draw();
 }

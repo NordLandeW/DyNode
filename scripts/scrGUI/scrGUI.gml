@@ -207,12 +207,13 @@ function GUIElement() constructor {
             .Draw();
         
         var _content = content;
-        var _scl = ascale * (has_cjk(content) ? 0.65 : 1);
+        var _scl = has_cjk(content) ? 0.65 : 1;
         if(has_cjk(content)) _content = cjk_prefix() + content;
         scribble(_content, "GUI_"+content)
             .starting_format(font, fontColor)
             .align(fa_center, fa_middle)
             .scale(_scl, _scl)
+            .fit_to_box(width, height)
             .draw(_x, _y);
     } 
     static destroy = function() {
