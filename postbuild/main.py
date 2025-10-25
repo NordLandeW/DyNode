@@ -4,10 +4,10 @@ import zipfile
 import subprocess
 import tempfile
 import argparse
-import urllib.request
 import urllib.parse
 import shutil
 import re
+import requests
 
 
 def get_version_from_git():
@@ -50,9 +50,18 @@ def download_rcedit(temp_dir):
         parsed_url = urllib.parse.urlparse(rcedit_url)
         if parsed_url.scheme not in ("http", "https"):
             raise ValueError(f"Invalid URL scheme: {parsed_url.scheme}. Only 'http' and 'https' are allowed.")
-        urllib.request.urlretrieve(rcedit_url, rcedit_path)
+        # Use requests for safer, higher-level HTTP handling
+        with requests.get(rcedit_url, stream=True, timeout=30) as response:
+            response.raise_for_status()
+            with open(rcedit_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:  # filter out keep-alive chunks
+                        f.write(chunk)
         print("rcedit downloaded successfully.")
         return rcedit_path
+    except requests.RequestException as e:
+        print(f"Error: Failed to download rcedit. {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error: Failed to download rcedit. {e}")
         sys.exit(1)
