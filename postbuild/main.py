@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 import argparse
 import urllib.request
+import urllib.parse
+import shutil
 import re
 
 
@@ -14,9 +16,11 @@ def get_version_from_git():
     """
     try:
         # Get the latest tag
-        tag_bytes = subprocess.check_output(
-            ["git", "describe", "--tags", "--abbrev=0"]
-        )
+        git_executable = shutil.which("git")
+        if not git_executable:
+            raise FileNotFoundError("Could not find 'git' executable in PATH. Ensure git is installed and accessible.")
+        command = [git_executable, "describe", "--tags", "--abbrev=0"]
+        tag_bytes = subprocess.check_output(command)
         tag = tag_bytes.decode("utf-8").strip()
 
         # Parse version from tag (e.g., v1.2.3 -> 1.2.3)
@@ -43,6 +47,9 @@ def download_rcedit(temp_dir):
     rcedit_path = os.path.join(temp_dir, "rcedit.exe")
     print(f"Downloading rcedit from {rcedit_url}...")
     try:
+        parsed_url = urllib.parse.urlparse(rcedit_url)
+        if parsed_url.scheme not in ("http", "https"):
+            raise ValueError(f"Invalid URL scheme: {parsed_url.scheme}. Only 'http' and 'https' are allowed.")
         urllib.request.urlretrieve(rcedit_url, rcedit_path)
         print("rcedit downloaded successfully.")
         return rcedit_path
