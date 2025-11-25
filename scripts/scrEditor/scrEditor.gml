@@ -402,7 +402,26 @@ function operation_synctime_sync() {
 	objEditor.operationSyncTime = [INF, -INF];
 }
 
+/// @param {Enum.OPERATION_TYPE} _type Operation type.
+/// @param {Struct.sNoteProp|Struct.sTimingPoint|Real} _from From property.
+/// @param {Any} _to To property.
 function operation_step_add(_type, _from, _to) {
+	// Operation validate
+	if(_type == OPERATION_TYPE.REMOVE) {
+		if(_to != -1) {
+			throw "Error in operation_step_add: REMOVE operation's 'to' property must be -1.";
+			return;
+		}
+		if(!is_struct(_from)) {
+			throw "Error in operation_step_add: REMOVE operation's 'from' property must be a struct.";
+			return;
+		}
+		if(_from.noteType == NOTE_TYPE.SUB) {
+			throw "Error in operation_step_add: Cannot record REMOVE operation for SUB note.";
+			return;
+		}
+	}
+
 	with(objEditor) {
 		array_push(operationStackStep, new sOperation(_type, _from, _to));
 	}

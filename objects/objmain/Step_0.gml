@@ -124,7 +124,7 @@ projectTime += round(delta_time / 1000);
 
 	if(keycheck(vk_delete) && keycheck(vk_backspace)) {
 		io_clear();
-		note_delete_all_manually();
+		note_delete_all(true);
 		announcement_play("clear_all_notes");
 	}
 

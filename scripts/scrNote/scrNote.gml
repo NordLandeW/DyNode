@@ -162,19 +162,21 @@ function note_delete(noteID, _record = false) {
     note_sort_request();
 }
 
-function note_delete_all() {
+function note_delete_all(_record = false) {
+
+	if(_record) {
+		for(var i=0, l=dyc_get_note_count(); i<l; i++) {
+			var _prop = dyc_get_note_at_index(i);
+			if(_prop.noteType != NOTE_TYPE.SUB)
+				operation_step_add(OPERATION_TYPE.REMOVE, _prop, -1);
+		}
+	}
+
 	with(objMain) {
 		chartNotesArrayAt = 0;
 		
 		instance_destroy(objNote);
 		DyCore_clear_notes();
-	}
-}
-
-function note_delete_all_manually(_record = true) {
-	for(var i=0, l=dyc_get_note_count(); i<l; i++) {
-		var _str = dyc_get_note_at_index(i);
-		note_delete(_str.noteID, _record);
 	}
 }
 

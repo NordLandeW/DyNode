@@ -29,7 +29,10 @@ NotePoolManager::~NotePoolManager() {
 const Note& NotePoolManager::operator[](int index) {
     std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
     if (index < 0 || index >= noteArray.size())
-        throw std::out_of_range("Index out of range in NotePoolManager");
+        throw std::out_of_range(
+            "Index out of range in NotePoolManager. Range: " +
+            std::to_string(noteArray.size()) +
+            ", requested: " + std::to_string(index));
     if (arrayOutOfOrder)
         throw std::runtime_error(
             "Note array is out of order. Use get_note_direct() instead.");
