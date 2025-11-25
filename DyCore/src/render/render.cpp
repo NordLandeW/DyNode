@@ -617,13 +617,15 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                                         noteID);
                                 if (note.type != type)
                                     continue;
-                                switch (note.type) {
-                                    case 0:
-                                    case 1:
+                                switch (note.get_note_type()) {
+                                    case NOTE_TYPE::NORMAL:
+                                    case NOTE_TYPE::CHAIN:
                                         render_normal(task.ptr, note);
                                         break;
-                                    case 2:
+                                    case NOTE_TYPE::HOLD:
                                         render_hold(task.ptr, note, 2);
+                                        break;
+                                    default:
                                         break;
                                 }
                             }
@@ -652,7 +654,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         // Render hold edges.
         for (const auto& [time, noteID] : activeHolds) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.type != 2)
+            if (note.get_note_type() != NOTE_TYPE::HOLD)
                 continue;
 
             render_hold(ptr, note, 2);
@@ -661,7 +663,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         // Render normal notes.
         for (const auto& [time, noteID] : activeNotes) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.type != 0)
+            if (note.get_note_type() != NOTE_TYPE::NORMAL)
                 continue;
 
             render_normal(ptr, note);
@@ -670,7 +672,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         // Render chain notes.
         for (const auto& [time, noteID] : activeNotes) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.type != 1)
+            if (note.get_note_type() != NOTE_TYPE::CHAIN)
                 continue;
 
             render_normal(ptr, note);

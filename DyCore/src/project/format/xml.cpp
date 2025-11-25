@@ -298,7 +298,7 @@ void chart_export_xml(const char* filePath, bool isDym, double fixError) {
         en.width = note.width;
         en.side = note.side;
 
-        if (note.type == 2) {  // HOLD
+        if (note.get_note_type() == NOTE_TYPE::HOLD) {
             ExportNote subNote;
             subNote.id = noteIndex++;
             en.subId = subNote.id;

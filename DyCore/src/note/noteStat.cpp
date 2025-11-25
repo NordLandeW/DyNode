@@ -16,12 +16,13 @@ DYCORE_API const char *DyCore_note_count() {
     // 3 Types + Total, 3 Sides + Total
     std::array<std::array<int, 4>, 4> counts = {};
     noteMan.access_all_notes([&](Note &note) {
-        if (note.type > 2)
+        if (note.get_note_type() == NOTE_TYPE::SUB)
             return;
         counts[note.side][note.type]++;
-        counts[note.side][3] += 1 + (note.type == 2 ? 1 : 0);
+        counts[note.side][3] +=
+            1 + (note.get_note_type() == NOTE_TYPE::HOLD ? 1 : 0);
         counts[3][note.type]++;
-        counts[3][3] += 1 + (note.type == 2 ? 1 : 0);
+        counts[3][3] += 1 + (note.get_note_type() == NOTE_TYPE::HOLD ? 1 : 0);
     });
 
     json js = counts;

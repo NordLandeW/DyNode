@@ -49,14 +49,14 @@ int create_note(const Note& note, bool randomID, bool createSub) {
     Note newNote(note);
     if (randomID)
         newNote.noteID = generate_note_id();
-    if (note.type == 2 && createSub) {
+    if (note.get_note_type() == NOTE_TYPE::HOLD && createSub) {
         newNote.subNoteID = generate_note_id();
         Note newSubNote(newNote);
         std::swap(newSubNote.noteID, newSubNote.subNoteID);
         newSubNote.time = newNote.time + newNote.lastTime;
         newSubNote.lastTime = 0;
         newSubNote.beginTime = newNote.time;
-        newSubNote.type = 3;
+        newSubNote.type = static_cast<int>(NOTE_TYPE::SUB);
         insert_note(newSubNote);
     }
     insert_note(newNote);

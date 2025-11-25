@@ -34,7 +34,7 @@ inline void from_json(const json &j, Note &n);
 inline void to_json(json &j, const Note &n);
 inline void to_json(json &j, const NoteExportView &n);
 
-enum NOTE_TYPE { NORMAL, CHAIN, HOLD, SUB };
+enum class NOTE_TYPE { NORMAL, CHAIN, HOLD, SUB };
 
 struct Note {
    public:
@@ -81,6 +81,10 @@ struct Note {
         bitread(ptr, beginTime);
         bitread(ptr, noteID);
         bitread(ptr, subNoteID);
+    }
+
+    NOTE_TYPE get_note_type() const {
+        return static_cast<NOTE_TYPE>(type);
     }
 };
 

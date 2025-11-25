@@ -56,12 +56,14 @@ bool NotePoolManager::create_note(const Note& note) {
         *ptr = note;
 
         noteMemoryList.emplace_back(ptr);
-        noteInfoMap[note.noteID] = {
-            --noteMemoryList.end(), ptr, static_cast<int>(noteArray.size()),
-            note.type == 2 ? static_cast<int>(holdArray.size()) : -1};
+        noteInfoMap[note.noteID] = {--noteMemoryList.end(), ptr,
+                                    static_cast<int>(noteArray.size()),
+                                    note.get_note_type() == NOTE_TYPE::HOLD
+                                        ? static_cast<int>(holdArray.size())
+                                        : -1};
 
         noteArray.push_back(ptr);
-        if (note.type == 2)
+        if (note.get_note_type() == NOTE_TYPE::HOLD)
             holdArray.push_back(ptr);
 
         set_ooo();
@@ -93,7 +95,7 @@ void NotePoolManager::get_notes(std::vector<Note>& outNotes,
     outNotes.clear();
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
-            if (excludeSub && note_ptr->type == 3) {
+            if (excludeSub && note_ptr->get_note_type() == NOTE_TYPE::SUB) {
                 continue;  // Skip sub notes
             }
             outNotes.push_back(*note_ptr);
@@ -250,7 +252,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
 }
 
 void NotePoolManager::sync_head_note_to_sub(const Note& note) {
-    if (note.type != 2)
+    if (note.get_note_type() != NOTE_TYPE::HOLD)
         return;
     auto subNote = get_note_pointer(note.subNoteID);
     if (subNote) {
@@ -262,11 +264,12 @@ void NotePoolManager::sync_head_note_to_sub(const Note& note) {
 }
 
 void NotePoolManager::sync_hold_note_length(const Note& note) {
-    if (note.type < 2)
+    if (note.get_note_type() != NOTE_TYPE::HOLD &&
+        note.get_note_type() != NOTE_TYPE::SUB)
         return;
     nptr holdNote = get_note_pointer(note.noteID);
     nptr subNote = get_note_pointer(note.subNoteID);
-    if (holdNote->type == 3)
+    if (holdNote->get_note_type() == NOTE_TYPE::SUB)
         std::swap(holdNote, subNote);
     holdNote->lastTime = subNote->time - holdNote->time;
 }
