@@ -6,7 +6,7 @@
 #include "activation.h"
 #include "note.h"
 
-const int NOTES_ARRAY_PARALLEL_SORT_THRESHOLD = 10000;
+inline constexpr int NOTES_ARRAY_PARALLEL_SORT_THRESHOLD = 10000;
 
 class NotePoolManager {
     friend NoteActivationManager;

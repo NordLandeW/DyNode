@@ -5,7 +5,7 @@
 #include "bitio.h"
 #include "json.hpp"
 
-const int NOTE_ID_LENGTH = 9;
+inline constexpr int NOTE_ID_LENGTH = 9;
 
 using nlohmann::json;
 using std::string;

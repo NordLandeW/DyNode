@@ -4,8 +4,8 @@
 #include <string>
 #include <unordered_map>
 
-const double HOLD_BG_LIGHTNESS = 0.3;
-const int MULTITHREAD_RENDERING_THRESHOLD = 10000;
+inline constexpr double HOLD_BG_LIGHTNESS = 0.3;
+inline constexpr int MULTITHREAD_RENDERING_THRESHOLD = 10000;
 
 // NORMAL: A single, non-segmented sprite
 //   data: none
@@ -53,7 +53,7 @@ struct SpriteData {
 
 class SpriteManager {
    private:
-    std::unordered_multimap<std::string, SpriteData> sprites;
+    std::unordered_map<std::string, SpriteData> sprites;
 
    public:
     void add_sprite(const SpriteData& data);
