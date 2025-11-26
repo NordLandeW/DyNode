@@ -78,11 +78,6 @@ void NoteActivationManager::recalculate() {
     static auto unique_and_sort = [](auto& vec) {
         std::sort(vec.begin(), vec.end());
         vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
-        std::sort(vec.begin(), vec.end(),
-                  [&](const std::pair<double, std::string>& a,
-                      const std::pair<double, std::string>& b) {
-                      return a.first < b.first;
-                  });
     };
 
     unique_and_sort(activeNotes);
