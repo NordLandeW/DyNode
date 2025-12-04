@@ -128,7 +128,7 @@
         "copy_timing_point": "最後のTiming Pointを $0 にコピーしました\nBPM：$1\n拍子：$2/4",
         "error_no_timing_point": "Timing Pointが設定されていません。Yキーで少なくとも1つ設定してください。",
         "beatline_divs": "拍子分割：1/$0\n拍子分割グループ：$1",
-        "beatline_without_timing": "Timing 未被配置，因此无法显示拍线。\n你可以使用 Y 键来放置至少一个 Timing Point。\n你可以使用 F12 打开指南来查看更多信息。",
+        "beatline_without_timing": "タイミングが設定されていないため、拍線を表示できません。\nYキーを押して、少なくとも1つのタイミングポイントを配置できます。\nF12キーを押してガイドを開き、詳細を確認できます。",
         "warning_note_outbound": "画面内に完全に表示されないノートを配置しています。このノートは後で編集困難になる可能性があります。\n必要ならUndoで戻ってください。",
         "copy_width": "幅をコピーしました：$0",
         "adjust_grid_y": "時間方向へのグリッドスナップ",
