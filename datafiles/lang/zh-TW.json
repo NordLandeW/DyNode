@@ -128,7 +128,7 @@
         "copy_timing_point": "複製末尾 Timing Point 至時間 $0\nBPM：$1\n節拍：$2/4",
         "error_no_timing_point": "你沒有設定任何 Timing Point。需按 Y 鍵放置至少一個 Timing Point。",
         "beatline_divs": "節拍細分：1/$0\n節拍細分組：$1",
-        "beatline_without_timing": "Timing 未被配置，因此无法显示拍线。\n你可以使用 Y 键来放置至少一个 Timing Point。\n你可以使用 F12 打开指南来查看更多信息。",
+        "beatline_without_timing": "Timing 尚未設定，因此無法顯示拍線。\n你可以使用 Y 鍵來放置至少一個 Timing Point。\n你可以使用 F12 開啟指南來查看更多資訊。",
         "warning_note_outbound": "你正在放置一個完全不可見於畫面內的音符，該音符日後可能無法被編輯。\n你可使用復原返回上一步操作。",
         "copy_width": "寬度已複製：$0",
         "adjust_grid_y": "時間方向格線吸附",
