@@ -128,7 +128,7 @@
         "copy_timing_point": "Copied last Timing Point to $0\nBPM: $1\nMeter: $2/4",
         "error_no_timing_point": "No Timing Points set. Press Y to place at least one.",
         "beatline_divs": "Beat subdivision: 1/$0\nBeat subdivision group: $1",
-        "beatline_without_timing": "Timing 未被配置，因此无法显示拍线。\n你可以使用 Y 键来放置至少一个 Timing Point。\n你可以使用 F12 打开指南来查看更多信息。",
+        "beatline_without_timing": "Timing has not been configured, so beatlines cannot be displayed.\nYou can use the Y key to place at least one Timing Point.\nYou can press F12 to open the guide for more information.",
         "warning_note_outbound": "You are placing a completely off-screen note. It may become uneditable.\nUse Undo to revert if necessary.",
         "copy_width": "Width copied: $0",
         "adjust_grid_y": "Time-axis grid snapping",
