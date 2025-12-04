@@ -28,6 +28,12 @@
         animBeatlineTargetAlpha[0] += 0.7 * keycheck_down(vk_down);
         animBeatlineTargetAlpha[1] += 0.7 * keycheck_down(vk_left);
         animBeatlineTargetAlpha[2] += 0.7 * keycheck_down(vk_right);
+
+        if(keycheck_down(vk_down) || keycheck_down(vk_left) || keycheck_down(vk_right)) {
+            if(editor_get_editmode() == 5)
+                editor_set_editmode(4);
+        }
+
         for(var i=0; i<3; i++) {
             if(animBeatlineTargetAlpha[i] > 1.4)
                 animBeatlineTargetAlpha[i] = 0;
@@ -45,6 +51,11 @@
         	beatlineEnabled[1] = 1;
         	if(get_div()<=28)
         		beatlineEnabled[get_div()] = 1;
+        }
+    }
+    else {
+        if(keycheck_down(vk_down) || keycheck_down(vk_left) || keycheck_down(vk_right)) {
+            announcement_warning("beatline_without_timing");
         }
     }
 
