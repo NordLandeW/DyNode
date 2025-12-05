@@ -26,13 +26,28 @@ function i18n_init() {
     i18n_load("en-US");
     i18n_load("ja-JP");
     
-    i18n_set_lang("zh-cn");
+    switch(os_get_language()) {
+        case "zh":
+            var _region = os_get_region();
+            if (_region == "HK" || _region == "MO" || _region == "TW")
+                i18n_set_lang("zh-tw");
+            else
+                i18n_set_lang("zh-cn");
+            break;
+        case "ja":
+            i18n_set_lang("ja-jp");
+            break;
+        case "en":
+        default:
+            i18n_set_lang("en-us");
+            break;
+    }
 }
 
 function i18n_set_lang(language) {
     if(is_string(language)) {
         for(var i=0, l=global.i18nCount; i<l; i++)
-            if(language == global.i18nCont[i].lang) {
+            if(string_lower(language) == string_lower(global.i18nCont[i].lang)) {
                 language = i;
                 break;
             }
