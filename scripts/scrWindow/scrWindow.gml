@@ -1,6 +1,17 @@
 
 function window_on_files_dropped(fileList) {
-    var files = json_parse(fileList);
+    var files;
+    if(is_string(fileList)) {
+        files = string_split(fileList, "|");
+    } else {
+        files = fileList;
+    }
+
+    if(!is_array(files)) {
+        show_debug_log("!Error: Invalid file list in window_on_files_dropped().");
+        return;
+    }
+
     for(var i = 0; i < array_length(files); i++) {
         var file = files[i];
         var filext = filename_ext(file);

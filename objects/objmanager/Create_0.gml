@@ -189,9 +189,15 @@ GoogHit("login", {
 
 if(DEBUG_MODE) test_at_start();
 
-if(DEBUG_MODE) room_goto(rMain);
+if(DEBUG_MODE) {
+	room_goto(rMain);
+}
 else
 	room_goto(rStartPage);
+
+call_later(1, time_source_units_frames, function() {
+	parameter_parse();
+});
 
 #region Project Properties
 

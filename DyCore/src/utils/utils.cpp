@@ -40,7 +40,7 @@ std::string wstringToUtf8(const std::wstring& wstr) {
     std::string str(len, '\0');
     WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], len, nullptr,
                         nullptr);
-    str.resize(len - 1);  // 移除末尾的 '\0'
+    str.resize(len - 1);
     return str;
 }
 

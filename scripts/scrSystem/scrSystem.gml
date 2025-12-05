@@ -1011,6 +1011,72 @@ function theme_get_color_hsv() {
 
 #region SYSTEM FUNCTIONS
 
+/// @description Check if a parameter string is a valid filename.
+/// @param {String} str The string to check.
+/// @returns {Bool} If the string is a valid filename.
+function parameter_is_filename(str) {
+	// Treat command line arguments that point to supported, existing files as "filenames".
+	// This avoids misinterpreting flags (e.g. "-debug") or arbitrary strings as file drops.
+	if (is_undefined(str)) return false;
+	
+	// Trim whitespace.
+	str = string_trim(str);
+	if (str == "") return false;
+	
+	// Strip surrounding quotes (common on Windows when paths contain spaces).
+	var len = string_length(str);
+	if (len >= 2) {
+		var first = string_char_at(str, 1);
+		var last  = string_char_at(str, len);
+		if ((first == "\"" && last == "\"") || (first == "'" && last == "'")) {
+			str = string_copy(str, 2, len - 2);
+			if (str == "") return false;
+			len = string_length(str);
+		}
+	}
+	
+	// Ignore obvious CLI options.
+	if (string_char_at(str, 1) == "-") return false;
+	
+	var ext = string_lower(filename_ext(str));
+	
+	// Only treat known, droppable resource types as valid; other files are ignored.
+	switch (ext) {
+		case ".dyn":
+		case ".dy":
+		case ".xml":
+		case ".jpg":
+		case ".jpeg":
+		case ".png":
+		case ".mp4":
+		case ".avi":
+		case ".mkv":
+		case ".mp3":
+		case ".flac":
+		case ".wav":
+		case ".ogg":
+		case ".aiff":
+		case ".mid":
+			break;
+		default:
+			return false;
+	}
+	
+	// Final guard: ensure the path actually exists before treating it as a file.
+	return file_exists(str);
+}
+
+function parameter_parse() {
+	var cnt = parameter_count();
+	for(var i=0; i<cnt; i++) {
+		var param = parameter_string(i + 1);
+
+		if(parameter_is_filename(param)) {
+			window_on_files_dropped([param]);
+		}
+	}
+}
+
 function get_config_path() {
 	if(os_type == os_linux) {
 		return "config.json";
