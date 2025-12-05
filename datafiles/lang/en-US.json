@@ -214,6 +214,6 @@
         "recording_failed": "Video recording failed.\nError message: $0",
         "recording_savefile_dlg_title": "Save Video File To",
         "recording_no_ffmpeg": "FFmpeg executable not found.\nPlease ensure FFmpeg is installed correctly and its path has been added to the system's environment variables.",
-        "drop_setting_bgm_failed": "只能在打开的项目中使用拖放功能来导入音乐 / 背景文件。"
+        "drop_setting_bgm_failed": "You can only use drag and drop to import music / background files into an open project."
     }
 }
