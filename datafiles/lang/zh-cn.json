@@ -213,6 +213,7 @@
         "recording_complete": "视频录制完毕。\n[scale,0.8]已保存至: $0",
         "recording_failed": "视频录制失败。\n错误信息: $0",
         "recording_savefile_dlg_title": "录制视频文件保存至",
-        "recording_no_ffmpeg": "未找到 FFmpeg 可执行文件。\n请确保 FFmpeg 已正确安装并且其路径已被添加至系统环境变量中。"
+        "recording_no_ffmpeg": "未找到 FFmpeg 可执行文件。\n请确保 FFmpeg 已正确安装并且其路径已被添加至系统环境变量中。",
+        "drop_setting_bgm_failed": "只能在打开的项目中使用拖放功能来导入音乐 / 背景文件。"
     }
 }

@@ -18,7 +18,13 @@ using std::string;
 // PROJECT_SAVING: Called when an async project event is done.
 // GENERAL_ERROR: Called when an error occurs.
 // GM_ANNOUNCEMENT: Call GM announcement function.
-enum ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR, GM_ANNOUNCEMENT };
+// ON_FILES_DROPPED: Called when files are dropped into the window.
+enum ASYNC_EVENT_TYPE {
+    PROJECT_SAVING,
+    GENERAL_ERROR,
+    GM_ANNOUNCEMENT,
+    ON_FILES_DROPPED
+};
 
 struct AsyncEvent {
     ASYNC_EVENT_TYPE type;

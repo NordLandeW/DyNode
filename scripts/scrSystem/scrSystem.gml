@@ -274,6 +274,11 @@ function map_set_title() {
 }
 
 function music_load(_file = "") {
+	if(!instance_exists(objMain)) {
+		announcement_warning("drop_setting_bgm_failed");
+		return;
+	}
+
     if(_file == "")
 	    _file = dyc_get_open_filename("Music Files (*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid)|*.mp3;*.flac;*.wav;*.ogg;*.aiff;*.mid", "", 
 	        program_directory, "Load Music File 加载音乐文件");
@@ -316,6 +321,11 @@ function music_load(_file = "") {
 }
 
 function background_load(_file = "") {
+	if(!instance_exists(objMain)) {
+		announcement_warning("drop_setting_bgm_failed");
+		return;
+	}
+
 	if(_file == "")
 	    _file = dyc_get_open_filename("Background Files (*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv)|*.jpg;*.jpeg;*.png;*.mp4;*.avi;*.mkv|JPG Files (*.jpg)|*.jpg|PNG Files (*.png)|*.png", "",
 	        program_directory, "Load Background File 加载背景文件");
@@ -584,6 +594,16 @@ function project_load(_file = "") {
         "Load Project 打开项目");
     
     if(_file == "") return 0;
+
+	if(room != rMain) {
+		room_goto(rMain);
+		call_later(1, time_source_units_frames, method({
+			file: _file
+		}, function () {
+			project_load(file);
+		}));
+		return;
+	}
 
 	map_reset();
 

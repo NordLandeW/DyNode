@@ -12,6 +12,7 @@
 #include "ffmpeg/base.h"
 #include "utils.h"
 #include "version.h"
+#include "window.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -35,6 +36,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
     switch (ul_reason_for_call) {
         case DLL_PROCESS_ATTACH:
             ::hModule = hModule;
+            DisableThreadLibraryCalls(hModule);
             break;
         case DLL_THREAD_ATTACH:
         case DLL_THREAD_DETACH:
@@ -76,6 +78,9 @@ DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
 
     print_debug_message("DyCore Initialization finished. No errors.");
     print_debug_message("Program path: " + ::programPath.string());
+
+    // Initialize window functions
+    window_init();
 
     return "success";
 }

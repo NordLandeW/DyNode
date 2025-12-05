@@ -376,6 +376,7 @@
     {"id":{"name":"scrTrianglify","path":"scripts/scrTrianglify/scrTrianglify.yy",},},
     {"id":{"name":"scrUtil","path":"scripts/scrUtil/scrUtil.yy",},},
     {"id":{"name":"scrVideo","path":"scripts/scrVideo/scrVideo.yy",},},
+    {"id":{"name":"scrWindow","path":"scripts/scrWindow/scrWindow.yy",},},
     {"id":{"name":"Snap2DArrayToStructArray","path":"scripts/Snap2DArrayToStructArray/Snap2DArrayToStructArray.yy",},},
     {"id":{"name":"SnapBufferRead2DArray","path":"scripts/SnapBufferRead2DArray/SnapBufferRead2DArray.yy",},},
     {"id":{"name":"SnapBufferReadBinary","path":"scripts/SnapBufferReadBinary/SnapBufferReadBinary.yy",},},

@@ -19,7 +19,7 @@ void print_debug_message(std::string str) {
     std::cout << "[DyCore] " << str << std::endl;
 }
 void print_debug_message(std::wstring str) {
-    std::wcout << L"[DyCore] " << str << std::endl;
+    print_debug_message(wstringToUtf8(str));
 }
 
 // Converts a char* file path to a std::filesystem::path.
