@@ -147,9 +147,6 @@ if(!font_exists(global._notoFont))
 	show_error("Font load failed.", true);
 font_enable_sdf(global._notoFont, true);
 scribble_anim_cycle(0.2, 255, 255);
-scribble_font_bake_shadow("fOrbitron48", "fOrbitron48s", 0, 10, c_black, 0.4, 0, true);
-scribble_font_bake_shadow("fDynamix16", "fDynamix16s", 0, 2, c_black, 0.3, 0, true);
-scribble_font_bake_outline_8dir("fDynamix16", "fDynamix16o", c_white, true);
 
 // Window Init
 

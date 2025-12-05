@@ -17,11 +17,12 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 		draw_set_alpha(1.0);
 	}
 	else {
-		scribble(chartTitle).starting_format("fOrbitron48s", c_white)
-		.align(fa_left, fa_middle)
-		.blend(c_white, titleAlpha)
-		.transform(0.7, 0.7)
-		.draw(_nx, 42 + _yoffset);
+		scribble(chartTitle).starting_format("mOrbitron", c_white)
+			.align(fa_left, fa_middle)
+			.blend(c_white, titleAlpha)
+			.scale(1.5, 1.5)
+			.msdf_shadow(c_black, 0.4, 0, 3)
+			.draw(_nx + 3, 42 + _yoffset - 5);
 	}
 	
 	// Draw Difficulty

@@ -1,4 +1,6 @@
 
+display_reset(2, true);
+
 // Prefetch the large dynamic font texture group into vram.
 texturegroup_load("texFonts", true);
 
