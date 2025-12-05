@@ -29,6 +29,7 @@ function window_on_files_dropped(fileList) {
                 break;
             default:
                 show_debug_message("!Warning: Unsupported file type dropped: " + filext);
+                announcement_warning("drop_unsupported_file");
                 break;
         }
     }
