@@ -214,6 +214,6 @@
         "recording_failed": "影片錄製失敗。\n錯誤資訊: $0",
         "recording_savefile_dlg_title": "錄製影片檔案儲存至",
         "recording_no_ffmpeg": "未找到 FFmpeg 可執行檔。\n請確保 FFmpeg 已正確安裝並且其路徑已被新增至系統環境變數中。",
-        "drop_setting_bgm_failed": "只能在打开的项目中使用拖放功能来导入音乐 / 背景文件。"
+        "drop_setting_bgm_failed": "只能在開啟的專案中使用拖放功能來匯入音樂 / 背景檔案。"
     }
 }
