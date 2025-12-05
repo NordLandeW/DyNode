@@ -139,6 +139,7 @@
     {"id":{"name":"objManager","path":"objects/objManager/objManager.yy",},},
     {"id":{"name":"objNote","path":"objects/objNote/objNote.yy",},},
     {"id":{"name":"objPerfectIndc","path":"objects/objPerfectIndc/objPerfectIndc.yy",},},
+    {"id":{"name":"objPreInit","path":"objects/objPreInit/objPreInit.yy",},},
     {"id":{"name":"objScoreBoard","path":"objects/objScoreBoard/objScoreBoard.yy",},},
     {"id":{"name":"objShadow","path":"objects/objShadow/objShadow.yy",},},
     {"id":{"name":"objShadowMIX","path":"objects/objShadowMIX/objShadowMIX.yy",},},
@@ -550,8 +551,9 @@
   "templateType":null,
   "TextureGroups":[
     {"$GMTextureGroup":"","%Name":"Default","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":true,"loadType":"default","mipsToGenerate":0,"name":"Default","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
-    {"$GMTextureGroup":"","%Name":"texFonts","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"default","mipsToGenerate":0,"name":"texFonts","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMTextureGroup":"","%Name":"texFonts","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"dynamicpages","mipsToGenerate":0,"name":"texFonts","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
     {"$GMTextureGroup":"","%Name":"texNotload","autocrop":false,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"default","mipsToGenerate":0,"name":"texNotload","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
     {"$GMTextureGroup":"","%Name":"texNotes","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":true,"loadType":"default","mipsToGenerate":0,"name":"texNotes","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMTextureGroup":"","%Name":"texPreInit","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":false,"loadType":"default","mipsToGenerate":0,"name":"texPreInit","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
   ],
 }

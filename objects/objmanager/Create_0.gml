@@ -150,11 +150,6 @@ scribble_anim_cycle(0.2, 255, 255);
 scribble_font_bake_shadow("fOrbitron48", "fOrbitron48s", 0, 10, c_black, 0.4, 0, true);
 scribble_font_bake_shadow("fDynamix16", "fDynamix16s", 0, 2, c_black, 0.3, 0, true);
 scribble_font_bake_outline_8dir("fDynamix16", "fDynamix16o", c_white, true);
-	// Prefetch Msdf Fonts' Texture (this takes time)
-	var _texarr = texturegroup_get_textures("texFonts");
-	for(var i=0, l=array_length(_texarr); i<l; i++) {
-		texture_prefetch(_texarr[i]);
-	}
 
 // Window Init
 

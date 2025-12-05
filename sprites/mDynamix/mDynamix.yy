@@ -84,8 +84,8 @@
     "scribble msdf",
   ],
   "textureGroupId":{
-    "name":"texFonts",
-    "path":"texturegroups/texFonts",
+    "name":"texPreInit",
+    "path":"texturegroups/texPreInit",
   },
   "type":0,
   "VTile":false,
