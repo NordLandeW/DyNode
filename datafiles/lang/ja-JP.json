@@ -213,6 +213,7 @@
         "recording_complete": "ビデオの録画が完了しました。\n[scale,0.8]保存先: $0",
         "recording_failed": "ビデオの録画に失敗しました。\nエラーメッセージ: $0",
         "recording_savefile_dlg_title": "録画ビデオファイルの保存先",
-        "recording_no_ffmpeg": "FFmpeg実行可能ファイルが見つかりません。\nFFmpegが正しくインストールされ、そのパスがシステムの環境変数に追加されていることを確認してください。"
+        "recording_no_ffmpeg": "FFmpeg実行可能ファイルが見つかりません。\nFFmpegが正しくインストールされ、そのパスがシステムの環境変数に追加されていることを確認してください。",
+        "drop_setting_bgm_failed": "只能在打开的项目中使用拖放功能来导入音乐 / 背景文件。"
     }
 }
