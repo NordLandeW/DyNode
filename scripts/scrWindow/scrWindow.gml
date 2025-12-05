@@ -2,7 +2,7 @@
 function window_on_files_dropped(fileList) {
     var files;
     if(is_string(fileList)) {
-        files = string_split(fileList, "|");
+        files = json_parse(fileList);
     } else {
         files = fileList;
     }
