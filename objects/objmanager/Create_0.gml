@@ -11,7 +11,6 @@
 #macro EPS 0.01
 #macro MIXER_REACTION_RANGE 0.35			// Mixer's reaction pixel range's ratio of resolutionW
 #macro SYSFIX "\\\\?\\"						// Old system prefix workaround for win's file path
-#macro VIDEO_FREQUENCY (global.VIDEO_UPDATE_FREQUENCY)			// in hz
 #macro EXPORT_XML_EPS 6
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
@@ -50,7 +49,6 @@ global.particleEffects = true;
 // Advanced settings
 global.FMOD_MP3_DELAY = 0;
 global.ANNOUNCEMENT_MAX_LIMIT = 7;
-global.VIDEO_UPDATE_FREQUENCY = 60;
 global.PROJECT_COMPRESSION_LEVEL = 11;		// zstd compression level. (0~22)
 
 // Singletons init

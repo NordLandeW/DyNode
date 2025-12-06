@@ -1,124 +1,91 @@
 
-function safe_video_init() {
-    with(objMain) {
-        bgVideoSurf = surface_create(BASE_RES_W, BASE_RES_H);
-        surface_clear(bgVideoSurf);
-        if(room_speed > VIDEO_FREQUENCY) {
-            timesourceUpdateVideo =
-        		time_source_create(time_source_game, 1/VIDEO_FREQUENCY, 
-        		time_source_units_seconds,
-        		function() {
-        			if(bgVideoAlpha > EPS && nowPlaying && bgVideoDisplay)
-        				safe_video_update();
-        		}, [], -1);
-        }
+function dyc_video_get_frame() {
+    static frameBuffer = -1;
+    static frameSurface = -999;
+    var buffSize = DyCore_video_get_buffer_size();
+
+    if(!buffer_exists(frameBuffer) || buffer_get_size(frameBuffer) != buffSize) {
+        if(buffSize <= 0)
+            return -1;
+
+        if(buffer_exists(frameBuffer))
+            buffer_resize(frameBuffer, buffSize);
         else {
-            timesourceUpdateVideo =
-        		time_source_create(time_source_game, 1, 
-        		time_source_units_frames,
-        		function() {
-        			if(bgVideoAlpha > EPS && nowPlaying && bgVideoDisplay)
-        				safe_video_update();
-        		}, [], -1);
+            frameBuffer = buffer_create(buffSize, buffer_fixed, 1);
         }
-    	time_source_start(timesourceUpdateVideo);
     }
+
+    var updated = DyCore_video_get_frame(buffer_get_address(frameBuffer), buffSize);
+    if(updated || !surface_exists(frameSurface)) {
+        buffer_set_used_size(frameBuffer, buffSize);
+        var vw = DyCore_video_get_width();
+        var vh = DyCore_video_get_height();
+        if(!surface_exists(frameSurface) || vw != surface_get_width(frameSurface) || vh != surface_get_height(frameSurface)) {
+            if(surface_exists(frameSurface))
+                surface_free(frameSurface);
+            frameSurface = surface_create(vw, vh);
+        }
+
+        // show_debug_message("Updating video frame surface: " + string(vw) + "x" + string(vh));
+
+        buffer_set_surface(frameBuffer, frameSurface, 0);
+    }
+
+    return frameSurface;
 }
 
-#macro VIDEO_PAUSE_AHEAD_ENDING 150
-
-function safe_video_update() {
-    with(objMain) {
-        bgVideoSurf = surface_checkate(bgVideoSurf, BASE_RES_W, BASE_RES_H);
-        
-        if(bgVideoAlpha < EPS || !bgVideoLoaded)
-            return false;
-        if(video_get_status() <= 1)
-            return false;
-
-        if((nowPlaying && nowTime > bgVideoLength - VIDEO_PAUSE_AHEAD_ENDING) || nowTime < 0 || global.recordManager.is_recording())
-            safe_video_pause();
-        else if(nowPlaying && editor_get_editmode() == 5 && bgVideoPaused && nowTime >= 0)
-            safe_video_seek_to(nowTime);
-        
-        surface_set_target(bgVideoSurf);
-            draw_clear_alpha(c_black, 1);
-            if(nowTime >= 0 && !bgVideoPaused) {
-                var _status = video_draw();
-                if(_status[0] == -1) {
-                    // announcement_error("video_playback_error");
-                    //! Bug in runtime 2023.11
-                    //! Occasional error message will occur.
-                    show_debug_message_safe("VIDEO PLAYBACK ERROR.");
-                    // safe_video_free();
-                    // bgVideoLoaded = false;
-                }
-                else if(_status[0] == 0 && surface_exists(_status[1])) {
-                    var _w = surface_get_width(_status[1]), _h = surface_get_height(_status[1]);
-                    var _wscl = BASE_RES_W / _w;
-                    var _hscl = BASE_RES_H / _h;
-                    var _scl = max(_wscl, _hscl); // Centre & keep ratios
-                    var _nx = BASE_RES_W/2 - _scl * _w / 2;
-                    var _ny = BASE_RES_H/2 - _scl * _h / 2;
-                    draw_surface_ext(_status[1], _nx, _ny, _scl, _scl, 0, c_white, 1);
-                }
-            }
-        surface_reset_target();
+function dyc_video_draw(x, y, alp) {
+    if(objMain.nowTime < 0) {
+        draw_sprite_ext(sprBlack, 0, 0, 0, BASE_RES_W / 32, BASE_RES_H / 32, 0, c_black, alp);
+        if(dyc_video_is_playing())
+            dyc_video_pause();
+        return;
     }
-    return true;
+
+    if(!dyc_video_is_playing() && objMain.nowPlaying && editor_get_editmode() == 5) {
+        dyc_video_play();
+        dyc_video_seek_to(objMain.nowTime / 1000);
+    }
+
+    var _surf = dyc_video_get_frame();
+
+    if(_surf < 0) {
+        draw_sprite_ext(sprBlack, 0, 0, 0, BASE_RES_W / 32, BASE_RES_H / 32, 0, c_black, alp);
+        return;
+    }
+    var _sw = surface_get_width(_surf), _sh = surface_get_height(_surf);
+    var _nw = BASE_RES_W, _nh = BASE_RES_H;
+    var _scl = max(_nw / _sw, _nh / _sh); // Centre & keep ratios
+    var _sx = (_nw - _sw * _scl) / 2, _sy = (_nh - _sh * _scl) / 2;
+
+    shader_set(shd_video);
+    draw_surface_ext(_surf, _sx, _sy, _scl, _scl, 0, c_white, alp);
+    shader_reset();
 }
 
-function safe_video_draw(x, y, alp) {
-
-    with(objMain) {
-        if(!surface_exists(bgVideoSurf))
-            safe_video_update();
-		if(bgVideoLoaded)
-			draw_surface_ext(bgVideoSurf, 0, 0, 1, 1, 0, c_white, alp);
-    }
+function dyc_video_free() {
+    DyCore_video_close();
 }
 
-function safe_video_free() {
-    with(objMain) {
-        bgVideoPaused = false;
-        bgVideoLoaded = false;
-        bgVideoReloading = false;
-        bgVideoDisplay = false;
-        
-        surface_free_f(bgVideoSurf);
-        bgVideoDestroying = true;
-
-        //! Bug in runtime 2024.2: sometimes video_close will not work as expected.
-        video_close();
-        
-        show_debug_message("VIDEO FREE!!");
-    }
-    
-}
-
-function safe_video_seek_to(time) {
+function dyc_video_seek_to(time) {
     if(editor_get_editmode() != 5)
         return;
-    video_seek_to(time);
-    safe_video_resume();
-    show_debug_message("VIDEO SEEKING TO: "+ string(time));
+    DyCore_video_seek(time);
 }
 
 // If the video is loaded (or being reloading)
-function safe_video_check_loaded() {
-    return objMain.bgVideoLoaded || objMain.bgVideoReloading;
+function dyc_video_is_loaded() {
+    return DyCore_video_is_loaded();
 }
 
-function safe_video_pause() {
-    if(objMain.bgVideoPaused) return;
-    objMain.bgVideoPaused = true;
-    video_pause();
-    show_debug_message("VIDEO PAUSED.");
+function dyc_video_is_playing() {
+    return DyCore_video_is_playing();
 }
 
-function safe_video_resume() {
-    if(!objMain.bgVideoPaused) return;
-    objMain.bgVideoPaused = false;
-    video_resume();
-    show_debug_message("VIDEO RESUMED.");
+function dyc_video_pause() {
+    DyCore_video_pause();
+}
+
+function dyc_video_play() {
+    DyCore_video_play();
 }

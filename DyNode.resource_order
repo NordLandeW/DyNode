@@ -397,6 +397,7 @@
     {"name":"mOrbitron","order":4,"path":"sprites/mOrbitron/mOrbitron.yy",},
     {"name":"mSpaceMono","order":3,"path":"sprites/mSpaceMono/mSpaceMono.yy",},
     {"name":"scribble_fallback_bulletpoint","order":19,"path":"sprites/scribble_fallback_bulletpoint/scribble_fallback_bulletpoint.yy",},
+    {"name":"sprBlack","order":35,"path":"sprites/sprBlack/sprBlack.yy",},
     {"name":"sprBottomSignBlack","order":28,"path":"sprites/sprBottomSignBlack/sprBottomSignBlack.yy",},
     {"name":"sprBottomSignBlue","order":29,"path":"sprites/sprBottomSignBlue/sprBottomSignBlue.yy",},
     {"name":"sprChainL","order":11,"path":"sprites/sprChainL/sprChainL.yy",},

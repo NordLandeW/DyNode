@@ -149,6 +149,7 @@ target_include_directories(DyCore PRIVATE
     src/timing
     src/utils
     src/render
+    src/video
     lib/
     lib/pugixml
     lib/sol

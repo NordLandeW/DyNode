@@ -22,8 +22,8 @@ depth = 0;
 	timesourceSyncVideo = 
 		time_source_create(time_source_game, 0.1,
 		time_source_units_seconds, function() {
-			if(bgVideoLoaded) {
-	        	safe_video_seek_to(clamp(nowTime, 0, bgVideoLength));
+			if(dyc_video_is_loaded()) {
+	        	dyc_video_seek_to(nowTime / 1000);
 	        }
 		}, [], 1);
 	
@@ -225,16 +225,7 @@ depth = 0;
         bgImageSpr = -1;
         
         // Video
-        bgVideoLoaded = false;
-        bgVideoDisplay = false;
-        bgVideoPaused = false;
-        bgVideoLength = 0;
-        bgVideoReloading = false;
-        bgVideoDestroying = false;
-        bgVideoSurf = undefined;
         bgVideoAlpha = 0;
-        
-        safe_video_init();
         
         // Faint
         bgFaintAlpha = 1;
@@ -441,7 +432,7 @@ function time_music_sync() {
 	sfmod_channel_set_position(nowTime, channel, sampleRate);
     
     // Sync with the video position
-    if(bgVideoLoaded) {
+    if(dyc_video_is_loaded()) {
     	time_source_start(timesourceSyncVideo);
     }
 }

@@ -12,7 +12,7 @@
 
 function map_close() {
 	with(objMain) {
-		safe_video_free();
+		dyc_video_free();
 		kawase_destroy(kawaseArr);
 		surface_free_f(shadowPingSurf);
 		surface_free_f(shadowPongSurf);
@@ -361,41 +361,25 @@ function background_reset() {
 				sprite_delete(bgImageSpr);
 			bgImageSpr = -1;
 		}
-		safe_video_free();
+		dyc_video_free();
 		announcement_play("anno_background_reset");
 	}
 }
 
-function video_load(_file, _safe = true) {
+function video_load(_file) {
 	if(!file_exists(_file)) {
 	        announcement_error("video_playback_file_not_exists"+_file);
         return;
     }
-    if(_safe)
-		safe_video_free();
-	else
-		video_close();
-    
-    if(variable_global_exists("__tmp_handlevo") && global.__tmp_handlevo != undefined)
-    	call_cancel(global.__tmp_handlevo);
-    global.__tmp_handlevo_time = 0;
-    global.__tmp_handlevo = call_later(1, time_source_units_frames, function () {
-    	if(delta_time <= 1000000)
-    		global.__tmp_handlevo_time += delta_time / 1000;
-    	if(video_get_status() == video_status_closed && global.__tmp_handlevo_time < 3000) {
-    		video_open(objManager.videoPath);
-			video_enable_loop(true);	// Prevent weird bugs
-			video_set_volume(0);
-    	}
-    	else if(video_get_status() != video_status_preparing) {
-    		if(global.__tmp_handlevo_time >= 10000)
-    			announcement_error("video_playback_open_timeout"); 
-    		call_cancel(global.__tmp_handlevo);
-    		global.__tmp_handlevo = undefined;
-    	}
-    }, true);
+
+	
+	if(DyCore_video_open(_file) < 0) {
+		show_debug_message("Video load failed.");
+		return;
+	}
 	
 	objManager.videoPath = _file;
+
 }
 
 function image_load(_file) {
@@ -1128,7 +1112,6 @@ function load_config() {
 	_check_set(_con, "dropAdjustError");
 	_check_set(_con, "lastCheckedVersion");
 	_check_set(_con, "offsetCorrection");
-	_check_set(_con, "VIDEO_UPDATE_FREQUENCY");
 	_check_set(_con, "autoSaveTime");
 	_check_set(_con, "analytics");
 	_check_set(_con, "particleEffects");
@@ -1179,7 +1162,6 @@ function save_config() {
 		dropAdjustError: global.dropAdjustError,
 		lastCheckedVersion: global.lastCheckedVersion,
 		offsetCorrection: global.offsetCorrection,
-		VIDEO_UPDATE_FREQUENCY: global.VIDEO_UPDATE_FREQUENCY,
 		autoSaveTime: global.autoSaveTime,
 		analytics: global.analytics,
 		particleEffects: global.particleEffects,
@@ -1311,16 +1293,14 @@ function playview_pause_and_resume(forceResume = false) {
 			nowPlaying = true;
             sfmod_channel_set_position(nowTime, channel, sampleRate);
 
-			// Multiple hacks are used for video resume,
-			// so there is no need to add safe_video_resume or safe_video_seek_to at here.
+			// Video play logic refers to dyc_video_draw.
         }
         else {
             FMODGMS_Chan_PauseChannel(channel);
             nowPlaying = false;
             
-            if(bgVideoLoaded) {
-            	safe_video_pause();
-            }
+            if(dyc_video_is_loaded())
+            	dyc_video_pause();
         }
 	}
 }

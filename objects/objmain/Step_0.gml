@@ -171,7 +171,7 @@ projectTime += round(delta_time / 1000);
 	animTargetBgFaintAlpha = editor_get_editmode() == 5? 0.5: 0;
     bgFaintAlpha = lerp_a(bgFaintAlpha, animTargetBgFaintAlpha, animSpeedFaint);
     
-	bgVideoAlpha = lerp(0, safe_video_check_loaded(), standardAlpha);
+	bgVideoAlpha = lerp(0, dyc_video_is_loaded(), standardAlpha);
     
 #endregion
 
