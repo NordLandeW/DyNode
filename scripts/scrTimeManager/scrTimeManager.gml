@@ -15,6 +15,9 @@ function TimeManager() constructor {
         return min(100000, delta_time);
     }
 
+    /// @description Get the delta time in microseconds.
+    /// @param {Real|Enum.TIME_MODE} overwriteMode The time mode to use. -1 to use the current mode.
+    /// @param {Bool} clamped Whether to clamp the delta time to a maximum value of 100000.
     static get_delta = function(overwriteMode = -1, clamped = true) {
         var _curMode = mode;
         if(overwriteMode != -1) _curMode = overwriteMode;
