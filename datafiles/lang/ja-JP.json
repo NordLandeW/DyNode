@@ -128,6 +128,7 @@
         "copy_timing_point": "最後のTiming Pointを $0 にコピーしました\nBPM：$1\n拍子：$2/4",
         "error_no_timing_point": "Timing Pointが設定されていません。Yキーで少なくとも1つ設定してください。",
         "beatline_divs": "拍子分割：1/$0\n拍子分割グループ：$1",
+        "beatline_without_timing": "タイミングが設定されていないため、拍線を表示できません。\nYキーを押して、少なくとも1つのタイミングポイントを配置できます。\nF12キーを押してガイドを開き、詳細を確認できます。",
         "warning_note_outbound": "画面内に完全に表示されないノートを配置しています。このノートは後で編集困難になる可能性があります。\n必要ならUndoで戻ってください。",
         "copy_width": "幅をコピーしました：$0",
         "adjust_grid_y": "時間方向へのグリッドスナップ",
@@ -212,6 +213,8 @@
         "recording_complete": "ビデオの録画が完了しました。\n[scale,0.8]保存先: $0",
         "recording_failed": "ビデオの録画に失敗しました。\nエラーメッセージ: $0",
         "recording_savefile_dlg_title": "録画ビデオファイルの保存先",
-        "recording_no_ffmpeg": "FFmpeg実行可能ファイルが見つかりません。\nFFmpegが正しくインストールされ、そのパスがシステムの環境変数に追加されていることを確認してください。"
+        "recording_no_ffmpeg": "FFmpeg実行可能ファイルが見つかりません。\nFFmpegが正しくインストールされ、そのパスがシステムの環境変数に追加されていることを確認してください。",
+        "drop_setting_bgm_failed": "音楽 / 背景ファイルは、開いているプロジェクトにドラッグ＆ドロップでのみインポートできます。",
+        "drop_unsupported_file": "対応していないファイル形式です。"
     }
 }

@@ -128,6 +128,7 @@
         "copy_timing_point": "Copied last Timing Point to $0\nBPM: $1\nMeter: $2/4",
         "error_no_timing_point": "No Timing Points set. Press Y to place at least one.",
         "beatline_divs": "Beat subdivision: 1/$0\nBeat subdivision group: $1",
+        "beatline_without_timing": "Timing has not been configured, so beatlines cannot be displayed.\nYou can use the Y key to place at least one Timing Point.\nYou can press F12 to open the guide for more information.",
         "warning_note_outbound": "You are placing a completely off-screen note. It may become uneditable.\nUse Undo to revert if necessary.",
         "copy_width": "Width copied: $0",
         "adjust_grid_y": "Time-axis grid snapping",
@@ -212,6 +213,8 @@
         "recording_complete": "Video recording complete.\n[scale,0.8]Saved to: $0",
         "recording_failed": "Video recording failed.\nError message: $0",
         "recording_savefile_dlg_title": "Save Video File To",
-        "recording_no_ffmpeg": "FFmpeg executable not found.\nPlease ensure FFmpeg is installed correctly and its path has been added to the system's environment variables."
+        "recording_no_ffmpeg": "FFmpeg executable not found.\nPlease ensure FFmpeg is installed correctly and its path has been added to the system's environment variables.",
+        "drop_setting_bgm_failed": "You can only use drag and drop to import music / background files into an open project.",
+        "drop_unsupported_file": "Unsupported file type."
     }
 }
