@@ -3,8 +3,8 @@
   "%Name":"__yy_sdf_effect_shader",
   "name":"__yy_sdf_effect_shader",
   "parent":{
-    "name":"SDF Shaders",
-    "path":"folders/Prefabs/SDF Shaders.yy",
+    "name":"Shaders",
+    "path":"folders/Shaders.yy",
   },
   "resourceType":"GMShader",
   "resourceVersion":"2.0",
