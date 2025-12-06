@@ -18,7 +18,9 @@ def get_version_from_git():
         # Get the latest tag
         git_executable = shutil.which("git")
         if not git_executable:
-            raise FileNotFoundError("Could not find 'git' executable in PATH. Ensure git is installed and accessible.")
+            raise FileNotFoundError(
+                "Could not find 'git' executable in PATH. Ensure git is installed and accessible."
+            )
         command = [git_executable, "describe", "--tags", "--abbrev=0"]
         tag_bytes = subprocess.check_output(command)
         tag = tag_bytes.decode("utf-8").strip()
@@ -35,7 +37,9 @@ def get_version_from_git():
         return version
 
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"Warning: Could not get git tag. Is git installed and is this a repo? {e}")
+        print(
+            f"Warning: Could not get git tag. Is git installed and is this a repo? {e}"
+        )
         return None
 
 
@@ -43,13 +47,17 @@ def download_rcedit(temp_dir):
     """
     Downloads rcedit to a temporary directory.
     """
-    rcedit_url = "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe"
+    rcedit_url = (
+        "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe"
+    )
     rcedit_path = os.path.join(temp_dir, "rcedit.exe")
     print(f"Downloading rcedit from {rcedit_url}...")
     try:
         parsed_url = urllib.parse.urlparse(rcedit_url)
         if parsed_url.scheme not in ("http", "https"):
-            raise ValueError(f"Invalid URL scheme: {parsed_url.scheme}. Only 'http' and 'https' are allowed.")
+            raise ValueError(
+                f"Invalid URL scheme: {parsed_url.scheme}. Only 'http' and 'https' are allowed."
+            )
         # Use requests for safer, higher-level HTTP handling
         with requests.get(rcedit_url, stream=True, timeout=30) as response:
             response.raise_for_status()
@@ -134,10 +142,11 @@ def main():
             sys.exit(1)
 
         # 3. Download rcedit and set version
-        rcedit_path = download_rcedit(temp_dir)
         version = get_version_from_git()
+        rcedit_path = None
 
         if version:
+            rcedit_path = download_rcedit(temp_dir)
             rcedit_command = [
                 rcedit_path,
                 target_exe_path,
@@ -159,6 +168,18 @@ def main():
                 sys.exit(1)
         else:
             print("Skipping version setting because git tag could not be determined.")
+
+        # 3b. Clean up helper tools and config so they are not included in the zip
+        options_ini_path = os.path.join(temp_dir, "options.ini")
+        for helper_path in (rcedit_path, options_ini_path):
+            if helper_path and os.path.exists(helper_path):
+                try:
+                    os.remove(helper_path)
+                    print(f"Removed helper or config file: {helper_path}")
+                except OSError as e:
+                    print(
+                        f"Warning: Failed to remove helper or config file '{helper_path}': {e}"
+                    )
 
         # 4. Re-zip the contents, overwriting the original file
         print(f"Re-packing modified files into '{os.path.basename(args.zip_path)}'...")
