@@ -53,7 +53,7 @@ jobs:
       - id: find_yyp
         name: Find the .yyp file
         run: |
-          $yyp = Get-ChildItem -Path ${{ github.workspace }} -Recurse -Filter *.yyp
+          $yyp = Get-ChildItem -Path ${{ github.workspace }} -Filter *.yyp
           Write-Output "YYP file found at: $yyp"
           "yyp-path=$yyp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
