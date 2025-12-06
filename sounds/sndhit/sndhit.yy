@@ -1,15 +1,17 @@
 {
-  "$GMSound":"",
+  "$GMSound":"v2",
   "%Name":"sndHit",
   "audioGroupId":{
     "name":"audiogroup_default",
     "path":"audiogroups/audiogroup_default",
   },
   "bitDepth":1,
-  "bitRate":144,
+  "channelFormat":1,
   "compression":0,
+  "compressionQuality":5,
   "conversionMode":0,
   "duration":0.093792,
+  "exportDir":"",
   "name":"sndHit",
   "parent":{
     "name":"Sounds",
@@ -20,6 +22,5 @@
   "resourceVersion":"2.0",
   "sampleRate":44100,
   "soundFile":"sndhit.ogg",
-  "type":1,
   "volume":0.7,
 }

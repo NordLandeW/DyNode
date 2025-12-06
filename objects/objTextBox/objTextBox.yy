@@ -26,9 +26,9 @@
   "physicsShapePoints":[],
   "physicsStartAwake":true,
   "properties":[
-    {"$GMObjectProperty":"v1","%Name":"text","filters":[],"listItems":[],"multiselect":false,"name":"text","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"This is a textbox","varType":2,},
-    {"$GMObjectProperty":"v1","%Name":"scl","filters":[],"listItems":[],"multiselect":false,"name":"scl","rangeEnabled":true,"rangeMax":1.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"1","varType":0,},
-    {"$GMObjectProperty":"v1","%Name":"font","filters":[],"listItems":[],"multiselect":false,"name":"font","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"sprMsdfNotoSans","varType":2,},
+    {"$GMObjectProperty":"v2","%Name":"text","filters":[],"listItems":[],"multiselect":false,"name":"text","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"This is a textbox","varType":2,},
+    {"$GMObjectProperty":"v2","%Name":"scl","filters":[],"listItems":[],"multiselect":false,"name":"scl","rangeEnabled":true,"rangeMax":1.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"1","varType":0,},
+    {"$GMObjectProperty":"v2","%Name":"font","filters":[],"listItems":[],"multiselect":false,"name":"font","rangeEnabled":false,"rangeMax":10.0,"rangeMin":0.0,"resourceType":"GMObjectProperty","resourceVersion":"2.0","value":"sprMsdfNotoSans","varType":2,},
   ],
   "resourceType":"GMObject",
   "resourceVersion":"2.0",

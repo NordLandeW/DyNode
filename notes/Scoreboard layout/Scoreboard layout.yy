@@ -1,5 +1,5 @@
 {
-  "$GMNotes":"",
+  "$GMNotes":"v1",
   "%Name":"Scoreboard layout",
   "name":"Scoreboard layout",
   "parent":{

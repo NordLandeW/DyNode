@@ -1,5 +1,5 @@
 {
-  "$GMNotes":"",
+  "$GMNotes":"v1",
   "%Name":"__SnitchNativeMacros",
   "name":"__SnitchNativeMacros",
   "parent":{

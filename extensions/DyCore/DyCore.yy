@@ -16,7 +16,7 @@
   "exportToGame":true,
   "extensionVersion":"0.0.1",
   "files":[
-    {"$GMExtensionFile":"","%Name":"DyCore.dll","constants":[],"copyToTargets":192,"filename":"DyCore.dll","final":"","functions":[
+    {"$GMExtensionFile":"v1","%Name":"DyCore.dll","constants":[],"copyToTargets":192,"filename":"DyCore.dll","final":"","functions":[
         {"$GMExtensionFunction":"","%Name":"DyCore_init","argCount":0,"args":[1,1,],"documentation":"","externalName":"DyCore_init","help":"DyCore_init(hwnd, prog_dir)","hidden":false,"kind":1,"name":"DyCore_init","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":1,},
         {"$GMExtensionFunction":"","%Name":"DyCore_delaunator_buffer","argCount":0,"args":[1,1,2,2,],"documentation":"","externalName":"DyCore_delaunator_buffer","help":"DyCore_delaunator_buffer(inBufPtr, outBufPtr, outCapBytes, coordFormat)","hidden":false,"kind":1,"name":"DyCore_delaunator_buffer","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"DyCore_update","argCount":0,"args":[1,],"documentation":"","externalName":"DyCore_update","help":"DyCore_update(program_directory)","hidden":false,"kind":1,"name":"DyCore_update","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
@@ -114,7 +114,7 @@
         {"$GMExtensionFunction":"","%Name":"DyCore_video_get_width","argCount":0,"args":[],"documentation":"","externalName":"DyCore_video_get_width","help":"DyCore_video_get_width()","hidden":false,"kind":1,"name":"DyCore_video_get_width","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"DyCore_video_get_height","argCount":0,"args":[],"documentation":"","externalName":"DyCore_video_get_height","help":"DyCore_video_get_height()","hidden":false,"kind":1,"name":"DyCore_video_get_height","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"DyCore_video_get_buffer_size","argCount":0,"args":[],"documentation":"","externalName":"DyCore_video_get_buffer_size","help":"DyCore_video_get_buffer_size()","hidden":false,"kind":1,"name":"DyCore_video_get_buffer_size","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
-      ],"init":"","kind":1,"name":"DyCore.dll","order":[],"origname":"","ProxyFiles":[
+      ],"init":"","kind":1,"name":"DyCore.dll","origname":"","ProxyFiles":[
         {"$GMProxyFile":"","%Name":"libDyCore.so","name":"libDyCore.so","resourceType":"GMProxyFile","resourceVersion":"2.0","TargetMask":7,},
       ],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
   ],
