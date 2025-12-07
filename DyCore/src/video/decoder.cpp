@@ -1,10 +1,16 @@
 #include "decoder.h"
 
+#include <d3d11.h>
+#include <d3d11_4.h>
 #include <mfapi.h>
 #include <mferror.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
+#include <minwindef.h>
 #include <windows.h>
+
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 
 #include <cassert>
 #include <chrono>
@@ -322,13 +328,82 @@ bool VideoDecoder::open(const wchar_t* filename) {
 
     IMFAttributes* pAttributes = nullptr;
     HRESULT hr = MFCreateAttributes(&pAttributes, 1);
+
+    // [Hardware Acceleration] Start ------------------------------------------
     if (SUCCEEDED(hr)) {
-        hr = pAttributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING,
-                                    TRUE);
+        // Create D3D11 device with video and BGRA support so MF can leverage
+        // DXVA.
+        ID3D11Device* pD3DDevice = nullptr;
+        ID3D11DeviceContext* pD3DContext = nullptr;
+        UINT creationFlags = D3D11_CREATE_DEVICE_VIDEO_SUPPORT |
+                             D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+        // creationFlags |= D3D11_CREATE_DEVICE_DEBUG; // enable for D3D
+        // debugging
+
+        D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1,
+                                             D3D_FEATURE_LEVEL_11_0};
+        D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+
+        HRESULT d3dHr =
+            D3D11CreateDevice(nullptr,                   // Default adapter
+                              D3D_DRIVER_TYPE_HARDWARE,  // HW driver
+                              nullptr,        // No software rasterizer
+                              creationFlags,  // Flags
+                              featureLevels,  // Requested feature levels
+                              ARRAYSIZE(featureLevels),  // Count
+                              D3D11_SDK_VERSION,         // SDK
+                              &pD3DDevice,               // Out: device
+                              &featureLevel,  // Out: negotiated feature level
+                              &pD3DContext    // Out: context
+            );
+
+        if (SUCCEEDED(d3dHr)) {
+            // Ensure thread safety as MF may call into D3D from different
+            // threads.
+            ID3D11Multithread* pMultithread = nullptr;
+            if (SUCCEEDED(
+                    pD3DDevice->QueryInterface(IID_PPV_ARGS(&pMultithread)))) {
+                pMultithread->SetMultithreadProtected(TRUE);
+                pMultithread->Release();
+            }
+
+            // Create DXGI Device Manager and associate the D3D device.
+            UINT resetToken = 0;
+            IMFDXGIDeviceManager* pDXGIManager = nullptr;
+            d3dHr = MFCreateDXGIDeviceManager(&resetToken, &pDXGIManager);
+            if (SUCCEEDED(d3dHr)) {
+                d3dHr = pDXGIManager->ResetDevice(pD3DDevice, resetToken);
+                if (SUCCEEDED(d3dHr)) {
+                    // Provide the DXGI manager to the source reader for DXVA.
+                    pAttributes->SetUnknown(MF_SOURCE_READER_D3D_MANAGER,
+                                            pDXGIManager);
+                    pAttributes->SetUINT32(
+                        MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
+                    print_debug_message(
+                        "VideoDecoder::open Hardware Acceleration enabled "
+                        "(D3D11).");
+                }
+                // Attribute holds a reference; release our local one.
+                pDXGIManager->Release();
+            }
+
+            if (pD3DContext)
+                pD3DContext->Release();
+            if (pD3DDevice)
+                pD3DDevice->Release();
+        } else {
+            print_debug_message(std::format(
+                "VideoDecoder::open D3D11CreateDevice failed, hr=0x{:08X}",
+                static_cast<unsigned long>(d3dHr)));
+        }
     }
 
+    hr = pAttributes->SetUINT32(
+        MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE);
+
     if (FAILED(hr)) {
-        print_debug_message("VideoDecoder::open failed to create attributes.");
+        print_debug_message(
+            "VideoDecoder::open failed to configure attributes.");
         if (pAttributes)
             pAttributes->Release();
         return false;

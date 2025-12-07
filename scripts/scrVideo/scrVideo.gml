@@ -26,8 +26,6 @@ function dyc_video_get_frame() {
             frameSurface = surface_create(vw, vh);
         }
 
-        // show_debug_message("Updating video frame surface: " + string(vw) + "x" + string(vh));
-
         buffer_set_surface(frameBuffer, frameSurface, 0);
     }
 
@@ -73,7 +71,7 @@ function dyc_video_seek_to(time) {
     DyCore_video_seek(time);
 }
 
-// If the video is loaded (or being reloading)
+// If the video is loaded
 function dyc_video_is_loaded() {
     return DyCore_video_is_loaded();
 }
