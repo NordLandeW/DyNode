@@ -1,4 +1,7 @@
 
+// Prevent flickering when seek the video to beginning.
+global.__DyCore_Video_Preparing_Flag = false;
+
 function dyc_video_get_frame() {
     static frameBuffer = -1;
     static frameSurface = -999;
@@ -27,13 +30,18 @@ function dyc_video_get_frame() {
         }
 
         buffer_set_surface(frameBuffer, frameSurface, 0);
+        if(updated) global.__DyCore_Video_Preparing_Flag = false;
     }
+
+    if(global.__DyCore_Video_Preparing_Flag)
+        return -1;
 
     return frameSurface;
 }
 
 function dyc_video_draw(x, y, alp) {
     if(objMain.nowTime < 0) {
+        global.__DyCore_Video_Preparing_Flag = true;
         draw_sprite_ext(sprBlack, 0, 0, 0, BASE_RES_W / 32, BASE_RES_H / 32, 0, c_black, alp);
         if(dyc_video_is_playing())
             dyc_video_pause();
