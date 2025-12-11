@@ -36,6 +36,7 @@ function RecordManager() constructor {
         originalFPS = game_get_speed(gamespeed_fps);
         game_set_speed(RECORDING_FPS_MAX, gamespeed_fps);
         resolution_set(RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, false);
+        display_reset(max(global.graphics.VSync, 2), false);
         targetFilePath = filename;
         
         var w = RECORDING_RESOLUTION_W;
@@ -91,13 +92,8 @@ function RecordManager() constructor {
         }
         // No need to call `DyCore_ffmpeg_finish_recording`.
         recording = false;
-        buffer_delete(frameBuffer);
-        frameBuffer = -1;
-        global.timeManager.set_mode_default();
-        game_set_speed(originalFPS, gamespeed_fps);
+        post_recording();
         show_debug_message("-- Recording aborted.");
-
-        global.__InputManager.unfreeze();
     }
 
     static finish_recording = function() {
@@ -108,14 +104,18 @@ function RecordManager() constructor {
 
         DyCore_ffmpeg_finish_recording();
         recording = false;
+        post_recording();
+        show_debug_message("-- Recording finished.");
+        announcement_task(i18n_get("recording_complete", [targetFilePath]), 5000, "recording", ANNO_STATE.COMPLETE);
+    }
+
+    static post_recording = function() {
         buffer_delete(frameBuffer);
         frameBuffer = -1;
         global.timeManager.set_mode_default();
         game_set_speed(originalFPS, gamespeed_fps);
-        show_debug_message("-- Recording finished.");
+        display_reset(global.graphics.AA, global.graphics.VSync);
 
-        announcement_task(i18n_get("recording_complete", [targetFilePath]), 5000, "recording", ANNO_STATE.COMPLETE);
-        
         global.__InputManager.unfreeze();
     }
 
