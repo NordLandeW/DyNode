@@ -109,7 +109,7 @@
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.14.1.210",
+    "IDEVersion":"2024.14.2.212",
   },
   "name":"DyNode",
   "resources":[
@@ -160,6 +160,7 @@
     {"id":{"name":"__SnitchController","path":"objects/__SnitchController/__SnitchController.yy",},},
     {"id":{"name":"objAnnouncement","path":"objects/objAnnouncement/objAnnouncement.yy",},},
     {"id":{"name":"objChain","path":"objects/objChain/objChain.yy",},},
+    {"id":{"name":"objConsole","path":"objects/objConsole/objConsole.yy",},},
     {"id":{"name":"objCredits","path":"objects/objCredits/objCredits.yy",},},
     {"id":{"name":"objEditor","path":"objects/objEditor/objEditor.yy",},},
     {"id":{"name":"objHold","path":"objects/objHold/objHold.yy",},},
@@ -400,6 +401,7 @@
     {"id":{"name":"scrInput","path":"scripts/scrInput/scrInput.yy",},},
     {"id":{"name":"scrNote","path":"scripts/scrNote/scrNote.yy",},},
     {"id":{"name":"scrRecorder","path":"scripts/scrRecorder/scrRecorder.yy",},},
+    {"id":{"name":"scrRegex","path":"scripts/scrRegex/scrRegex.yy",},},
     {"id":{"name":"scrRender","path":"scripts/scrRender/scrRender.yy",},},
     {"id":{"name":"scrSystem","path":"scripts/scrSystem/scrSystem.yy",},},
     {"id":{"name":"scrTest","path":"scripts/scrTest/scrTest.yy",},},

@@ -325,15 +325,21 @@ function keycheck_down_shift(key) {
 }
 
 function keycheck(key, nofun = true) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check(key);
 }
 function keycheck_down(key, nofun = true) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check_pressed(key);
 }
 function keycheck_up(key) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     return keyboard_check_released(key);
 }

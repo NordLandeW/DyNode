@@ -1,4 +1,5 @@
 #include <random>
+#include <regex>
 
 #include "api.h"
 #include "gm.h"
@@ -60,4 +61,14 @@ DYCORE_API double DyCore_irandom_range(double min, double max) {
     std::uniform_int_distribution<int64_t> dist(static_cast<int64_t>(min),
                                                 static_cast<int64_t>(max));
     return dist(mt19937);
+}
+
+DYCORE_API double DyCore_regex_match(const char* str, const char* pattern) {
+    try {
+        std::regex re(pattern);
+        return std::regex_match(str, re) ? 1.0 : 0.0;
+    } catch (const std::regex_error& e) {
+        throw_error_event("Regex error: " + std::string(e.what()));
+        return 0.0;
+    }
 }

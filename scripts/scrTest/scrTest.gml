@@ -111,6 +111,38 @@ function __test_misc() {
     if(!variable_struct_exists(_b, "copy"))
         show_debug_message("Bad judging statements.");
     
+    // Test regex
+
+    // Basic test helper (regex_match does full-string match)
+    var __assert_match = function(_str, _pattern, _expected, _label) {
+        var _ok = regex_match(_str, _pattern);
+        if(_ok == _expected)
+            show_debug_message($"[REGEX][PASS] {_label} | str='{_str}' pattern='{_pattern}' => {string(_ok)}");
+        else
+            show_debug_message($"[REGEX][FAIL] {_label} | str='{_str}' pattern='{_pattern}' => {string(_ok)} (expected {string(_expected)})");
+    };
+
+    show_debug_message("=====TEST REGEX_MATCH======");
+
+    // 1) Digits (must match whole string)
+    __assert_match("abc123", "^\\d+$", false, "digits only (reject mixed)");
+    __assert_match("123", "^\\d+$", true, "digits only");
+    __assert_match("abcdef", "^\\d+$", false, "digits only (reject non-digits)");
+
+    // 2) Exact match
+    __assert_match("hello", "hello", true, "exact match");
+    __assert_match(" hello ", "hello", false, "exact match (whitespace)");
+
+    // 3) Email-ish
+    __assert_match("test.user_01@example.com", "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", true, "email-ish");
+    __assert_match("not-an-email", "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", false, "email-ish invalid");
+
+    // 4) Alternation / groups
+    __assert_match("cat", "^(cat|dog)$", true, "alternation hit");
+    __assert_match("cow", "^(cat|dog)$", false, "alternation miss");
+
+    // 5) Escapes: literal dot
+    __assert_match("v1.2.3", "v\\d+\\.\\d+\\.\\d+", true, "semantic version");
 }
 
 function test_at_start() {
