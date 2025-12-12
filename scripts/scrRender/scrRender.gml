@@ -15,6 +15,7 @@ function NoteRenderer() constructor {
 
     // Hold Particles timer.
     holdParticlesTimer = 0;
+    tempAdditionSurface = -1;
 
     static render_state = function(state) {
         /// @type {Real} 
@@ -44,17 +45,16 @@ function NoteRenderer() constructor {
         render_state(1);
 
         // Render addition bg
-        var _tempSurf = surface_create(1920, 1080);
-        surface_set_target(_tempSurf);
+        tempAdditionSurface = surface_checkate(tempAdditionSurface, 1920, 1080);
+        surface_set_target(tempAdditionSurface);
         draw_clear_alpha(c_black, 0);
         gpu_set_blendmode_ext(bm_one, bm_zero);
         render_state(0);
         surface_reset_target();
 
         gpu_set_blendmode(bm_add);
-        draw_surface(_tempSurf, 0, 0);
+        draw_surface(tempAdditionSurface, 0, 0);
         gpu_set_blendmode(bm_normal);
-        surface_free_f(_tempSurf);
 
         // Render other parts.
         render_state(2);
