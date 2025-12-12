@@ -149,6 +149,7 @@ image_yscale = 1;
         return dyc_get_note_array_index(noteID);
     }
 
+    /// @description Get the note's property structure.
     function get_prop(_set_pointer = false) {
     	var _prop = new sNoteProp({
         	time : time,
@@ -167,6 +168,7 @@ image_yscale = 1;
     	return _prop;
     }
     
+    /// @description Push the note's property structure and sync to backend.
     function update_prop() {
         if(!is_struct(propertyStr)) {
             return;
@@ -221,6 +223,7 @@ image_yscale = 1;
                 (!note_exists(finst) || finst.stateType != NOTE_STATES.SELECTED);
     }
 
+    /// @description Pull the note's properties from backend.
     function pull_prop() {
         if(noteID == "") return;
         propertyStr = dyc_get_note(noteID);
