@@ -3,12 +3,12 @@
 function CommandVariant(reqArgs, optArgs, description = "") constructor {
     /// @type {Real} The number of required arguments.
     requiredArgs = reqArgs;
-    /// @type {Real} Whether has optional args. Should be 0 or 1.
+    /// @type {Real} Optional arguments count. Use -1 to indicate a variadic tail.
     optionalArgs = optArgs;
     self.description = description;
 
-    if(optionalArgs < 0 || optionalArgs > 1) {
-        throw "Optional arguments must be either 0 or 1.";
+    if(optionalArgs != -1 && (optionalArgs < 0 || optionalArgs > 1)) {
+        throw "Optional arguments must be 0, 1, or -1 (variadic).";
     }
 }
 
@@ -36,10 +36,10 @@ function CommandSignature(fullCommand, parser, aliases = []) constructor {
 
     /// @description Adds a new variant to the command signature.
     /// @param {Real} reqArgs The number of required arguments.
-    /// @param {Real} optArgs The number of optional arguments.
+    /// @param {Real} optArgs The number of optional arguments. Use -1 to indicate a variadic tail.
     /// @param {String} description The description of the variant.
     static add_variant = function(reqArgs, optArgs, description = "") {
-        if(optArgs > 0 && hasOptionalArgs && reqArgs < maxRequiredArgsCount) {
+        if(optArgs != 0 && hasOptionalArgs && reqArgs < maxRequiredArgsCount) {
             throw "Cannot add variant with fewer required arguments after variants with optional arguments have been added.";
         }
 
@@ -48,6 +48,9 @@ function CommandSignature(fullCommand, parser, aliases = []) constructor {
             var variant = variants[i];
             if(variant.requiredArgs == reqArgs && variant.optionalArgs == optArgs) {
                 throw $"Variant with {reqArgs} required and {optArgs} optional arguments is already registered for command '{command}'.";
+            }
+            if(variant.optionalArgs > 0 && optArgs < 0) {
+                throw $"Cannot add variadic variant when a variant with optional arguments is already registered for command '{command}'.";
             }
         }
 
@@ -59,14 +62,28 @@ function CommandSignature(fullCommand, parser, aliases = []) constructor {
     }
 
     static match_variant = function(argCount) {
+        /// @type {Struct.CommandVariant|Real} The best matching variant found.
+        var maximumVariant = -1;
         for(var i=0, l=array_length(variants); i<l; i++) {
             var variant = variants[i];
-            if(argCount == variant.requiredArgs || 
+
+            if(variant.optionalArgs < 0) {
+                if(argCount >= variant.requiredArgs) {
+                    return variant;
+                }
+            }
+            else if(argCount == variant.requiredArgs ||
                 (argCount > variant.requiredArgs && argCount == variant.requiredArgs + variant.optionalArgs)) {
                 return variant;
             }
+
+            if(variant.requiredArgs + variant.optionalArgs <= argCount) {
+                if(maximumVariant == -1 || maximumVariant.requiredArgs + maximumVariant.optionalArgs < variant.requiredArgs + variant.optionalArgs) {
+                    maximumVariant = variant;
+                }
+            }
         }
-        return undefined;
+        return maximumVariant == -1 ? undefined : maximumVariant;
     }
 
     static clear_variants = function() {
@@ -95,6 +112,7 @@ function Console() constructor {
 
     /// @type {Array<String>} Console output messages.
     messages = [];
+    maxMessages = 1000;
 
     /// @param {String} command The command or alias to check.
     /// @returns {Boolean} Whether the command is registered.
@@ -158,24 +176,44 @@ function Console() constructor {
         throw "Command '" + commandName + "' is not registered.";
     }
 
+    /// @description Runs a command line.
+    /// @param {String} commandLine The full command line to run.
     static run_command_line = function(commandLine) {
         commandLine = string_trim(commandLine);
+        if(commandLine == "") {
+            return;
+        }
         var parts = string_split(commandLine, " ", true);
-        var cmd = string_delete(parts[0], 1, 1);
+
+        var cmd = parts[0];
+        if(string_char_at(cmd, 1) == ".")
+            cmd = string_copy(cmd, 2, string_length(cmd) - 1);
+
         var cmdSig = find_command(cmd);
         if(cmdSig == undefined) {
             echo_warning("Command '" + cmd + "' not found.");
             return;
         }
+
         var cmdVariant = cmdSig.match_variant(array_length(parts) - 1);
         if(cmdVariant == undefined) {
             echo_warning("No matching variant found for command '" + cmd + "' with " + string(array_length(parts) - 1) + " arguments.");
             return;
         }
 
+        var argCount = cmdVariant.requiredArgs + cmdVariant.optionalArgs;
+        var mergeArgsCount = max(0, array_length(parts) - 1 - argCount);
+
         var args = [];
-        for(var i = 1; i < array_length(parts); i++) {
+        for(var i = 1; i <= argCount - (mergeArgsCount > 0 ? 1 : 0); i++) {
             array_push(args, parts[i]);
+        }
+        var mergedArg = parts[argCount];
+        for(var i = 0; i < mergeArgsCount; i++) {
+            mergedArg += " " + parts[argCount + 1 + i];
+        }
+        if(mergeArgsCount > 0) {
+            array_push(args, mergedArg);
         }
 
         try {
@@ -189,26 +227,28 @@ function Console() constructor {
     static echo = function(message) {
         array_push(messages, string(message));
         show_debug_message("[Console] " + string(message));
+
+        if(array_length(messages) > maxMessages) {
+            array_delete(messages, 0, array_length(messages) - maxMessages);
+        }
     }
 
     static echo_error = function(message) {
-        array_push(messages, "[c_red]" + string(message));
-        show_debug_message("[Console][Error] " + string(message));
+        echo("[c_red]" + string(message));
     }
 
     static echo_warning = function(message) {
-        array_push(messages, "[c_yellow]" + string(message));
-        show_debug_message("[Console][Warning] " + string(message));
+        echo("[c_yellow]" + string(message));
     }
 
     static get_messages = function() {
         return messages;
     }
 
-    static get_last_messages = function(count = 10) {
-        var startIndex = max(0, array_length(messages) - count);
+    static get_last_messages = function(offset, count) {
+        var startIndex = max(0, array_length(messages) - count - offset);
         var result = [];
-        array_copy(result, 0, messages, startIndex, array_length(messages) - startIndex);
+        array_copy(result, 0, messages, startIndex, min(count, array_length(messages) - startIndex));
         return result;
     }
 }
@@ -310,6 +350,136 @@ function CommandTime():CommandSignature("time", undefined, ["t"]) constructor {
     }
 }
 
+function CommandHelp():CommandSignature("help", undefined, ["h", "?"]) constructor {
+    add_variant(0, 0, "Lists all commands.");
+    add_variant(1, 0, "Shows detailed help for the specified command.");
+
+    static parse = function(args, matchedVariant) {
+        var join_string_array = function(arr) {
+            var out = "";
+            for(var i = 0, l = array_length(arr); i < l; i++) {
+                out += (i > 0 ? ", " : "") + string(arr[i]);
+            }
+            return out;
+        };
+
+        var build_usage = function(cmdName, variant) {
+            var usage = string(cmdName);
+
+            for(var i = 0; i < variant.requiredArgs; i++) {
+                usage += " <arg" + string(i + 1) + ">";
+            }
+
+            if(variant.optionalArgs < 0) {
+                usage += " <args...>";
+            }
+            else {
+                for(var i = 0; i < variant.optionalArgs; i++) {
+                    usage += " [arg" + string(variant.requiredArgs + i + 1) + "]";
+                }
+            }
+
+            return usage;
+        };
+
+        var commands = [];
+        array_copy(commands, 0, global.console.commands, 0, array_length(global.console.commands));
+
+        // Keep output stable/predictable for users by sorting commands alphabetically.
+        for(var i = 0, l = array_length(commands); i < l - 1; i++) {
+            for(var j = i + 1; j < l; j++) {
+                if(string_lower(commands[i].command) > string_lower(commands[j].command)) {
+                    var tmp = commands[i];
+                    commands[i] = commands[j];
+                    commands[j] = tmp;
+                }
+            }
+        }
+
+        if(array_length(args) == 0) {
+            console_echo($"Available commands ({string(array_length(commands))}):");
+
+            for(var i = 0, l = array_length(commands); i < l; i++) {
+                var cmdSig = commands[i];
+
+                var aliasText = "";
+                if(array_length(cmdSig.aliases) > 0) {
+                    aliasText = " (" + join_string_array(cmdSig.aliases) + ")";
+                }
+
+                console_echo("- " + string(cmdSig.command) + aliasText);
+
+                for(var v = 0, vl = array_length(cmdSig.variants); v < vl; v++) {
+                    var variant = cmdSig.variants[v];
+                    var usage = build_usage(cmdSig.command, variant);
+
+                    var desc = string_trim(string(variant.description));
+                    if(desc != "") {
+                        console_echo("    " + usage + " - " + desc);
+                    }
+                    else {
+                        console_echo("    " + usage);
+                    }
+                }
+            }
+
+            console_echo("Tip: help <command> for details.");
+            return;
+        }
+
+        var target = args[0];
+        var targetSig = global.console.find_command(target);
+        if(targetSig == undefined) {
+            console_echo_warning("Command '" + string(target) + "' not found.");
+            return;
+        }
+
+        console_echo("Help for: " + string(targetSig.command));
+
+        if(array_length(targetSig.aliases) > 0) {
+            console_echo("Aliases: " + join_string_array(targetSig.aliases));
+        }
+
+        for(var v = 0, vl = array_length(targetSig.variants); v < vl; v++) {
+            var variant = targetSig.variants[v];
+            var usage = build_usage(targetSig.command, variant);
+
+            var desc = string_trim(string(variant.description));
+            if(desc != "") {
+                console_echo("- " + usage + " - " + desc);
+            }
+            else {
+                console_echo("- " + usage);
+            }
+        }
+    }
+}
+
+function CommandClear():CommandSignature("clear", undefined, ["cls"]) constructor {
+    add_variant(0, 0, "Clears console output history.");
+
+    static parse = function(args, matchedVariant) {
+        global.console.messages = [];
+
+        // Leaving one line after clearing makes the action visible to the user.
+        console_echo("Console cleared.");
+    }
+}
+
+function CommandEcho():CommandSignature("echo", undefined, ["print"]) constructor {
+    add_variant(0, 0, "Prints an empty line.");
+    add_variant(1, 0, "Prints the specified message.");
+
+    static parse = function(args, matchedVariant) {
+        if(array_length(args) == 0) {
+            console_echo("");
+        }
+        else {
+            console_echo(args[0]);
+        }
+    }
+}
+
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -349,6 +519,9 @@ function command_unregister(command) {
 }
 
 function command_init() {
+    command_register(new CommandHelp());
+    command_register(new CommandClear());
+    command_register(new CommandEcho());
     command_register(new CommandWidth());
     command_register(new CommandPosition());
     command_register(new CommandTime());

@@ -16,9 +16,14 @@ focusing = false;
 
 inputBuffer = "";
 
+visibleLines = 20;
+historyOffset = 0;
+
+bgAlpha = 0.75;
+
 function focus() {
     focusing = true;
-    keyboard_string = ".";
+    keyboard_string = "";
 
     input_check_group_set("console");
     show_debug_message("Console focused.");

@@ -7,6 +7,19 @@ function regex_match(str, pattern) {
     return DyCore_regex_match(str, pattern);
 }
 
+/// @description Matches the given string against the specified regex pattern and returns all matches.
+/// @param {String} str The string to be tested.
+/// @param {String} pattern The regex pattern to match against.
+/// @returns {Array} An array of all matches found in the string.
+function regex_match_ext(str, pattern) {
+    var result = DyCore_regex_match_ext(str, pattern);
+    if(result == "") {
+        return [];
+    } else {
+        return json_parse(result);
+    }
+}
+
 
 #region Regex Simple Tests
 

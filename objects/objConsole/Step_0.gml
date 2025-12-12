@@ -23,5 +23,10 @@ if(focusing) {
     if(keycheck_down(vk_escape)) {
         unfocus();
     }
+
+    var offsetDelta = keycheck_down(vk_up) - keycheck_down(vk_down);
+    offsetDelta += (keycheck_down(vk_pageup) - keycheck_down(vk_pagedown)) * 5;
+
+    historyOffset = clamp(historyOffset + offsetDelta, 0, max(0, array_length(global.console.messages) - visibleLines));
     input_group_reset();
 }

@@ -12,7 +12,7 @@ scribble(inputBuffer)
 
 // Draw message bar.
 var messageAnchorY = BASE_RES_H - inputBarHeight - messageBarHeight / 2;
-var messages = global.console.get_last_messages(10);
+var messages = global.console.get_last_messages(historyOffset, visibleLines);
 
 for(var i = 0; i < array_length(messages); i++) {
     var msgY = messageAnchorY - i * messageBarHeight;
