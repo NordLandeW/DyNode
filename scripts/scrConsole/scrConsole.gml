@@ -428,10 +428,9 @@ function CommandWidth():CommandSignature("width", ["w", "wid"]) constructor {
 
         with(objNote) {
             if(stateType == NOTE_STATES.SELECTED) {
-                var origProp = get_prop();
-                width = setWidth;
-                update_prop();
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                var prop = get_prop();
+                prop.width = setWidth;
+                set_prop(prop, true);
             }
         }
 
@@ -447,10 +446,6 @@ function CommandPosition():CommandSignature("position", ["pos", "p"]) constructo
         command_check_in_editor();
         
         var setPosition = real(args[0]);
-        if(setPosition <= 0) {
-            console_echo("Position must be a positive real number.");
-            return;
-        }
 
         if(editor_select_count() == 0) {
             console_echo("No notes selected.");
@@ -459,10 +454,9 @@ function CommandPosition():CommandSignature("position", ["pos", "p"]) constructo
 
         with(objNote) {
             if(stateType == NOTE_STATES.SELECTED) {
-                var origProp = get_prop();
-                position = setPosition;
-                update_prop();
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                var prop = get_prop();
+                prop.position = setPosition;
+                set_prop(prop, true);
             }
         }
 
@@ -478,10 +472,6 @@ function CommandTime():CommandSignature("time", ["t"]) constructor {
         command_check_in_editor();
 
         var setTime = real(args[0]);
-        if(setTime <= 0) {
-            console_echo("Time must be a positive real number.");
-            return;
-        }
 
         if(editor_select_count() == 0) {
             console_echo("No notes selected.");
@@ -490,10 +480,9 @@ function CommandTime():CommandSignature("time", ["t"]) constructor {
 
         with(objNote) {
             if(stateType == NOTE_STATES.SELECTED) {
-                var origProp = get_prop();
-                time = setTime;
-                update_prop();
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                var prop = get_prop();
+                prop.time = setTime;
+                set_prop(prop, true);
             }
         }
 
@@ -631,6 +620,24 @@ function CommandEcho():CommandSignature("echo", ["print"]) constructor {
     }
 }
 
+function CommandExpr():CommandSignature("expr", ["e"]) constructor {
+    add_variant(1, 0, "Execute the expression on selected notes / all notes");
+
+    static execute = function(args, matchedVariant) {
+        var expr = args[0];
+        if(expr == "") {
+            console_echo_warning("Expression cannot be empty.");
+            return;
+        }
+        try {
+            advanced_expr(expr);
+        }
+        catch(e) {
+            console_echo_error("Error evaluating expression: " + string(e));
+        }
+    }
+}
+
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -676,6 +683,7 @@ function command_init() {
     command_register(new CommandWidth());
     command_register(new CommandPosition());
     command_register(new CommandTime());
+    command_register(new CommandExpr());
 }
 
 function console_init() {
