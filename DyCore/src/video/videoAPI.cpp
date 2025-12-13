@@ -79,3 +79,8 @@ DYCORE_API double DyCore_video_get_buffer_size() {
     auto &decoder = VideoDecoder::get_instance();
     return static_cast<double>(decoder.get_width() * decoder.get_height() * 4);
 }
+
+DYCORE_API double DyCore_video_set_speed(double speed) {
+    auto &decoder = VideoDecoder::get_instance();
+    return decoder.set_speed(speed);
+}

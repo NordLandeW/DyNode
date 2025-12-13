@@ -119,6 +119,41 @@ class VideoDecoder {
         return m_isFinished;
     }
 
+    /**
+     * @brief Sets playback speed multiplier.
+     *
+     * Speed affects the pacing of presentation timestamps in the decode thread.
+     * It does not alter the underlying decode format.
+     *
+     * @param speed Playback speed multiplier. Values <= 0 (or NaN) fall back to
+     *              1.0. Values are clamped to a reasonable range.
+     * @return The effective speed that was applied.
+     */
+    double set_speed(double speed) {
+        if (!(speed > 0.0)) {
+            speed = 1.0;
+        }
+
+        constexpr double kMinSpeed = 0.01;
+        constexpr double kMaxSpeed = 16.0;
+
+        if (speed < kMinSpeed) {
+            speed = kMinSpeed;
+        } else if (speed > kMaxSpeed) {
+            speed = kMaxSpeed;
+        }
+
+        videoSpeed.store(speed, std::memory_order_relaxed);
+        return speed;
+    }
+
+    /**
+     * @brief Gets current playback speed multiplier.
+     */
+    double get_speed() const {
+        return videoSpeed.load(std::memory_order_relaxed);
+    }
+
    private:
     /**
      * @brief Background loop that pulls samples from Media Foundation.
@@ -141,6 +176,9 @@ class VideoDecoder {
     UINT m_height = 0;  // Cached frame height queried from Media Foundation.
     LONG m_stride = 0;  // Stride (step) for the video frame.
     double m_duration = 0.0;  // Cached video duration in seconds.
+
+    // Playback speed multiplier. Affects decode pacing (sleep) only.
+    std::atomic<double> videoSpeed{1.0};
 
     // Playback state flag observed by the decode thread.
     std::atomic<bool> m_isPlaying = false;

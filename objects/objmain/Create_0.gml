@@ -496,6 +496,7 @@ function _set_channel_speed(spd) {
 		FMODGMS_Chan_Add_Effect(channel, global.__DSP_Effect, 1);
 	}
 	
+    dyc_video_set_speed(spd);
 }
 
 function _reset_all_particles() {

@@ -142,13 +142,23 @@ void VideoDecoder::decode_loop() {
 
         if (pSample) {
             if (skipUntilTime >= 0) {
-                if (llTimeStamp <
-                    skipUntilTime +
-                        std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::high_resolution_clock::now() -
-                            skipStartTime)
-                                .count() /
-                            100) {
+                // Skip samples until playback time (which advances with
+                // videoSpeed) catches up to the seek target.
+                const auto now = std::chrono::high_resolution_clock::now();
+                const long long elapsedTicks =
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        now - skipStartTime)
+                        .count() /
+                    100;
+
+                const double speed = videoSpeed.load(std::memory_order_relaxed);
+                const double effectiveSpeed = (speed > 0.0) ? speed : 1.0;
+
+                const long long timeFlowTicks = static_cast<long long>(
+                    static_cast<long double>(elapsedTicks) *
+                    static_cast<long double>(effectiveSpeed));
+
+                if (llTimeStamp < skipUntilTime + timeFlowTicks) {
                     pSample->Release();
                     continue;
                 }
@@ -259,14 +269,23 @@ void VideoDecoder::decode_loop() {
             pBuffer->Release();
             pSample->Release();
 
-            // Calculate delay based on presentation timestamps
-            long long durationMs = 0;
+            // Calculate delay based on presentation timestamps.
+            // Note: timestamps are expressed in 100-nanosecond units.
             if (m_lastPresentationTime > 0 &&
                 llTimeStamp > m_lastPresentationTime) {
-                long long diff = llTimeStamp - m_lastPresentationTime;
+                const long long diffTicks =
+                    llTimeStamp - m_lastPresentationTime;
 
-                // Prevent precision loss
-                m_nextFrameTargetTime += std::chrono::nanoseconds(diff * 100);
+                const double speed = videoSpeed.load(std::memory_order_relaxed);
+                const double effectiveSpeed = (speed > 0.0) ? speed : 1.0;
+
+                // videoSpeed is a time-flow multiplier: > 1.0 means faster
+                // playback (shorter sleeps), < 1.0 means slower playback.
+                const long long scaledNs = static_cast<long long>(
+                    (static_cast<long double>(diffTicks) * 100.0L) /
+                    static_cast<long double>(effectiveSpeed));
+
+                m_nextFrameTargetTime += std::chrono::nanoseconds(scaledNs);
 
                 std::this_thread::sleep_until(m_nextFrameTargetTime);
             } else {

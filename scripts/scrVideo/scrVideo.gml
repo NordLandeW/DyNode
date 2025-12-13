@@ -95,3 +95,7 @@ function dyc_video_pause() {
 function dyc_video_play() {
     DyCore_video_play();
 }
+
+function dyc_video_set_speed(speed) {
+    DyCore_video_set_speed(speed);
+}
