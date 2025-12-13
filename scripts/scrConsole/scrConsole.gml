@@ -174,51 +174,204 @@ function Console() constructor {
         throw "Command '" + commandName + "' is not registered.";
     }
 
+    /// @description Splits a command line into tokens.
+    ///
+    /// Tokenization rules:
+    /// - Whitespace (ASCII <= 32) separates tokens, except inside double quotes.
+    /// - Double quotes are not included in output tokens.
+    /// - Backslash starts an escape sequence.
+    ///
+    /// Supported escape sequences:
+    /// - \" => "
+    /// - \\ => \
+    /// - \n  => newline
+    /// - \t  => tab
+    /// - \r  => carriage return
+    /// - \  (space) => a literal space
+    ///
+    /// @param {String} commandLine The full command line.
+    /// @returns {Array<String>} Tokens, including the command name at index 0.
+    static command_line_split = function(commandLine) {
+        if(!is_string(commandLine)) {
+            throw "command_line_split: commandLine must be a string.";
+        }
+
+        commandLine = string_trim(commandLine);
+        if(commandLine == "") {
+            return [];
+        }
+
+        var tokens = [];
+        var current = "";
+        var tokenActive = false;
+        var inQuotes = false;
+        var escaped = false;
+
+        var len = string_length(commandLine);
+        for(var i = 1; i <= len; i++) {
+            var ch = string_char_at(commandLine, i);
+
+            if(escaped) {
+                tokenActive = true;
+                switch(ch) {
+                    case "n": current += "\n"; break;
+                    case "t": current += "\t"; break;
+                    case "r": current += "\r"; break;
+                    case "\\": current += "\\"; break;
+                    case "\"": current += "\""; break;
+                    case " ": current += " "; break;
+                    default:
+                        throw $"command_line_split: unknown escape sequence '\\{ch}' at position {string(i)}.";
+                }
+                escaped = false;
+                continue;
+            }
+
+            if(ch == "\\") {
+                escaped = true;
+                tokenActive = true;
+                continue;
+            }
+
+            if(ch == "\"") {
+                inQuotes = !inQuotes;
+                tokenActive = true;
+                continue;
+            }
+
+            if(!inQuotes && ord(ch) <= 32) {
+                if(tokenActive) {
+                    array_push(tokens, current);
+                    current = "";
+                    tokenActive = false;
+                }
+                continue;
+            }
+
+            current += ch;
+            tokenActive = true;
+        }
+
+        if(escaped) {
+            throw "command_line_split: command line ends with a trailing escape character '\\'.";
+        }
+        if(inQuotes) {
+            throw "command_line_split: unterminated double quote in command line.";
+        }
+        if(tokenActive) {
+            array_push(tokens, current);
+        }
+
+        return tokens;
+    }
+
+    /// @description Tokenizes arguments from an already-split token array.
+    ///
+    /// Note: If more arguments are provided than `argCount`, the exceeding part will be
+    /// merged into the last argument, separated by spaces.
+    ///
+    /// @param {Array<String>} tokens Tokens returned by `command_line_split()`.
+    /// @param {Real} argCount The maximum number of arguments expected (excluding the command itself).
+    /// @returns {Array<String>} Parsed arguments.
+    static command_line_tokenize_from_tokens = function(tokens, argCount) {
+        if(!is_array(tokens)) {
+            throw "command_line_tokenize_from_tokens: tokens must be an array.";
+        }
+        if(!is_real(argCount)) {
+            throw "command_line_tokenize_from_tokens: argCount must be a real number.";
+        }
+
+        argCount = floor(argCount);
+        if(argCount < 0) {
+            throw "command_line_tokenize_from_tokens: argCount must be >= 0.";
+        }
+
+        if(array_length(tokens) == 0) {
+            return [];
+        }
+
+        var actualArgsCount = max(0, array_length(tokens) - 1);
+        if(argCount == 0) {
+            return [];
+        }
+
+        var args = [];
+
+        if(actualArgsCount <= argCount) {
+            for(var a = 1; a <= actualArgsCount; a++) {
+                array_push(args, tokens[a]);
+            }
+            return args;
+        }
+
+        for(var a = 1; a <= argCount - 1; a++) {
+            array_push(args, tokens[a]);
+        }
+
+        var mergedArg = tokens[argCount];
+        for(var a = argCount + 1; a <= actualArgsCount; a++) {
+            mergedArg += " " + tokens[a];
+        }
+        array_push(args, mergedArg);
+
+        return args;
+    }
+
+    /// @description Tokenizes a command line into arguments.
+    /// Supports:
+    /// - Double-quoted strings (quotes are not included in output tokens)
+    /// - Escape sequences (\" \\ \n \t \r and escaping a space)
+    ///
+    /// Note: If more arguments are provided than `argCount`, the exceeding part will be
+    /// merged into the last argument, separated by spaces.
+    ///
+    /// @param {String} commandLine The full command line.
+    /// @param {Real} argCount The maximum number of arguments expected (excluding the command itself).
+    /// @returns {Array<String>} Parsed arguments.
+    static command_line_tokenize = function(commandLine, argCount) {
+        var tokens = command_line_split(commandLine);
+        return command_line_tokenize_from_tokens(tokens, argCount);
+    }
+
     /// @description Runs a command line.
     /// @param {String} commandLine The full command line to run.
     static run_command_line = function(commandLine) {
-        commandLine = string_trim(commandLine);
-        if(commandLine == "") {
-            return;
-        }
-        var parts = string_split(commandLine, " ", true);
-
-        var cmd = parts[0];
-        if(string_char_at(cmd, 1) == ".")
-            cmd = string_copy(cmd, 2, string_length(cmd) - 1);
-
-        var cmdSig = find_command(cmd);
-        if(cmdSig == undefined) {
-            echo_warning("Command '" + cmd + "' not found.");
-            return;
-        }
-
-        var cmdVariant = cmdSig.match_variant(array_length(parts) - 1);
-        if(cmdVariant == undefined) {
-            echo_warning("No matching variant found for command '" + cmd + "' with " + string(array_length(parts) - 1) + " arguments.");
-            return;
-        }
-
-        var argCount = cmdVariant.requiredArgs + cmdVariant.optionalArgs;
-        var mergeArgsCount = max(0, array_length(parts) - 1 - argCount);
-
-        var args = [];
-        for(var i = 1; i <= argCount - (mergeArgsCount > 0 ? 1 : 0); i++) {
-            array_push(args, parts[i]);
-        }
-        var mergedArg = parts[argCount];
-        for(var i = 0; i < mergeArgsCount; i++) {
-            mergedArg += " " + parts[argCount + 1 + i];
-        }
-        if(mergeArgsCount > 0) {
-            array_push(args, mergedArg);
-        }
-
         try {
+            var tokens = command_line_split(commandLine);
+            if(array_length(tokens) == 0) {
+                return;
+            }
+
+            var cmd = tokens[0];
+            if(string_char_at(cmd, 1) == ".") {
+                cmd = string_copy(cmd, 2, string_length(cmd) - 1);
+            }
+
+            var cmdSig = find_command(cmd);
+            if(cmdSig == undefined) {
+                echo_warning("Command '" + cmd + "' not found.");
+                return;
+            }
+
+            var actualArgsCount = max(0, array_length(tokens) - 1);
+            var cmdVariant = cmdSig.match_variant(actualArgsCount);
+            if(cmdVariant == undefined) {
+                echo_warning("No matching variant found for command '" + cmd + "' with " + string(actualArgsCount) + " arguments.");
+                return;
+            }
+
+            // For variadic variants, accept all provided args (no forced merging).
+            // For non-variadic variants, keep the feature: merge exceeding args into the last one.
+            var argCountExpected = cmdVariant.optionalArgs < 0
+                ? actualArgsCount
+                : (cmdVariant.requiredArgs + cmdVariant.optionalArgs);
+
+            var args = command_line_tokenize_from_tokens(tokens, argCountExpected);
             cmdSig.execute(args, cmdVariant);
         }
         catch(e) {
-            echo_error("Error executing command '" + cmd + "': " + string(e));
+            // Includes both parsing/tokenization errors and execution errors.
+            echo_error("Error executing command line: " + string(e));
         }
     }
 
