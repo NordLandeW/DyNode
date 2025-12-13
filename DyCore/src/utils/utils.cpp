@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
+#include <mutex>
 #include <random>
 #include <taskflow/taskflow.hpp>
 
@@ -14,8 +15,13 @@
 
 namespace fs = std::filesystem;
 
+std::mutex g_debug_print_mutex;
+
 // Prints a debug message to the console, prefixed with "[DyCore] ".
 void print_debug_message(std::string str) {
+    // iostream output is not guaranteed to be atomic across threads; serialize
+    // writes so log lines won't interleave.
+    const std::scoped_lock lock(g_debug_print_mutex);
     std::cout << "[DyCore] " << str << std::endl;
 }
 void print_debug_message(std::wstring str) {
