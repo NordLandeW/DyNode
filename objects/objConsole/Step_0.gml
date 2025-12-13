@@ -25,7 +25,7 @@ if(focusing) {
     }
 
     var offsetDelta = keycheck_down(vk_up) - keycheck_down(vk_down);
-    offsetDelta += (keycheck_down(vk_pageup) - keycheck_down(vk_pagedown)) * 5;
+    offsetDelta += (keycheck_down(vk_pageup) - keycheck_down(vk_pagedown)) * visibleLines;
 
     historyOffset = clamp(historyOffset + offsetDelta, 0, max(0, array_length(global.console.messages) - visibleLines));
     input_group_reset();

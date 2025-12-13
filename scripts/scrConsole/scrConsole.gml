@@ -14,9 +14,8 @@ function CommandVariant(reqArgs, optArgs, description = "") constructor {
 
 /// @description The command signature class.
 /// @param {String} fullCommand The full name of the command.
-/// @param {Function} parser The parser function for the command. It should accept (args, matchedVariant).
 /// @param {Array<String>} aliases The aliases of the command.
-function CommandSignature(fullCommand, parser, aliases = []) constructor {
+function CommandSignature(fullCommand, aliases = []) constructor {
 
     command = fullCommand;
     self.aliases = aliases;
@@ -25,13 +24,12 @@ function CommandSignature(fullCommand, parser, aliases = []) constructor {
     variants = [];
     maxRequiredArgsCount = 0;
     hasOptionalArgs = false;
-    self._commandParser = parser;
 
-    /// @description Parses the command with the given arguments and matched variant.
+    /// @description Execute the command with the given arguments and matched variant.
     /// @param {Array<String>} args The arguments provided.
     /// @param {Struct.CommandVariant} matchedVariant The matched variant based on the arguments.
-    static parse = function(args, matchedVariant) {
-        return self._commandParser(args, matchedVariant);
+    static execute = function(args, matchedVariant) {
+        throw "Execute function not implemented for command '" + command + "'.";
     }
 
     /// @description Adds a new variant to the command signature.
@@ -217,7 +215,7 @@ function Console() constructor {
         }
 
         try {
-            cmdSig.parse(args, cmdVariant);
+            cmdSig.execute(args, cmdVariant);
         }
         catch(e) {
             echo_error("Error executing command '" + cmd + "': " + string(e));
@@ -257,10 +255,10 @@ new Console();
 
 #region Builtin Commands
 
-function CommandWidth():CommandSignature("width", undefined, ["w", "wid"]) constructor {
+function CommandWidth():CommandSignature("width", ["w", "wid"]) constructor {
     add_variant(1, 0, "Sets the width of selected notes to the specified value.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         command_arg_check_real(args[0]);        
         command_check_in_editor();
         
@@ -288,10 +286,10 @@ function CommandWidth():CommandSignature("width", undefined, ["w", "wid"]) const
     }
 }
 
-function CommandPosition():CommandSignature("position", undefined, ["pos", "p"]) constructor {
+function CommandPosition():CommandSignature("position", ["pos", "p"]) constructor {
     add_variant(1, 0, "Sets the position of selected notes to the specified value.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         command_arg_check_real(args[0]);        
         command_check_in_editor();
         
@@ -319,10 +317,10 @@ function CommandPosition():CommandSignature("position", undefined, ["pos", "p"])
     }
 }
 
-function CommandTime():CommandSignature("time", undefined, ["t"]) constructor {
+function CommandTime():CommandSignature("time", ["t"]) constructor {
     add_variant(1, 0, "Sets the time of selected notes to the specified value.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         command_arg_check_real(args[0]);
         command_check_in_editor();
 
@@ -350,11 +348,11 @@ function CommandTime():CommandSignature("time", undefined, ["t"]) constructor {
     }
 }
 
-function CommandHelp():CommandSignature("help", undefined, ["h", "?"]) constructor {
+function CommandHelp():CommandSignature("help", ["h", "?"]) constructor {
     add_variant(0, 0, "Lists all commands.");
     add_variant(1, 0, "Shows detailed help for the specified command.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         var join_string_array = function(arr) {
             var out = "";
             for(var i = 0, l = array_length(arr); i < l; i++) {
@@ -455,10 +453,10 @@ function CommandHelp():CommandSignature("help", undefined, ["h", "?"]) construct
     }
 }
 
-function CommandClear():CommandSignature("clear", undefined, ["cls"]) constructor {
+function CommandClear():CommandSignature("clear", ["cls"]) constructor {
     add_variant(0, 0, "Clears console output history.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         global.console.messages = [];
 
         // Leaving one line after clearing makes the action visible to the user.
@@ -466,11 +464,11 @@ function CommandClear():CommandSignature("clear", undefined, ["cls"]) constructo
     }
 }
 
-function CommandEcho():CommandSignature("echo", undefined, ["print"]) constructor {
+function CommandEcho():CommandSignature("echo", ["print"]) constructor {
     add_variant(0, 0, "Prints an empty line.");
     add_variant(1, 0, "Prints the specified message.");
 
-    static parse = function(args, matchedVariant) {
+    static execute = function(args, matchedVariant) {
         if(array_length(args) == 0) {
             console_echo("");
         }
