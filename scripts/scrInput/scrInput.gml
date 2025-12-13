@@ -36,6 +36,8 @@ function InputManager() constructor {
         
         mouseHoldDistanceThreshold = INPUT_MOUSE_HOLD_DISTANCE_THRESHOLD;
         mouseHoldClear = true;
+
+        mouseWheels = [0, 0]; // [up, down]
     }
     
     static _pressclear = function () {
@@ -86,7 +88,9 @@ function InputManager() constructor {
     mouseHoldDistanceThreshold = 20;
             // Distance Threshold to judge if a mouse press is a drag (also hold)
     mouseHoldClear = true;
-            // Whethere to clear the state of mouse hold
+            // Whether to clear the state of mouse hold
+    
+    mouseWheels = [0, 0]; // [up, down]
     
     
     // For Input Reset
@@ -176,6 +180,10 @@ function InputManager() constructor {
         
         if(!mouse_check_button(mb_left) && !mouse_check_button(mb_right))
             mouseHoldClear = false;
+        
+        // Update mouse wheels
+        mouseWheels[0] = mouse_wheel_up();
+        mouseWheels[1] = mouse_wheel_down();
     }
 }
 
@@ -325,33 +333,42 @@ function keycheck_down_shift(key) {
 }
 
 function keycheck(key, nofun = true) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check(key);
 }
 function keycheck_down(key, nofun = true) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     return (nofunkey_ishold() || !nofun) && keyboard_check_pressed(key);
 }
 function keycheck_up(key) {
+    if(!input_group_validate()) return false;
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     return keyboard_check_released(key);
 }
 function wheelcheck_up() {
     if(global.__InputManager.is_frozen()) return false;
-    return mouse_wheel_up() && nofunkey_ishold();
+    return global.__InputManager.mouseWheels[0] && nofunkey_ishold();
 }
 function wheelcheck_down() {
     if(global.__InputManager.is_frozen()) return false;
-    return mouse_wheel_down() && nofunkey_ishold();
+    return global.__InputManager.mouseWheels[1] && nofunkey_ishold();
 }
 function wheelcheck_up_ctrl() {
     if(global.__InputManager.is_frozen()) return false;
-    return mouse_wheel_up() && ctrl_ishold();
+    return global.__InputManager.mouseWheels[0] && ctrl_ishold();
 }
 function wheelcheck_down_ctrl() {
     if(global.__InputManager.is_frozen()) return false;
-    return mouse_wheel_down() && ctrl_ishold();
+    return global.__InputManager.mouseWheels[1] && ctrl_ishold();
+}
+function wheel_clear() {
+    global.__InputManager.mouseWheels = [0, 0];
 }
 
 function input_group_set(group = INPUT_GROUP_DEFAULT_NAME) {

@@ -89,6 +89,7 @@
     {"name":"Scoreboard layout","order":3,"path":"notes/Scoreboard layout/Scoreboard layout.yy",},
     {"name":"__SnitchController","order":3,"path":"objects/__SnitchController/__SnitchController.yy",},
     {"name":"objChain","order":1,"path":"objects/objChain/objChain.yy",},
+    {"name":"objConsole","order":15,"path":"objects/objConsole/objConsole.yy",},
     {"name":"objCredits","order":2,"path":"objects/objCredits/objCredits.yy",},
     {"name":"objEditor","order":7,"path":"objects/objEditor/objEditor.yy",},
     {"name":"objHold","order":2,"path":"objects/objHold/objHold.yy",},

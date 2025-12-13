@@ -840,11 +840,11 @@ function chart_randomize() {
 }
 
 /// For advanced property modifications.
-function advanced_expr() {
+function advanced_expr(expr = "") {
 	with(objEditor) {
 		var _global = editorSelectCount == 0;
-		var _scope_str = _global?i18n_get("expr_global_scope"):i18n_get("expr_local_scope");
-		var _expr = dyc_get_string(_scope_str+i18n_get("expr_fillin"), editorLastExpr);
+		var _scope_str = _global ? i18n_get("expr_global_scope") : i18n_get("expr_local_scope");
+		var _expr = expr == "" ? dyc_get_string(_scope_str+i18n_get("expr_fillin"), editorLastExpr) : expr;
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
 		var _success = true;

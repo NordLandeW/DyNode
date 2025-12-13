@@ -170,6 +170,9 @@ if(DyCore_ffmpeg_is_available()) {
 	show_debug_message("FFmpeg is available.");
 }
 
+// Console init
+console_init();
+
 // Init finished
 
 GoogHit("login", {
