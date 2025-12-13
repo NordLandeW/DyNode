@@ -1,7 +1,14 @@
 
 if(!focusing) {
-    if(keycheck_down(190)) {
+    if(keycheck_down(190)) {    // .
         focus();
+        keyboard_string = ".";
+        quickCommand = true;
+    }
+    if(keycheck_down(191)) {    // /
+        focus();
+        keyboard_string = "/";
+        quickCommand = false;
     }
 }
 if(focusing) {
@@ -9,9 +16,17 @@ if(focusing) {
 
     input_group_set("console");
     if(keycheck_down(vk_enter) || keycheck_down_ctrl(vk_enter)) {
+        // Check if is quick command.
+        if(string_char_at(inputBuffer, 1) == ".") {
+            quickCommand = true;
+        }
+        else if(string_char_at(inputBuffer, 1) == "/") {
+            quickCommand = false;
+        }
+
         // Execute command.
-        global.console.run_command_line(inputBuffer);
-        if(ctrl_ishold()) {
+        var result = global.console.run_command_line(inputBuffer);
+        if(ctrl_ishold() || (quickCommand && result == 0)) {
             unfocus();
         }
         else {

@@ -21,6 +21,8 @@ historyOffset = 0;
 
 bgAlpha = 0.75;
 
+quickCommand = false;
+
 function focus() {
     focusing = true;
     keyboard_string = "";
@@ -30,6 +32,7 @@ function focus() {
 }
 
 function unfocus() {
+    quickCommand = false;
     focusing = false;
     inputBuffer = "";
     call_later(1, time_source_units_frames, function() {

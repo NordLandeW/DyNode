@@ -339,7 +339,7 @@ function Console() constructor {
         try {
             var tokens = command_line_split(commandLine);
             if(array_length(tokens) == 0) {
-                return;
+                return -1;
             }
 
             var cmd = tokens[0];
@@ -350,14 +350,14 @@ function Console() constructor {
             var cmdSig = find_command(cmd);
             if(cmdSig == undefined) {
                 echo_warning("Command '" + cmd + "' not found.");
-                return;
+                return -1;
             }
 
             var actualArgsCount = max(0, array_length(tokens) - 1);
             var cmdVariant = cmdSig.match_variant(actualArgsCount);
             if(cmdVariant == undefined) {
                 echo_warning("No matching variant found for command '" + cmd + "' with " + string(actualArgsCount) + " arguments.");
-                return;
+                return -1;
             }
 
             // For variadic variants, accept all provided args (no forced merging).
@@ -367,11 +367,14 @@ function Console() constructor {
                 : (cmdVariant.requiredArgs + cmdVariant.optionalArgs);
 
             var args = command_line_tokenize_from_tokens(tokens, argCountExpected);
-            cmdSig.execute(args, cmdVariant);
+            var result = cmdSig.execute(args, cmdVariant);
+
+            return 0;
         }
         catch(e) {
             // Includes both parsing/tokenization errors and execution errors.
             echo_error("Error executing command line: " + string(e));
+            return -1;
         }
     }
 
@@ -495,6 +498,10 @@ function CommandHelp():CommandSignature("help", ["h", "?"]) constructor {
     add_variant(1, 0, "Shows detailed help for the specified command.");
 
     static execute = function(args, matchedVariant) {
+        // Force long command.
+        with(objConsole)
+            quickCommand = false;
+
         var join_string_array = function(arr) {
             var out = "";
             for(var i = 0, l = array_length(arr); i < l; i++) {
@@ -638,6 +645,15 @@ function CommandExpr():CommandSignature("expr", ["e"]) constructor {
     }
 }
 
+function CommandQuit():CommandSignature("quit", ["exit", "q"]) constructor {
+    add_variant(0, 0, "Quits the console.");
+
+    static execute = function(args, matchedVariant) {
+        with(objConsole)
+            unfocus();
+    }
+}
+
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -684,6 +700,7 @@ function command_init() {
     command_register(new CommandPosition());
     command_register(new CommandTime());
     command_register(new CommandExpr());
+    command_register(new CommandQuit());
 }
 
 function console_init() {
