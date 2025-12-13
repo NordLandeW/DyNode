@@ -24,9 +24,17 @@ if(focusing) {
         unfocus();
     }
 
-    var offsetDelta = keycheck_down(vk_up) - keycheck_down(vk_down);
-    offsetDelta += (keycheck_down(vk_pageup) - keycheck_down(vk_pagedown)) * visibleLines;
+    var offsetDelta = (keycheck_down(vk_pageup) - keycheck_down(vk_pagedown)) * visibleLines * 0.5;
 
     historyOffset = clamp(historyOffset + offsetDelta, 0, max(0, array_length(global.console.messages) - visibleLines));
+
+    // Handle mouse wheel scrolling.
+    var consoleRange = inputBarHeight + messageBarHeight * min(visibleLines, array_length(global.console.messages));
+    if(mouse_y > BASE_RES_H - consoleRange) {
+        var wheelDelta = wheelcheck_up() - wheelcheck_down();
+        historyOffset = clamp(historyOffset + wheelDelta, 0, max(0, array_length(global.console.messages) - visibleLines));
+        wheel_clear();
+    }
+
     input_group_reset();
 }
