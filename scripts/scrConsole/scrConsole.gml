@@ -343,7 +343,7 @@ function Console() constructor {
             }
 
             var cmd = tokens[0];
-            if(string_char_at(cmd, 1) == ".") {
+            if(string_char_at(cmd, 1) == "." || string_char_at(cmd, 1) == "/") {
                 cmd = string_copy(cmd, 2, string_length(cmd) - 1);
             }
 
