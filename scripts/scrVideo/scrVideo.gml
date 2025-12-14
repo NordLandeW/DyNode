@@ -58,7 +58,10 @@ function dyc_video_draw(x, y, alp) {
         return;
     }
 
-    if(!dyc_video_is_playing() && objMain.nowPlaying && editor_get_editmode() == 5) {
+    if(!dyc_video_is_playing() && objMain.nowPlaying && editor_get_editmode() == 5 && 
+        objMain.nowTime < dyc_video_get_duration() * 1000 - 200) {
+        show_debug_message("-- Resuming video playback.");
+        show_debug_message("-- nowTime: " + string(objMain.nowTime) + " ms, video duration: " + string(dyc_video_get_duration() * 1000) + " ms.");
         dyc_video_play();
         dyc_video_seek_to(objMain.nowTime / 1000);
     }
@@ -118,4 +121,8 @@ function dyc_video_set_sync_mode(mode) {
 
 function dyc_video_get_sync_mode() {
     return DyCore_video_get_sync_mode() != 0;
+}
+
+function dyc_video_get_duration() {
+    return DyCore_video_get_duration();
 }
