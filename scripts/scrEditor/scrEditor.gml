@@ -1190,10 +1190,11 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 	/// @param {Struct.Vector2} p3
 	/// @param {Real} targetY
 	static catmull_rom_spline_lerp = function(p0, p1, p2, p3, targetY) {
+		static eps = 0.0001;
 		var t0 = 0;
-		var t1 = power(p1.sub(p0).len(), 0.5);
-		var t2 = power(p2.sub(p1).len(), 0.5) + t1;
-		var t3 = power(p3.sub(p2).len(), 0.5) + t2;
+		var t1 = max(power(p1.sub(p0).len(), 0.5), eps);
+		var t2 = max(power(p2.sub(p1).len(), 0.5), eps) + t1;
+		var t3 = max(power(p3.sub(p2).len(), 0.5), eps) + t2;
 		
 		/// @param {Struct.Vector2} p0
 		/// @param {Struct.Vector2} p1
