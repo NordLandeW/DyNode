@@ -21,7 +21,7 @@ set BUILD_DIR=out/build/x64-%BUILD_MODE%
 echo --- Building DyCore (%BUILD_MODE%)...
 
 :: Navigate to the DyCore directory.
-cd %YYprojectDir%/DyCore
+cd /d "%YYprojectDir%/DyCore"
 
 :: Configure and build the project.
 cmake --preset=%CMAKE_PRESET%
