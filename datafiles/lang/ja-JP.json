@@ -215,6 +215,8 @@
         "recording_savefile_dlg_title": "録画ビデオファイルの保存先",
         "recording_no_ffmpeg": "FFmpeg実行可能ファイルが見つかりません。\nFFmpegが正しくインストールされ、そのパスがシステムの環境変数に追加されていることを確認してください。",
         "drop_setting_bgm_failed": "音楽 / 背景ファイルは、開いているプロジェクトにドラッグ＆ドロップでのみインポートできます。",
-        "drop_unsupported_file": "対応していないファイル形式です。"
+        "drop_unsupported_file": "対応していないファイル形式です。",
+        "sampling_side_mismatch_error": "仅能对同一侧面的音符进行采样操作。",
+        "sampling_infinite_loop_warning": "采样操作因无法定位到下一个吸附格点而中止。"
     }
 }
