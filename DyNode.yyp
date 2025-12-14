@@ -399,6 +399,7 @@
     {"id":{"name":"scribble_typists_add_event","path":"scripts/scribble_typists_add_event/scribble_typists_add_event.yy",},},
     {"id":{"name":"scribble","path":"scripts/scribble/scribble.yy",},},
     {"id":{"name":"scrInput","path":"scripts/scrInput/scrInput.yy",},},
+    {"id":{"name":"scrMath","path":"scripts/scrMath/scrMath.yy",},},
     {"id":{"name":"scrNote","path":"scripts/scrNote/scrNote.yy",},},
     {"id":{"name":"scrRecorder","path":"scripts/scrRecorder/scrRecorder.yy",},},
     {"id":{"name":"scrRegex","path":"scripts/scrRegex/scrRegex.yy",},},

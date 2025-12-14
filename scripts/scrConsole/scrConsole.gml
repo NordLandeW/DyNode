@@ -825,9 +825,15 @@ function CommandSnap():CommandSignature("snap", []) constructor {
     }
 }
 
-function CommandLinear():CommandSignature("linear", ["lin"]) constructor {
-    add_variant(0, 0, "Applies linear sampling on selected notes.");
-    add_variant(0, -1, "Applies linear sampling on selected notes. Overwriting noteType and beat division with extra arguments.");
+function CommandCurve(fullCommand, alias):CommandSignature(fullCommand, alias) constructor {
+    
+    static curve_add_variant = function(name) {
+        add_variant(0, 0, $"Applies {name} curve sampling on selected notes.");
+        add_variant(0, -1, $"Applies {name} curve sampling on selected notes. Overwriting noteType / beat division / other settings with extra arguments.");
+    }
+
+    /// @type {Function} The sampling function to use.
+    sampling_function = undefined;
 
     static execute = function(args, matchedVariant) {
         command_check_in_editor();
@@ -857,8 +863,26 @@ function CommandLinear():CommandSignature("linear", ["lin"]) constructor {
             return;
         }
 
-        editor_linear_sampling(typeOverwrite, beatDivOverwrite);
+        sampling_function(typeOverwrite, beatDivOverwrite);
     }
+}
+
+function CommandLinear():CommandCurve("linear", ["lin"]) constructor {
+    curve_add_variant("linear");
+
+    sampling_function = editor_linear_sampling;
+}
+
+function CommandCosine():CommandCurve("cosine", ["cos"]) constructor {
+    curve_add_variant("cosine");
+
+    sampling_function = editor_cosine_sampling;
+}
+
+function CommandCatmullRom():CommandCurve("catrom", ["crom"]) constructor {
+    curve_add_variant("Catmull-Rom");
+
+    sampling_function = editor_catmull_rom_sampling;
 }
 #endregion
 
@@ -954,6 +978,8 @@ function command_init() {
     command_register(new CommandQuit());
     command_register(new CommandSnap());
     command_register(new CommandLinear());
+    command_register(new CommandCosine());
+    command_register(new CommandCatmullRom());
 }
 
 function console_init() {
