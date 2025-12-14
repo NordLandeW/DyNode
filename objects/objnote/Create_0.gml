@@ -169,19 +169,10 @@ image_yscale = 1;
     }
 
     function set_prop(prop, record = false) {
-        var _origProp = get_prop();
-        time = prop.time;
-        side = prop.side;
-        width = prop.width;
-        position = prop.position;
-        lastTime = prop.lastTime;
-        noteType = prop.noteType;
-        beginTime = prop.beginTime;
-        
-        if(record)
-            operation_step_add(OPERATION_TYPE.MOVE, _origProp, get_prop());
-        update_prop();
-    }
+        prop.noteID = noteID;
+        dyc_update_note(prop, record);
+        pull_prop();
+    } 
     
     /// @description Push the note's property structure and sync to backend.
     function update_prop() {

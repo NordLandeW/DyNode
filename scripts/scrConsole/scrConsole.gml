@@ -805,12 +805,6 @@ function CommandSnap():CommandSignature("snap", []) constructor {
 
                     set_prop(prop, true);
 
-                    // Ensure hold sub note stays consistent (and gets synced to backend).
-                    if(noteType == NOTE_TYPE.HOLD && note_exists(sinst)) {
-                        sinst.time = time + lastTime;
-                        _prop_hold_update(true);
-                    }
-
                     processedCount++;
                 }
             }
