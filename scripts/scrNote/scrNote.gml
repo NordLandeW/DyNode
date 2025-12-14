@@ -72,6 +72,7 @@ function note_recac_stats() {
 	objMain.statCount = result;
 }
 
+// ! Should be deprecated. But before that, should refactor the stats updating system.
 function note_sort_all(forced = false) {
 	if(!forced && !objEditor.editorNoteSortRequest) return;
 	objEditor.editorNoteSortRequest = false;

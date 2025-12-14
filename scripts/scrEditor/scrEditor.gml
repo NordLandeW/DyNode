@@ -164,84 +164,152 @@ function editor_select_all() {
 	}
 }
 
-function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false) {
-	return editor_snap_to_grid_y(note_time_to_y(_time, _side), _side, _ignore_boundary);
+enum SNAP_MODE {
+	SNAP_AROUND,
+	SNAP_PRE,
+	SNAP_POST
 }
 
-function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false) {
-    var _nw = BASE_RES_W, _nh = BASE_RES_H;
-    
-    var _time = y_to_note_time(_y, _side);
-    var _nowat = 0;
-	var _ret = {
-	    	y: _y,
-			time: _time,
-	    	bar: undefined
-    	};
-	
+function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND) {
+	return editor_snap_to_grid_y(note_time_to_y(_time, _side), _side, _ignore_boundary, _ignore_grid_setting, _mode);
+}
+
+/// @description Snap an editor-space Y coordinate to the timing grid.
+///
+/// The snap is computed in time domain (Y -> time -> nearest grid line -> Y) using the
+/// active timing point segment and the current divisor (`objEditor.get_div()`).
+///
+/// @param {Real} _y Editor-space Y coordinate.
+/// @param {Real} _side Edit side (0 = down, 1 = left, 2 = right).
+/// @param {Bool} _ignore_boundary When true, allow snapping outside the editor bounds.
+/// @param {Bool} _ignore_grid_setting When true, ignore the "Grid Y" setting and always snap.
+/// @param {Enum.SNAP_MODE} _mode Candidate preference when choosing between adjacent grid lines.
+/// @returns {Any} A struct with fields:
+/// - `y`: snapped Y (or the input Y when snapping is disabled)
+/// - `time`: snapped time in ms (or the time derived from input Y when disabled)
+/// - `bar`: absolute bar number (1-based), `undefined` when snapping is disabled
+/// - `diva`: division index within the bar
+/// - `divb`: divisions per bar
+/// - `divc`: note-value denominator (e.g. 16 means 1/16 note grid)
+function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND) {
+    var resW = BASE_RES_W, resH = BASE_RES_H;
+
+    // Convert editor coordinate (y) back into chart time first; snapping happens in time domain.
+    var timeAtY = y_to_note_time(_y, _side);
+    var timingPointIndex = 0;
+
+	// Default return: no snapping applied (grid disabled / no timing points).
+	var result = {
+		y: _y,
+		time: timeAtY,
+		bar: undefined
+	};
+
 	var timingPoints = dyc_get_timingpoints();
-	if(!objEditor.editorGridYEnabled || !array_length(timingPoints)) return _ret;
+	if((!objEditor.editorGridYEnabled && !_ignore_grid_setting) || !array_length(timingPoints)) return result;
 
     with(objEditor) {
         var targetLineBelow = objMain.targetLineBelow;
         var targetLineBeside = objMain.targetLineBeside;
         var playbackSpeed = objMain.playbackSpeed;
-        var _l = array_length(timingPoints);
-        var _totalBar = 1;
-        while(_nowat + 1 != _l && timingPoints[_nowat+1].time <= _time) {
-        	_totalBar += ceil((timingPoints[_nowat+1].time - timingPoints[_nowat].time)
-        		/(timingPoints[_nowat].beatLength*timingPoints[_nowat].meter));
-        	_nowat ++;
+
+        var timingPointCount = array_length(timingPoints);
+
+        // Accumulate absolute bar index across timing point segments.
+        // Starts from 1 to match the editor's bar numbering.
+        var barBase = 1;
+        while(timingPointIndex + 1 != timingPointCount && timingPoints[timingPointIndex + 1].time <= timeAtY) {
+        	barBase += ceil(
+        		(timingPoints[timingPointIndex + 1].time - timingPoints[timingPointIndex].time)
+        		/ (timingPoints[timingPointIndex].beatLength * timingPoints[timingPointIndex].meter)
+        	);
+        	timingPointIndex++;
         }
-        var _nowtp = timingPoints[_nowat];
-        var _nowbeats = floor((_time - _nowtp.time) / _nowtp.beatLength);
-        var _nexttime = (_nowat + 1 == _l ? objMain.musicLength:timingPoints[_nowat+1].time)
-        var _nowdivb = objEditor.get_div(); // divs per beat
-        var _nowdiv = 1 / _nowdivb * _nowtp.beatLength;
-        var _nowdivbm = _nowdivb * _nowtp.meter; // divs per bar
-        
-        var _ntime = (_time - _nowbeats * _nowtp.beatLength - _nowtp.time) / _nowdiv;
-        var _rd = round(_ntime); // now divs in one beat
-        var _rt = _rd * _nowdiv;
-        var _rbd = round(_ntime)==ceil(_ntime) ? floor(_ntime) : ceil(_ntime);
-        var _rbt = _rbd * _nowdiv;
-        _rt += _nowbeats * _nowtp.beatLength + _nowtp.time;
-        _rbt += _nowbeats * _nowtp.beatLength + _nowtp.time;
-        var _ry = note_time_to_y(_rt, min(_side, 1));
-        var _rby = note_time_to_y(_rbt, min(_side, 1));
-        
-        var _eps = 1;	// Prevent some precision problems
-        var _f_genret = method({
-        	_nowbeats: _nowbeats,
-        	_nowdivb: _nowdivb,
-        	_nowdivbm: _nowdivbm,
-        	_totalBar: _totalBar
-        }, function (_ny, _d, _t) {
+
+        var tp = timingPoints[timingPointIndex];
+        var beatIndex = floor((timeAtY - tp.time) / tp.beatLength);
+
+        // The current timing point is valid in [tp.time, nextTpTime).
+        var nextTpTime = (timingPointIndex + 1 == timingPointCount ? objMain.musicLength : timingPoints[timingPointIndex + 1].time);
+
+        var divsPerBeat = objEditor.get_div(); // grid resolution: divisions per beat
+        var divDuration = tp.beatLength / divsPerBeat;
+        var divsPerBar = divsPerBeat * tp.meter; // divisions per bar
+
+        // Floating-point subdivision index within the current beat.
+        // 0 means beat start; 1 means one division forward, etc.
+        var divIndexF = (timeAtY - beatIndex * tp.beatLength - tp.time) / divDuration;
+
+        var divIndexFloor = floor(divIndexF);
+        var divIndexCeil = ceil(divIndexF);
+        var divIndexRound = round(divIndexF);
+
+        var primaryDivIndex = divIndexRound;
+        var secondaryDivIndex = (divIndexRound == divIndexCeil ? divIndexFloor : divIndexCeil);
+
+        // SNAP_MODE controls which side we prefer when choosing between the two nearest grid lines.
+        // - SNAP_AROUND: keep legacy behavior (nearest first, then the other side)
+        // - SNAP_PRE:    prefer previous (floor), then next (ceil)
+        // - SNAP_POST:   prefer next (ceil), then previous (floor)
+        switch(_mode) {
+            case SNAP_MODE.SNAP_PRE:
+                primaryDivIndex = divIndexFloor;
+                secondaryDivIndex = divIndexCeil;
+                break;
+            case SNAP_MODE.SNAP_POST:
+                primaryDivIndex = divIndexCeil;
+                secondaryDivIndex = divIndexFloor;
+                break;
+            default:
+                break;
+        }
+
+        var primaryTime = primaryDivIndex * divDuration + beatIndex * tp.beatLength + tp.time;
+        var secondaryTime = secondaryDivIndex * divDuration + beatIndex * tp.beatLength + tp.time;
+
+        // For boundary checks we normalize side to 0/1: left/right share the same range.
+        var primaryYForBound = note_time_to_y(primaryTime, min(_side, 1));
+        var secondaryYForBound = note_time_to_y(secondaryTime, min(_side, 1));
+
+        // Prevent snapping beyond the segment due to floating precision.
+        var timeEpsilonMs = 1;
+
+        var makeSnapResult = method({
+        	beatIndex: beatIndex,
+        	divsPerBeat: divsPerBeat,
+        	divsPerBar: divsPerBar,
+        	barBase: barBase
+        }, function (snappedY, snappedDivIndex, snappedTime) {
+            var divIndexAbsolute = snappedDivIndex + beatIndex * divsPerBeat;
         	return {
-        		y: _ny,
-            	bar: floor((_d + _nowbeats * _nowdivb)/_nowdivbm) + _totalBar,
-            	diva: ((_d + _nowbeats * _nowdivb) % _nowdivbm + _nowdivbm) % _nowdivbm,
-            	divb: _nowdivbm,
-            	divc: _nowdivb * 4,
-				time: _t
+        		y: snappedY,
+            		bar: floor(divIndexAbsolute / divsPerBar) + barBase,
+            		// Division index within the bar in [0, divsPerBar)
+            		diva: ((divIndexAbsolute % divsPerBar + divsPerBar) % divsPerBar),
+            		divb: divsPerBar,
+            		// Note-value denominator (e.g. 16 means 1/16 note grid).
+            		divc: divsPerBeat * 4,
+    time: snappedTime
         	};
         });
-        
+
+        // Try primary candidate first, then fallback to secondary candidate.
         if(_side == 0) {
-            if((in_between(_ry, 0, _nh - targetLineBelow) || _ignore_boundary) && _rt + _eps <= _nexttime)
-                _ret = _f_genret(_ry, _rd, _rt);
-            else if((in_between(_rby, 0, _nh - targetLineBelow) || _ignore_boundary) && _rbt + _eps <= _nexttime)
-                _ret = _f_genret(_rby, _rbd, _rbt);
+            if((in_between(primaryYForBound, 0, resH - targetLineBelow) || _ignore_boundary) && primaryTime + timeEpsilonMs <= nextTpTime)
+                result = makeSnapResult(primaryYForBound, primaryDivIndex, primaryTime);
+            else if((in_between(secondaryYForBound, 0, resH - targetLineBelow) || _ignore_boundary) && secondaryTime + timeEpsilonMs <= nextTpTime)
+                result = makeSnapResult(secondaryYForBound, secondaryDivIndex, secondaryTime);
         }
         else {
-            if((in_between(_ry, targetLineBeside, _nw/2) || _ignore_boundary) && _rt + _eps <= _nexttime)
-                _ret = _f_genret(note_time_to_y(_rt, _side), _rd, _rt);
-            else if((in_between(_rby, targetLineBeside, _nw/2) || _ignore_boundary) && _rbt + _eps <= _nexttime)
-                _ret = _f_genret(note_time_to_y(_rbt, _side), _rbd, _rbt);
+            // For left/right sides we must return y computed for the actual side.
+            if((in_between(primaryYForBound, targetLineBeside, resW/2) || _ignore_boundary) && primaryTime + timeEpsilonMs <= nextTpTime)
+                result = makeSnapResult(note_time_to_y(primaryTime, _side), primaryDivIndex, primaryTime);
+            else if((in_between(secondaryYForBound, targetLineBeside, resW/2) || _ignore_boundary) && secondaryTime + timeEpsilonMs <= nextTpTime)
+                result = makeSnapResult(note_time_to_y(secondaryTime, _side), secondaryDivIndex, secondaryTime);
         }
     }
-    
-    return _ret;
+
+    return result;
 }
 
 function editor_snap_to_grid_x(_x, _side) {

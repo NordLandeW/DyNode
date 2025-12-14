@@ -10,6 +10,13 @@ function CommandVariant(reqArgs, optArgs, description = "") constructor {
     if(optionalArgs != -1 && (optionalArgs < 0 || optionalArgs > 1)) {
         throw "Optional arguments must be 0, 1, or -1 (variadic).";
     }
+
+    static get_args_count = function() {
+        if(optionalArgs < 0) {
+            return -1;
+        }
+        return requiredArgs + optionalArgs;
+    }
 }
 
 /// @description The command signature class.
@@ -512,10 +519,15 @@ function CommandTime():CommandSignature("time", ["t"]) constructor {
 
 function CommandSide():CommandSignature("side", ["s"]) constructor {
     add_variant(1, 0, "Sets the side of selected notes to the specified value.");
+    add_variant(2, 0, "Sets the side of selected notes to the specified value. Overwriting the visual consitent mode with the specified boolean.");
 
     static execute = function(args, matchedVariant) {
-        command_arg_check_integer(args[0]);
         command_check_in_editor();
+
+        var argCount = matchedVariant.get_args_count();
+        command_arg_check_integer(args[0]);
+        if(argCount > 1)
+            command_arg_check_boolean(args[1]);
 
         var setSide = int64(args[0]);
         setSide = (setSide % 3 + 3) % 3;
@@ -528,7 +540,10 @@ function CommandSide():CommandSignature("side", ["s"]) constructor {
         with(objNote) {
             if(stateType == NOTE_STATES.SELECTED) {
                 var origProp = get_prop();
-                change_side(setSide);
+                if(argCount == 1)
+                    change_side(setSide);
+                else
+                    change_side(setSide, command_arg_to_boolean(args[1]));
                 operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
             }
         }
@@ -710,6 +725,111 @@ function CommandRandomize():CommandSignature("randomize", ["rand"]) constructor 
     }
 }
 
+// Snap all selected notes to the timing grid.
+//
+// Modes:
+// - pre:     prefer snapping to the previous grid line (SNAP_MODE.SNAP_PRE)
+// - post:    prefer snapping to the next grid line (SNAP_MODE.SNAP_POST)
+// - nearest: prefer snapping to the nearest grid line (SNAP_MODE.SNAP_AROUND)
+//
+// Usage:
+//   .snap
+//   .snap <pre|post|nearest>
+function CommandSnap():CommandSignature("snap", []) constructor {
+    add_variant(0, 0, "Snaps all selected notes to the timing grid (default mode: pre).");
+    add_variant(1, 0, "Snaps all selected notes to the timing grid. Mode: pre|post|nearest.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        var snapMode = SNAP_MODE.SNAP_PRE;
+        if(array_length(args) > 0) {
+            var modeArg = string_lower(string_trim(args[0]));
+            switch(modeArg) {
+                case "pre":
+                case "prev":
+                case "previous":
+                    snapMode = SNAP_MODE.SNAP_PRE;
+                    break;
+
+                case "post":
+                case "next":
+                case "after":
+                    snapMode = SNAP_MODE.SNAP_POST;
+                    break;
+
+                case "nearest":
+                case "near":
+                case "around":
+                    snapMode = SNAP_MODE.SNAP_AROUND;
+                    break;
+
+                default:
+                    console_echo_warning("Invalid mode. Expected: pre | post | nearest.");
+                    return;
+            }
+        }
+
+        var selectedCount = editor_select_count();
+        if(selectedCount == 0) {
+            console_echo("No notes selected.");
+            return;
+        }
+
+        var processedCount = 0;
+        var skippedSubCount = 0;
+
+        with(objNote) {
+            if(stateType == NOTE_STATES.SELECTED) {
+                // Sub notes are derived from holds; moving them directly would desync undo history.
+                // Users should snap the hold head instead.
+                if(noteType == NOTE_TYPE.SUB) {
+                    skippedSubCount++;
+                }
+                else {
+                    var prop = get_prop();
+
+                    // For holds we must snap both endpoints independently.
+                    // If we derived endTime from the snapped start, we would unintentionally shift the tail.
+                    var originalStartTime = prop.time;
+                    var originalEndTime = prop.time + prop.lastTime;
+
+                    var snappedStart = editor_snap_to_grid_time(originalStartTime, prop.side, true, true, snapMode).time;
+                    prop.time = snappedStart;
+
+                    // Holds are defined by (startTime, endTime). Snap both ends so the segment aligns.
+                    if(noteType == NOTE_TYPE.HOLD) {
+                        var snappedEnd = editor_snap_to_grid_time(originalEndTime, prop.side, true, true, snapMode).time;
+                        prop.lastTime = max(1, snappedEnd - snappedStart);
+                    }
+
+                    set_prop(prop, true);
+
+                    // Ensure hold sub note stays consistent (and gets synced to backend).
+                    if(noteType == NOTE_TYPE.HOLD && note_exists(sinst)) {
+                        sinst.time = time + lastTime;
+                        _prop_hold_update(true);
+                    }
+
+                    processedCount++;
+                }
+            }
+        }
+
+        if(processedCount > 0) {
+            note_sort_request();
+        }
+
+        var modeName = "pre";
+        if(snapMode == SNAP_MODE.SNAP_POST) modeName = "post";
+        else if(snapMode == SNAP_MODE.SNAP_AROUND) modeName = "nearest";
+
+        console_echo($"Snapped {string(processedCount)} selected notes to grid ({modeName}).");
+        if(skippedSubCount > 0) {
+            console_echo_warning($"Skipped {string(skippedSubCount)} sub note(s). Select the hold head instead.");
+        }
+    }
+}
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -728,6 +848,21 @@ function command_arg_check_integer(arg, abort = true) {
         return false;
     }
     return true;
+}
+
+function command_arg_check_boolean(arg, abort = true) {
+    var lowerArg = string_lower(string_trim(arg));
+    if(lowerArg != "true" && lowerArg != "false" && lowerArg != "1" && lowerArg != "0") {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid boolean.";
+        return false;
+    }
+    return true;
+}
+ 
+function command_arg_to_boolean(arg) {
+    var lowerArg = string_lower(string_trim(arg));
+    return (lowerArg == "true" || lowerArg == "1");
 }
 
 function command_check_in_editor(abort = true) {
@@ -759,6 +894,7 @@ function command_init() {
     command_register(new CommandRandomize());
     command_register(new CommandExpr());
     command_register(new CommandQuit());
+    command_register(new CommandSnap());
 }
 
 function console_init() {
