@@ -349,8 +349,25 @@ function Console() constructor {
 
             var cmdSig = find_command(cmd);
             if(cmdSig == undefined) {
-                echo_warning("Command '" + cmd + "' not found.");
-                return -1;
+                var found = false;
+                // Single argument variation.
+                // Example: w2.5 or width2.5 to set width to 2.5 directly.
+                if(array_length(tokens) == 1) {
+                    var matches = regex_match_ext(cmd, "^([a-zA-Z]+)([-+]?[0-9]*\\.?[0-9]+)$");
+                    if(array_length(matches) == 3) {
+                        cmdSig = find_command(matches[1]);
+                        if(cmdSig != undefined) {
+                            found = true;
+                            tokens[0] = matches[1];
+                            array_push(tokens, matches[2]);
+                        }
+                    }
+                }
+                
+                if(!found) {
+                    echo_warning("Command '" + cmd + "' not found.");
+                    return -1;
+                }
             }
 
             var actualArgsCount = max(0, array_length(tokens) - 1);
@@ -493,6 +510,34 @@ function CommandTime():CommandSignature("time", ["t"]) constructor {
     }
 }
 
+function CommandSide():CommandSignature("side", ["s"]) constructor {
+    add_variant(1, 0, "Sets the side of selected notes to the specified value.");
+
+    static execute = function(args, matchedVariant) {
+        command_arg_check_integer(args[0]);
+        command_check_in_editor();
+
+        var setSide = int64(args[0]);
+        setSide = (setSide % 3 + 3) % 3;
+
+        if(editor_select_count() == 0) {
+            console_echo("No notes selected.");
+            return;
+        }
+
+        with(objNote) {
+            if(stateType == NOTE_STATES.SELECTED) {
+                var origProp = get_prop();
+                change_side(setSide);
+                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+            }
+        }
+
+        console_echo($"Set side of {string(editor_select_count())} selected notes to {string(setSide)}.");
+    }
+}
+
+
 function CommandHelp():CommandSignature("help", ["h", "?"]) constructor {
     add_variant(0, 0, "Lists all commands.");
     add_variant(1, 0, "Shows detailed help for the specified command.");
@@ -631,6 +676,7 @@ function CommandExpr():CommandSignature("expr", ["e"]) constructor {
     add_variant(1, 0, "Execute the expression on selected notes / all notes");
 
     static execute = function(args, matchedVariant) {
+        command_check_in_editor();
         var expr = args[0];
         if(expr == "") {
             console_echo_warning("Expression cannot be empty.");
@@ -651,6 +697,16 @@ function CommandQuit():CommandSignature("quit", ["exit", "q"]) constructor {
     static execute = function(args, matchedVariant) {
         with(objConsole)
             unfocus();
+    }
+}
+
+function CommandRandomize():CommandSignature("randomize", ["rand"]) constructor {
+    add_variant(0, 0, "Randomizes properties of selected notes.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        chart_randomize();
     }
 }
 
@@ -699,6 +755,8 @@ function command_init() {
     command_register(new CommandWidth());
     command_register(new CommandPosition());
     command_register(new CommandTime());
+    command_register(new CommandSide());
+    command_register(new CommandRandomize());
     command_register(new CommandExpr());
     command_register(new CommandQuit());
 }
