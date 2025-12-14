@@ -215,6 +215,8 @@
         "recording_savefile_dlg_title": "录制视频文件保存至",
         "recording_no_ffmpeg": "未找到 FFmpeg 可执行文件。\n请确保 FFmpeg 已正确安装并且其路径已被添加至系统环境变量中。",
         "drop_setting_bgm_failed": "只能在打开的项目中使用拖放功能来导入音乐 / 背景文件。",
-        "drop_unsupported_file": "不支持的文件类型。"
+        "drop_unsupported_file": "不支持的文件类型。",
+        "sampling_side_mismatch_error": "仅能对同一侧面的音符进行采样操作。",
+        "sampling_infinite_loop_warning": "采样操作因无法定位到下一个吸附格点而中止。"
     }
 }

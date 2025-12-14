@@ -152,6 +152,23 @@ function editor_select_count() {
 	return objEditor.editorSelectCount;
 }
 
+/// @returns {Array<Struct.sNoteProp>} Array of selected note properties, sorted by time ascending.
+function editor_get_selected_notes() {
+	var noteProps = [];
+
+	with(objNote) {
+		if(stateType == NOTE_STATES.SELECTED) {
+			array_push(noteProps, get_prop());
+		}
+	}
+
+	quick_sort(noteProps, function(a, b) {
+		return a.time == b.time ? a.position - b.position : a.time - b.time;
+	});
+
+	return noteProps;
+}
+
 function editor_select_reset() {
 	objEditor.editorSelectResetRequest = true;
 }
@@ -170,8 +187,8 @@ enum SNAP_MODE {
 	SNAP_POST
 }
 
-function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND) {
-	return editor_snap_to_grid_y(note_time_to_y(_time, _side), _side, _ignore_boundary, _ignore_grid_setting, _mode);
+function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND, _overwrite_div = -1) {
+	return editor_snap_to_grid_y(note_time_to_y(_time, _side), _side, _ignore_boundary, _ignore_grid_setting, _mode, _overwrite_div);
 }
 
 /// @description Snap an editor-space Y coordinate to the timing grid.
@@ -184,6 +201,7 @@ function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false, _ignor
 /// @param {Bool} _ignore_boundary When true, allow snapping outside the editor bounds.
 /// @param {Bool} _ignore_grid_setting When true, ignore the "Grid Y" setting and always snap.
 /// @param {Enum.SNAP_MODE} _mode Candidate preference when choosing between adjacent grid lines.
+/// @param {Real} _overwrite_div When set to a positive integer, use this as the divisions per beat instead of the editor setting.
 /// @returns {Any} A struct with fields:
 /// - `y`: snapped Y (or the input Y when snapping is disabled)
 /// - `time`: snapped time in ms (or the time derived from input Y when disabled)
@@ -191,7 +209,7 @@ function editor_snap_to_grid_time(_time, _side, _ignore_boundary = false, _ignor
 /// - `diva`: division index within the bar
 /// - `divb`: divisions per bar
 /// - `divc`: note-value denominator (e.g. 16 means 1/16 note grid)
-function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND) {
+function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false, _ignore_grid_setting = false, _mode = SNAP_MODE.SNAP_AROUND, _overwrite_div = -1) {
     var resW = BASE_RES_W, resH = BASE_RES_H;
 
     // Convert editor coordinate (y) back into chart time first; snapping happens in time domain.
@@ -232,7 +250,7 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false, _ignore_grid
         // The current timing point is valid in [tp.time, nextTpTime).
         var nextTpTime = (timingPointIndex + 1 == timingPointCount ? objMain.musicLength : timingPoints[timingPointIndex + 1].time);
 
-        var divsPerBeat = objEditor.get_div(); // grid resolution: divisions per beat
+        var divsPerBeat = _overwrite_div > 0 ? _overwrite_div : objEditor.get_div(); // grid resolution: divisions per beat
         var divDuration = tp.beatLength / divsPerBeat;
         var divsPerBar = divsPerBeat * tp.meter; // divisions per bar
 
@@ -283,13 +301,13 @@ function editor_snap_to_grid_y(_y, _side, _ignore_boundary = false, _ignore_grid
             var divIndexAbsolute = snappedDivIndex + beatIndex * divsPerBeat;
         	return {
         		y: snappedY,
-            		bar: floor(divIndexAbsolute / divsPerBar) + barBase,
-            		// Division index within the bar in [0, divsPerBar)
-            		diva: ((divIndexAbsolute % divsPerBar + divsPerBar) % divsPerBar),
-            		divb: divsPerBar,
-            		// Note-value denominator (e.g. 16 means 1/16 note grid).
-            		divc: divsPerBeat * 4,
-    time: snappedTime
+				bar: floor(divIndexAbsolute / divsPerBar) + barBase,
+				// Division index within the bar in [0, divsPerBar)
+				diva: ((divIndexAbsolute % divsPerBar + divsPerBar) % divsPerBar),
+				divb: divsPerBar,
+				// Note-value denominator (e.g. 16 means 1/16 note grid).
+				divc: divsPerBeat * 4,
+				time: snappedTime
         	};
         });
 
@@ -571,10 +589,10 @@ function operation_undo() {
 		var _ops = operationStack[operationPointer].ops;
 		var _type = operationStack[operationPointer].type;
 		
-		note_select_reset();
 		for(var i=0, l=array_length(_ops); i<l; i++) {
 			switch(_ops[i].opType) {
 				case OPERATION_TYPE.MOVE:
+					note_select_reset();
 					operation_do(OPERATION_TYPE.MOVE, _ops[i].toProp, _ops[i].fromProp, l > MAX_SELECTION_LIMIT);
 					break;
 				case OPERATION_TYPE.ADD:
@@ -614,11 +632,11 @@ function operation_redo() {
 		operationPointer ++;
 		var _ops = operationStack[operationPointer].ops;
 		var _type = operationStack[operationPointer].type;
-		note_select_reset();
 		for(var i=0, l=array_length(_ops); i<l; i++) {
 			switch(_ops[i].opType) {
 				case OPERATION_TYPE.MOVE:
 				case OPERATION_TYPE.TPCHANGE:
+					note_select_reset();
 					operation_do(_ops[i].opType, _ops[i].fromProp, _ops[i].toProp, l > MAX_SELECTION_LIMIT);
 					break;
 				case OPERATION_TYPE.ADD:
@@ -1019,3 +1037,65 @@ function editor_get_div() {
 function note_outbound_warning() {
 	announcement_warning("warning_note_outbound", 5000, "wob");
 }
+
+#region Advanced Functions
+
+/// @description Linear sampling on selected notes.
+function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+	var selectedNotes = editor_get_selected_notes();
+	var count = array_length(selectedNotes);
+
+	var onSide = selectedNotes[0].side;
+	// Check if all notes are on the same side.
+	for(var i = 1; i < count; i++) {
+		if(selectedNotes[i].side != onSide) {
+			announcement_error("sampling_side_mismatch_error");
+			return;
+		}
+	}
+
+	var beatDiv = beatDivOverwrite;
+	if(beatDiv == -1) {
+		beatDiv = editor_get_div();
+	}
+
+	for(var i = 0; i < count - 1; i++) {
+		var note = selectedNotes[i];
+		var nextNote = selectedNotes[i + 1];
+
+		var currentTime = note.time;
+		var currentTP = timing_point_get_at(currentTime);
+		currentTime += currentTP.beatLength / beatDiv;
+		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+		while(currentTime < nextNote.time) {
+			var ratio = (currentTime - note.time) / (nextNote.time - note.time);
+			var newNote = note.copy();
+			newNote.time = currentTime;
+			newNote.width = lerp(newNote.width, nextNote.width, ratio);
+			newNote.position = lerp(newNote.position, nextNote.position, ratio);
+
+			if(typeOverwrite != -1) {
+				newNote.noteType = typeOverwrite;
+				if(newNote.noteType != NOTE_TYPE.HOLD)
+					newNote.lastTime = 0;
+			}
+
+			build_note(newNote, true, true, true);
+
+			var prevTime = currentTime;
+
+			currentTP = timing_point_get_at(currentTime);
+			currentTime += currentTP.beatLength / beatDiv;
+			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+
+			if(prevTime == currentTime) {
+				// Prevent infinite loop due to snapping failure.
+				announcement_warning("sampling_infinite_loop_warning");
+				break;
+			}
+		}
+	}
+
+}
+
+#endregion

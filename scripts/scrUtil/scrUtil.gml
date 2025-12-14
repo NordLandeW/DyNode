@@ -1020,7 +1020,7 @@ function extern_index_sort(array, extract_value_func) {
 }
 
 /// @description Using extern extension to speed up the quick sorting.
-/// @param {Array} array The array to sort.
+/// @param {Array<Real>} array The array to sort.
 /// @param {Boolean} type The sorting type. True for ascending, false for descending.
 function extern_quick_sort(array, type) {
 	static buff = -1;

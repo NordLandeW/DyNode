@@ -824,6 +824,42 @@ function CommandSnap():CommandSignature("snap", []) constructor {
         }
     }
 }
+
+function CommandLinear():CommandSignature("linear", ["lin"]) constructor {
+    add_variant(0, 0, "Applies linear sampling on selected notes.");
+    add_variant(0, -1, "Applies linear sampling on selected notes. Overwriting noteType and beat division with extra arguments.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+        var typeOverwrite = -1;
+        var beatDivOverwrite = -1;
+        if(matchedVariant.get_args_count() < 0) {
+            for(var i = 0, l = array_length(args); i < l; i++) {
+                if(command_arg_check_note_type(args[i], false)) {
+                    typeOverwrite = command_arg_to_note_type(args[i]);
+                }
+                else if(command_arg_check_integer(args[i], false)) {
+                    beatDivOverwrite = int64(args[i]);
+                    if(beatDivOverwrite <= 0) {
+                        console_echo_warning("Beat division must be a positive integer.");
+                        return;
+                    }
+                }
+                else {
+                    console_echo_warning("Invalid argument. Expected note type or beat division integer. Note type options: tap|note|normal, hold, slide|chain.");
+                    return;
+                }
+            }
+        }
+
+        if(editor_select_count() < 2) {
+            console_echo_warning("At least two notes must be selected to apply linear sampling.");
+            return;
+        }
+
+        editor_linear_sampling(typeOverwrite, beatDivOverwrite);
+    }
+}
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -859,6 +895,34 @@ function command_arg_to_boolean(arg) {
     return (lowerArg == "true" || lowerArg == "1");
 }
 
+function command_arg_check_note_type(arg, abort = true) {
+    arg = string_lower(string_trim(arg));
+    static availableOptions = ["tap", "note", "hold", "slide", "chain", "normal"];
+    if(!array_contains(availableOptions, arg)) {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid note type. Available types: " + string_join(availableOptions, ", ") + ".";
+        return false;
+    }
+    return true;
+}
+
+function command_arg_to_note_type(arg) {
+    arg = string_lower(string_trim(arg));
+    switch(arg) {
+        case "tap":
+        case "note":
+        case "normal":
+            return NOTE_TYPE.NORMAL;
+        case "hold":
+            return NOTE_TYPE.HOLD;
+        case "slide":
+        case "chain":
+            return NOTE_TYPE.CHAIN;
+        default:
+            throw "Invalid note type: '" + string(arg) + "'.";
+    }
+}
+
 function command_check_in_editor(abort = true) {
     if(!instance_exists(objEditor)) {
         if(abort)
@@ -889,6 +953,7 @@ function command_init() {
     command_register(new CommandExpr());
     command_register(new CommandQuit());
     command_register(new CommandSnap());
+    command_register(new CommandLinear());
 }
 
 function console_init() {
