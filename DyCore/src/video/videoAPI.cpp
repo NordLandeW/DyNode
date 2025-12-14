@@ -60,6 +60,13 @@ DYCORE_API double DyCore_video_get_frame(void *gm_buffer_ptr,
     return decoder.get_frame(gm_buffer_ptr, buffer_size);
 }
 
+DYCORE_API double DyCore_video_get_frame_sync(void *gm_buffer_ptr,
+                                              double buffer_size,
+                                              double delta_time) {
+    auto &decoder = VideoDecoder::get_instance();
+    return decoder.get_frame_sync(gm_buffer_ptr, buffer_size, delta_time);
+}
+
 DYCORE_API double DyCore_video_get_width() {
     auto &decoder = VideoDecoder::get_instance();
     return decoder.get_width();
@@ -83,4 +90,20 @@ DYCORE_API double DyCore_video_get_buffer_size() {
 DYCORE_API double DyCore_video_set_speed(double speed) {
     auto &decoder = VideoDecoder::get_instance();
     return decoder.set_speed(speed);
+}
+
+DYCORE_API double DyCore_video_get_speed() {
+    auto &decoder = VideoDecoder::get_instance();
+    return decoder.get_speed();
+}
+
+DYCORE_API double DyCore_video_set_sync_mode(double enable) {
+    auto &decoder = VideoDecoder::get_instance();
+    decoder.set_sync_mode(enable != 0.0);
+    return 0;
+}
+
+DYCORE_API double DyCore_video_get_sync_mode() {
+    auto &decoder = VideoDecoder::get_instance();
+    return decoder.is_sync_mode() ? 1.0 : 0.0;
 }

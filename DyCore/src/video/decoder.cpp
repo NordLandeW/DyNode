@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <string>
 
@@ -56,33 +57,14 @@ void VideoDecoder::decode_loop() {
             continue;
         }
 
+        const bool isSyncMode = m_isSyncMode.load(std::memory_order_relaxed);
+
         // Perform any pending seek on the decode thread to keep MF calls
         // confined to a single COM apartment.
         long long seekPos = m_seekTarget.exchange(-1);
         if (seekPos >= 0) {
-            // Check if we can perform a "smart seek" (skip forward) without
-            // resetting to a keyframe. This is faster if the target is close to
-            // the current position.
-            bool useSmartSeek = false;
-            // 10 secs
-            const long long SMART_SEEK_THRESHOLD = 10 * 10000000LL;
-
-            if (m_lastPresentationTime > 0 &&
-                seekPos > m_lastPresentationTime) {
-                long long diff = seekPos - m_lastPresentationTime;
-                if (diff < SMART_SEEK_THRESHOLD) {
-                    useSmartSeek = true;
-                }
-            }
-
-            if (useSmartSeek) {
-                skipUntilTime = seekPos;
-                skipStartTime = std::chrono::high_resolution_clock::now();
-                print_debug_message(
-                    std::format("VideoDecoder::decode_loop performing smart "
-                                "seek to {} ticks (diff: {}).",
-                                seekPos, seekPos - m_lastPresentationTime));
-            } else {
+            if (isSyncMode) {
+                // Sync mode: always do a real seek. No "smart seek".
                 PROPVARIANT var;
                 PropVariantInit(&var);
                 var.vt = VT_I8;
@@ -95,10 +77,54 @@ void VideoDecoder::decode_loop() {
                         static_cast<unsigned long>(seekHr)));
                     skipUntilTime = -1;
                 } else {
+                    // Drop samples whose timestamp is still before the target.
                     skipUntilTime = seekPos;
-                    skipStartTime = std::chrono::high_resolution_clock::now();
                 }
                 PropVariantClear(&var);
+            } else {
+                // Check if we can perform a "smart seek" (skip forward) without
+                // resetting to a keyframe. This is faster if the target is
+                // close to the current position.
+                bool useSmartSeek = false;
+                // 10 secs
+                const long long SMART_SEEK_THRESHOLD = 10 * 10000000LL;
+
+                if (m_lastPresentationTime > 0 &&
+                    seekPos > m_lastPresentationTime) {
+                    long long diff = seekPos - m_lastPresentationTime;
+                    if (diff < SMART_SEEK_THRESHOLD) {
+                        useSmartSeek = true;
+                    }
+                }
+
+                if (useSmartSeek) {
+                    skipUntilTime = seekPos;
+                    skipStartTime = std::chrono::high_resolution_clock::now();
+                    print_debug_message(std::format(
+                        "VideoDecoder::decode_loop performing smart "
+                        "seek to {} ticks (diff: {}).",
+                        seekPos, seekPos - m_lastPresentationTime));
+                } else {
+                    PROPVARIANT var;
+                    PropVariantInit(&var);
+                    var.vt = VT_I8;
+                    var.hVal.QuadPart = seekPos;
+                    HRESULT seekHr =
+                        m_pReader->SetCurrentPosition(GUID_NULL, var);
+                    if (FAILED(seekHr)) {
+                        print_debug_message(
+                            std::format("VideoDecoder::decode_loop "
+                                        "SetCurrentPosition failed, "
+                                        "hr=0x{:08X}",
+                                        static_cast<unsigned long>(seekHr)));
+                        skipUntilTime = -1;
+                    } else {
+                        skipUntilTime = seekPos;
+                        skipStartTime =
+                            std::chrono::high_resolution_clock::now();
+                    }
+                    PropVariantClear(&var);
+                }
             }
 
             // Reset timing logic so we don't sleep for the seek difference.
@@ -136,33 +162,49 @@ void VideoDecoder::decode_loop() {
             m_isFinished = true;
             m_isPlaying = false;
             skipUntilTime = -1;
+
+            // Wake sync consumers so they don't block forever when playback
+            // ends.
+            m_syncCvFrameAvailable.notify_all();
+            m_syncCvQueueSpace.notify_all();
+
             print_debug_message(
                 "VideoDecoder::decode_loop reached end of stream.");
         }
 
         if (pSample) {
             if (skipUntilTime >= 0) {
-                // Skip samples until playback time (which advances with
-                // videoSpeed) catches up to the seek target.
-                const auto now = std::chrono::high_resolution_clock::now();
-                const long long elapsedTicks =
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        now - skipStartTime)
-                        .count() /
-                    100;
+                if (isSyncMode) {
+                    // Sync mode: do not tie skipping to wall time.
+                    if (llTimeStamp < skipUntilTime) {
+                        pSample->Release();
+                        continue;
+                    }
+                    skipUntilTime = -1;
+                } else {
+                    // Skip samples until playback time (which advances with
+                    // videoSpeed) catches up to the seek target.
+                    const auto now = std::chrono::high_resolution_clock::now();
+                    const long long elapsedTicks =
+                        std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            now - skipStartTime)
+                            .count() /
+                        100;
 
-                const double speed = videoSpeed.load(std::memory_order_relaxed);
-                const double effectiveSpeed = (speed > 0.0) ? speed : 1.0;
+                    const double speed =
+                        videoSpeed.load(std::memory_order_relaxed);
+                    const double effectiveSpeed = (speed > 0.0) ? speed : 1.0;
 
-                const long long timeFlowTicks = static_cast<long long>(
-                    static_cast<long double>(elapsedTicks) *
-                    static_cast<long double>(effectiveSpeed));
+                    const long long timeFlowTicks = static_cast<long long>(
+                        static_cast<long double>(elapsedTicks) *
+                        static_cast<long double>(effectiveSpeed));
 
-                if (llTimeStamp < skipUntilTime + timeFlowTicks) {
-                    pSample->Release();
-                    continue;
+                    if (llTimeStamp < skipUntilTime + timeFlowTicks) {
+                        pSample->Release();
+                        continue;
+                    }
+                    skipUntilTime = -1;
                 }
-                skipUntilTime = -1;
             }
 
             IMFMediaBuffer* pBuffer = nullptr;
@@ -210,13 +252,19 @@ void VideoDecoder::decode_loop() {
                 }
             }
 
-            {
+            SyncFrame syncFrame;
+            if (isSyncMode) {
+                syncFrame.timestampTicks = llTimeStamp;
+            }
+
+            // Ensure pixel buffer is packed (width * height * 4)
+            const size_t expectedSize = m_width * m_height * 4;
+
+            if (!isSyncMode) {
                 // Protect the shared pixel buffer when swapping in new frame
                 // data.
                 std::lock_guard<std::mutex> lock(m_frameMutex);
 
-                // Ensure pixel buffer is packed (width * height * 4)
-                size_t expectedSize = m_width * m_height * 4;
                 if (m_pixelBuffer.size() != expectedSize) {
                     m_pixelBuffer.resize(expectedSize);
                     print_debug_message(std::format(
@@ -226,14 +274,14 @@ void VideoDecoder::decode_loop() {
                         m_height));
                 }
 
+                BYTE* dstBase = m_pixelBuffer.data();
                 if (locked2D) {
                     // Copy row-by-row to handle stride
-                    BYTE* dst = m_pixelBuffer.data();
                     BYTE* src = pScanline0;
-                    size_t rowBytes = m_width * 4;
+                    const size_t rowBytes = m_width * 4;
 
                     for (UINT i = 0; i < m_height; ++i) {
-                        memcpy(dst + i * rowBytes,
+                        memcpy(dstBase + i * rowBytes,
                                src + (static_cast<LONG>(i) * lStride),
                                rowBytes);
                     }
@@ -245,9 +293,9 @@ void VideoDecoder::decode_loop() {
                     // Use the stride calculated during open()
                     LONG lSrcStride = m_stride;
 
-                    BYTE* dst = m_pixelBuffer.data();
                     BYTE* src = pData;
-                    size_t rowBytes = m_width * 4;
+                    const size_t rowBytes = m_width * 4;
+                    BYTE* dst = dstBase;
 
                     for (UINT i = 0; i < m_height; ++i) {
                         // Ensure we don't read past the locked buffer
@@ -264,10 +312,92 @@ void VideoDecoder::decode_loop() {
                 }
 
                 m_isFrameReady = true;
+            } else {
+                syncFrame.pixels.resize(expectedSize);
+                BYTE* dstBase = syncFrame.pixels.data();
+
+                if (locked2D) {
+                    // Copy row-by-row to handle stride
+                    BYTE* src = pScanline0;
+                    const size_t rowBytes = m_width * 4;
+
+                    for (UINT i = 0; i < m_height; ++i) {
+                        memcpy(dstBase + i * rowBytes,
+                               src + (static_cast<LONG>(i) * lStride),
+                               rowBytes);
+                    }
+
+                    p2DBuffer->Unlock2D();
+                    p2DBuffer->Release();
+                } else {
+                    // Fallback to Lock()
+                    // Use the stride calculated during open()
+                    LONG lSrcStride = m_stride;
+
+                    BYTE* src = pData;
+                    const size_t rowBytes = m_width * 4;
+                    BYTE* dst = dstBase;
+
+                    for (UINT i = 0; i < m_height; ++i) {
+                        // Ensure we don't read past the locked buffer
+                        if (src + rowBytes > pData + currLen)
+                            break;
+
+                        memcpy(dst, src, rowBytes);
+
+                        dst += rowBytes;    // Destination is packed
+                        src += lSrcStride;  // Source has stride
+                    }
+
+                    pBuffer->Unlock();
+                }
             }
 
             pBuffer->Release();
             pSample->Release();
+
+            m_lastDecodedTimestampTicks.store(llTimeStamp,
+                                              std::memory_order_relaxed);
+
+            // Cache the observed frame duration for sync-mode cadence
+            // decisions.
+            if (m_lastPresentationTime > 0 &&
+                llTimeStamp > m_lastPresentationTime) {
+                const long long diffTicks =
+                    llTimeStamp - m_lastPresentationTime;
+                if (diffTicks > 0) {
+                    m_syncEstimatedFrameDurationTicks.store(
+                        diffTicks, std::memory_order_relaxed);
+                }
+            }
+
+            if (isSyncMode) {
+                // If a seek is pending (set from another thread) drop this
+                // frame so seek() can "immediately" clear any old output.
+                if (m_seekTarget.load(std::memory_order_relaxed) >= 0) {
+                    m_lastPresentationTime = llTimeStamp;
+                    continue;
+                }
+
+                {
+                    std::unique_lock<std::mutex> qlock(m_syncMutex);
+                    m_syncCvQueueSpace.wait(qlock, [this]() {
+                        return m_stopRequested || !m_isPlaying ||
+                               !m_isSyncMode.load(std::memory_order_relaxed) ||
+                               m_syncQueue.size() < kMaxSyncQueueFrames;
+                    });
+
+                    if (!m_stopRequested && m_isPlaying &&
+                        m_isSyncMode.load(std::memory_order_relaxed)) {
+                        m_syncQueue.push_back(std::move(syncFrame));
+                        qlock.unlock();
+                        m_syncCvFrameAvailable.notify_one();
+                    }
+                }
+
+                m_lastPresentationTime = llTimeStamp;
+                continue;
+            }
 
             // Calculate delay based on presentation timestamps.
             // Note: timestamps are expressed in 100-nanosecond units.
@@ -344,6 +474,17 @@ bool VideoDecoder::open(const wchar_t* filename) {
     m_stopRequested = false;
     m_seekTarget = -1;
     m_lastPresentationTime = 0;
+
+    m_lastDecodedTimestampTicks.store(0, std::memory_order_relaxed);
+    m_nominalFrameDurationTicks.store(0, std::memory_order_relaxed);
+    m_syncEstimatedFrameDurationTicks.store(0, std::memory_order_relaxed);
+
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_syncQueue.clear();
+        m_syncClockSeconds = 0.0;
+        m_syncLastPresentedTimestampTicks = -1;
+    }
 
     IMFAttributes* pAttributes = nullptr;
     HRESULT hr = MFCreateAttributes(&pAttributes, 1);
@@ -531,6 +672,21 @@ bool VideoDecoder::open(const wchar_t* filename) {
 
         print_debug_message(
             std::format("VideoDecoder::open Stride set to {}.", m_stride));
+
+        UINT32 frameRateNumerator = 0;
+        UINT32 frameRateDenominator = 0;
+        if (SUCCEEDED(MFGetAttributeRatio(pCurrentType, MF_MT_FRAME_RATE,
+                                          &frameRateNumerator,
+                                          &frameRateDenominator)) &&
+            frameRateNumerator > 0 && frameRateDenominator > 0) {
+            const long long frameDurationTicks =
+                (10000000LL * static_cast<long long>(frameRateDenominator)) /
+                static_cast<long long>(frameRateNumerator);
+            if (frameDurationTicks > 0) {
+                m_nominalFrameDurationTicks.store(frameDurationTicks,
+                                                  std::memory_order_relaxed);
+            }
+        }
     }
 
     pCurrentType->Release();
@@ -585,6 +741,13 @@ void VideoDecoder::close(bool cleanup) {
     m_stopRequested = true;
     m_isPlaying = false;
 
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_syncQueue.clear();
+    }
+    m_syncCvFrameAvailable.notify_all();
+    m_syncCvQueueSpace.notify_all();
+
     if (m_decodeThread.joinable()) {
         m_decodeThread.join();
         print_debug_message("VideoDecoder::close joined decode thread.");
@@ -606,6 +769,12 @@ void VideoDecoder::close(bool cleanup) {
 
 void VideoDecoder::set_pause(bool pause) {
     m_isPlaying = !pause;
+
+    // Wake sync consumers/producers so they can re-evaluate their wait
+    // predicates (pause may stop new frames from arriving).
+    m_syncCvFrameAvailable.notify_all();
+    m_syncCvQueueSpace.notify_all();
+
     if (pause) {
         print_debug_message("VideoDecoder::set_pause -> paused.");
     } else {
@@ -622,7 +791,45 @@ void VideoDecoder::set_pause(bool pause) {
     }
 }
 
+void VideoDecoder::set_sync_mode(bool enable) {
+    const bool wasEnabled =
+        m_isSyncMode.exchange(enable, std::memory_order_relaxed);
+    if (wasEnabled == enable) {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_syncQueue.clear();
+        m_syncClockSeconds = 0.0;
+        m_syncLastPresentedTimestampTicks = -1;
+    }
+
+    // Prevent stale frames from being observable through the legacy API when
+    // the caller accidentally mixes modes.
+    if (enable) {
+        m_isFrameReady = false;
+    }
+
+    m_syncCvFrameAvailable.notify_all();
+    m_syncCvQueueSpace.notify_all();
+}
+
 void VideoDecoder::seek(double seconds) {
+    const long long targetTicks = static_cast<long long>(seconds * 10000000.0);
+
+    if (m_isSyncMode.load(std::memory_order_relaxed)) {
+        {
+            std::lock_guard<std::mutex> lock(m_syncMutex);
+            m_syncQueue.clear();
+            m_syncClockSeconds = seconds;
+            m_syncLastPresentedTimestampTicks = -1;
+        }
+
+        m_syncCvFrameAvailable.notify_all();
+        m_syncCvQueueSpace.notify_all();
+    }
+
     if (m_duration > 0.0 && seconds >= m_duration) {
         m_isFinished = true;
         set_pause(true);
@@ -633,11 +840,10 @@ void VideoDecoder::seek(double seconds) {
     }
 
     // Seek target is expressed in 100-nanosecond units as required by MF.
-    long long target = static_cast<long long>(seconds * 10000000.0);
-    m_seekTarget = target;
+    m_seekTarget = targetTicks;
     print_debug_message(
         std::format("VideoDecoder::seek scheduled to {} seconds ({} ticks).",
-                    seconds, target));
+                    seconds, targetTicks));
 }
 
 double VideoDecoder::get_duration() {
@@ -645,6 +851,11 @@ double VideoDecoder::get_duration() {
 }
 
 double VideoDecoder::get_frame(void* gm_buffer_ptr, double buffer_size) {
+    if (m_isSyncMode.load(std::memory_order_relaxed)) {
+        // In sync mode frames are consumed via get_frame_sync() only.
+        return 0.0;
+    }
+
     if (!m_isFrameReady) {
         return 0.0;
     }
@@ -665,6 +876,104 @@ double VideoDecoder::get_frame(void* gm_buffer_ptr, double buffer_size) {
     memcpy(gm_buffer_ptr, m_pixelBuffer.data(), requiredSize);
 
     m_isFrameReady = false;
+    return 1.0;
+}
+
+static long long pick_frame_duration_ticks(
+    const std::atomic<long long>& nominal,
+    const std::atomic<long long>& estimated) {
+    const long long est = estimated.load(std::memory_order_relaxed);
+    if (est > 0) {
+        return est;
+    }
+
+    const long long nom = nominal.load(std::memory_order_relaxed);
+    if (nom > 0) {
+        return nom;
+    }
+
+    return 0;
+}
+
+double VideoDecoder::get_frame_sync(void* gm_buffer_ptr, double buffer_size,
+                                    double delta_time) {
+    if (!m_isSyncMode.load(std::memory_order_relaxed)) {
+        return 0.0;
+    }
+
+    if (!gm_buffer_ptr) {
+        return 0.0;
+    }
+
+    if (!(delta_time > 0.0)) {
+        delta_time = 0.0;
+    }
+
+    std::unique_lock<std::mutex> lock(m_syncMutex);
+
+    m_syncClockSeconds += delta_time;
+    const long long clockTicks =
+        static_cast<long long>(std::llround(m_syncClockSeconds * 10000000.0));
+
+    if (!m_isPlaying) {
+        // While paused, no decode progress is expected; do not block.
+        return 0.0;
+    }
+
+    long long nextDueTicks = 0;
+    if (!m_syncQueue.empty()) {
+        nextDueTicks = m_syncQueue.front().timestampTicks;
+    } else if (m_syncLastPresentedTimestampTicks >= 0) {
+        const long long frameDurTicks = pick_frame_duration_ticks(
+            m_nominalFrameDurationTicks, m_syncEstimatedFrameDurationTicks);
+        if (frameDurTicks > 0) {
+            nextDueTicks = m_syncLastPresentedTimestampTicks + frameDurTicks;
+        } else {
+            // Without any cadence hint we cannot know whether a frame is due.
+            // Avoid blocking in this case.
+            return 0.0;
+        }
+    }
+
+    if (clockTicks < nextDueTicks) {
+        // The next frame is not due yet.
+        return 0.0;
+    }
+
+    // A frame is due, but the decoder may not have produced it yet.
+    while (m_syncQueue.empty() &&
+           m_isSyncMode.load(std::memory_order_relaxed) && !m_stopRequested &&
+           !m_isFinished && m_isPlaying) {
+        m_syncCvFrameAvailable.wait(lock);
+    }
+
+    if (!m_isSyncMode.load(std::memory_order_relaxed) || m_stopRequested ||
+        !m_isPlaying) {
+        return 0.0;
+    }
+
+    if (m_syncQueue.empty()) {
+        return 0.0;
+    }
+
+    const SyncFrame& frame = m_syncQueue.front();
+    if (frame.timestampTicks > clockTicks) {
+        // Decoder is ahead of the consumer clock.
+        return 0.0;
+    }
+
+    const size_t requiredSize = frame.pixels.size();
+    if (requiredSize == 0 || buffer_size < requiredSize) {
+        return 0.0;
+    }
+
+    memcpy(gm_buffer_ptr, frame.pixels.data(), requiredSize);
+    m_syncLastPresentedTimestampTicks = frame.timestampTicks;
+    m_syncQueue.pop_front();
+
+    lock.unlock();
+    m_syncCvQueueSpace.notify_one();
+
     return 1.0;
 }
 

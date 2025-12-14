@@ -37,6 +37,7 @@ function RecordManager() constructor {
         game_set_speed(RECORDING_FPS_MAX, gamespeed_fps);
         resolution_set(RECORDING_RESOLUTION_W, RECORDING_RESOLUTION_H, false);
         display_reset(max(global.graphics.VSync, 2), false);
+        dyc_video_set_sync_mode(true);
         targetFilePath = filename;
         
         var w = RECORDING_RESOLUTION_W;
@@ -115,6 +116,7 @@ function RecordManager() constructor {
         global.timeManager.set_mode_default();
         game_set_speed(originalFPS, gamespeed_fps);
         display_reset(global.graphics.AA, global.graphics.VSync);
+        dyc_video_set_sync_mode(false);
 
         global.__InputManager.unfreeze();
     }

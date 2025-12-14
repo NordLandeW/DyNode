@@ -4,6 +4,8 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -73,6 +75,23 @@ class VideoDecoder {
     void seek(double seconds);
 
     /**
+     * @brief Enables or disables the synchronous, clock-driven decode mode.
+     *
+     * This mode exists to support deterministic consumers (e.g. a recorder)
+     * that drive presentation with an external timestep. When enabled, the
+     * decode thread runs as fast as possible and pushes frames into an internal
+     * queue for get_frame_sync() to consume.
+     *
+     * Important: get_frame() is intentionally not allowed while sync mode is
+     * enabled so the legacy "latest frame" semantics cannot interfere.
+     */
+    void set_sync_mode(bool enable);
+
+    bool is_sync_mode() const {
+        return m_isSyncMode.load(std::memory_order_acquire);
+    }
+
+    /**
      * @brief Copies the latest decoded frame into a caller-provided buffer.
      *
      * If a fresh frame is available and the buffer is large enough, the pixels
@@ -85,6 +104,34 @@ class VideoDecoder {
      *         (for example when no frame is ready or the buffer is too small).
      */
     double get_frame(void* gm_buffer_ptr, double buffer_size);
+
+    /**
+     * @brief Sync-mode frame fetch driven by an external timestep.
+     *
+     * This API is meaningful only when sync mode is enabled via
+     * set_sync_mode(true).
+     *
+     * Semantics:
+     * - The decoder maintains an internal clock ("clock B") advanced by
+     *   @p delta_time on every call.
+     * - If the next frame is not due yet (next frame timestamp > clock B), the
+     *   function returns 0.0 immediately.
+     * - If the next frame is due but the decode thread has not produced it yet
+     *   (queue is empty / behind), the function blocks until either:
+     *     - a new decoded frame becomes available, or
+     *     - playback stops/ends, or
+     *     - sync mode is disabled.
+     * - When a frame whose timestamp <= clock B is available, it is copied into
+     *   @p gm_buffer_ptr and the function returns 1.0.
+     *
+     * @param gm_buffer_ptr Destination buffer pointer owned by the caller.
+     * @param buffer_size   Size of the destination buffer in bytes.
+     * @param delta_time    External timestep in seconds; used to advance clock
+     * B.
+     * @return 1.0 when a frame was copied successfully, 0.0 otherwise.
+     */
+    double get_frame_sync(void* gm_buffer_ptr, double buffer_size,
+                          double delta_time);
 
     /**
      * @brief Returns the decoded video width in pixels.
@@ -107,16 +154,29 @@ class VideoDecoder {
      */
     double get_duration();
 
+    /**
+     * @brief Returns whether a source is currently open.
+     *
+     * Uses an explicit atomic load to avoid relying on implicit conversions
+     * (which are deprecated/removed in newer standard library implementations)
+     * and to make the cross-thread intent clear.
+     */
     bool is_loaded() const {
-        return m_isLoaded;
+        return m_isLoaded.load(std::memory_order_acquire);
     }
 
+    /**
+     * @brief Returns whether playback is currently running.
+     */
     bool is_playing() const {
-        return m_isPlaying;
+        return m_isPlaying.load(std::memory_order_acquire);
     }
 
+    /**
+     * @brief Returns whether the decoder has reached end-of-stream.
+     */
     bool is_finished() const {
-        return m_isFinished;
+        return m_isFinished.load(std::memory_order_acquire);
     }
 
     /**
@@ -164,11 +224,40 @@ class VideoDecoder {
      */
     void decode_loop();
 
+    struct SyncFrame {
+        std::vector<BYTE> pixels;
+        long long timestampTicks = 0;
+    };
+
+    static constexpr size_t kMaxSyncQueueFrames = 3;
+
     IMFSourceReader* m_pReader =
         nullptr;  // Media Foundation source reader providing video samples.
     std::thread
         m_decodeThread;       // Dedicated worker thread running decode_loop().
     std::mutex m_frameMutex;  // Guards concurrent access to the pixel buffer.
+
+    std::mutex m_syncMutex;
+    std::condition_variable m_syncCvFrameAvailable;
+    std::condition_variable m_syncCvQueueSpace;
+    std::deque<SyncFrame> m_syncQueue;
+    double m_syncClockSeconds = 0.0;
+    long long m_syncLastPresentedTimestampTicks = -1;
+
+    // Timestamp of the last decoded sample (100ns ticks). Used by sync mode to
+    // decide whether decoding is behind the consumer clock.
+    std::atomic<long long> m_lastDecodedTimestampTicks{0};
+
+    // Nominal per-frame duration derived from the stream metadata (100ns
+    // ticks). This is a hint for sync mode when deciding whether the next frame
+    // is due.
+    std::atomic<long long> m_nominalFrameDurationTicks{0};
+
+    // Observed per-frame duration derived from timestamps (100ns ticks). Used
+    // as a fallback when metadata does not provide a frame rate.
+    std::atomic<long long> m_syncEstimatedFrameDurationTicks{0};
+
+    std::atomic<bool> m_isSyncMode = false;
 
     std::vector<BYTE> m_pixelBuffer;  // Latest decoded frame in RGB32, consumed
                                       // by the host engine.

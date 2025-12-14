@@ -6,6 +6,7 @@ function dyc_video_get_frame() {
     static frameBuffer = -1;
     static frameSurface = -999;
     var buffSize = DyCore_video_get_buffer_size();
+    var syncMode = dyc_video_get_sync_mode();
 
     if(!buffer_exists(frameBuffer) || buffer_get_size(frameBuffer) != buffSize) {
         if(buffSize <= 0)
@@ -18,7 +19,16 @@ function dyc_video_get_frame() {
         }
     }
 
-    var updated = DyCore_video_get_frame(buffer_get_address(frameBuffer), buffSize);
+    var updated;
+
+    if(syncMode) {
+        var deltaTime = global.timeManager.get_delta() / 1000000; // in seconds
+        updated = DyCore_video_get_frame_sync(buffer_get_address(frameBuffer), buffSize, deltaTime);
+    }
+    else {
+        updated = DyCore_video_get_frame(buffer_get_address(frameBuffer), buffSize);
+    }
+
     if(updated || !surface_exists(frameSurface)) {
         buffer_set_used_size(frameBuffer, buffSize);
         var vw = DyCore_video_get_width();
@@ -98,4 +108,14 @@ function dyc_video_play() {
 
 function dyc_video_set_speed(speed) {
     DyCore_video_set_speed(speed);
+}
+
+/// @description Set sync mode for video decoding.
+/// @param {boolean} mode - True to enable sync mode, false to disable.
+function dyc_video_set_sync_mode(mode) {
+    DyCore_video_set_sync_mode(mode ? 1 : 0);
+}
+
+function dyc_video_get_sync_mode() {
+    return DyCore_video_get_sync_mode() != 0;
 }
