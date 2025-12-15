@@ -218,6 +218,7 @@
         "drop_unsupported_file": "対応していないファイル形式です。",
         "sampling_side_mismatch_error": "同じ側の音符にのみサンプリング操作を行えます。",
         "sampling_infinite_loop_warning": "次のスナップグリッドを特定できないため、サンプリング操作は中止されました。",
-        "fix_complete": "譜面の修正が完了しました。\\n修正した範囲外ノートの数: $0"
+        "fix_complete": "譜面の修正が完了しました。\\n修正した範囲外ノートの数: $0",
+        "sampling_same_time_error": "サンプリング操作では、同時刻のノートは許可されていません。"
     }
 }
