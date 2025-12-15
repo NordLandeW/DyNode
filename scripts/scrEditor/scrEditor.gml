@@ -1308,4 +1308,80 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 	}
 }
 
+/// @description Natural cubic spline sampling on selected notes.
+function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+	var selectedNotes = editor_get_selected_notes();
+	var count = array_length(selectedNotes);
+
+	var onSide = selectedNotes[0].side;
+	// Check if all notes are on the same side.
+	for(var i = 1; i < count; i++) {
+		if(selectedNotes[i].side != onSide) {
+			announcement_error("sampling_side_mismatch_error");
+			return;
+		}
+	}
+
+	var beatDiv = beatDivOverwrite;
+	if(beatDiv == -1) {
+		beatDiv = editor_get_div();
+	}
+
+	var xIn = [], fwIn = [], fpIn = [], xOut = [], noteOut = [], fwOut, fpOut;
+
+	// Setup input vectors.
+	for(var i = 0; i < count; i++) {
+		array_push(xIn, selectedNotes[i].time);
+		array_push(fwIn, selectedNotes[i].width);
+		array_push(fpIn, selectedNotes[i].position);
+	}
+
+	// Setup output vectors.
+	for(var i = 0; i < count - 1; i++) {
+		var note = selectedNotes[i];
+		var nextNote = selectedNotes[i + 1];
+
+		var currentTime = note.time;
+		var currentTP = timing_point_get_at(currentTime);
+		currentTime += currentTP.beatLength / beatDiv;
+		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+		while(currentTime < nextNote.time) {
+			var ratio = (currentTime - note.time) / (nextNote.time - note.time);
+			var newNote = note.copy();
+			newNote.time = currentTime;
+			array_push(xOut, currentTime);
+			array_push(noteOut, newNote);
+
+			if(typeOverwrite != -1) {
+				newNote.noteType = typeOverwrite;
+				if(newNote.noteType != NOTE_TYPE.HOLD)
+					newNote.lastTime = 0;
+			}
+
+			var prevTime = currentTime;
+
+			currentTP = timing_point_get_at(currentTime);
+			currentTime += currentTP.beatLength / beatDiv;
+			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+
+			if(prevTime == currentTime) {
+				// Prevent infinite loop due to snapping failure.
+				announcement_warning("sampling_infinite_loop_warning");
+				break;
+			}
+		}
+	}
+
+	// Solve natural splines.
+	fwOut = dyc_solve_natural_spline(xIn, fwIn, xOut);
+	fpOut = dyc_solve_natural_spline(xIn, fpIn, xOut);
+
+	for(var i = 0, l = array_length(noteOut); i < l; i++) {
+		noteOut[i].width = fwOut[i];
+		noteOut[i].position = fpOut[i];
+		build_note(noteOut[i], true, true, true);
+	}
+}
+
+
 #endregion

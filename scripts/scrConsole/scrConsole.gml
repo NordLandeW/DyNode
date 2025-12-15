@@ -896,6 +896,12 @@ function CommandCatmullRom():CommandCurve("catrom", ["crom"]) constructor {
 
     sampling_function = editor_catmull_rom_sampling;
 }
+
+function CommandCubic():CommandCurve("cubic", ["cub"]) constructor {
+    curve_add_variant("natural cubic");
+
+    sampling_function = editor_cubic_sampling;
+}
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -992,6 +998,7 @@ function command_init() {
     command_register(new CommandLinear());
     command_register(new CommandCosine());
     command_register(new CommandCatmullRom());
+    command_register(new CommandCubic());
 }
 
 function console_init() {

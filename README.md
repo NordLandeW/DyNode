@@ -78,6 +78,8 @@ pugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine
 
 taskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang
 
+cubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren
+
 -------------------
 
 DyNode uses assets & designs from the following projects.

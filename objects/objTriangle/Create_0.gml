@@ -6,8 +6,10 @@ triStruct = trianglify_generate(BASE_RES_W, BASE_RES_H, [0.05, 0.12], 200);
 
 colorTransition = 1.0;
 colorTransitionTime = 1;      // in seconds
-origColors = colors;
-targetColors = colors;
+origColors = SnapDeepCopy(colors);
+targetColors = SnapDeepCopy(colors);
+origRoom = room;
+roomColors = SnapDeepCopy(colors);
 
 color_transist = function(to_color) {
     origColors = colors;
@@ -18,7 +20,7 @@ color_transist = function(to_color) {
 if(instance_number(objTriangle) > 1) {
     with(objTriangle) {
         if(id != other.id) {
-            color_transist(other.colors);
+            color_transist(other.roomColors);
         }
     }
     instance_destroy();

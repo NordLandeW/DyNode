@@ -667,3 +667,44 @@ function dyc_ffmpeg_start_recording(filename, musicPath, width, height, fps, mui
         }
     ));
 }
+
+/// @description Solve natural spline interpolation.
+/// @param {Array<Real>} xIn Input x array.
+/// @param {Array<Real>} fIn Input f(x) array.
+/// @param {Array<Real>} xOut Output x array.
+/// @returns {Array<Real>} Output f(x) array.
+function dyc_solve_natural_spline(xIn, fIn, xOut) {
+    var bufferXFIn = buffer_create(array_length(xIn) * 8 * 2, buffer_fixed, 1);
+    var bufferXOut = buffer_create(array_length(xOut) * 8, buffer_fixed, 1);
+    var bufferFOut = buffer_create(array_length(xOut) * 8, buffer_fixed, 1);
+    var params = json_stringify({
+        n_points: array_length(xIn),
+        n_query: array_length(xOut)
+    });
+
+    var fillInBuffer = function(buffer, dataArray, offset = 0) {
+        buffer_seek(buffer, buffer_seek_start, offset);
+        for(var i = 0; i < array_length(dataArray); i++) {
+            buffer_write(buffer, buffer_f64, dataArray[i]);
+        }
+    };
+    fillInBuffer(bufferXFIn, xIn);
+    fillInBuffer(bufferXFIn, fIn, array_length(xIn) * 8);
+    fillInBuffer(bufferXOut, xOut);
+
+    DyCore_solve_natural_spline(
+        buffer_get_address(bufferXFIn),
+        buffer_get_address(bufferXOut),
+        buffer_get_address(bufferFOut),
+        params
+    );
+
+    var fOut = array_create(array_length(xOut), 0);
+    buffer_seek(bufferFOut, buffer_seek_start, 0);
+    buffer_set_used_size(bufferFOut, array_length(xOut) * 8);
+    for(var i = 0; i < array_length(xOut); i++) {
+        fOut[i] = buffer_read(bufferFOut, buffer_f64);
+    }
+
+    return fOut;
+}
