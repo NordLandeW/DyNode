@@ -592,7 +592,8 @@ function operation_undo() {
 		for(var i=0, l=array_length(_ops); i<l; i++) {
 			switch(_ops[i].opType) {
 				case OPERATION_TYPE.MOVE:
-					note_select_reset();
+					if(i == 0)
+						note_select_reset();
 					operation_do(OPERATION_TYPE.MOVE, _ops[i].toProp, _ops[i].fromProp, l > MAX_SELECTION_LIMIT);
 					break;
 				case OPERATION_TYPE.ADD:
@@ -636,7 +637,8 @@ function operation_redo() {
 			switch(_ops[i].opType) {
 				case OPERATION_TYPE.MOVE:
 				case OPERATION_TYPE.TPCHANGE:
-					note_select_reset();
+					if(i == 0)
+						note_select_reset();
 					operation_do(_ops[i].opType, _ops[i].fromProp, _ops[i].toProp, l > MAX_SELECTION_LIMIT);
 					break;
 				case OPERATION_TYPE.ADD:
@@ -1425,6 +1427,7 @@ function editor_fix_notes() {
 	}
 
 	show_debug_message($"Fixed {outboundCount} outbound notes.");
+	announcement_play(i18n_get("fix_complete", [string(outboundCount)]), 5000);
 }
 
 #endregion
