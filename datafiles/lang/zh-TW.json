@@ -218,6 +218,6 @@
         "drop_unsupported_file": "不支援的檔案類型。",
         "sampling_side_mismatch_error": "僅能對同一側面的音符進行採樣操作。",
         "sampling_infinite_loop_warning": "採樣操作因無法定位到下一個吸附格點而中止。",
-        "fix_complete": "谱面修正完毕。\n已修复出界音符数量: $0"
+        "fix_complete": "譜面修正完畢。\n已修復出界音符數量: $0"
     }
 }
