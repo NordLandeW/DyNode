@@ -126,6 +126,7 @@ function sNoteProp(_initProp = undefined) constructor {
     static is_outscreen = function() {
         var pWidth = get_pixel_width();
         var _nx = note_pos_to_x(position, side);
+        var _outbound = false;
         if(side == 0) {
             var _xl = _nx - pWidth / 2, _xr = _nx + pWidth / 2;
             if(_xr <= 0 || _xl >= BASE_RES_W)
@@ -136,6 +137,7 @@ function sNoteProp(_initProp = undefined) constructor {
             if(_yr <= 0 || _yl >= BASE_RES_H)
                 _outbound = true;
         }
+        return _outbound;
     }
 
     static bitread = function(buffer) {

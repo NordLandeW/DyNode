@@ -207,6 +207,14 @@ function dyc_update_note(noteProp, record = false, recursive = false) {
         }
     }
 
+    // Pull to active notes immediately.
+    if(result == 0 && noteProp.noteType != NOTE_TYPE.SUB) {
+        if(note_is_activated(noteID)) {
+            var noteObj = note_get_instance(noteID);
+            noteObj.pull_prop();
+        }
+    }
+
     if(result < 0)
         throw "Unknown error in dyc_update_note.";
 }

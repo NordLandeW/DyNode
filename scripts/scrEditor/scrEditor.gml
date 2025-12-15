@@ -1038,7 +1038,7 @@ function note_outbound_warning() {
 	announcement_warning("warning_note_outbound", 5000, "wob");
 }
 
-#region Advanced Functions
+#region Curve Sampling Functions
 
 /// @description Linear sampling on selected notes.
 function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
@@ -1383,5 +1383,48 @@ function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 	}
 }
 
+
+#endregion
+
+#region Advanced Functions
+
+/// @description Centralize selected notes.
+function editor_selected_centrialize() {
+	var selectedNotes = editor_get_selected_notes();
+	var count = array_length(selectedNotes);
+	if(count == 0) return;
+
+	var lBound = selectedNotes[0].position - selectedNotes[0].width / 2;
+	var rBound = selectedNotes[0].position + selectedNotes[0].width / 2;
+	for(var i = 1; i < count; i++) {
+		var note = selectedNotes[i];
+		lBound = min(lBound, note.position - note.width / 2);
+		rBound = max(rBound, note.position + note.width / 2);
+	}
+
+	var deltaPos = 2.5 - (lBound + rBound) / 2;
+	for(var i = 0; i < count; i++) {
+		var note = selectedNotes[i];
+		note.position += deltaPos;
+		dyc_update_note(note, true);
+	}
+}
+
+/// @description Fix all outbound notes.
+function editor_fix_notes() {
+	var noteCount = dyc_get_note_count();
+	var outboundCount = 0;
+	for(var i=0; i<noteCount; i++) {
+		var note = dyc_get_note_at_index_direct(i);
+		if(note.noteType != NOTE_TYPE.SUB && note.is_outscreen()) {
+			note.position = clamp(note.position, 0, 5);
+			dyc_update_note(note, true);
+
+			outboundCount++;
+		}
+	}
+
+	show_debug_message($"Fixed {outboundCount} outbound notes.");
+}
 
 #endregion

@@ -902,6 +902,47 @@ function CommandCubic():CommandCurve("cubic", ["cub"]) constructor {
 
     sampling_function = editor_cubic_sampling;
 }
+
+function CommandCenter():CommandSignature("center", ["centre", "cen"]) constructor {
+    add_variant(0, 0, "Centers the position of selected notes.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        if(editor_select_count() == 0) {
+            console_echo("No notes selected.");
+            return;
+        }
+
+        editor_selected_centrialize();
+
+        console_echo($"Centered position of {editor_select_count()} selected notes.");
+    }
+}
+
+function CommandPurge():CommandSignature("purge") constructor {
+    add_variant(0, 0, "Remove all notes from the chart.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        note_delete_all(true);
+
+        console_echo($"Purged all notes from the chart.");
+    }
+}
+
+function CommandFix():CommandSignature("fix") constructor {
+    add_variant(0, 0, "A general fixing tool.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        editor_fix_notes();
+
+        console_echo($"Fixed note properties in the chart.");
+    }
+}
 #endregion
 
 function command_arg_check_real(arg, abort = true) {
@@ -999,6 +1040,9 @@ function command_init() {
     command_register(new CommandCosine());
     command_register(new CommandCatmullRom());
     command_register(new CommandCubic());
+    command_register(new CommandCenter());
+    command_register(new CommandPurge());
+    command_register(new CommandFix());
 }
 
 function console_init() {
