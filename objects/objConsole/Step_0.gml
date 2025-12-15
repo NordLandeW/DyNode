@@ -25,7 +25,7 @@ if(focusing) {
         }
 
         // Execute command.
-        var result = global.console.run_command_line(inputBuffer);
+        var result = console_run(inputBuffer);
         if(ctrl_ishold() || (quickCommand && result == 0)) {
             unfocus();
         }
@@ -44,7 +44,7 @@ if(focusing) {
     historyOffset = clamp(historyOffset + offsetDelta, 0, max(0, array_length(global.console.messages) - visibleLines));
 
     // Handle mouse wheel scrolling.
-    var consoleRange = inputBarHeight + messageBarHeight * min(visibleLines, array_length(global.console.messages));
+    var consoleRange = inputBarHeight + messageBarHeight * min(get_current_visible_lines(), array_length(global.console.messages));
     if(mouse_y > BASE_RES_H - consoleRange) {
         var wheelDelta = wheelcheck_up() - wheelcheck_down();
         historyOffset = clamp(historyOffset + wheelDelta, 0, max(0, array_length(global.console.messages) - visibleLines));

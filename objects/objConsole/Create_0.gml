@@ -40,3 +40,7 @@ function unfocus() {
     });
     show_debug_message("Console unfocused.");
 }
+
+function get_current_visible_lines() {
+    return quickCommand ? min(visibleLines, 3) : visibleLines;
+}

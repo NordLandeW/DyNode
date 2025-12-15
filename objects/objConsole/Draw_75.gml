@@ -12,9 +12,7 @@ scribble(inputBuffer)
 
 // Draw message bar.
 
-var currentVisibleLines = visibleLines;
-if(quickCommand)
-    currentVisibleLines = min(currentVisibleLines, 3);
+var currentVisibleLines = get_current_visible_lines();
 
 var messageAnchorY = BASE_RES_H - inputBarHeight - messageBarHeight / 2;
 var messages = global.console.get_last_messages(historyOffset, currentVisibleLines);
