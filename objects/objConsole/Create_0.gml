@@ -23,6 +23,10 @@ bgAlpha = 0.75;
 
 quickCommand = false;
 
+cursorX = inputBarPadding;
+cursorHeight = inputBarHeight - 12;
+cursorTimer = 0;
+
 function focus() {
     focusing = true;
     keyboard_string = "";

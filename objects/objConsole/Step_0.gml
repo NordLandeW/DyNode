@@ -12,7 +12,10 @@ if(!focusing) {
     }
 }
 if(focusing) {
-    inputBuffer = keyboard_string;
+    if(keyboard_string != inputBuffer) {
+        inputBuffer = keyboard_string;
+        cursorTimer = 0;
+    }
 
     input_group_set("console");
     if(keycheck_down(vk_enter) || keycheck_down_ctrl(vk_enter)) {
@@ -53,3 +56,8 @@ if(focusing) {
 
     input_group_reset();
 }
+
+// Update cursor position.
+
+var targetX = inputBarPadding + scribble(inputBuffer).starting_format("mSpaceMono", colorScheme.text).get_width();
+cursorX = lerp_lim_a(cursorX, targetX, 0.4, 200);

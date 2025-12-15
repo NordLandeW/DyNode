@@ -10,6 +10,16 @@ scribble(inputBuffer)
     .align(fa_left, fa_middle)
     .draw(inputBarPadding, BASE_RES_H - inputBarHeight / 2);
 
+// Draw cursor.
+
+cursorTimer += global.timeManager.get_delta_default();
+CleanLine(cursorX,
+    BASE_RES_H - inputBarHeight / 2 - cursorHeight / 2, cursorX,
+    BASE_RES_H - inputBarHeight / 2 + cursorHeight / 2)
+    .Blend(colorScheme.text, cos(2 * cursorTimer / 1000000 * pi) * 0.5 + 0.5)
+    .Cap(true, true)
+    .Draw();
+
 // Draw message bar.
 
 var currentVisibleLines = get_current_visible_lines();

@@ -1,4 +1,5 @@
 
+#macro CONSOLE_MAX_LINE_LENGTH 200
 
 function CommandVariant(reqArgs, optArgs, description = "") constructor {
     /// @type {Real} The number of required arguments.
@@ -403,7 +404,18 @@ function Console() constructor {
     }
 
     static echo = function(message) {
-        array_push(messages, string(message));
+        var newMessages = string_split(string(message), "\n");
+        for(var i = 0; i < array_length(newMessages); i++) {
+            var line = newMessages[i];
+            // Split long lines.
+            while(string_length(line) > CONSOLE_MAX_LINE_LENGTH) {
+                var part = string_copy(line, 1, CONSOLE_MAX_LINE_LENGTH);
+                array_push(messages, part);
+                line = string_copy(line, CONSOLE_MAX_LINE_LENGTH + 1, string_length(line) - CONSOLE_MAX_LINE_LENGTH);
+            }
+            array_push(messages, line);
+        }
+
         show_debug_message("[Console] " + string(message));
 
         if(array_length(messages) > maxMessages) {
@@ -989,7 +1001,7 @@ function console_init() {
 }
 
 function console_run(commandLine) {
-    global.console.run_command_line(commandLine);
+    return global.console.run_command_line(commandLine);
 }
 
 function console_echo(message) {
