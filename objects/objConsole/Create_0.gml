@@ -27,6 +27,10 @@ cursorX = inputBarPadding;
 cursorHeight = inputBarHeight - 12;
 cursorTimer = 0;
 
+// Temporary implementation.
+commandHistory = [];
+commandHistoryPointer = -1;
+
 function focus() {
     focusing = true;
     keyboard_string = "";
