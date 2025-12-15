@@ -217,6 +217,7 @@
         "drop_setting_bgm_failed": "音楽 / 背景ファイルは、開いているプロジェクトにドラッグ＆ドロップでのみインポートできます。",
         "drop_unsupported_file": "対応していないファイル形式です。",
         "sampling_side_mismatch_error": "同じ側の音符にのみサンプリング操作を行えます。",
-        "sampling_infinite_loop_warning": "次のスナップグリッドを特定できないため、サンプリング操作は中止されました。"
+        "sampling_infinite_loop_warning": "次のスナップグリッドを特定できないため、サンプリング操作は中止されました。",
+        "fix_complete": "谱面修正完毕。\n已修复出界音符数量: $0"
     }
 }
