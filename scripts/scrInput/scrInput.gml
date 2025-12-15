@@ -310,22 +310,26 @@ function nofunkey_ishold() {
     return !(ctrl_ishold()) && !(alt_ishold()) && !(shift_ishold());
 }
 function keycheck_ctrl(key) {
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return ctrl_ishold() && keyboard_check(key);
 }
 function keycheck_down_ctrl(key) {
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     var _result = ctrl_ishold() && keyboard_check_pressed(key);
     if(_result) input_direct_state_lock();
     return _result;
 }
 function keycheck_shift(key) {
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     if(input_direct_state_lock_get()) return false;
     return shift_ishold() && keyboard_check(key);
 }
 function keycheck_down_shift(key) {
+    if(is_string(key)) key = ord(key);
     if(global.__InputManager.is_frozen()) return false;
     var _result = shift_ishold() && keyboard_check_pressed(key);
     if(_result) input_direct_state_lock();

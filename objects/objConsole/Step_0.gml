@@ -12,6 +12,12 @@ if(!focusing) {
     }
 }
 if(focusing) {
+    if(keycheck_down_ctrl("V")) {
+        // Paste from clipboard.
+        var clipText = clipboard_get_text();
+        keyboard_string += clipText;
+    }
+
     if(keyboard_string != inputBuffer) {
         inputBuffer = keyboard_string;
         cursorTimer = 0;
