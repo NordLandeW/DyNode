@@ -1225,16 +1225,37 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 		return caculate(t0, t1, t2, t3, p0, p1, p2, p3, tM).x;
 	}
 
+
 	static mirror_var = function(to, center, fr, variable) {
 		to[$ variable] = 2*center[$ variable] - fr[$ variable];
 	}
 
-	mirror_var(selectedNotes[0], selectedNotes[1], selectedNotes[2], "position");
-	mirror_var(selectedNotes[0], selectedNotes[1], selectedNotes[2], "width");
+	static lagrange_var = function(to, p1, p2, p3, variable) {
+		static calculate_lagrange_3point = function(t_target, t1, v1, t2, v2, t3, v3) {
+			// L(t) = v1*L1(t) + v2*L2(t) + v3*L3(t)
+			
+			var L1 = ((t_target - t2) * (t_target - t3)) / ((t1 - t2) * (t1 - t3));
+			var L2 = ((t_target - t1) * (t_target - t3)) / ((t2 - t1) * (t2 - t3));
+			var L3 = ((t_target - t1) * (t_target - t2)) / ((t3 - t1) * (t3 - t2));
+			
+			return v1 * L1 + v2 * L2 + v3 * L3;
+		};
+
+		to[$ variable] = calculate_lagrange_3point(
+			to.time,
+			p1.time, p1[$ variable],
+			p2.time, p2[$ variable],
+			p3.time, p3[$ variable]
+		);
+	}
+
 	mirror_var(selectedNotes[0], selectedNotes[1], selectedNotes[2], "time");
-	mirror_var(selectedNotes[count - 1], selectedNotes[count - 2], selectedNotes[count - 3], "position");
-	mirror_var(selectedNotes[count - 1], selectedNotes[count - 2], selectedNotes[count - 3], "width");
 	mirror_var(selectedNotes[count - 1], selectedNotes[count - 2], selectedNotes[count - 3], "time");
+
+	lagrange_var(selectedNotes[0], selectedNotes[1], selectedNotes[2], selectedNotes[3], "position");
+	lagrange_var(selectedNotes[0], selectedNotes[1], selectedNotes[2], selectedNotes[3], "width");
+	lagrange_var(selectedNotes[count - 1], selectedNotes[count - 2], selectedNotes[count - 3], selectedNotes[count - 4], "position");
+	lagrange_var(selectedNotes[count - 1], selectedNotes[count - 2], selectedNotes[count - 3], selectedNotes[count - 4], "width");
 
 	for(var i = 1; i < count - 2; i++) {
 		var prevNote = selectedNotes[i - 1];
