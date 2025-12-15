@@ -218,6 +218,7 @@
         "drop_unsupported_file": "不支持的文件类型。",
         "sampling_side_mismatch_error": "仅能对同一侧面的音符进行采样操作。",
         "sampling_infinite_loop_warning": "采样操作因无法定位到下一个吸附格点而中止。",
-        "fix_complete": "谱面修正完毕。\n已修复出界音符数量: $0"
+        "fix_complete": "谱面修正完毕。\n已修复出界音符数量: $0",
+        "sampling_same_time_error": "采样操作不允许存在时间相同的音符。"
     }
 }

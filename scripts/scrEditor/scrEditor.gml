@@ -1166,6 +1166,12 @@ function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 /// @description Catmull-Rom sampling on selected notes.
 function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 	var selectedNotes = editor_get_selected_notes();
+	
+	if(editor_sampling_sametime_check(selectedNotes)) {
+		announcement_error("sampling_same_time_error");
+		return;
+	}
+
 	var count = array_length(selectedNotes);
 
 	var onSide = selectedNotes[0].side;
@@ -1313,6 +1319,12 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 /// @description Natural cubic spline sampling on selected notes.
 function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 	var selectedNotes = editor_get_selected_notes();
+
+	if(editor_sampling_sametime_check(selectedNotes)) {
+		announcement_error("sampling_same_time_error");
+		return;
+	}
+
 	var count = array_length(selectedNotes);
 
 	var onSide = selectedNotes[0].side;
@@ -1383,6 +1395,18 @@ function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 		noteOut[i].position = fpOut[i];
 		build_note(noteOut[i], true, true, true);
 	}
+}
+
+/// @description Check if there are selected notes at the same time.
+/// @param {Array<Struct.sNoteProp>} notes The sorted notes to check.
+/// @returns {Boolean} True if there are notes at the same time, false otherwise.
+function editor_sampling_sametime_check(notes) {
+	var l = array_length(notes);
+	for(var i = 1; i < l; i++) {
+		if(notes[i].time == notes[i - 1].time)
+			return true;
+	}
+	return false;
 }
 
 
