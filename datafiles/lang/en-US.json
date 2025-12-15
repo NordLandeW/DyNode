@@ -218,6 +218,6 @@
         "drop_unsupported_file": "Unsupported file type.",
         "sampling_side_mismatch_error": "Sampling can only be performed on notes on the same side.",
         "sampling_infinite_loop_warning": "The sampling operation was aborted because the next snap grid point could not be located.",
-        "fix_complete": "谱面修正完毕。\n已修复出界音符数量: $0"
+        "fix_complete": "Chart correction complete.\\nFixed {0, plural, one {1 out-of-bounds note} other {# out-of-bounds notes}}."
     }
 }
