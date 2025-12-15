@@ -167,7 +167,7 @@
         "expr_error": "運算式執行錯誤。",
         "advanced_expr_error": "計算表達式時出現錯誤，請檢查語法。批次操作已中止。",
         "global_music_delay": "全域音樂延遲",
-        "credits": "Yet another Dynamix charting tool.\n\n[scale,1.2]by NagaseIori (NordLandeW)[scale,0.6]    [nord]\n\n[scale,1.2]繁體 / 英文翻譯：Jmakxd[scale,0.6]    [jmak][/scale][/rainbow]\n\nDyNode 使用的大部分美術資源來自遊戲 Dynamix ，由 C4Cat Entertainment Limited 製作。\n\nDyNode 以 MIT 許可協議進行授權。\n\nDyNode 使用 / 借鑒了以下專案的程式碼 / 資源 / 佈局。\n\nScribble (under MIT License) Copyright (c) 2022 @jujuadams\n\nClean Shapes (under MIT License) Copyright (c) 2020 Juju Adams\n\nSNAP (under MIT License) Copyright (c) 2020 Juju Adams\n\nJSON (under MIT License) Copyright © 2013-2022 Niels Lohmann\n\ndelaunator-cpp (under MIT License) Copyright (c) 2018 Volodymyr Bilonenko\n\nFMODGMS (under BSD 2-Clause \"Simplified\" License) Copyright (c) 2016-2017, M.S.T.O.P.\n\nLua (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.\n\nsol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz\n\npugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine\n\ntaskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang\n\nDynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd\n\nDynamaker (under MIT License) Copyright (c) 2019 omegaPi\n\nDynamix produced by C4Cat Entertainment Limited\n\nArcaea produced by lowiro limited\n",
+        "credits": "Yet another Dynamix charting tool.\n\n[scale,1.2]by NagaseIori (NordLandeW)[scale,0.6]    [nord]\n\n[scale,1.2]繁體 / 英文翻譯：Jmakxd[scale,0.6]    [jmak][/scale][/rainbow]\n\nDyNode 使用的大部分美術資源來自遊戲 Dynamix ，由 C4Cat Entertainment Limited 製作。\n\nDyNode 以 MIT 許可協議進行授權。\n\nDyNode 使用 / 借鑒了以下專案的程式碼 / 資源 / 佈局。\n\nScribble (under MIT License) Copyright (c) 2022 @jujuadams\n\nClean Shapes (under MIT License) Copyright (c) 2020 Juju Adams\n\nSNAP (under MIT License) Copyright (c) 2020 Juju Adams\n\nJSON (under MIT License) Copyright © 2013-2022 Niels Lohmann\n\ndelaunator-cpp (under MIT License) Copyright (c) 2018 Volodymyr Bilonenko\n\nFMODGMS (under BSD 2-Clause \"Simplified\" License) Copyright (c) 2016-2017, M.S.T.O.P.\n\nLua (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.\n\nsol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz\n\npugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine\n\ntaskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang\n\ncubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren\n\nDynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd\n\nDynamaker (under MIT License) Copyright (c) 2019 omegaPi\n\nDynamix produced by C4Cat Entertainment Limited\n\nArcaea produced by lowiro limited\n",
         "tab_main_volume": "音樂音量",
         "tab_hitsound_volume": "打擊音量",
         "tab_bg_dim": "背景亮度",
@@ -215,6 +215,9 @@
         "recording_savefile_dlg_title": "錄製影片檔案儲存至",
         "recording_no_ffmpeg": "未找到 FFmpeg 可執行檔。\n請確保 FFmpeg 已正確安裝並且其路徑已被新增至系統環境變數中。",
         "drop_setting_bgm_failed": "只能在開啟的專案中使用拖放功能來匯入音樂 / 背景檔案。",
-        "drop_unsupported_file": "不支援的檔案類型。"
+        "drop_unsupported_file": "不支援的檔案類型。",
+        "sampling_side_mismatch_error": "僅能對同一側面的音符進行採樣操作。",
+        "sampling_infinite_loop_warning": "採樣操作因無法定位到下一個吸附格點而中止。",
+        "fix_complete": "譜面修正完畢。\n已修復出界音符數量: $0"
     }
 }
