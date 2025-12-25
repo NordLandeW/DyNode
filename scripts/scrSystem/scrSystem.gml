@@ -1083,7 +1083,7 @@ function load_config() {
 	
 	// If config file is corrupted
 	if(!is_struct(_con)) {
-		show_error_i18n("error_config_file_corrupted", false);
+		announcement_error("error_config_file_corrupted");
 		file_delete(pth);
 		load_config();
 		return -1;

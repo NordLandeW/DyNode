@@ -11,6 +11,7 @@
 #include <vector>
 
 struct IMFSourceReader;
+struct IMFSample;
 
 /**
  * @brief Thin wrapper around Media Foundation video decoding.
@@ -230,6 +231,24 @@ class VideoDecoder {
     };
 
     static constexpr size_t kMaxSyncQueueFrames = 3;
+
+    void handle_pending_seek(
+        bool isSyncMode, long long& skipUntilTime,
+        std::chrono::high_resolution_clock::time_point& skipStartTime);
+    bool should_drop_sample(
+        LONGLONG timestamp, bool isSyncMode, long long& skipUntilTime,
+        const std::chrono::high_resolution_clock::time_point& skipStartTime);
+    bool copy_pixels_from_sample(IMFSample* pSample, BYTE* dstBase,
+                                 size_t expectedSize);
+    bool write_latest_frame(IMFSample* pSample, size_t expectedSize);
+    bool make_sync_frame(IMFSample* pSample, LONGLONG timestamp,
+                         SyncFrame& outFrame, size_t expectedSize);
+    void update_decoded_timing(LONGLONG timestamp);
+    void enqueue_sync_frame(SyncFrame&& frame);
+    void pace_for_timestamp(LONGLONG timestamp);
+    double get_frame_sync_locked(void* gm_buffer_ptr, double buffer_size,
+                                 long long clockTicks,
+                                 std::unique_lock<std::mutex>& lock);
 
     IMFSourceReader* m_pReader =
         nullptr;  // Media Foundation source reader providing video samples.
