@@ -782,43 +782,41 @@ function CommandSnap():CommandSignature("snap", []) constructor {
             }
         }
 
+        /// @type {Array<Struct.sNoteProp>} The note properties to process.
+        var noteProps = [];
         var selectedCount = editor_select_count();
         if(selectedCount == 0) {
-            console_echo("No notes selected.");
-            return;
+            var l = dyc_get_note_count();
+            for(var i = 0; i < l; i++) {
+                var noteProp = dyc_get_note_at_index_direct(i);
+                array_push(noteProps, noteProp);
+            }
         }
+        else noteProps = editor_get_selected_notes();
 
         var processedCount = 0;
         var skippedSubCount = 0;
 
-        with(objNote) {
-            if(stateType == NOTE_STATES.SELECTED) {
-                // Sub notes are derived from holds; moving them directly would desync undo history.
-                // Users should snap the hold head instead.
-                if(noteType == NOTE_TYPE.SUB) {
-                    skippedSubCount++;
+        for(var i = 0, l = array_length(noteProps); i < l; i++) {
+            var curProp = noteProps[i];
+            if(curProp.noteType == NOTE_TYPE.SUB) {
+                skippedSubCount++;
+            }
+            else {
+                var originalStartTime = curProp.time;
+                var originalEndTime = curProp.time + curProp.lastTime;
+
+                var snappedStart = editor_snap_to_grid_time(originalStartTime, curProp.side, true, true, snapMode).time;
+                curProp.time = snappedStart;
+
+                if(curProp.noteType == NOTE_TYPE.HOLD) {
+                    var snappedEnd = editor_snap_to_grid_time(originalEndTime, curProp.side, true, true, snapMode).time;
+                    curProp.lastTime = max(1, snappedEnd - snappedStart);
                 }
-                else {
-                    var prop = get_prop();
 
-                    // For holds we must snap both endpoints independently.
-                    // If we derived endTime from the snapped start, we would unintentionally shift the tail.
-                    var originalStartTime = prop.time;
-                    var originalEndTime = prop.time + prop.lastTime;
+                dyc_update_note(curProp, true);
 
-                    var snappedStart = editor_snap_to_grid_time(originalStartTime, prop.side, true, true, snapMode).time;
-                    prop.time = snappedStart;
-
-                    // Holds are defined by (startTime, endTime). Snap both ends so the segment aligns.
-                    if(noteType == NOTE_TYPE.HOLD) {
-                        var snappedEnd = editor_snap_to_grid_time(originalEndTime, prop.side, true, true, snapMode).time;
-                        prop.lastTime = max(1, snappedEnd - snappedStart);
-                    }
-
-                    set_prop(prop, true);
-
-                    processedCount++;
-                }
+                processedCount++;
             }
         }
 

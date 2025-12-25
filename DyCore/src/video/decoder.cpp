@@ -432,7 +432,6 @@ VideoDecoder::~VideoDecoder() {
     }
 }
 
-namespace {
 void enable_hardware_acceleration(IMFAttributes* pAttributes) {
     ID3D11Device* pD3DDevice = nullptr;
     ID3D11DeviceContext* pD3DContext = nullptr;
@@ -622,7 +621,6 @@ double query_duration_seconds(IMFSourceReader* reader) {
     PropVariantClear(&var);
     return duration;
 }
-}  // namespace
 
 bool VideoDecoder::open(const wchar_t* filename) {
     if (m_isLoaded) {
