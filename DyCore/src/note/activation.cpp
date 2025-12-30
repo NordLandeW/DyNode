@@ -85,6 +85,15 @@ void NoteActivationManager::recalculate() {
     unique_and_sort(lastingHolds);
 }
 
+void NoteActivationManager::clear() {
+    activeNotes.clear();
+    activeNotes.shrink_to_fit();
+    activeHolds.clear();
+    activeHolds.shrink_to_fit();
+    lastingHolds.clear();
+    lastingHolds.shrink_to_fit();
+}
+
 void NoteActivationManager::bitwrite_active_notes(char* buffer) const {
     char* ptr = buffer;
     bitwrite<int>(ptr, activeNotes.size());

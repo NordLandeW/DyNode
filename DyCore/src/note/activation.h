@@ -21,6 +21,9 @@ class NoteActivationManager {
     // Recalculate the active notes based on current range setting.
     void recalculate();
 
+    // Clear all active notes and release memory.
+    void clear();
+
     using ActiveLists = std::vector<std::pair<double, std::string>>;
     // Get the currently active notes.
     const ActiveLists& get_active_notes() const {

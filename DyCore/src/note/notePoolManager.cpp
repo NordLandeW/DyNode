@@ -277,10 +277,17 @@ void NotePoolManager::sync_hold_note_length(const Note& note) {
 void NotePoolManager::clear_notes() {
     std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
     noteArray.clear();
+    noteArray.shrink_to_fit();
     holdArray.clear();
+    holdArray.shrink_to_fit();
     noteMemoryList.clear();
     noteInfoMap.clear();
+    // In C++20, there's no shrink_to_fit for unordered_map,
+    // but rehash(0) can help reduce bucket count.
+    noteInfoMap.rehash(0);
+
     noteCount = 0;
+    get_note_activation_manager().clear();
     reclaim_memory();
     return;
 }
@@ -444,6 +451,7 @@ int NotePoolManager::get_index_lowerbound(double time) {
 // Thread unsafe function.
 void NotePoolManager::reclaim_memory() {
     pool_res.release();
+    monotonic_res.release();
 }
 
 // Singleton getter.
