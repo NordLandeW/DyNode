@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"DyNode",
   "AudioGroups":[
-    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -329,6 +329,7 @@
     {"id":{"name":"object_get_depth","path":"scripts/object_get_depth/object_get_depth.yy",},},
     {"id":{"name":"scrActivationMan","path":"scripts/scrActivationMan/scrActivationMan.yy",},},
     {"id":{"name":"scrAnnoMan","path":"scripts/scrAnnoMan/scrAnnoMan.yy",},},
+    {"id":{"name":"scrBuiltinCommands","path":"scripts/scrBuiltinCommands/scrBuiltinCommands.yy",},},
     {"id":{"name":"scrConsole","path":"scripts/scrConsole/scrConsole.yy",},},
     {"id":{"name":"scrConstructor","path":"scripts/scrConstructor/scrConstructor.yy",},},
     {"id":{"name":"scrDyCore","path":"scripts/scrDyCore/scrDyCore.yy",},},
