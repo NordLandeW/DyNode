@@ -18,9 +18,7 @@
 #macro MAX_SELECTION_LIMIT 400
 #macro KPS_MEASURE_WINDOW 400
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
-#macro DYCORE_BUFFER_SIZE (50*1024*1024)	// 50MB
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
-#macro DYCORE_BUFFER_ADDRESS (buffer_get_address(global.__DyCore_Buffer))
 #macro DEBUG_MODE (debug_mode)
 #macro FMOD_DSP_BUFFERSIZE (256)
 #macro FMOD_DSP_BUFFERCOUNT (4)
@@ -131,7 +129,6 @@ display_reset(global.graphics.AA, global.graphics.VSync);
 
 dyc_init();
 
-global.__DyCore_Buffer = buffer_create(DYCORE_BUFFER_SIZE, buffer_fixed, 1);
 global.__DyCore_Manager = new DyCoreManager();
 
 // Input Initialization

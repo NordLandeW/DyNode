@@ -55,19 +55,6 @@ function __test_quick_sort(_size) {
     et = get_timer();
     show_debug_message("Extern index sort with compare function time: " + string((et - st)/1000) + "ms");
 }
-
-function __test_compression() {
-    show_debug_message("=====TEST COMPRESSION======");
-    var _str_bef = "This is a string.\nthe string."
-
-    var _cSize = DyCore_compress_string(_str_bef, buffer_get_address(global.__DyCore_Buffer), 11);
-    
-    var _str_aft = DyCore_decompress_string(buffer_get_address(global.__DyCore_Buffer), _cSize);
-
-    if(_str_bef == _str_aft)
-        show_debug_message("Validation pass.");
-}
-
 function __test_vertex_construction(_size) {
     show_debug_message($"=====TEST VERTEX CONSTRUCTION: {_size}======");
     vertex_format_begin();
@@ -197,7 +184,6 @@ function test_at_start() {
     __test_misc();
 
     var TEST_QUICK_SORT = false;
-    var TEST_COMPRESSION = false;
     var TEST_VERTEX_CONSTRUCTION = false;
 
     if(TEST_QUICK_SORT) {
@@ -209,8 +195,6 @@ function test_at_start() {
         __test_quick_sort(500000);
         __test_quick_sort(2000000);
     }
-    if(TEST_COMPRESSION)
-        __test_compression();
     if(TEST_VERTEX_CONSTRUCTION) {
         __test_vertex_construction(100);
         __test_vertex_construction(1000);
