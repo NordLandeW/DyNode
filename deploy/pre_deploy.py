@@ -18,7 +18,7 @@ LANG_DIR = REPO_ROOT / "datafiles" / "lang"
 OUTPUT_CHANGELOG = REPO_ROOT / "changelog.json"
 OUTPUT_RELEASELOG = REPO_ROOT / "releaselog.txt"
 SOURCE_LANG = "zh-cn"
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview")
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro")
 
 def run_git(args: List[str]) -> str:
     res = subprocess.run(args, cwd=str(REPO_ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
