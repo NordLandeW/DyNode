@@ -125,7 +125,7 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 			throw "Cannot directly create sub notes."
 	}
 
-	if(selecting) {
+	if(selecting && editor_get_editmode() < 5) {
 		note_activate(_newNote.noteID);
 		var _inst = note_get_instance(_newNote.noteID);
 		_inst.select();
