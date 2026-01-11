@@ -716,3 +716,11 @@ function dyc_solve_natural_spline(xIn, fIn, xOut) {
 
     return fOut;
 }
+
+/// @description Get note hash string.
+/// @param {String} noteID The note ID.
+/// @param {Bool} includeID Whether to include noteID in the hash.
+/// @returns {String} The note hash string.
+function dyc_get_note_hash(noteID, includeID) {
+    return DyCore_get_note_hash(noteID, includeID ? 1 : 0);
+}

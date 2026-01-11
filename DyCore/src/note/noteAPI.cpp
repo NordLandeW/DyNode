@@ -228,3 +228,13 @@ DYCORE_API double DyCore_get_note_index_upper_bound(double time) {
     int upperBound = noteMan.get_index_upperbound(time);
     return upperBound;
 }
+
+DYCORE_API const char* DyCore_get_note_hash(const char* noteID,
+                                            double includeID) {
+    if (!note_exists(noteID))
+        return "";
+    static string hashStr;
+    auto note = get_note_pool_manager().get_note(noteID);
+    hashStr = note.get_hash_string(includeID != 0);
+    return hashStr.c_str();
+}

@@ -80,6 +80,8 @@ taskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang
 
 cubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren
 
+xxHash (under BSD 2-Clause License) Copyright (c) 2012-2021 Yann Collet
+
 -------------------
 
 DyNode uses assets & designs from the following projects.

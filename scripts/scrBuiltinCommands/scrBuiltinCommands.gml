@@ -17,7 +17,9 @@ global.BUILTIN_COMMANDS = [
     CommandCubic,
     CommandCenter,
     CommandPurge,
-    CommandFix
+    CommandFix,
+    CommandDuplicate,
+    CommandDeduplicate
 ]
 
 function CommandWidth():CommandSignature("width", ["w", "wid"]) constructor {
@@ -356,16 +358,7 @@ function CommandSnap():CommandSignature("snap", []) constructor {
         }
 
         /// @type {Array<Struct.sNoteProp>} The note properties to process.
-        var noteProps = [];
-        var selectedCount = editor_select_count();
-        if(selectedCount == 0) {
-            var l = dyc_get_note_count();
-            for(var i = 0; i < l; i++) {
-                var noteProp = dyc_get_note_at_index_direct(i);
-                array_push(noteProps, noteProp);
-            }
-        }
-        else noteProps = editor_get_selected_notes();
+        var noteProps = command_get_target_notes();
 
         var processedCount = 0;
         var skippedSubCount = 0;
@@ -515,9 +508,130 @@ function CommandFix():CommandSignature("fix") constructor {
     }
 }
 
+function CommandDuplicate():CommandSignature("duplicate", ["dup"]) constructor {
+    add_variant(0, 1, "Quick duplicate selected notes.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+        var count = 1;
+        if(array_length(args) > 0) {
+            command_arg_check_integer(args[0]);
+            count = int64(args[0]);
+        }
+
+        if(editor_select_count() == 0) {
+            console_echo("No notes selected.");
+            return;
+        }
+
+        for(var i=0; i<count; i++) {
+            editor_note_duplicate_quick();
+        }
+
+        console_echo($"Duplicated {string(editor_select_count())} selected notes {string(count)} time(s).");
+    }
+}
+
+function CommandDeduplicate():CommandSignature("deduplicate", ["dedup"]) constructor {
+    add_variant(0, 0, "Removes duplicate notes from the chart.");
+
+    static execute = function(args, matchedVariant) {
+        command_check_in_editor();
+
+        var noteProps = command_get_target_notes();
+        var removedCount = editor_deduplicate_notes(noteProps);
+
+        console_echo($"Removed {string(removedCount)} duplicate notes from the chart.");
+    }
+}
+
 function command_register_builtin_commands() {
     for(var i = 0, l = array_length(global.BUILTIN_COMMANDS); i < l; i++) {
         var cmdSig = new global.BUILTIN_COMMANDS[i]();
         global.console.register_command(cmdSig);
     }
+}
+
+function command_arg_check_real(arg, abort = true) {
+    if(!regex_is_real(arg)) {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid real number.";
+        return false;
+    }
+    return true;
+}
+
+function command_arg_check_integer(arg, abort = true) {
+    if(!regex_is_integer(arg)) {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid integer.";
+        return false;
+    }
+    return true;
+}
+
+function command_arg_check_boolean(arg, abort = true) {
+    var lowerArg = string_lower(string_trim(arg));
+    if(lowerArg != "true" && lowerArg != "false" && lowerArg != "1" && lowerArg != "0") {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid boolean.";
+        return false;
+    }
+    return true;
+}
+ 
+function command_arg_to_boolean(arg) {
+    var lowerArg = string_lower(string_trim(arg));
+    return (lowerArg == "true" || lowerArg == "1");
+}
+
+function command_arg_check_note_type(arg, abort = true) {
+    arg = string_lower(string_trim(arg));
+    static availableOptions = ["tap", "note", "hold", "slide", "chain", "normal"];
+    if(!array_contains(availableOptions, arg)) {
+        if(abort)
+            throw "Argument '" + string(arg) + "' is not a valid note type. Available types: " + string_join(availableOptions, ", ") + ".";
+        return false;
+    }
+    return true;
+}
+
+function command_arg_to_note_type(arg) {
+    arg = string_lower(string_trim(arg));
+    switch(arg) {
+        case "tap":
+        case "note":
+        case "normal":
+            return NOTE_TYPE.NORMAL;
+        case "hold":
+            return NOTE_TYPE.HOLD;
+        case "slide":
+        case "chain":
+            return NOTE_TYPE.CHAIN;
+        default:
+            throw "Invalid note type: '" + string(arg) + "'.";
+    }
+}
+
+function command_check_in_editor(abort = true) {
+    if(!instance_exists(objEditor)) {
+        if(abort)
+            throw "This command can only be used in the editor.";
+        return false;
+    }
+}
+
+/// @description Get note properties to process based on selection.
+/// @returns {Array<Struct.sNoteProp>} The note properties to process.
+function command_get_target_notes() {
+    command_check_in_editor();
+
+    /// @type {Array<Struct.sNoteProp>} The note properties to process.
+    var noteProps = [];
+    var selectedCount = editor_select_count();
+    if(selectedCount == 0)
+        noteProps = note_get_all_props();
+    else noteProps = editor_get_selected_notes();
+
+    return noteProps;
 }

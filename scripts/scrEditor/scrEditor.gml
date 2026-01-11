@@ -414,6 +414,31 @@ function editor_note_duplicate_quick() {
 	objMain.time_range_made_inbound(minTime + spacing, maxTime + spacing);
 }
 
+/// @description Deduplicate notes in the given note properties or all notes if none provided.
+/// @param {Array<Struct.sNoteProp>} noteProps The note properties to process. If undefined, all notes will be processed.
+function editor_deduplicate_notes(noteProps = undefined) {
+	var hashMap = {};
+	var removedCount = 0;
+	if(noteProps == undefined) {
+		noteProps = note_get_all_props();
+	}
+
+	var l = array_length(noteProps);
+	for(var i=0; i<l; i++) {
+		if(noteProps[i].noteType == NOTE_TYPE.SUB) continue;
+		var hash = dyc_get_note_hash(noteProps[i].noteID, false);
+		if(!variable_struct_exists(hashMap, hash)) {
+			hashMap[$ hash] = noteProps[i].noteID;
+		}
+		else {
+			note_delete(noteProps[i].noteID, true);
+			removedCount ++;
+		}
+	}
+
+	return removedCount;
+}
+
 #region UNDO & REDO FUNCTION
 
 function operation_get_name(opsType) {

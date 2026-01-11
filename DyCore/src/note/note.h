@@ -1,5 +1,7 @@
 #pragma once
 
+#include <xxhash/xxhash.h>
+
 #include <string>
 
 #include "bitio.h"
@@ -85,6 +87,23 @@ struct Note {
 
     NOTE_TYPE get_note_type() const {
         return static_cast<NOTE_TYPE>(type);
+    }
+
+    /**
+     * Generates a 64-bit hash of the note's properties.
+     * @param includeID Whether to include unique identifiers in the hash.
+     * @return The calculated XXH64 hash.
+     */
+    XXH64_hash_t get_hash(bool includeID = false) const;
+
+    /**
+     * Generates a string representation of the note's hash.
+     * @param includeID Whether to include unique identifiers in the hash.
+     * @return The hash as a string.
+     */
+    std::string get_hash_string(bool includeID = false) const {
+        XXH64_hash_t hash = get_hash(includeID);
+        return std::to_string(hash);
     }
 };
 

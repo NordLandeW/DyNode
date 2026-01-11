@@ -407,3 +407,16 @@ function note_hit(note, displayEffects) {
 
 	return true;
 }
+
+/// @description Get all note properties.
+/// @returns {Array<Struct.sNoteProp>} All note properties.
+function note_get_all_props() {
+    /// @type {Array<Struct.sNoteProp>} The note properties to process.
+    var noteProps = [];
+	var l = dyc_get_note_count();
+	for(var i = 0; i < l; i++) {
+		var noteProp = dyc_get_note_at_index_direct(i);
+		array_push(noteProps, noteProp);
+	}
+	return noteProps;
+}

@@ -38,6 +38,10 @@ target_include_directories(pugixml PUBLIC "lib")
 add_library(delaunator STATIC lib/delaunator.cpp)
 target_include_directories(delaunator PUBLIC "lib")
 
+# --- xxhash ---
+add_library(xxhash STATIC lib/xxhash/xxhash.c)
+target_include_directories(xxhash PUBLIC "lib/xxhash")
+
 # --- glm ---
 FetchContent_Declare(
   glm
@@ -181,6 +185,7 @@ target_link_libraries(DyCore PRIVATE lua)
 target_link_libraries(DyCore PRIVATE pugixml)
 target_link_libraries(DyCore PRIVATE delaunator)
 target_link_libraries(DyCore PRIVATE glm::glm)
+target_link_libraries(DyCore PRIVATE xxhash)
 
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"

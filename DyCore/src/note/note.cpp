@@ -123,3 +123,25 @@ string get_notes_array_string() {
 
     return nlohmann::to_string(js);
 }
+
+XXH64_hash_t Note::get_hash(bool includeID) const {
+    XXH64_state_t* state = XXH64_createState();
+    XXH64_reset(state, 0);
+
+    XXH64_update(state, &side, sizeof(side));
+    XXH64_update(state, &type, sizeof(type));
+    XXH64_update(state, &time, sizeof(time));
+    XXH64_update(state, &width, sizeof(width));
+    XXH64_update(state, &position, sizeof(position));
+    XXH64_update(state, &lastTime, sizeof(lastTime));
+    XXH64_update(state, &beginTime, sizeof(beginTime));
+
+    if (includeID) {
+        XXH64_update(state, noteID.data(), noteID.size());
+        XXH64_update(state, subNoteID.data(), subNoteID.size());
+    }
+
+    XXH64_hash_t hash = XXH64_digest(state);
+    XXH64_freeState(state);
+    return hash;
+}
