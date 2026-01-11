@@ -436,6 +436,8 @@ function editor_deduplicate_notes(noteProps = undefined) {
 		}
 	}
 
+	delete hashMap;
+
 	return removedCount;
 }
 
