@@ -50,8 +50,13 @@ projectTime += round(delta_time / 1000);
     	announcement_adjust("anno_hide_scoreboard", hideScoreboard);
     }
     if(keycheck_down(ord("O"))) {
-    	global.particleEffects = !global.particleEffects;
-    	announcement_adjust("anno_particles_effect", global.particleEffects);
+    	global.particleEffects = (global.particleEffects + 1) % 3;
+		var _effects_str = [
+			"particles_setting_off",
+			"particles_setting_full",
+			"particles_setting_low"
+		]
+    	announcement_set("anno_particles_effect", _effects_str[global.particleEffects]);
     }
     if(keycheck_down_ctrl(ord("H"))) {
     	hitSoundOn = !hitSoundOn;

@@ -299,7 +299,7 @@ function note_emit_particles(number, note, parttype) {
 	if(!objMain.nowPlaying)
 		return;
 	
-	if(!global.particleEffects)
+	if(global.particleEffects != 1)
 		return;
 	
 	if(part_particles_count(objMain.partSysNote) > MAX_PARTICLE_COUNT)
@@ -379,6 +379,9 @@ function note_hit(note, displayEffects) {
 		return false;
 
 	note_emit_particles(PARTICLE_NOTE_NUMBER, note, 0);
+
+	if(global.particleEffects == 0)
+		return false;
 
 	// Create Shadow
 	if(note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER") {
