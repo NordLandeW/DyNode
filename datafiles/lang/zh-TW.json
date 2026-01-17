@@ -219,6 +219,9 @@
         "sampling_side_mismatch_error": "僅能對同一側面的音符進行採樣操作。",
         "sampling_infinite_loop_warning": "採樣操作因無法定位到下一個吸附格點而中止。",
         "fix_complete": "譜面修正完畢。\n已修復出界音符數量: $0",
-        "sampling_same_time_error": "採樣操作不允許存在時間相同的音符。"
+        "sampling_same_time_error": "採樣操作不允許存在時間相同的音符。",
+        "particles_setting_full": "顯示全部",
+        "particles_setting_low": "關閉粒子",
+        "particles_setting_off": "關閉全部"
     }
 }

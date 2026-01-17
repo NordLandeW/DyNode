@@ -167,7 +167,7 @@
         "expr_error": "式の実行エラー。",
         "advanced_expr_error": "式の計算中にエラーが発生しました。文法を確認してください。バッチ処理を中止します。",
         "global_music_delay": "グローバル音楽ディレイ",
-        "credits": "Yet another Dynamix charting tool.\n\n[scale,1.2]by NagaseIori (NordLandeW)[scale,0.6]    [nord]\n\n[scale,1.2]繁体/英語翻訳：Jmakxd[scale,0.6]    [jmak][/scale][/rainbow]\n\nDyNodeで使用している多くのアートリソースはC4Cat Entertainment Limited制作のゲーム『Dynamix』に由来します。\n\nDyNodeはMITライセンスで提供されます。\n\nDyNodeは以下のプロジェクトからコード/リソース/レイアウトを使用または参考にしています。\n\nScribble (under MIT License) Copyright (c) 2022 @jujuadams\n\nClean Shapes (under MIT License) Copyright (c) 2020 Juju Adams\n\nSNAP (under MIT License) Copyright (c) 2020 Juju Adams\n\nJSON (under MIT License) Copyright © 2013-2022 Niels Lohmann\n\ndelaunator-cpp (under MIT License) Copyright (c) 2018 Volodymyr Bilonenko\n\nFMODGMS (under BSD 2-Clause \\\"Simplified\\\" License) Copyright (c) 2016-2017, M.S.T.O.P.\n\nLua (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.\n\nsol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz\n\npugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine\n\ntaskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang\n\ncubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren\n\nDynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd\n\nDynamaker (under MIT License) Copyright (c) 2019 omegaPi\n\nDynamix は C4Cat Entertainment Limited 制作\n\nArcaea は lowiro limited 制作",
+        "credits": "Yet another Dynamix charting tool.\\n\\n[scale,1.2]by NagaseIori (NordLandeW)[scale,0.6]    [nord]\\n\\n[scale,1.2]繁体/英語翻訳：Jmakxd[scale,0.6]    [jmak][/scale][/rainbow]\\n\\nDyNodeで使用している多くのアートリソースはC4Cat Entertainment Limited制作のゲーム『Dynamix』に由来します。\\n\\nDyNodeはMITライセンスで提供されます。\\n\\nDyNodeは以下のプロジェクトからコード/リソース/レイアウトを使用または参考にしています。\\n\\nScribble (under MIT License) Copyright (c) 2022 @jujuadams\\n\\nClean Shapes (under MIT License) Copyright (c) 2020 Juju Adams\\n\\nSNAP (under MIT License) Copyright (c) 2020 Juju Adams\\n\\nJSON (under MIT License) Copyright © 2013-2022 Niels Lohmann\\n\\ndelaunator-cpp (under MIT License) Copyright (c) 2018 Volodymyr Bilonenko\\n\\nFMODGMS (under BSD 2-Clause \\\"Simplified\\\" License) Copyright (c) 2016-2017, M.S.T.O.P.\\n\\nLua (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.\\n\\nsol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz\\n\\npugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine\\n\\ntaskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang\\n\\ncubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren\\n\\nDynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd\\n\\nDynamaker (under MIT License) Copyright (c) 2019 omegaPi\\n\\nDynamix は C4Cat Entertainment Limited 制作\\n\\nArcaea は lowiro limited 制作",
         "tab_main_volume": "音楽音量",
         "tab_hitsound_volume": "ヒットサウンド音量",
         "tab_bg_dim": "背景明度",
@@ -177,7 +177,7 @@
         "timing_point_change_success": "$0 msにあるTiming Pointを変更しました：\nBPM：$1 拍子：$2/4",
         "timing_fix_question": "この変更は $0ms～$1ms にある $2 個のノートに影響します。これらのノートを新しいBPMに合わせて調整しますか？",
         "timing_fix_cross_warning": "調整後、他のTiming Point領域へノートが移動する可能性があります。\n問題があればCtrl+Zで元に戻せます。",
-        "timing_duplicate_error": "$0ms には既にタイミングポイントが存在します。\n現在、同じ時間に複数のタイミングポイントを追加することはできません。元のタイミングポイントを削除してから、再度お試しください。",
+        "timing_duplicate_error": "$0ms には既にタイミングポイントが存在します。\\n現在、同じ時間に複数のタイミングポイントを追加することはできません。元のタイミングポイントを削除してから、再度お試しください。",
         "dym_old_version_warning": "DyNodeは古いバージョンのDynamaker譜面インポートをサポートしていません。\n最新バージョンのDynamakerで該当譜面を再エクスポートしてから再度インポートしてください。",
         "bad_dym_chart_format": "このXML/DY譜面形式はDyNodeではサポートされていません。DyNodeは現在、最新版のDynamakerからエクスポートされたXML/DY譜面のみに対応しています。\n譜面形式を確認後、再度インポートしてください。",
         "dym_import_failed": "XML/DY譜面ファイルのインポートに失敗しました。譜面の形式が正しいか確認してください。",
@@ -218,7 +218,10 @@
         "drop_unsupported_file": "対応していないファイル形式です。",
         "sampling_side_mismatch_error": "同じ側の音符にのみサンプリング操作を行えます。",
         "sampling_infinite_loop_warning": "次のスナップグリッドを特定できないため、サンプリング操作は中止されました。",
-        "fix_complete": "譜面の修正が完了しました。\n修正した範囲外ノートの数: $0",
-        "sampling_same_time_error": "サンプリング操作では、同時刻のノートは許可されていません。"
+        "fix_complete": "譜面の修正が完了しました。\\n修正した範囲外ノートの数: $0",
+        "sampling_same_time_error": "サンプリング操作では、同時刻のノートは許可されていません。",
+        "particles_setting_full": "すべて表示",
+        "particles_setting_low": "パーティクルをオフ",
+        "particles_setting_off": "すべてオフ"
     }
 }

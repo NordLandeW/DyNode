@@ -218,7 +218,10 @@
         "drop_unsupported_file": "Unsupported file type.",
         "sampling_side_mismatch_error": "Sampling can only be performed on notes on the same side.",
         "sampling_infinite_loop_warning": "The sampling operation was aborted because the next snap grid point could not be located.",
-        "fix_complete": "Chart correction complete.\nFixed $0 out-of-bounds notes.",
-        "sampling_same_time_error": "The sampling operation does not allow notes at the same time."
+        "fix_complete": "Chart correction complete.\\nFixed {0, plural, one {1 out-of-bounds note} other {# out-of-bounds notes}}.",
+        "sampling_same_time_error": "The sampling operation does not allow notes at the same time.",
+        "particles_setting_full": "Show All",
+        "particles_setting_low": "Turn Off Particles",
+        "particles_setting_off": "Turn Off All"
     }
 }
