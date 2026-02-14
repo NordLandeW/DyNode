@@ -63,7 +63,7 @@ function insert_text_at_cursor(_text) {
     inputCursorPos += string_length(_text);
     inputCursorPos = clamp(inputCursorPos, 0, string_length(inputBuffer));
     cursorTimer = 0;
-};
+}
 
 function delete_left_at_cursor() {
     if(inputCursorPos <= 0) return;
@@ -71,11 +71,11 @@ function delete_left_at_cursor() {
     inputCursorPos -= 1;
     inputCursorPos = clamp(inputCursorPos, 0, string_length(inputBuffer));
     cursorTimer = 0;
-};
+}
 
 function delete_right_at_cursor() {
     if(inputCursorPos >= string_length(inputBuffer)) return;
     inputBuffer = string_delete(inputBuffer, inputCursorPos + 1, 1);
     inputCursorPos = clamp(inputCursorPos, 0, string_length(inputBuffer));
     cursorTimer = 0;
-};
+}
