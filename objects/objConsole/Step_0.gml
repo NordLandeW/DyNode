@@ -11,6 +11,7 @@ if(!focusing) {
         quickCommand = false;
     }
 }
+
 if(focusing) {
     if(keycheck_down_ctrl("V")) {
         // Paste from clipboard.

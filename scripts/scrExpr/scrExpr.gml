@@ -20,8 +20,8 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 		if(tempVar && !_init)
 			throw $"You cannot assign a tempvar {value} with a value {_val}.";
 		
-		if(is_struct(_val))
-			_val = _val.get_value();
+		if(is_struct(_val) && !is_method(_val))
+			_val = _val.value;
 		
 		// Value type check
 		
@@ -51,6 +51,12 @@ function expr_init() {
 	if(variable_global_exists("__expr_symbols"))
 		delete global.__expr_symbols;
 	global.__expr_symbols = {};
+	expr_set_func("pow", function(_a, _b) { return power(_a, _b); });
+	expr_set_func("sin", function(_a) { return sin(_a); });
+	expr_set_func("cos", function(_a) { return cos(_a); });
+	expr_set_func("step", function(_edge, _x) { return real(_x >= _edge); });
+	expr_set_func("clamp", function(_x, _mn, _mx) { return clamp(_x, _mn, _mx); });
+	expr_set_func("exp", function(_x) { return exp(_x); });
 }
 
 function expr_symbol_copy(sym) {
@@ -61,12 +67,18 @@ function expr_set_var(name, val) {
 	variable_struct_set(global.__expr_symbols, name, new ExprSymbol(name, ExprSymbolTypes.NUMBER, val, 0));
 }
 
+function expr_set_func(name, fn) {
+	variable_struct_set(global.__expr_symbols, name, new ExprSymbol(name, ExprSymbolTypes.FUNCTION, fn, 0));
+}
+
+/// @returns {Any} The value of the variable.
 function expr_get_var(name) {
 	if(!variable_struct_exists(global.__expr_symbols, name))
 		throw $"Variable {name} was not defined.";
 	return global.__expr_symbols[$ name].value;
 }
 
+/// @returns {Struct.ExprSymbol} The symbol of the variable.
 function expr_get_sym(name, init_not_existed = false) {
 	if(!variable_struct_exists(global.__expr_symbols, name)) {
 		if(init_not_existed)
@@ -76,6 +88,56 @@ function expr_get_sym(name, init_not_existed = false) {
 	}
 		
 	return global.__expr_symbols[$ name];
+}
+
+function expr_split_args(_args_text) {
+	var _args = [];
+	var _depth = 0;
+	var _seg_start = 1;
+	var _len = string_length(_args_text);
+	for(var _i = 1; _i <= _len; _i++) {
+		var _ch = string_char_at(_args_text, _i);
+		if(_ch == "(") _depth++;
+		else if(_ch == ")") _depth--;
+		else if(_ch == "," && _depth == 0) {
+			array_push(_args, string_trim(string_copy(_args_text, _seg_start, _i - _seg_start)));
+			_seg_start = _i + 1;
+		}
+	}
+	array_push(_args, string_trim(string_copy(_args_text, _seg_start, _len - _seg_start + 1)));
+	if(array_length(_args) == 1 && _args[0] == "")
+		return [];
+	return _args;
+}
+
+function expr_call_func(_name, _args_text) {
+	var _fn_sym = expr_get_sym(_name, false);
+	if(_fn_sym.symType != ExprSymbolTypes.FUNCTION)
+		throw $"Expression error: {_name} is not a function.";
+	
+	var _arg_exprs = expr_split_args(_args_text);
+	var _args = [];
+	for(var _i = 0, _l = array_length(_arg_exprs); _i < _l; _i++) {
+		var _arg_res = expr_eval(_arg_exprs[_i]);
+		array_push(_args, is_struct(_arg_res) ? variable_struct_get(_arg_res, "value") : _arg_res);
+	}
+	
+	var _fn = _fn_sym.value;
+	var _ret = 0;
+	switch(array_length(_args)) {
+		case 0: _ret = _fn(); break;
+		case 1: _ret = _fn(_args[0]); break;
+		case 2: _ret = _fn(_args[0], _args[1]); break;
+		case 3: _ret = _fn(_args[0], _args[1], _args[2]); break;
+		case 4: _ret = _fn(_args[0], _args[1], _args[2], _args[3]); break;
+		case 5: _ret = _fn(_args[0], _args[1], _args[2], _args[3], _args[4]); break;
+		case 6: _ret = _fn(_args[0], _args[1], _args[2], _args[3], _args[4], _args[5]); break;
+		case 7: _ret = _fn(_args[0], _args[1], _args[2], _args[3], _args[4], _args[5], _args[6]); break;
+		case 8: _ret = _fn(_args[0], _args[1], _args[2], _args[3], _args[4], _args[5], _args[6], _args[7]); break;
+		default:
+			throw $"Expression error: function {_name} has too many arguments ({array_length(_args)}).";
+	}
+	return new ExprSymbol("tempFuncRet", ExprSymbolTypes.NUMBER, _ret);
 }
 
 function expr_cac(_opt, _a, _b=new ExprSymbol()) {
@@ -214,9 +276,28 @@ function expr_eval(_expr) {
 				_ch = string_char_at(_expr, _j);
 			}
 			var _varn = string_copy(_expr, _i, _j - _i);
-			array_push(_stnum, expr_get_sym(_varn, true));
-			_i = _j-1;
-			_lastTokenType = 3;
+			var _k = _j;
+			while(string_char_at(_expr, _k) == " ") _k++;
+			if(string_char_at(_expr, _k) == "(") {
+				var _fend, _fdepth = 1;
+				for(_fend = _k + 1; _fend <= _len; _fend++) {
+					_ch = string_char_at(_expr, _fend);
+					if(_ch == "(") _fdepth++;
+					else if(_ch == ")") _fdepth--;
+					if(_fdepth == 0) break;
+				}
+				if(_fend > _len)
+					throw "Expression error: " + _expr + " - Function bracket match error.";
+				var _args_text = string_copy(_expr, _k + 1, _fend - _k - 1);
+				array_push(_stnum, expr_call_func(_varn, _args_text));
+				_i = _fend;
+				_lastTokenType = 0;
+			}
+			else {
+				array_push(_stnum, expr_get_sym(_varn, true));
+				_i = _j-1;
+				_lastTokenType = 3;
+			}
 		}
 		// If a number
 		else if(is_number(_ch)) {

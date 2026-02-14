@@ -178,10 +178,69 @@ function __test_misc() {
     __assert_match_ext("abc", "^\\d+$", [], "reject non-match");
 }
 
+function __test_expr() {
+    show_debug_message("=====TEST EXPR======");
+
+    var __assert_expr_real = function(_expr, _expected, _label, _eps = 0.000001) {
+        try {
+            expr_init();
+            var _res = expr_eval(_expr);
+            var _got = is_struct(_res) ? variable_struct_get(_res, "value") : _res;
+            var _ok = abs(_got - _expected) <= _eps;
+            if(_ok)
+                show_debug_message($"[EXPR][PASS] {_label} | expr='{_expr}' => {string(_got)}");
+            else
+                show_debug_message($"[EXPR][FAIL] {_label} | expr='{_expr}' => {string(_got)} (expected {string(_expected)})");
+        } catch(e) {
+            show_debug_message($"[EXPR][FAIL] {_label} | expr='{_expr}' threw: {string(e)}");
+        }
+    };
+
+    var __assert_expr_with_var = function(_expr, _var_name, _var_value, _expected, _label, _eps = 0.000001) {
+        try {
+            expr_init();
+            expr_set_var(_var_name, _var_value);
+            var _res = expr_eval(_expr);
+            var _got = is_struct(_res) ? variable_struct_get(_res, "value") : _res;
+            var _ok = abs(_got - _expected) <= _eps;
+            if(_ok)
+                show_debug_message($"[EXPR][PASS] {_label} | expr='{_expr}' => {string(_got)}");
+            else
+                show_debug_message($"[EXPR][FAIL] {_label} | expr='{_expr}' => {string(_got)} (expected {string(_expected)})");
+        } catch(e) {
+            show_debug_message($"[EXPR][FAIL] {_label} | expr='{_expr}' threw: {string(e)}");
+        }
+    };
+
+    // Basic function calls
+    __assert_expr_real("pow(2, 3)", 8, "pow basic");
+    __assert_expr_real("sin(0)", 0, "sin basic");
+    __assert_expr_real("cos(0)", 1, "cos basic");
+    __assert_expr_real("exp(0)", 1, "exp basic");
+    __assert_expr_real("step(0.5, 0.4)", 0, "step below edge");
+    __assert_expr_real("step(0.5, 0.6)", 1, "step above edge");
+    __assert_expr_real("clamp(5, 0, 3)", 3, "clamp upper bound");
+
+    // Function calls combined with operators
+    __assert_expr_real("pow(2,3)+cos(0)", 9, "function + operator");
+    __assert_expr_real("pow(2, sin(0)+3)", 8, "nested function in args");
+    __assert_expr_real("clamp(pow(2,5)-10, 0, 10)", 10, "nested + clamp");
+    __assert_expr_real("step(0.5, sin(0)+0.6)", 1, "step with expression input");
+    __assert_expr_real("exp(1) * exp(1)", exp(2), "exp multiplication identity", 0.00001);
+
+    // Function calls with variables
+    __assert_expr_with_var("pow(time, 2)", "time", 4, 16, "pow with variable");
+    __assert_expr_with_var("sin(time)+cos(0)", "time", 0, 1, "sin with variable");
+    __assert_expr_with_var("clamp(pow(time, 2)-10, 0, 5)", "time", 4, 5, "clamp+pow with variable");
+    __assert_expr_with_var("step(0.5, cos(time))", "time", 0, 1, "step+cos with variable");
+    __assert_expr_with_var("exp(time) + pow(time, 2)", "time", 1, exp(1) + 1, "exp+pow with variable", 0.00001);
+}
+
 function test_at_start() {
     show_debug_message("=====DEBUG======")
     
     __test_misc();
+    __test_expr();
 
     var TEST_QUICK_SORT = false;
     var TEST_VERTEX_CONSTRUCTION = false;
