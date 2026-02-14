@@ -71,8 +71,6 @@ function delete_left_at_cursor() {
     inputCursorPos -= 1;
     inputCursorPos = clamp(inputCursorPos, 0, string_length(inputBuffer));
     cursorTimer = 0;
-
-    show_debug_message("Deleted left at cursor. New buffer: " + inputBuffer);
 };
 
 function delete_right_at_cursor() {
