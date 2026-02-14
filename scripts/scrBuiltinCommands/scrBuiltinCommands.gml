@@ -328,6 +328,7 @@ function CommandSnap():CommandSignature("snap", []) constructor {
 
     static execute = function(args, matchedVariant) {
         command_check_in_editor();
+        command_check_has_timing();
 
         var snapMode = SNAP_MODE.SNAP_PRE;
         if(array_length(args) > 0) {
@@ -413,6 +414,7 @@ function CommandCurve(fullCommand, alias):CommandSignature(fullCommand, alias) c
 
     static execute = function(args, matchedVariant) {
         command_check_in_editor();
+        command_check_has_timing();
         var typeOverwrite = -1;
         var beatDivOverwrite = -1;
         if(matchedVariant.get_args_count() < 0) {
@@ -548,7 +550,7 @@ function CommandDeduplicate():CommandSignature("deduplicate", ["dedup"]) constru
 function command_register_builtin_commands() {
     for(var i = 0, l = array_length(global.BUILTIN_COMMANDS); i < l; i++) {
         var cmdSig = new global.BUILTIN_COMMANDS[i]();
-        global.console.register_command(cmdSig);
+        command_register(cmdSig);
     }
 }
 
@@ -619,6 +621,16 @@ function command_check_in_editor(abort = true) {
             throw "This command can only be used in the editor.";
         return false;
     }
+    return true;
+}
+
+function command_check_has_timing(abort = true) {
+    if(timing_point_count() == 0) {
+        if(abort)
+            throw "This command requires at least one timing point in the chart.";
+        return false;
+    }
+    return true;
 }
 
 /// @description Get note properties to process based on selection.
