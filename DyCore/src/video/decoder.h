@@ -246,6 +246,22 @@ class VideoDecoder {
     void update_decoded_timing(LONGLONG timestamp);
     void enqueue_sync_frame(SyncFrame&& frame);
     void pace_for_timestamp(LONGLONG timestamp);
+    bool ensure_reader_available_for_decode();
+    bool wait_if_paused();
+    bool read_sample_from_reader(IMFSample*& pSample, DWORD& flags,
+                                 LONGLONG& timestamp);
+    void handle_end_of_stream_flag(DWORD flags, IMFSample*& pSample,
+                                   long long& skipUntilTime);
+    bool process_sample_for_output(
+        IMFSample* pSample, LONGLONG timestamp, bool isSyncMode,
+        long long& skipUntilTime,
+        const std::chrono::high_resolution_clock::time_point& skipStartTime);
+    long long compute_next_due_ticks_locked() const;
+    bool wait_for_due_sync_frame_locked(std::unique_lock<std::mutex>& lock);
+    bool can_copy_front_sync_frame_locked(long long clockTicks,
+                                          double buffer_size) const;
+    double copy_front_sync_frame_locked(void* gm_buffer_ptr,
+                                        std::unique_lock<std::mutex>& lock);
     double get_frame_sync_locked(void* gm_buffer_ptr, double buffer_size,
                                  long long clockTicks,
                                  std::unique_lock<std::mutex>& lock);

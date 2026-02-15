@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "gm.h"
+#include "import_common.h"
 #include "note.h"
 #include "project.h"
 #include "timing.h"
@@ -73,23 +74,14 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
         double offset = std::stod(map_root.child_value("m_timeOffset"));
 
         // Read note data.
-        struct XMLNoteData {
-            string id, subid;
-            int type, side;
-            double bar, position, width, time;
-        };
-        struct XMLTimingData {
-            double time;
-            double barPerMinute;
-        };
-        std::vector<XMLNoteData> notes;
+        std::vector<ImportedNoteData> notes;
 
         auto import_side_notes = [&](pugi::xml_node side_root, int side) {
             auto arrNode = side_root.child("m_notes");
             if (!arrNode)
                 return;
             for (auto noteNode : arrNode.children("CMapNoteAsset")) {
-                XMLNoteData noteData;
+                ImportedNoteData noteData;
                 // Read
                 noteData.id = noteNode.child_value("m_id");
                 noteData.subid = noteNode.child_value("m_subId");
@@ -115,7 +107,7 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
 
         // Read timing data.
         bool hasTimingData = false;
-        std::vector<XMLTimingData> xmlTimings;
+        std::vector<ImportedTimingData> xmlTimings;
         if (auto timingRootNode =
                 map_root.child("m_argument").child("m_bpmchange")) {
             for (auto timingNode : timingRootNode.children("CBpmchange")) {
@@ -127,90 +119,17 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
             }
 
             std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const XMLTimingData& a, const XMLTimingData& b) {
+                      [](const ImportedTimingData& a,
+                         const ImportedTimingData& b) {
                           return a.time < b.time;
                       });
         }
 
-        static auto bar_to_time = [](double offset, double barPerMinute) {
-            return (offset * 60000.0) / barPerMinute;
-        };
-
-        if (importTiming) {
-            auto& timingMan = get_timing_manager();
-            timingMan.clear();
-            if (hasTimingData) {
-                double rTime = bar_to_time(-offset, barPerMin);
-                for (int i = 0; i < xmlTimings.size(); i++) {
-                    double nTime = xmlTimings[i].time;
-                    if (i > 0) {
-                        nTime = bar_to_time(nTime - xmlTimings[i - 1].time,
-                                            xmlTimings[i - 1].barPerMinute) +
-                                rTime;
-                    } else {
-                        nTime = rTime;
-                    }
-                    rTime = nTime;
-
-                    TimingPoint tp;
-                    tp.meter = 4;
-                    tp.time = nTime;
-                    tp.set_bpm(xmlTimings[i].barPerMinute * 4);
-                    timingMan.add_timing_point(tp);
-                }
-            } else {
-                timingMan.add_timing_point({bar_to_time(-offset, barPerMin),
-                                            60000.0 / (barPerMin * 4), 4});
-            }
-            timingMan.sort();
-        }
-
-        // Fix every note's time.
-        double fixedOffset = bar_to_time(offset, barPerMin);
-        for (auto& note : notes) {
-            if (xmlTimings.size() > 1) {
-                double nTime = note.bar;
-                double rTime = 0;
-                for (int i = 1, l = xmlTimings.size(); i <= l; i++) {
-                    if (i == l || xmlTimings[i].time > nTime) {
-                        rTime += bar_to_time(nTime - xmlTimings[i - 1].time,
-                                             xmlTimings[i - 1].barPerMinute);
-                        break;
-                    }
-                    rTime +=
-                        bar_to_time(xmlTimings[i].time - xmlTimings[i - 1].time,
-                                    xmlTimings[i - 1].barPerMinute);
-                }
-                note.time = rTime;
-            } else {
-                note.time = bar_to_time(note.bar, barPerMin);
-            }
-            note.time -= fixedOffset;
-        }
-
-        // Build temporary noteID to time map.
-        std::unordered_map<string, double> noteIDTimeMap;
-        for (auto& note : notes) {
-            noteIDTimeMap[note.id] = note.time;
-        }
-
-        // Add notes to the project.
-        for (const auto& note : notes)
-            if (note.type != 3) {
-                Note newNote;
-                newNote.time = note.time;
-                newNote.side = note.side;
-                newNote.lastTime = 0;
-                newNote.width = note.width;
-                newNote.position = note.position;
-                newNote.type = note.type;
-                newNote.beginTime = note.time;
-
-                if (note.type == 2) {
-                    newNote.lastTime = noteIDTimeMap[note.subid] - note.time;
-                }
-                create_note(newNote);
-            }
+        import_timing_points(importTiming, hasTimingData, xmlTimings, offset,
+                             barPerMin);
+        fix_imported_note_times(notes, xmlTimings, offset, barPerMin);
+        const auto noteIDTimeMap = build_note_id_time_map(notes);
+        add_imported_notes_to_project(notes, noteIDTimeMap);
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing XML: " +
                             string(e.what()));

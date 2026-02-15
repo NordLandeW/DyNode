@@ -282,6 +282,110 @@ void VideoDecoder::pace_for_timestamp(LONGLONG timestamp) {
     m_nextFrameTargetTime = std::chrono::high_resolution_clock::now();
 }
 
+bool VideoDecoder::ensure_reader_available_for_decode() {
+    if (m_pReader) {
+        return true;
+    }
+
+    print_debug_message(
+        "VideoDecoder::decode_loop exiting because m_pReader is null.");
+    return false;
+}
+
+bool VideoDecoder::wait_if_paused() {
+    if (m_isPlaying) {
+        return false;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return true;
+}
+
+bool VideoDecoder::read_sample_from_reader(IMFSample*& pSample, DWORD& flags,
+                                           LONGLONG& timestamp) {
+    DWORD streamIndex = 0;
+    flags = 0;
+    timestamp = 0;
+
+    const HRESULT hr =
+        m_pReader->ReadSample((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0,
+                              &streamIndex, &flags, &timestamp, &pSample);
+
+    if (SUCCEEDED(hr)) {
+        return true;
+    }
+
+    if (pSample) {
+        pSample->Release();
+        pSample = nullptr;
+    }
+
+    print_debug_message(std::format(
+        "VideoDecoder::decode_loop ReadSample failed, hr=0x{:08X}",
+        static_cast<unsigned long>(hr)));
+    return false;
+}
+
+void VideoDecoder::handle_end_of_stream_flag(DWORD flags, IMFSample*& pSample,
+                                             long long& skipUntilTime) {
+    if (!(flags & MF_SOURCE_READERF_ENDOFSTREAM)) {
+        return;
+    }
+
+    if (pSample) {
+        pSample->Release();
+        pSample = nullptr;
+    }
+
+    m_isFinished = true;
+    m_isPlaying = false;
+    skipUntilTime = -1;
+
+    m_syncCvFrameAvailable.notify_all();
+    m_syncCvQueueSpace.notify_all();
+
+    print_debug_message("VideoDecoder::decode_loop reached end of stream.");
+}
+
+bool VideoDecoder::process_sample_for_output(
+    IMFSample* pSample, LONGLONG timestamp, bool isSyncMode,
+    long long& skipUntilTime,
+    const std::chrono::high_resolution_clock::time_point& skipStartTime) {
+    if (should_drop_sample(timestamp, isSyncMode, skipUntilTime, skipStartTime)) {
+        pSample->Release();
+        return false;
+    }
+
+    const size_t expectedSize = m_width * m_height * 4;
+    SyncFrame syncFrame;
+    const bool copied =
+        isSyncMode ? make_sync_frame(pSample, timestamp, syncFrame, expectedSize)
+                   : write_latest_frame(pSample, expectedSize);
+
+    pSample->Release();
+
+    if (!copied) {
+        return false;
+    }
+
+    update_decoded_timing(timestamp);
+
+    if (isSyncMode) {
+        if (m_seekTarget.load(std::memory_order_relaxed) >= 0) {
+            m_lastPresentationTime = timestamp;
+            return true;
+        }
+
+        enqueue_sync_frame(std::move(syncFrame));
+        m_lastPresentationTime = timestamp;
+        return true;
+    }
+
+    pace_for_timestamp(timestamp);
+    m_lastPresentationTime = timestamp;
+    return true;
+}
+
 void VideoDecoder::decode_loop() {
     // Initialize COM on the worker thread since Media Foundation objects are
     // apartment-affine.
@@ -300,108 +404,33 @@ void VideoDecoder::decode_loop() {
     auto skipStartTime = std::chrono::high_resolution_clock::now();
 
     while (!m_stopRequested) {
-        // If the reader has been released, there is nothing left to decode.
-        if (!m_pReader) {
-            print_debug_message(
-                "VideoDecoder::decode_loop exiting because m_pReader is null.");
+        if (!ensure_reader_available_for_decode()) {
             break;
         }
 
-        // Respect pause state without destroying decoder resources so toggling
-        // play/pause stays cheap.
-        if (!m_isPlaying) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (wait_if_paused()) {
             continue;
         }
 
         const bool isSyncMode = m_isSyncMode.load(std::memory_order_relaxed);
-
-        // Perform any pending seek on the decode thread to keep MF calls
-        // confined to a single COM apartment.
         handle_pending_seek(isSyncMode, skipUntilTime, skipStartTime);
 
-        // Read next frame from the source.
         IMFSample* pSample = nullptr;
-        DWORD streamIndex = 0;
         DWORD flags = 0;
         LONGLONG llTimeStamp = 0;
 
-        hr =
-            m_pReader->ReadSample((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0,
-                                  &streamIndex, &flags, &llTimeStamp, &pSample);
-
-        if (FAILED(hr)) {
-            if (pSample) {
-                pSample->Release();
-            }
-            // Abort the loop on hard read errors to avoid a busy retry spin.
-            print_debug_message(std::format(
-                "VideoDecoder::decode_loop ReadSample failed, hr=0x{:08X}",
-                static_cast<unsigned long>(hr)));
+        if (!read_sample_from_reader(pSample, flags, llTimeStamp)) {
             break;
         }
 
-        if (flags & MF_SOURCE_READERF_ENDOFSTREAM) {
-            if (pSample) {
-                pSample->Release();
-                pSample = nullptr;
-            }
-            // Mark end of stream so callers can differentiate EOS from pause.
-            m_isFinished = true;
-            m_isPlaying = false;
-            skipUntilTime = -1;
-
-            // Wake sync consumers so they don't block forever when playback
-            // ends.
-            m_syncCvFrameAvailable.notify_all();
-            m_syncCvQueueSpace.notify_all();
-
-            print_debug_message(
-                "VideoDecoder::decode_loop reached end of stream.");
-        }
+        handle_end_of_stream_flag(flags, pSample, skipUntilTime);
 
         if (!pSample) {
             continue;
         }
 
-        if (should_drop_sample(llTimeStamp, isSyncMode, skipUntilTime,
-                               skipStartTime)) {
-            pSample->Release();
-            continue;
-        }
-
-        const size_t expectedSize = m_width * m_height * 4;
-        SyncFrame syncFrame;
-        bool copied = false;
-
-        if (isSyncMode) {
-            copied =
-                make_sync_frame(pSample, llTimeStamp, syncFrame, expectedSize);
-        } else {
-            copied = write_latest_frame(pSample, expectedSize);
-        }
-
-        pSample->Release();
-
-        if (!copied) {
-            continue;
-        }
-
-        update_decoded_timing(llTimeStamp);
-
-        if (isSyncMode) {
-            if (m_seekTarget.load(std::memory_order_relaxed) >= 0) {
-                m_lastPresentationTime = llTimeStamp;
-                continue;
-            }
-
-            enqueue_sync_frame(std::move(syncFrame));
-            m_lastPresentationTime = llTimeStamp;
-            continue;
-        }
-
-        pace_for_timestamp(llTimeStamp);
-        m_lastPresentationTime = llTimeStamp;
+        process_sample_for_output(pSample, llTimeStamp, isSyncMode,
+                                  skipUntilTime, skipStartTime);
     }
 
     print_debug_message("VideoDecoder::decode_loop exiting.");
@@ -872,27 +901,26 @@ static long long pick_frame_duration_ticks(
     return 0;
 }
 
-double VideoDecoder::get_frame_sync_locked(void* gm_buffer_ptr,
-                                           double buffer_size,
-                                           long long clockTicks,
-                                           std::unique_lock<std::mutex>& lock) {
-    long long nextDueTicks = 0;
+long long VideoDecoder::compute_next_due_ticks_locked() const {
     if (!m_syncQueue.empty()) {
-        nextDueTicks = m_syncQueue.front().timestampTicks;
-    } else if (m_syncLastPresentedTimestampTicks >= 0) {
-        const long long frameDurTicks = pick_frame_duration_ticks(
-            m_nominalFrameDurationTicks, m_syncEstimatedFrameDurationTicks);
-        if (frameDurTicks > 0) {
-            nextDueTicks = m_syncLastPresentedTimestampTicks + frameDurTicks;
-        } else {
-            return 0.0;
-        }
+        return m_syncQueue.front().timestampTicks;
     }
 
-    if (clockTicks < nextDueTicks) {
-        return 0.0;
+    if (m_syncLastPresentedTimestampTicks < 0) {
+        return 0;
     }
 
+    const long long frameDurTicks = pick_frame_duration_ticks(
+        m_nominalFrameDurationTicks, m_syncEstimatedFrameDurationTicks);
+    if (frameDurTicks <= 0) {
+        return -1;
+    }
+
+    return m_syncLastPresentedTimestampTicks + frameDurTicks;
+}
+
+bool VideoDecoder::wait_for_due_sync_frame_locked(
+    std::unique_lock<std::mutex>& lock) {
     while (m_syncQueue.empty() &&
            m_isSyncMode.load(std::memory_order_relaxed) && !m_stopRequested &&
            !m_isFinished && m_isPlaying) {
@@ -901,24 +929,35 @@ double VideoDecoder::get_frame_sync_locked(void* gm_buffer_ptr,
 
     if (!m_isSyncMode.load(std::memory_order_relaxed) || m_stopRequested ||
         !m_isPlaying) {
-        return 0.0;
+        return false;
     }
 
+    return !m_syncQueue.empty();
+}
+
+bool VideoDecoder::can_copy_front_sync_frame_locked(long long clockTicks,
+                                                     double buffer_size) const {
     if (m_syncQueue.empty()) {
-        return 0.0;
+        return false;
     }
 
     const SyncFrame& frame = m_syncQueue.front();
     if (frame.timestampTicks > clockTicks) {
-        return 0.0;
+        return false;
     }
 
     const size_t requiredSize = frame.pixels.size();
     if (requiredSize == 0 || buffer_size < requiredSize) {
-        return 0.0;
+        return false;
     }
 
-    memcpy(gm_buffer_ptr, frame.pixels.data(), requiredSize);
+    return true;
+}
+
+double VideoDecoder::copy_front_sync_frame_locked(
+    void* gm_buffer_ptr, std::unique_lock<std::mutex>& lock) {
+    const SyncFrame& frame = m_syncQueue.front();
+    memcpy(gm_buffer_ptr, frame.pixels.data(), frame.pixels.size());
     m_syncLastPresentedTimestampTicks = frame.timestampTicks;
     m_syncQueue.pop_front();
 
@@ -926,6 +965,30 @@ double VideoDecoder::get_frame_sync_locked(void* gm_buffer_ptr,
     m_syncCvQueueSpace.notify_one();
 
     return 1.0;
+}
+
+double VideoDecoder::get_frame_sync_locked(void* gm_buffer_ptr,
+                                           double buffer_size,
+                                           long long clockTicks,
+                                           std::unique_lock<std::mutex>& lock) {
+    const long long nextDueTicks = compute_next_due_ticks_locked();
+    if (nextDueTicks < 0) {
+        return 0.0;
+    }
+
+    if (clockTicks < nextDueTicks) {
+        return 0.0;
+    }
+
+    if (!wait_for_due_sync_frame_locked(lock)) {
+        return 0.0;
+    }
+
+    if (!can_copy_front_sync_frame_locked(clockTicks, buffer_size)) {
+        return 0.0;
+    }
+
+    return copy_front_sync_frame_locked(gm_buffer_ptr, lock);
 }
 
 double VideoDecoder::get_frame_sync(void* gm_buffer_ptr, double buffer_size,
