@@ -1,6 +1,7 @@
 
 #include "xml.h"
 
+#include <algorithm>
 #include <exception>
 #include <fstream>
 #include <pugixml.hpp>
@@ -15,6 +16,215 @@
 #include "xml.h"
 
 using std::string;
+
+namespace {
+
+struct ExportNote {
+    int id;
+    int subId = -1;
+    double time;
+    int type;
+    double position;
+    double width;
+    int side;
+};
+
+std::vector<ExportNote> collect_export_notes() {
+    std::vector<ExportNote> exportNotes;
+    int noteIndex = 0;
+
+    std::vector<Note> notes;
+    get_notes_array(notes);
+    std::sort(notes.begin(), notes.end(),
+              [](const Note& a, const Note& b) { return a.time < b.time; });
+
+    for (const auto& note : notes) {
+        ExportNote en;
+        en.id = noteIndex++;
+        en.time = note.time;
+        en.type = note.type;
+        en.position = note.position;
+        en.width = note.width;
+        en.side = note.side;
+
+        if (note.get_note_type() == NOTE_TYPE::HOLD) {
+            ExportNote subNote;
+            subNote.id = noteIndex++;
+            en.subId = subNote.id;
+            subNote.time = note.time + note.lastTime;
+            subNote.type = 3;
+            subNote.position = note.position;
+            subNote.width = note.width;
+            subNote.side = note.side;
+            exportNotes.push_back(subNote);
+        }
+        exportNotes.push_back(en);
+    }
+
+    std::sort(exportNotes.begin(), exportNotes.end(),
+              [](const ExportNote& a, const ExportNote& b) {
+                  return a.time < b.time;
+              });
+
+    return exportNotes;
+}
+
+void apply_note_time_fix(std::vector<ExportNote>& exportNotes, double fixError) {
+    if (fixError <= 0 || exportNotes.empty()) {
+        return;
+    }
+
+    size_t group_start_index = 0;
+    for (size_t i = 1; i < exportNotes.size(); ++i) {
+        if (exportNotes[i].time - exportNotes[group_start_index].time >
+            fixError) {
+            if (i - group_start_index > 1) {
+                double first_note_time = exportNotes[group_start_index].time;
+                for (size_t j = group_start_index + 1; j < i; ++j) {
+                    exportNotes[j].time = first_note_time;
+                }
+            }
+            group_start_index = i;
+        }
+    }
+
+    if (exportNotes.size() - group_start_index > 1) {
+        double first_note_time = exportNotes[group_start_index].time;
+        for (size_t j = group_start_index + 1; j < exportNotes.size(); ++j) {
+            exportNotes[j].time = first_note_time;
+        }
+    }
+}
+
+class TimeToBarConverter {
+public:
+    TimeToBarConverter(bool isDym,
+                       double timeOffset,
+                       double barPerMin,
+                       const std::vector<TimingPoint>& timingPoints)
+        : isDym_(isDym),
+          timeOffset_(timeOffset),
+          barPerMin_(barPerMin),
+          timingPoints_(timingPoints) {}
+
+    double operator()(double time) const {
+        if (!isDym_) {
+            return (time + timeOffset_) * barPerMin_ / 60000.0;
+        }
+
+        double current_bar = 0;
+        double last_time = timingPoints_[0].time;
+        double last_bpm = timingPoints_[0].get_bpm();
+
+        for (const auto& tp : timingPoints_) {
+            if (time < tp.time) {
+                break;
+            }
+            current_bar += (tp.time - last_time) * (last_bpm / 4.0) / 60000.0;
+            last_time = tp.time;
+            last_bpm = tp.get_bpm();
+        }
+
+        current_bar += (time - last_time) * (last_bpm / 4.0) / 60000.0;
+        return current_bar;
+    }
+
+private:
+    bool isDym_;
+    double timeOffset_;
+    double barPerMin_;
+    const std::vector<TimingPoint>& timingPoints_;
+};
+
+const char* note_type_to_string(int type) {
+    switch (type) {
+        case 0:
+            return "NORMAL";
+        case 1:
+            return "CHAIN";
+        case 2:
+            return "HOLD";
+        case 3:
+            return "SUB";
+    }
+    return "";
+}
+
+pugi::xml_node get_side_root(int side,
+                             pugi::xml_node notes_middle_root,
+                             pugi::xml_node notes_left_root,
+                             pugi::xml_node notes_right_root) {
+    switch (side) {
+        case 0:
+            return notes_middle_root;
+        case 1:
+            return notes_left_root;
+        case 2:
+            return notes_right_root;
+    }
+    return {};
+}
+
+void append_note_nodes(pugi::xml_node root,
+                       const std::vector<ExportNote>& exportNotes,
+                       const TimeToBarConverter& timeToBar) {
+    auto notes_middle_root =
+        root.append_child("m_notes").append_child("m_notes");
+    auto notes_left_root =
+        root.append_child("m_notesLeft").append_child("m_notes");
+    auto notes_right_root =
+        root.append_child("m_notesRight").append_child("m_notes");
+
+    for (const auto& note : exportNotes) {
+        auto side_root = get_side_root(note.side, notes_middle_root,
+                                       notes_left_root, notes_right_root);
+
+        auto note_node = side_root.append_child("CMapNoteAsset");
+        note_node.append_child("m_id").text().set(note.id);
+        note_node.append_child("m_type").text().set(note_type_to_string(note.type));
+        note_node.append_child("m_time").text().set(
+            format_double_with_precision(timeToBar(note.time), XML_EXPORT_EPS)
+                .c_str());
+        note_node.append_child("m_position")
+            .text()
+            .set(format_double_with_precision(note.position - note.width / 2.0,
+                                              XML_EXPORT_EPS)
+                     .c_str());
+        note_node.append_child("m_width").text().set(
+            format_double_with_precision(note.width, XML_EXPORT_EPS).c_str());
+        note_node.append_child("m_subId").text().set(note.subId);
+    }
+}
+
+void append_timing_nodes_for_dym(pugi::xml_node root,
+                                 bool isDym,
+                                 const std::vector<TimingPoint>& timingPoints) {
+    if (!isDym) {
+        return;
+    }
+
+    auto arg_root = root.append_child("m_argument");
+    auto bpm_root = arg_root.append_child("m_bpmchange");
+
+    double current_bar = 0;
+    double last_time = timingPoints[0].time;
+    double last_bpm = timingPoints[0].get_bpm();
+
+    for (const auto& tp : timingPoints) {
+        current_bar += (tp.time - last_time) * (last_bpm / 4.0) / 60000.0;
+        last_time = tp.time;
+        last_bpm = tp.get_bpm();
+
+        auto bpm_node = bpm_root.append_child("CBpmchange");
+        bpm_node.append_child("m_time").text().set(
+            format_double_with_precision(current_bar, XML_EXPORT_EPS).c_str());
+        bpm_node.append_child("m_value").text().set(
+            format_double_with_precision(tp.get_bpm() / 4.0, XML_EXPORT_EPS)
+                .c_str());
+    }
+}
+
+}  // namespace
 
 IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
                                           bool importMetadata,
@@ -189,174 +399,11 @@ void chart_export_xml(const char* filePath, bool isDym, double fixError) {
          difficulty_int_to_char(chartMetadata.difficulty))
             .c_str());
 
-    // Note processing
-    struct ExportNote {
-        int id;
-        int subId = -1;
-        double time;
-        int type;
-        double position;
-        double width;
-        int side;
-    };
-
-    std::vector<ExportNote> exportNotes;
-    int noteIndex = 0;
-
-    std::vector<Note> notes;
-    get_notes_array(notes);
-    std::sort(notes.begin(), notes.end(),
-              [](const Note& a, const Note& b) { return a.time < b.time; });
-
-    for (const auto& note : notes) {
-        ExportNote en;
-        en.id = noteIndex++;
-        en.time = note.time;
-        en.type = note.type;
-        en.position = note.position;
-        en.width = note.width;
-        en.side = note.side;
-
-        if (note.get_note_type() == NOTE_TYPE::HOLD) {
-            ExportNote subNote;
-            subNote.id = noteIndex++;
-            en.subId = subNote.id;
-            subNote.time = note.time + note.lastTime;
-            subNote.type = 3;  // SUB
-            subNote.position = note.position;
-            subNote.width = note.width;
-            subNote.side = note.side;
-            exportNotes.push_back(subNote);
-        }
-        exportNotes.push_back(en);
-    }
-
-    std::sort(exportNotes.begin(), exportNotes.end(),
-              [](const ExportNote& a, const ExportNote& b) {
-                  return a.time < b.time;
-              });
-
-    if (fixError > 0 && !exportNotes.empty()) {
-        size_t group_start_index = 0;
-        for (size_t i = 1; i < exportNotes.size(); ++i) {
-            if (exportNotes[i].time - exportNotes[group_start_index].time >
-                fixError) {
-                if (i - group_start_index > 1) {
-                    double first_note_time =
-                        exportNotes[group_start_index].time;
-                    for (size_t j = group_start_index + 1; j < i; ++j) {
-                        exportNotes[j].time = first_note_time;
-                    }
-                }
-                group_start_index = i;
-            }
-        }
-
-        if (exportNotes.size() - group_start_index > 1) {
-            double first_note_time = exportNotes[group_start_index].time;
-            for (size_t j = group_start_index + 1; j < exportNotes.size();
-                 ++j) {
-                exportNotes[j].time = first_note_time;
-            }
-        }
-    }
-
-    // Time to bar conversion
-    auto time_to_bar = [&](double time) {
-        if (!isDym) {
-            // Simple conversion for non-DyM formats
-            return (time + timeOffset) * barPerMin / 60000.0;
-        }
-
-        // DyM format with multiple timing points
-        double current_bar = 0;
-        double last_time = timingPoints[0].time;
-        double last_bpm = timingPoints[0].get_bpm();
-
-        for (const auto& tp : timingPoints) {
-            if (time < tp.time) {
-                break;
-            }
-            current_bar += (tp.time - last_time) * (last_bpm / 4.0) / 60000.0;
-            last_time = tp.time;
-            last_bpm = tp.get_bpm();
-        }
-        current_bar += (time - last_time) * (last_bpm / 4.0) / 60000.0;
-        return current_bar;
-    };
-
-    auto noteType_to_string = [](int type) {
-        switch (type) {
-            case 0:
-                return "NORMAL";
-            case 1:
-                return "CHAIN";
-            case 2:
-                return "HOLD";
-            case 3:
-                return "SUB";
-        }
-        return "";
-    };
-
-    // Create note nodes
-    auto notes_middle_root =
-        root.append_child("m_notes").append_child("m_notes");
-    auto notes_left_root =
-        root.append_child("m_notesLeft").append_child("m_notes");
-    auto notes_right_root =
-        root.append_child("m_notesRight").append_child("m_notes");
-
-    for (const auto& note : exportNotes) {
-        pugi::xml_node side_root;
-        switch (note.side) {
-            case 0:
-                side_root = notes_middle_root;
-                break;
-            case 1:
-                side_root = notes_left_root;
-                break;
-            case 2:
-                side_root = notes_right_root;
-                break;
-        }
-
-        auto note_node = side_root.append_child("CMapNoteAsset");
-        note_node.append_child("m_id").text().set(note.id);
-        note_node.append_child("m_type").text().set(
-            noteType_to_string(note.type));
-        note_node.append_child("m_time").text().set(
-            fdwp(time_to_bar(note.time), XML_EXPORT_EPS).c_str());
-        note_node.append_child("m_position")
-            .text()
-            .set(
-                fdwp(note.position - note.width / 2.0, XML_EXPORT_EPS).c_str());
-        note_node.append_child("m_width").text().set(
-            fdwp(note.width, XML_EXPORT_EPS).c_str());
-        note_node.append_child("m_subId").text().set(note.subId);
-    }
-
-    // Timing points for DyM
-    if (isDym) {
-        auto arg_root = root.append_child("m_argument");
-        auto bpm_root = arg_root.append_child("m_bpmchange");
-
-        double current_bar = 0;
-        double last_time = timingPoints[0].time;
-        double last_bpm = timingPoints[0].get_bpm();
-
-        for (const auto& tp : timingPoints) {
-            current_bar += (tp.time - last_time) * (last_bpm / 4.0) / 60000.0;
-            last_time = tp.time;
-            last_bpm = tp.get_bpm();
-
-            auto bpm_node = bpm_root.append_child("CBpmchange");
-            bpm_node.append_child("m_time").text().set(
-                fdwp(current_bar, XML_EXPORT_EPS).c_str());
-            bpm_node.append_child("m_value").text().set(
-                fdwp(tp.get_bpm() / 4.0, XML_EXPORT_EPS).c_str());
-        }
-    }
+    auto exportNotes = collect_export_notes();
+    apply_note_time_fix(exportNotes, fixError);
+    TimeToBarConverter timeToBar(isDym, timeOffset, barPerMin, timingPoints);
+    append_note_nodes(root, exportNotes, timeToBar);
+    append_timing_nodes_for_dym(root, isDym, timingPoints);
 
     // Save file
     std::ofstream stream(convert_char_to_path(filePath));
