@@ -7,7 +7,7 @@
 #include <string>
 
 #include "gm.h"
-#include "import_common.h"
+#include "dymImportCommon.h"
 #include "note.h"
 #include "project.h"
 #include "utils.h"
@@ -101,14 +101,14 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
         double offset = json_to_double(map_root["m_timeOffset"]);
 
         // Read note data.
-        std::vector<ImportedNoteData> notes;
+        std::vector<DYMNotedata> notes;
 
         auto import_side_notes = [&](const json& side_root, int side) {
             auto arrNode = side_root["m_notes"]["CMapNoteAsset"];
             if (!arrNode.is_array())
                 return;
             for (auto noteNode : arrNode) {
-                ImportedNoteData noteData;
+                DYMNotedata noteData;
                 // Read
                 noteData.id = json_to_string(noteNode["m_id"]);
                 noteData.subid = json_to_string(noteNode["m_subId"]);
@@ -132,7 +132,7 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
 
         // Read timing data.
         bool hasTimingData = false;
-        std::vector<ImportedTimingData> xmlTimings;
+        std::vector<DYMTimingData> xmlTimings;
         if (map_root.contains("m_argument") &&
             map_root["m_argument"].contains("m_bpmchange")) {
             auto timingRootNode = map_root["m_argument"]["m_bpmchange"];
@@ -145,8 +145,8 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
             }
 
             std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const ImportedTimingData& a,
-                         const ImportedTimingData& b) {
+                      [](const DYMTimingData& a,
+                         const DYMTimingData& b) {
                           return a.time < b.time;
                       });
         }

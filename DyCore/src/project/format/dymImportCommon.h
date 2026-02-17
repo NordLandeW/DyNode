@@ -6,7 +6,7 @@
 #include "note.h"
 #include "timing.h"
 
-struct ImportedNoteData {
+struct DYMNotedata {
     std::string id;
     std::string subid;
     int type = 0;
@@ -17,7 +17,7 @@ struct ImportedNoteData {
     double time = 0.0;
 };
 
-struct ImportedTimingData {
+struct DYMTimingData {
     double time = 0.0;
     double barPerMinute = 0.0;
 };
@@ -27,7 +27,7 @@ inline double imported_bar_to_time(double offset, double barPerMinute) {
 }
 
 inline void import_timing_points(bool importTiming, bool hasTimingData,
-                                 const std::vector<ImportedTimingData>& timings,
+                                 const std::vector<DYMTimingData>& timings,
                                  double offset, double barPerMin) {
     if (!importTiming) {
         return;
@@ -67,8 +67,8 @@ inline void import_timing_points(bool importTiming, bool hasTimingData,
 }
 
 inline void fix_imported_note_times(
-    std::vector<ImportedNoteData>& notes,
-    const std::vector<ImportedTimingData>& timings, double offset,
+    std::vector<DYMNotedata>& notes,
+    const std::vector<DYMTimingData>& timings, double offset,
     double barPerMin) {
     const double fixedOffset = imported_bar_to_time(offset, barPerMin);
 
@@ -100,7 +100,7 @@ inline void fix_imported_note_times(
 }
 
 inline std::unordered_map<std::string, double> build_note_id_time_map(
-    const std::vector<ImportedNoteData>& notes) {
+    const std::vector<DYMNotedata>& notes) {
     std::unordered_map<std::string, double> noteIDTimeMap;
     for (const auto& note : notes) {
         noteIDTimeMap[note.id] = note.time;
@@ -109,7 +109,7 @@ inline std::unordered_map<std::string, double> build_note_id_time_map(
 }
 
 inline void add_imported_notes_to_project(
-    const std::vector<ImportedNoteData>& notes,
+    const std::vector<DYMNotedata>& notes,
     const std::unordered_map<std::string, double>& noteIDTimeMap) {
     for (const auto& note : notes) {
         if (note.type == 3) {

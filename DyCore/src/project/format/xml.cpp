@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "gm.h"
-#include "import_common.h"
+#include "dymImportCommon.h"
 #include "note.h"
 #include "project.h"
 #include "timing.h"
@@ -284,14 +284,14 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
         double offset = std::stod(map_root.child_value("m_timeOffset"));
 
         // Read note data.
-        std::vector<ImportedNoteData> notes;
+        std::vector<DYMNotedata> notes;
 
         auto import_side_notes = [&](pugi::xml_node side_root, int side) {
             auto arrNode = side_root.child("m_notes");
             if (!arrNode)
                 return;
             for (auto noteNode : arrNode.children("CMapNoteAsset")) {
-                ImportedNoteData noteData;
+                DYMNotedata noteData;
                 // Read
                 noteData.id = noteNode.child_value("m_id");
                 noteData.subid = noteNode.child_value("m_subId");
@@ -317,7 +317,7 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
 
         // Read timing data.
         bool hasTimingData = false;
-        std::vector<ImportedTimingData> xmlTimings;
+        std::vector<DYMTimingData> xmlTimings;
         if (auto timingRootNode =
                 map_root.child("m_argument").child("m_bpmchange")) {
             for (auto timingNode : timingRootNode.children("CBpmchange")) {
@@ -329,8 +329,8 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
             }
 
             std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const ImportedTimingData& a,
-                         const ImportedTimingData& b) {
+                      [](const DYMTimingData& a,
+                         const DYMTimingData& b) {
                           return a.time < b.time;
                       });
         }
