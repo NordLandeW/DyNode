@@ -171,7 +171,7 @@
         "tab_main_volume": "音乐音量",
         "tab_hitsound_volume": "打击音量",
         "tab_bg_dim": "背景亮度",
-        "tab_pitchshift": "禁用变调（实验性）",
+        "tab_pitchshift": "禁用变调",
         "timing_point_change": "你正在修改位于 $0 ms 上的 Timing Point。请以 <offset>,<BPM>,<meter> 的形式来输入字符串进行修改。",
         "timing_point_change_err": "Timing Point 修改出现错误。请确认你输入的字符串形式是合法的。",
         "timing_point_change_success": "位于 $0 ms 上的 Timing Point 被修改为:\nBPM: $1 节拍: $2/4",

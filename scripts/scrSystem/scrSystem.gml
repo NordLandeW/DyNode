@@ -1325,7 +1325,7 @@ function sfmod_channel_get_position(channel) {
 function sfmod_get_dsp_latency() {
 	var outputSampleRate = FMODGMS_Sys_Get_SampleRate();
 	var dspLatency = FMOD_DSP_BUFFERSIZE / outputSampleRate * 1000 * (FMOD_DSP_BUFFERCOUNT - 1.5);
-	if(objMain.usingPitchShift) {
+	if(objMain.pitchshift_effect_enabled()) {
 		dspLatency += FMOD_DSP_APP_PITCHSHIFT_FFTSIZE / outputSampleRate * 1000;
 	}
 	return dspLatency;

@@ -442,15 +442,9 @@ function time_music_sync() {
 function music_pitchshift_switch(enable) {
 	if(enable != usingPitchShift) {
 		usingPitchShift = enable;
-		if(channel>=0) {
-			if(enable) {
-				FMODGMS_Chan_Add_Effect(channel, global.__DSP_Effect, 1);
-			}
-			else {
-				FMODGMS_Chan_Remove_Effect(channel, global.__DSP_Effect);
-			}
-		}
-		musicResyncRequest = true;
+
+        // Enable the effect in method below.
+        _set_channel_speed(musicSpeed);
 	}
 }
 
@@ -484,24 +478,30 @@ function volume_set_main(_vol) {
 function _create_channel() {
 	FMODGMS_Chan_RemoveChannel(channel);
 	channel = FMODGMS_Chan_CreateChannel();
-	if(objMain.usingPitchShift)
-    FMODGMS_Chan_Add_Effect(channel, global.__DSP_Effect, 0);
 }
 
 function _set_channel_speed(spd) {
     FMODGMS_Chan_Set_Pitch(channel, spd);
     FMODGMS_Chan_Set_Volume(channel, volumeMain);
-	if(objMain.usingPitchShift) {
+	if(objMain.usingPitchShift && spd != 1) {
 		FMODGMS_Effect_Set_Parameter(global.__DSP_Effect, FMOD_DSP_PITCHSHIFT.FMOD_DSP_PITCHSHIFT_PITCH, 1.0/spd);
 		FMODGMS_Chan_Remove_Effect(channel, global.__DSP_Effect);
 		FMODGMS_Chan_Add_Effect(channel, global.__DSP_Effect, 1);
 	}
+    else {
+    	FMODGMS_Chan_Remove_Effect(channel, global.__DSP_Effect);
+    }
 	
     dyc_video_set_speed(spd);
+    musicResyncRequest = true;
 }
 
 function _reset_all_particles() {
     part_particles_clear(partSysNote);
+}
+
+function pitchshift_effect_enabled() {
+    return usingPitchShift && musicSpeed != 1;
 }
 
 #endregion
