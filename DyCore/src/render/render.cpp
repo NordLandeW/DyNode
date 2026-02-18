@@ -402,17 +402,18 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     char* ptr = vertexBuffer;
 
     // Get active notes list.
-    auto& actMan = get_note_activation_manager();
+    const auto& actMan = get_note_activation_manager();
     const auto& activeNotes = actMan.get_active_notes();
     const auto& activeHolds = actMan.get_active_holds();
     const auto& lastingHolds = actMan.get_lasting_holds();
 
     // Get sprites.
-    const auto& tapNoteSprite = get_sprite_manager().get_sprite("sprNote");
-    const auto& chainNoteSprite = get_sprite_manager().get_sprite("sprChain");
-    const auto& holdEdgeSprite = get_sprite_manager().get_sprite("sprHoldEdge");
-    const auto& holdBarSprite = get_sprite_manager().get_sprite("sprHold");
-    const auto& holdBgSprite = get_sprite_manager().get_sprite("sprHoldGrey");
+    const auto& spriteMan = get_sprite_manager();
+    const auto& tapNoteSprite = spriteMan.get_sprite("sprNote");
+    const auto& chainNoteSprite = spriteMan.get_sprite("sprChain");
+    const auto& holdEdgeSprite = spriteMan.get_sprite("sprHoldEdge");
+    const auto& holdBarSprite = spriteMan.get_sprite("sprHold");
+    const auto& holdBgSprite = spriteMan.get_sprite("sprHoldGrey");
 
     auto render_normal = [&](char*& vertBuf, const Note& note) {
         glm::vec2 pos = get_note_pos(note, nowTime, noteSpeed);
@@ -448,7 +449,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         const auto& barSprite = holdBarSprite;
         const double spriteTileHeight = barSprite.size.y;
 
-        double edgeLength = get_note_pixel_height(edgeSprite, note, nowTime, noteSpeed);
+        double edgeLength =
+            get_note_pixel_height(edgeSprite, note, nowTime, noteSpeed);
         if (edgeLength < edgeSprite.size.y && note.time < nowTime)
             return;
 
