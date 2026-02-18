@@ -53,7 +53,9 @@ json conversion_v0_to_v1(const json& input) {
         json chartPathObject = json::object();
         chartPathObject["music"] = origProjectObject["musicPath"];
         chartPathObject["image"] = origProjectObject["backgroundPath"];
-        chartPathObject["video"] = origProjectObject["videoPath"];
+        chartPathObject["video"] = origProjectObject.contains("videoPath")
+                                       ? origProjectObject["videoPath"]
+                                       : "";
 
         // Deal with noteObjects list.
         json noteObjects = json::array();
