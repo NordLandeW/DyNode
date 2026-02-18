@@ -57,8 +57,13 @@ function expr_init() {
 	expr_set_func("step", function(_edge, _x) { return real(_x >= _edge); });
 	expr_set_func("clamp", function(_x, _mn, _mx) { return clamp(_x, _mn, _mx); });
 	expr_set_func("exp", function(_x) { return exp(_x); });
+	expr_set_func("floor", function(_x) { return floor(_x); });
+	expr_set_func("ceil", function(_x) { return ceil(_x); });
+	expr_set_func("round", function(_x) { return round(_x); });
 	expr_set_func("rand", function(_x) { return random(_x); });
 	expr_set_func("randr", function(_l, _r) { return random_range(_l, _r); });
+	expr_set_func("irand", function(_x) { return irandom(_x); });
+	expr_set_func("irandr", function(_l, _r) { return irandom_range(_l, _r); });
 }
 
 function expr_symbol_copy(sym) {
