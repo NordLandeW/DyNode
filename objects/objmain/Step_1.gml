@@ -9,8 +9,6 @@ chartSideType = _metadata.sideType;
 
 #region TIME UPDATE
 
-var _music_resync_request = false;
-
 // Music Speed Adjust
     
     var _muspdchange = keycheck_down(ord("W")) - keycheck_down(ord("S"));
@@ -44,7 +42,7 @@ var _music_resync_request = false;
     if(_timchange != 0 || _timscr != 0) {
         if(nowPlaying) {
             nowTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
-            _music_resync_request = true;
+            musicResyncRequest = true;
         }
         else {
             animTargetTime += (_timchange * adtimeSpeed * global.timeManager.get_fps_scale() + _timscr * scrolltimeSpeed);
@@ -53,7 +51,7 @@ var _music_resync_request = false;
     
     if(nowPlaying && keycheck_down(vk_enter)) {
     	nowTime = -PLAYBACK_EMPTY_TIME;
-    	_music_resync_request = true;
+    	musicResyncRequest = true;
     }
 
 // Time Operation
@@ -130,7 +128,7 @@ var _music_resync_request = false;
                         if(abs(topBarMouseLastX - mouse_x) >= 2) {
                             musicProgress = mouse_x / BASE_RES_W;
                             nowTime = musicProgress * musicLength;
-                            _music_resync_request = true;
+                            musicResyncRequest = true;
                         }
                         topBarMouseLastX = mouse_x;
                     }
@@ -183,8 +181,9 @@ var _music_resync_request = false;
             nowTime = animTargetTime; // Speeeed up
     }
     
-    if(_music_resync_request) {
+    if(musicResyncRequest) {
         time_music_sync();
+        musicResyncRequest = false;
     }
 
 #endregion

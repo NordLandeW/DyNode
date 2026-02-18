@@ -17,7 +17,7 @@ if(keycheck_down(vk_tab)) {
                 objMain.music_pitchshift_switch(!val);
                 return !val;
             }, function () {
-                return USE_DSP_PITCHSHIFT;
+                return objMain.usingPitchShift;
             }, function () {
                 return !is_undefined(objMain.channel);
             }
