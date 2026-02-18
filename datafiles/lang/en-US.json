@@ -171,7 +171,7 @@
         "tab_main_volume": "Music Volume",
         "tab_hitsound_volume": "Hitsound Volume",
         "tab_bg_dim": "Background Brightness",
-        "tab_pitchshift": "Disable Pitch Shift (Experimental)",
+        "tab_pitchshift": "Disable Pitch Shift",
         "timing_point_change": "You are modifying the Timing Point at $0 ms. Please enter values in the format <offset>,<BPM>,<meter>.",
         "timing_point_change_err": "Error modifying Timing Point. Please ensure the format is correct.",
         "timing_point_change_success": "Timing Point at $0 ms changed to:\nBPM: $1 Meter: $2/4",
