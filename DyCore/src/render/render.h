@@ -31,17 +31,18 @@ struct SpriteDrawSetting {
 
 struct SpriteData {
     std::string name;
-    glm::vec2 size, uv0, uv1, uvSize, uvCenter;
+    glm::vec2 size, uv0, uv1;
+    glm::vec2 uvSize, uvCenter, uvRatio, uvRatioInv;
     int paddingLR;
     int paddingTop;
     int paddingBottom;
     SpriteDrawSetting drawSetting;
 
     glm::vec2 pos_to_uv(glm::vec2 pos) const {
-        return pos * uvSize / size + uv0;
+        return pos * uvRatio + uv0;
     }
     glm::vec2 uv_to_pos(glm::vec2 uv) const {
-        return (uv - uv0) * size / uvSize;
+        return (uv - uv0) * uvRatioInv;
     }
     glm::vec2 map_uv(glm::vec2 uv) const {
         return uv * uvSize + uv0;
@@ -53,6 +54,8 @@ struct SpriteData {
     void caculate_uv_values() {
         uvSize = uv1 - uv0;
         uvCenter = (uv0 + uv1) / 2.0f;
+        uvRatio = uvSize / size;
+        uvRatioInv = size / uvSize;
     }
 };
 
