@@ -151,6 +151,13 @@ function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 	if(is_undefined(_a) || is_undefined(_b))
 		throw $"Expression error: operator {_opt} need arguments to operate.";
 	// show_debug_message_safe($"EXPR CAC {_opt}, {_a}, {_b}")
+	var _is_arith_op = (_opt != "=");
+	if(_is_arith_op) {
+		if(is_struct(_a) && _a.symType == ExprSymbolTypes.FUNCTION)
+			throw $"Expression error: function symbol {_a.name} cannot participate in arithmetic operation {_opt}.";
+		if(_opt != "`+" && _opt != "`-" && is_struct(_b) && _b.symType == ExprSymbolTypes.FUNCTION)
+			throw $"Expression error: function symbol {_b.name} cannot participate in arithmetic operation {_opt}.";
+	}
 	var _va = (is_struct(_a)?_a.get_value():_a), _vb = (is_struct(_b)?_b.get_value():_b);
 	var _res = new ExprSymbol();
 	switch(_opt) {
