@@ -13,6 +13,8 @@ DYCORE_API double DyCore_add_sprite_data(const char* spriteData) {
                        .paddingLR = j["paddingLR"],
                        .paddingTop = j["paddingTop"],
                        .paddingBottom = j["paddingBottom"]};
+    data.caculate_uv_values();
+
     SpriteDrawSetting setting;
     setting.type = static_cast<SPRITE_DRAW_TYPE>(j["type"].get<int>());
     std::vector<int> dataVec = j["data"].get<std::vector<int>>();
