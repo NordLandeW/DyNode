@@ -63,6 +63,13 @@ var _music_resync_request = false;
         if(!global.recordManager.is_recording())
             dT *= musicSpeed;
     	nowTime += dT;
+
+        // Audio offset correction.
+        var curOffset = nowTime - sfmod_channel_get_position(channel);
+        if(abs(curOffset) > 10 && abs(curOffset) < 50) {
+            nowTime += -curOffset * 0.1;
+            // show_debug_message("Add offset correction: " + string(-curOffset * 0.1) + " ms");
+        }
     }
     
         

@@ -1315,6 +1315,13 @@ function sfmod_channel_set_position(pos, channel, spr) {
     FMODGMS_Chan_Set_Position(channel, pos);
 }
 
+function sfmod_channel_get_position(channel) {
+	var pos = FMODGMS_Chan_Get_Position(channel);
+	pos -= global.FMOD_MP3_DELAY * objMain.usingMP3 + global.musicDelay;
+	pos -= sfmod_get_dsp_latency();
+	return pos;
+}
+
 function sfmod_get_dsp_latency() {
 	return FMOD_DSP_BUFFERSIZE / objMain.sampleRate * 1000 * (FMOD_DSP_BUFFERCOUNT - 1.5);
 }

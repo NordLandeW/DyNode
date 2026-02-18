@@ -62,9 +62,9 @@ if(showDebugInfo == 1) {
 	_debug_str += "MSPD: " + string(musicSpeed)+"\n";
 	_debug_str += "TIME: " + string(nowTime)+"\n";
 	_debug_str += "NCNT: " + string(dyc_get_note_count())+"\n";
-	_debug_str += "AUDIOTIME: " + string(FMODGMS_Chan_Get_Position(channel)) + "\n";
+	_debug_str += "RAUDIOTIME: " + string(sfmod_channel_get_position(channel)) + "\n";
 	_debug_str += "PLAYTIME: " + string(nowTime) + "\n";
-	_debug_str += "AUDIO_OFFSET: " + string(nowTime - FMODGMS_Chan_Get_Position(channel)) + "\n";
+	_debug_str += "RAUDIO_OFFSET: " + string(nowTime - sfmod_channel_get_position(channel)) + "\n";
 	_debug_str += "FMOD CPU Usage: " + string(FMODGMS_Sys_Get_CPUUsage()) + "\n";
 	_debug_str += "Project Compression Level: " + string(DYCORE_COMPRESSION_LEVEL) + "\n";
 	
