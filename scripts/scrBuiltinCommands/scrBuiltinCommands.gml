@@ -432,7 +432,7 @@ function CommandCurve(fullCommand, alias):CommandSignature(fullCommand, alias) c
                         beatSepOverwrite = -curArg;
                     }
                     else {
-                        console_echo_warning("Beat division / separation must be a positive integer.");
+                        console_echo_warning("Beat division / separation must be non-zero.");
                         return;
                     }
                 }
