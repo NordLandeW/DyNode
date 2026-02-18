@@ -67,10 +67,10 @@ var _music_resync_request = false;
         // Audio offset correction.
         if(!global.recordManager.is_recording()) {
             var curOffset = nowTime - sfmod_channel_get_position(channel);
-            if(abs(curOffset) > 10 && abs(curOffset) < 50) {
-                nowTime += -curOffset * 0.1;
+            if(abs(curOffset) > 15 && abs(curOffset) < 50) {
+                nowTime += -curOffset * 0.05;
                 if(DEBUG_MODE)
-                    show_debug_message("Add offset correction: " + string(-curOffset * 0.1) + " ms");
+                    show_debug_message("Add offset correction: " + string(-curOffset * 0.05) + " ms");
             }
         }
     }
