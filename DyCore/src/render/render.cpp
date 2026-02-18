@@ -50,16 +50,14 @@ SpriteData get_note_sprite(const Note& note) {
     return get_sprite_manager().get_sprite(get_note_sprite_name(note));
 }
 
-double get_note_pixel_width(const Note& note) {
-    SpriteData sprite = get_note_sprite(note);
+double get_note_pixel_width(const SpriteData& sprite, const Note& note) {
     return std::max((note.side == 0 ? note.width * 300 : note.width * 150) -
                         30 + sprite.paddingLR,
                     (double)sprite.size.x);
 }
 
-double get_note_pixel_height(const Note& note, double nowTime,
-                             double noteSpeed) {
-    SpriteData sprite = get_note_sprite(note);
+double get_note_pixel_height(const SpriteData& sprite, const Note& note,
+                             double nowTime, double noteSpeed) {
     return std::max(0.0, noteSpeed * (note.time + note.lastTime -
                                       std::max(note.time, nowTime)) +
                              sprite.paddingBottom + sprite.paddingTop);
@@ -409,14 +407,22 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     const auto& activeHolds = actMan.get_active_holds();
     const auto& lastingHolds = actMan.get_lasting_holds();
 
+    // Get sprites.
+    const auto& tapNoteSprite = get_sprite_manager().get_sprite("sprNote");
+    const auto& chainNoteSprite = get_sprite_manager().get_sprite("sprChain");
+    const auto& holdEdgeSprite = get_sprite_manager().get_sprite("sprHoldEdge");
+    const auto& holdBarSprite = get_sprite_manager().get_sprite("sprHold");
+    const auto& holdBgSprite = get_sprite_manager().get_sprite("sprHoldGrey");
+
     auto render_normal = [&](char*& vertBuf, const Note& note) {
         glm::vec2 pos = get_note_pos(note, nowTime, noteSpeed);
         double alpha = get_note_alpha(note.side, pos);
         double rot = get_note_rotation(note.side);
         PIVOT pivot = PIVOT::CENTER;
-        const SpriteData& spriteData = get_note_sprite(note);
+        const SpriteData& spriteData =
+            note.type == 0 ? tapNoteSprite : chainNoteSprite;
         glm::vec2 size = spriteData.size;
-        size.x = get_note_pixel_width(note);
+        size.x = get_note_pixel_width(spriteData, note);
 
         draw_sprite(vertBuf, spriteData, pivot, pos, size, rot,
                     {255, 255, 255, static_cast<int>(alpha * 255)});
@@ -438,11 +444,11 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         glm::vec2 position = get_note_pos(note, nowTime, noteSpeed);
         const double alpha = get_note_alpha(note.side, position);
         const double rotation = get_note_rotation(note.side);
-        const auto& edgeSprite = get_note_sprite(note);
-        const auto& barSprite = get_sprite_manager().get_sprite("sprHold");
+        const auto& edgeSprite = holdEdgeSprite;
+        const auto& barSprite = holdBarSprite;
         const double spriteTileHeight = barSprite.size.y;
 
-        double edgeLength = get_note_pixel_height(note, nowTime, noteSpeed);
+        double edgeLength = get_note_pixel_height(edgeSprite, note, nowTime, noteSpeed);
         if (edgeLength < edgeSprite.size.y && note.time < nowTime)
             return;
 
@@ -486,9 +492,9 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
             case 0:
             case 1: {
                 if (barLength > 0) {
-                    glm::vec2 size = {
-                        get_note_pixel_width(note) - edgeSprite.paddingLR,
-                        barLength};
+                    glm::vec2 size = {get_note_pixel_width(edgeSprite, note) -
+                                          edgeSprite.paddingLR,
+                                      barLength};
                     PIVOT pivot = PIVOT::TOP_CENTER;
                     if (note.side == 0) {
                         position.y -= size.y;
@@ -500,8 +506,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                             vertBuf, barSprite, pivot, position, size, rotation,
                             {255, 255, 255, static_cast<int>(alpha * 255)});
                     } else {
-                        const auto& bgSprite =
-                            get_sprite_manager().get_sprite("sprHoldGrey");
+                        const auto& bgSprite = holdBgSprite;
                         draw_sprite(vertBuf, bgSprite, pivot, position, size,
                                     rotation,
                                     {0, 255, 0,
@@ -513,7 +518,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
             }
             case 2: {
                 if (edgeLength > 0) {
-                    glm::vec2 size = {get_note_pixel_width(note), edgeLength};
+                    glm::vec2 size = {get_note_pixel_width(edgeSprite, note),
+                                      edgeLength};
                     PIVOT pivot = PIVOT::BOTTOM_CENTER;
                     if (note.side == 0) {
                         position.y += edgeSprite.paddingBottom;
