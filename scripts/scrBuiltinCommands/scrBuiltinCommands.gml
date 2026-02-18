@@ -417,15 +417,22 @@ function CommandCurve(fullCommand, alias):CommandSignature(fullCommand, alias) c
         command_check_has_timing();
         var typeOverwrite = -1;
         var beatDivOverwrite = -1;
+        var beatSepOverwrite = 1;
         if(matchedVariant.get_args_count() < 0) {
             for(var i = 0, l = array_length(args); i < l; i++) {
                 if(command_arg_check_note_type(args[i], false)) {
                     typeOverwrite = command_arg_to_note_type(args[i]);
                 }
                 else if(command_arg_check_integer(args[i], false)) {
-                    beatDivOverwrite = int64(args[i]);
-                    if(beatDivOverwrite <= 0) {
-                        console_echo_warning("Beat division must be a positive integer.");
+                    var curArg = int64(args[i]);
+                    if(curArg > 0) {
+                        beatDivOverwrite = curArg;
+                    }
+                    else if(curArg < 0) {
+                        beatSepOverwrite = -curArg;
+                    }
+                    else {
+                        console_echo_warning("Beat division / separation must be a positive integer.");
                         return;
                     }
                 }
@@ -441,7 +448,7 @@ function CommandCurve(fullCommand, alias):CommandSignature(fullCommand, alias) c
             return;
         }
 
-        sampling_function(typeOverwrite, beatDivOverwrite);
+        sampling_function(typeOverwrite, beatDivOverwrite, beatSepOverwrite);
     }
 }
 

@@ -1070,7 +1070,7 @@ function note_outbound_warning() {
 #region Curve Sampling Functions
 
 /// @description Linear sampling on selected notes.
-function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSepOverwrite = 1) {
 	var selectedNotes = editor_get_selected_notes();
 	var count = array_length(selectedNotes);
 
@@ -1094,28 +1094,32 @@ function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 
 		var currentTime = note.time;
 		var currentTP = timing_point_get_at(currentTime);
+		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
 		while(currentTime < nextNote.time) {
-			var ratio = (currentTime - note.time) / (nextNote.time - note.time);
-			var newNote = note.copy();
-			newNote.time = currentTime;
-			newNote.width = lerp(newNote.width, nextNote.width, ratio);
-			newNote.position = lerp(newNote.position, nextNote.position, ratio);
+			if(currentCount % beatSepOverwrite == 0) {
+				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
+				var newNote = note.copy();
+				newNote.time = currentTime;
+				newNote.width = lerp(newNote.width, nextNote.width, ratio);
+				newNote.position = lerp(newNote.position, nextNote.position, ratio);
 
-			if(typeOverwrite != -1) {
-				newNote.noteType = typeOverwrite;
-				if(newNote.noteType != NOTE_TYPE.HOLD)
-					newNote.lastTime = 0;
+				if(typeOverwrite != -1) {
+					newNote.noteType = typeOverwrite;
+					if(newNote.noteType != NOTE_TYPE.HOLD)
+						newNote.lastTime = 0;
+				}
+
+				build_note(newNote, true, true, true);
 			}
-
-			build_note(newNote, true, true, true);
 
 			var prevTime = currentTime;
 
 			currentTP = timing_point_get_at(currentTime);
 			currentTime += currentTP.beatLength / beatDiv;
 			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+			currentCount ++;
 
 			if(prevTime == currentTime) {
 				// Prevent infinite loop due to snapping failure.
@@ -1128,7 +1132,7 @@ function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 }
 
 /// @description Cosine sampling on selected notes.
-function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSepOverwrite = 1) {
 	var selectedNotes = editor_get_selected_notes();
 	var count = array_length(selectedNotes);
 
@@ -1157,28 +1161,32 @@ function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 
 		var currentTime = note.time;
 		var currentTP = timing_point_get_at(currentTime);
+		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
 		while(currentTime < nextNote.time) {
-			var ratio = (currentTime - note.time) / (nextNote.time - note.time);
-			var newNote = note.copy();
-			newNote.time = currentTime;
-			newNote.width = cosine_lerp(newNote.width, nextNote.width, ratio);
-			newNote.position = cosine_lerp(newNote.position, nextNote.position, ratio);
+			if(currentCount % beatSepOverwrite == 0) {
+				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
+				var newNote = note.copy();
+				newNote.time = currentTime;
+				newNote.width = cosine_lerp(newNote.width, nextNote.width, ratio);
+				newNote.position = cosine_lerp(newNote.position, nextNote.position, ratio);
 
-			if(typeOverwrite != -1) {
-				newNote.noteType = typeOverwrite;
-				if(newNote.noteType != NOTE_TYPE.HOLD)
-					newNote.lastTime = 0;
+				if(typeOverwrite != -1) {
+					newNote.noteType = typeOverwrite;
+					if(newNote.noteType != NOTE_TYPE.HOLD)
+						newNote.lastTime = 0;
+				}
+
+				build_note(newNote, true, true, true);
 			}
-
-			build_note(newNote, true, true, true);
 
 			var prevTime = currentTime;
 
 			currentTP = timing_point_get_at(currentTime);
 			currentTime += currentTP.beatLength / beatDiv;
 			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+			currentCount ++;
 
 			if(prevTime == currentTime) {
 				// Prevent infinite loop due to snapping failure.
@@ -1191,7 +1199,7 @@ function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 }
 
 /// @description Catmull-Rom sampling on selected notes.
-function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSepOverwrite = 1) {
 	var selectedNotes = editor_get_selected_notes();
 	
 	if(editor_sampling_sametime_check(selectedNotes)) {
@@ -1300,39 +1308,43 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 
 		var currentTime = note.time;
 		var currentTP = timing_point_get_at(currentTime);
+		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
 		while(currentTime < nextNote.time) {
-			var newNote = note.copy();
-			newNote.time = currentTime;
-			newNote.width = catmull_rom_spline_lerp(
-				new Vector2(prevNote.width, prevNote.time), 
-				new Vector2(note.width, note.time),
-				new Vector2(nextNote.width, nextNote.time),
-				new Vector2(doubleNextNote.width, doubleNextNote.time),
-				currentTime
-			);
-			newNote.position = catmull_rom_spline_lerp(
-				new Vector2(prevNote.position, prevNote.time), 
-				new Vector2(note.position, note.time),
-				new Vector2(nextNote.position, nextNote.time),
-				new Vector2(doubleNextNote.position, doubleNextNote.time),
-				currentTime
-			);
+			if(currentCount % beatSepOverwrite == 0) {
+				var newNote = note.copy();
+				newNote.time = currentTime;
+				newNote.width = catmull_rom_spline_lerp(
+					new Vector2(prevNote.width, prevNote.time), 
+					new Vector2(note.width, note.time),
+					new Vector2(nextNote.width, nextNote.time),
+					new Vector2(doubleNextNote.width, doubleNextNote.time),
+					currentTime
+				);
+				newNote.position = catmull_rom_spline_lerp(
+					new Vector2(prevNote.position, prevNote.time), 
+					new Vector2(note.position, note.time),
+					new Vector2(nextNote.position, nextNote.time),
+					new Vector2(doubleNextNote.position, doubleNextNote.time),
+					currentTime
+				);
 
-			if(typeOverwrite != -1) {
-				newNote.noteType = typeOverwrite;
-				if(newNote.noteType != NOTE_TYPE.HOLD)
-					newNote.lastTime = 0;
+				if(typeOverwrite != -1) {
+					newNote.noteType = typeOverwrite;
+					if(newNote.noteType != NOTE_TYPE.HOLD)
+						newNote.lastTime = 0;
+				}
+
+				build_note(newNote, true, true, true);
 			}
-
-			build_note(newNote, true, true, true);
 
 			var prevTime = currentTime;
 
 			currentTP = timing_point_get_at(currentTime);
 			currentTime += currentTP.beatLength / beatDiv;
 			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+			currentCount ++;
 
 			if(prevTime == currentTime) {
 				// Prevent infinite loop due to snapping failure.
@@ -1344,7 +1356,7 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1) 
 }
 
 /// @description Natural cubic spline sampling on selected notes.
-function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
+function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSepOverwrite = 1) {
 	var selectedNotes = editor_get_selected_notes();
 
 	if(editor_sampling_sametime_check(selectedNotes)) {
@@ -1384,19 +1396,22 @@ function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 
 		var currentTime = note.time;
 		var currentTP = timing_point_get_at(currentTime);
+		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
 		while(currentTime < nextNote.time) {
-			var ratio = (currentTime - note.time) / (nextNote.time - note.time);
-			var newNote = note.copy();
-			newNote.time = currentTime;
-			array_push(xOut, currentTime);
-			array_push(noteOut, newNote);
+			if(currentCount % beatSepOverwrite == 0) {
+				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
+				var newNote = note.copy();
+				newNote.time = currentTime;
+				array_push(xOut, currentTime);
+				array_push(noteOut, newNote);
 
-			if(typeOverwrite != -1) {
-				newNote.noteType = typeOverwrite;
-				if(newNote.noteType != NOTE_TYPE.HOLD)
-					newNote.lastTime = 0;
+				if(typeOverwrite != -1) {
+					newNote.noteType = typeOverwrite;
+					if(newNote.noteType != NOTE_TYPE.HOLD)
+						newNote.lastTime = 0;
+				}
 			}
 
 			var prevTime = currentTime;
@@ -1404,6 +1419,7 @@ function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1) {
 			currentTP = timing_point_get_at(currentTime);
 			currentTime += currentTP.beatLength / beatDiv;
 			currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
+			currentCount ++;
 
 			if(prevTime == currentTime) {
 				// Prevent infinite loop due to snapping failure.
