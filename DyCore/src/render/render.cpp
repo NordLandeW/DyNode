@@ -564,32 +564,12 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     static std::array<std::byte, 64 * 1024 * 1024> baseBuffer;
     static std::pmr::monotonic_buffer_resource monoBuffer{
         baseBuffer.data(), baseBuffer.size(), std::pmr::new_delete_resource()};
-    static std::pmr::unsynchronized_pool_resource pool(&monoBuffer);
+    monoBuffer.release();
 
     struct Task {
         char* buffer;
         int l, r;
         char* ptr;
-        Task(int l, int r) : l(l), r(r) {
-            if (l > r) {
-                throw std::invalid_argument("Invalid task range");
-            }
-            size_t bytes = 1ll * (r - l + 1) * 2040;
-            buffer = (char*)pool.allocate(bytes, 1);
-            ptr = (char*)buffer;
-        }
-        ~Task() {
-            if (buffer)
-                pool.deallocate(buffer, 1ll * (r - l + 1) * 2040);
-        }
-
-        Task(const Task& task) = delete;
-        Task& operator=(const Task&) = delete;
-
-        Task(Task&& other) noexcept
-            : buffer(other.buffer), l(other.l), r(other.r), ptr(other.ptr) {
-            other.buffer = nullptr;
-        }
     };
 
     if (concurrency > 1 &&
@@ -610,10 +590,17 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                     int blockSize = std::ceil(
                         static_cast<double>(activeList.size()) / concurrency);
                     for (int i = 0; i * blockSize < activeList.size(); i++) {
-                        tasks.emplace_back(
-                            i * blockSize,
+                        int l = i * blockSize;
+                        int r =
                             std::min((i + 1) * blockSize - 1,
-                                     static_cast<int>(activeList.size() - 1)));
+                                     static_cast<int>(activeList.size() - 1));
+
+                        if (l > r)
+                            continue;
+                        size_t bytes = 1ll * (r - l + 1) * 2040;
+                        char* alloc_buf = static_cast<char*>(
+                            monoBuffer.allocate(bytes, alignof(char)));
+                        tasks.push_back(Task{alloc_buf, l, r, alloc_buf});
                     }
 
                     taskflow.for_each(

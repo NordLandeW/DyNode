@@ -25,7 +25,6 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 		
 		// Value type check
 		
-		
 		if(symType == ExprSymbolTypes.NUMBER) {
 			if(is_string(_val) || is_int32(_val) || is_int64(_val) || is_bool(_val))
 				_val = real(_val);
