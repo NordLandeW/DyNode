@@ -470,7 +470,7 @@ function map_get_title() {
 
 function map_get_alt_title() {
 	if(!instance_exists(objMain)) return "example";
-	var _forbidden_chars = "?*:\"<>\\/|"
+	var _forbidden_chars = "?*:\"<>\\/|\n"
 	var _title = map_get_title();
 	for(var i=1, l=string_length(_forbidden_chars); i<l; i++)
 		_title = string_replace_all(_title, string_char_at(_forbidden_chars, i), "_");
