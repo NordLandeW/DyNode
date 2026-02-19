@@ -7,8 +7,8 @@
 #include <pugixml.hpp>
 #include <vector>
 
-#include "gm.h"
 #include "dymImportCommon.h"
+#include "gm.h"
 #include "note.h"
 #include "project.h"
 #include "timing.h"
@@ -69,7 +69,8 @@ std::vector<ExportNote> collect_export_notes() {
     return exportNotes;
 }
 
-void apply_note_time_fix(std::vector<ExportNote>& exportNotes, double fixError) {
+void apply_note_time_fix(std::vector<ExportNote>& exportNotes,
+                         double fixError) {
     if (fixError <= 0 || exportNotes.empty()) {
         return;
     }
@@ -97,15 +98,14 @@ void apply_note_time_fix(std::vector<ExportNote>& exportNotes, double fixError) 
 }
 
 class TimeToBarConverter {
-public:
-    TimeToBarConverter(bool isDym,
-                       double timeOffset,
-                       double barPerMin,
+   public:
+    TimeToBarConverter(bool isDym, double timeOffset, double barPerMin,
                        const std::vector<TimingPoint>& timingPoints)
         : isDym_(isDym),
           timeOffset_(timeOffset),
           barPerMin_(barPerMin),
-          timingPoints_(timingPoints) {}
+          timingPoints_(timingPoints) {
+    }
 
     double operator()(double time) const {
         if (!isDym_) {
@@ -129,7 +129,7 @@ public:
         return current_bar;
     }
 
-private:
+   private:
     bool isDym_;
     double timeOffset_;
     double barPerMin_;
@@ -150,8 +150,7 @@ const char* note_type_to_string(int type) {
     return "";
 }
 
-pugi::xml_node get_side_root(int side,
-                             pugi::xml_node notes_middle_root,
+pugi::xml_node get_side_root(int side, pugi::xml_node notes_middle_root,
                              pugi::xml_node notes_left_root,
                              pugi::xml_node notes_right_root) {
     switch (side) {
@@ -181,7 +180,8 @@ void append_note_nodes(pugi::xml_node root,
 
         auto note_node = side_root.append_child("CMapNoteAsset");
         note_node.append_child("m_id").text().set(note.id);
-        note_node.append_child("m_type").text().set(note_type_to_string(note.type));
+        note_node.append_child("m_type").text().set(
+            note_type_to_string(note.type));
         note_node.append_child("m_time").text().set(
             format_double_with_precision(timeToBar(note.time), XML_EXPORT_EPS)
                 .c_str());
@@ -196,8 +196,7 @@ void append_note_nodes(pugi::xml_node root,
     }
 }
 
-void append_timing_nodes_for_dym(pugi::xml_node root,
-                                 bool isDym,
+void append_timing_nodes_for_dym(pugi::xml_node root, bool isDym,
                                  const std::vector<TimingPoint>& timingPoints) {
     if (!isDym) {
         return;
@@ -291,6 +290,9 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
             if (!arrNode)
                 return;
             for (auto noteNode : arrNode.children("CMapNoteAsset")) {
+                if (!noteNode.child("m_time") || !noteNode.child("m_id")) {
+                    continue;
+                }
                 DYMNotedata noteData;
                 // Read
                 noteData.id = noteNode.child_value("m_id");
@@ -329,8 +331,7 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
             }
 
             std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const DYMTimingData& a,
-                         const DYMTimingData& b) {
+                      [](const DYMTimingData& a, const DYMTimingData& b) {
                           return a.time < b.time;
                       });
         }
