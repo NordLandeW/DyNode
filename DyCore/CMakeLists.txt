@@ -2,6 +2,8 @@
 
 project ("DyCore")
 
+include(CTest)
+
 if(MSVC OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
     message(STATUS "Compiler is MSVC or Clang-cl, applying static linking runtime lib option")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -49,6 +51,14 @@ FetchContent_Declare(
   GIT_TAG        1.0.1
 )
 FetchContent_MakeAvailable(glm)
+
+# --- doctest ---
+FetchContent_Declare(
+    doctest
+    GIT_REPOSITORY https://github.com/doctest/doctest.git
+    GIT_TAG        v2.4.12
+)
+FetchContent_MakeAvailable(doctest)
 
 ## Git versioning
 
@@ -136,16 +146,7 @@ configure_file(
     ${CONFIG_HEADER}
 )
 
-## DyCore
-
-file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-
-if(WIN32)
-    set(DYCORE_RESOURCES res/resource.rc)
-endif()
-
-add_library (DyCore SHARED ${DYCORE_SOURCES} ${DYCORE_RESOURCES})
-target_include_directories(DyCore PRIVATE
+set(DYCORE_COMMON_INCLUDE_DIRS
     src/
     src/note
     src/project
@@ -158,34 +159,47 @@ target_include_directories(DyCore PRIVATE
     lib/pugixml
     lib/sol
     res/
-)
-target_include_directories(DyCore PRIVATE
     ${CMAKE_BINARY_DIR}/generated
-)
-
-target_compile_definitions(DyCore PRIVATE 
-    $<$<CONFIG:RELEASE>:NDEBUG>
-    $<$<CONFIG:RELEASE>:_CRT_SECURE_NO_WARNINGS>
 )
 
 if(MSVC)
     message(STATUS "Compiler is MSVC or Clang-cl, applying MSVC-specific options")
-    target_compile_options(DyCore PRIVATE
-        $<$<CONFIG:RELEASE>:/O2>
-    )
+    set(DYCORE_RELEASE_OPT /O2)
 else()
     message(STATUS "Compiler is GCC/Clang (or other), applying GNU-style options")
-    target_compile_options(DyCore PRIVATE
-        $<$<CONFIG:RELEASE>:-O3>
-    )
+    set(DYCORE_RELEASE_OPT -O3)
 endif()
 
-target_link_libraries(DyCore PRIVATE zstd)
-target_link_libraries(DyCore PRIVATE lua)
-target_link_libraries(DyCore PRIVATE pugixml)
-target_link_libraries(DyCore PRIVATE delaunator)
-target_link_libraries(DyCore PRIVATE glm::glm)
-target_link_libraries(DyCore PRIVATE xxhash)
+function(dycore_apply_common_target_settings target)
+    target_include_directories(${target} PRIVATE ${DYCORE_COMMON_INCLUDE_DIRS})
+
+    target_compile_definitions(${target} PRIVATE
+        $<$<CONFIG:RELEASE>:NDEBUG>
+        $<$<CONFIG:RELEASE>:_CRT_SECURE_NO_WARNINGS>
+    )
+
+    target_compile_options(${target} PRIVATE
+        $<$<CONFIG:RELEASE>:${DYCORE_RELEASE_OPT}>
+    )
+
+    target_link_libraries(${target} PRIVATE zstd)
+    target_link_libraries(${target} PRIVATE lua)
+    target_link_libraries(${target} PRIVATE pugixml)
+    target_link_libraries(${target} PRIVATE delaunator)
+    target_link_libraries(${target} PRIVATE glm::glm)
+    target_link_libraries(${target} PRIVATE xxhash)
+endfunction()
+
+## DyCore
+
+file(GLOB_RECURSE DYCORE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+
+if(WIN32)
+    set(DYCORE_RESOURCES res/resource.rc)
+endif()
+
+add_library (DyCore SHARED ${DYCORE_SOURCES} ${DYCORE_RESOURCES})
+dycore_apply_common_target_settings(DyCore)
 
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
@@ -212,4 +226,29 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
   add_custom_target(symlink_compile_commands ALL
       DEPENDS ${COMPILE_COMMANDS_LINK}
   )
+endif()
+
+option(DYCORE_BUILD_TESTS "Build DyCore doctest-based unit tests" ON)
+if(DYCORE_BUILD_TESTS AND BUILD_TESTING)
+    file(GLOB DYCORE_TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
+
+    add_executable(DyCore_tests
+        ${DYCORE_SOURCES}
+        ${DYCORE_TEST_SOURCES}
+    )
+
+    dycore_apply_common_target_settings(DyCore_tests)
+    target_link_libraries(DyCore_tests PRIVATE doctest::doctest)
+
+  add_custom_target(run_tests
+      COMMAND DyCore_tests --order-by=file --duration=true
+      DEPENDS DyCore_tests
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Running DyCore doctest suite"
+  )
+
+    add_test(
+            NAME DyCore.doctest
+            COMMAND DyCore_tests --order-by=file --duration=true
+    )
 endif()

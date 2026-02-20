@@ -29,6 +29,143 @@ struct ExportNote {
     int side;
 };
 
+int note_type_from_string(const string& type) {
+    if (type == "NORMAL")
+        return 0;
+    if (type == "CHAIN")
+        return 1;
+    if (type == "HOLD")
+        return 2;
+    if (type == "SUB")
+        return 3;
+    return -1;
+}
+
+struct XmlImportData {
+    ChartMetadata metaData;
+    double barPerMin = 0;
+    double offset = 0;
+    bool hasTimingData = false;
+    std::vector<DYMNotedata> notes;
+    std::vector<DYMTimingData> timings;
+};
+
+XmlImportData parse_standard_format_xml(pugi::xml_node map_root) {
+    XmlImportData importData;
+
+    static const auto import_side_notes = [](pugi::xml_node side_root, int side,
+                                             std::vector<DYMNotedata>& notes) {
+        auto arrNode = side_root.child("m_notes");
+        if (!arrNode)
+            return;
+
+        for (auto noteNode : arrNode.children("CMapNoteAsset")) {
+            if (!noteNode.child("m_time") || !noteNode.child("m_id")) {
+                continue;
+            }
+
+            DYMNotedata noteData;
+            noteData.id = noteNode.child_value("m_id");
+            noteData.subid = noteNode.child_value("m_subId");
+            noteData.type =
+                note_type_from_string(noteNode.child_value("m_type"));
+            noteData.bar = std::stod(noteNode.child_value("m_time"));
+            noteData.position = std::stod(noteNode.child_value("m_position"));
+            noteData.width = std::stod(noteNode.child_value("m_width"));
+
+            noteData.position = noteData.position + noteData.width / 2;
+            noteData.id += "_" + std::to_string(side);
+            noteData.subid += "_" + std::to_string(side);
+            noteData.side = side;
+            notes.push_back(noteData);
+        }
+    };
+
+    importData.metaData.sideType[0] = map_root.child_value("m_leftRegion");
+    importData.metaData.sideType[1] = map_root.child_value("m_rightRegion");
+
+    string chartID = map_root.child_value("m_mapID");
+    if (!chartID.empty()) {
+        importData.metaData.difficulty = difficulty_char_to_int(chartID.back());
+    }
+    importData.metaData.title = map_root.child_value("m_path");
+
+    importData.barPerMin = std::stod(map_root.child_value("m_barPerMin"));
+    importData.offset = std::stod(map_root.child_value("m_timeOffset"));
+
+    import_side_notes(map_root.child("m_notes"), 0, importData.notes);
+    import_side_notes(map_root.child("m_notesLeft"), 1, importData.notes);
+    import_side_notes(map_root.child("m_notesRight"), 2, importData.notes);
+
+    if (auto timingRootNode =
+            map_root.child("m_argument").child("m_bpmchange")) {
+        for (auto timingNode : timingRootNode.children("CBpmchange")) {
+            importData.timings.push_back({
+                std::stod(timingNode.child_value("m_time")),
+                std::stod(timingNode.child_value("m_value")),
+            });
+            importData.hasTimingData = true;
+        }
+
+        std::sort(importData.timings.begin(), importData.timings.end(),
+                  [](const DYMTimingData& a, const DYMTimingData& b) {
+                      return a.time < b.time;
+                  });
+    }
+
+    return importData;
+}
+
+XmlImportData parse_legacy_format_xml(pugi::xml_node map_root) {
+    XmlImportData importData;
+
+    static const auto import_side_notes = [](pugi::xml_node side_root, int side,
+                                             std::vector<DYMNotedata>& notes) {
+        if (!side_root) {
+            return;
+        }
+
+        for (auto noteNode : side_root.children("Note")) {
+            DYMNotedata noteData;
+            noteData.id = noteNode.attribute("Index").as_string();
+            noteData.subid = noteNode.attribute("SubIndex").as_string();
+            noteData.type =
+                note_type_from_string(noteNode.attribute("Type").as_string());
+
+            noteData.bar = noteNode.attribute("Time").as_double();
+            noteData.position = noteNode.attribute("Position").as_double();
+            noteData.width = noteNode.attribute("Size").as_double();
+
+            noteData.position = noteData.position + noteData.width / 2;
+
+            noteData.id += "_" + std::to_string(side);
+            noteData.subid += "_" + std::to_string(side);
+            noteData.side = side;
+            notes.push_back(noteData);
+        }
+    };
+
+    string chartID = map_root.attribute("MapID").as_string();
+    if (!chartID.empty()) {
+        importData.metaData.difficulty = difficulty_char_to_int(chartID.back());
+    }
+    importData.metaData.title = chartID;
+
+    importData.metaData.sideType[0] =
+        map_root.child("Left").attribute("Type").as_string();
+    importData.metaData.sideType[1] =
+        map_root.child("Right").attribute("Type").as_string();
+
+    importData.barPerMin = map_root.attribute("BarPerMinute").as_double();
+    importData.offset = map_root.attribute("TimeOffset").as_double();
+
+    import_side_notes(map_root.child("Center"), 0, importData.notes);
+    import_side_notes(map_root.child("Left"), 1, importData.notes);
+    import_side_notes(map_root.child("Right"), 2, importData.notes);
+
+    return importData;
+}
+
 std::vector<ExportNote> collect_export_notes() {
     std::vector<ExportNote> exportNotes;
     int noteIndex = 0;
@@ -245,102 +382,28 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
                                      string(filePath));
         }
 
-        // Check for old Dynamaker format.
-        if (doc.child("DynamixMap")) {
-            return IMPORT_XML_RESULT_STATES::OLD_FORMAT;
-        }
-
-        auto map_root = doc.child("CMap");
-        if (!map_root) {
+        XmlImportData importData;
+        if (auto legacy_map_root = doc.child("DynamixMap")) {
+            importData = parse_legacy_format_xml(legacy_map_root);
+        } else if (auto map_root = doc.child("CMap")) {
+            importData = parse_standard_format_xml(map_root);
+        } else {
             throw std::runtime_error(
-                "Invalid XML structure: Missing <CMap> root element");
+                "Invalid XML structure: Missing <CMap> or <DynamixMap> root "
+                "element");
         }
 
-        auto noteType_conversion = [](const string& type) -> int {
-            if (type == "NORMAL")
-                return 0;
-            if (type == "CHAIN")
-                return 1;
-            if (type == "HOLD")
-                return 2;
-            if (type == "SUB")
-                return 3;
-            return -1;
-        };
-
-        // Read chart metadata.
-        ChartMetadata metaData;
-        metaData.sideType[0] = map_root.child_value("m_leftRegion");
-        metaData.sideType[1] = map_root.child_value("m_rightRegion");
-        string chartID = map_root.child_value("m_mapID");
-        metaData.difficulty = difficulty_char_to_int(chartID.back());
-        metaData.title = map_root.child_value("m_path");
-
-        if (importMetadata)
-            chart_set_metadata(metaData);
-
-        double barPerMin = std::stod(map_root.child_value("m_barPerMin"));
-        double offset = std::stod(map_root.child_value("m_timeOffset"));
-
-        // Read note data.
-        std::vector<DYMNotedata> notes;
-
-        auto import_side_notes = [&](pugi::xml_node side_root, int side) {
-            auto arrNode = side_root.child("m_notes");
-            if (!arrNode)
-                return;
-            for (auto noteNode : arrNode.children("CMapNoteAsset")) {
-                if (!noteNode.child("m_time") || !noteNode.child("m_id")) {
-                    continue;
-                }
-                DYMNotedata noteData;
-                // Read
-                noteData.id = noteNode.child_value("m_id");
-                noteData.subid = noteNode.child_value("m_subId");
-                noteData.type =
-                    noteType_conversion(noteNode.child_value("m_type"));
-                noteData.bar = std::stod(noteNode.child_value("m_time"));
-                noteData.position =
-                    std::stod(noteNode.child_value("m_position"));
-                noteData.width = std::stod(noteNode.child_value("m_width"));
-
-                // Convert XML's position to DyNode's position.
-                noteData.position = noteData.position + noteData.width / 2;
-                noteData.id += "_" + std::to_string(side);
-                noteData.subid += "_" + std::to_string(side);
-                noteData.side = side;
-                notes.push_back(noteData);
-            }
-        };
-
-        import_side_notes(map_root.child("m_notes"), 0);
-        import_side_notes(map_root.child("m_notesLeft"), 1);
-        import_side_notes(map_root.child("m_notesRight"), 2);
-
-        // Read timing data.
-        bool hasTimingData = false;
-        std::vector<DYMTimingData> xmlTimings;
-        if (auto timingRootNode =
-                map_root.child("m_argument").child("m_bpmchange")) {
-            for (auto timingNode : timingRootNode.children("CBpmchange")) {
-                xmlTimings.push_back({
-                    std::stod(timingNode.child_value("m_time")),
-                    std::stod(timingNode.child_value("m_value")),
-                });
-                hasTimingData = true;
-            }
-
-            std::sort(xmlTimings.begin(), xmlTimings.end(),
-                      [](const DYMTimingData& a, const DYMTimingData& b) {
-                          return a.time < b.time;
-                      });
+        if (importMetadata) {
+            chart_set_metadata(importData.metaData);
         }
 
-        import_timing_points(importTiming, hasTimingData, xmlTimings, offset,
-                             barPerMin);
-        fix_imported_note_times(notes, xmlTimings, offset, barPerMin);
-        const auto noteIDTimeMap = build_note_id_time_map(notes);
-        add_imported_notes_to_project(notes, noteIDTimeMap);
+        import_timing_points(importTiming, importData.hasTimingData,
+                             importData.timings, importData.offset,
+                             importData.barPerMin);
+        fix_imported_note_times(importData.notes, importData.timings,
+                                importData.offset, importData.barPerMin);
+        const auto noteIDTimeMap = build_note_id_time_map(importData.notes);
+        add_imported_notes_to_project(importData.notes, noteIDTimeMap);
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing XML: " +
                             string(e.what()));
