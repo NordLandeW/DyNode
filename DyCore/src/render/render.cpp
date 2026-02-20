@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <format>
-#include <iostream>
 #include <memory_resource>
 #include <stdexcept>
 #include <string>
@@ -18,15 +17,12 @@
 #include "vertex.h"
 
 void SpriteManager::add_sprite(const SpriteData& data) {
-    std::cout << "add_sprite: name=" << data.name << ", size=(" << data.size.x
-              << ", " << data.size.y << ")"
-              << ", uv0=(" << data.uv0.x << ", " << data.uv0.y << ")"
-              << ", uv1=(" << data.uv1.x << ", " << data.uv1.y << ")"
-              << ", paddingLR=" << data.paddingLR
-              << ", paddingTop=" << data.paddingTop
-              << ", paddingBottom=" << data.paddingBottom
-              << ", drawType=" << static_cast<int>(data.drawSetting.type)
-              << std::endl;
+    print_debug_message(std::format(
+        "add_sprite: name={}, size=({}, {}), uv0=({}, {}), uv1=({}, {}), "
+        "paddingLR={}, paddingTop={}, paddingBottom={}, drawType={}",
+        data.name, data.size.x, data.size.y, data.uv0.x, data.uv0.y, data.uv1.x,
+        data.uv1.y, data.paddingLR, data.paddingTop, data.paddingBottom,
+        static_cast<int>(data.drawSetting.type)));
     sprites.emplace(data.name, data);
 }
 
