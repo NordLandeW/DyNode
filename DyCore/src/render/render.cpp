@@ -23,7 +23,8 @@ void SpriteManager::add_sprite(const SpriteData& data) {
         data.name, data.size.x, data.size.y, data.uv0.x, data.uv0.y, data.uv1.x,
         data.uv1.y, data.paddingLR, data.paddingTop, data.paddingBottom,
         static_cast<int>(data.drawSetting.type)));
-    sprites.emplace(data.name, data);
+
+    sprites[data.name] = data;
 }
 
 const SpriteData& SpriteManager::get_sprite(const std::string& name) const {
