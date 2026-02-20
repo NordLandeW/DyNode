@@ -144,7 +144,7 @@ scribble_anim_cycle(0.2, 255, 255);
 
 // Window Init
 
-windowDisplayRatio = 0.7;
+windowDisplayRatio = 0.8;
 window_reset();
 window_enable_borderless_fullscreen(true);
 

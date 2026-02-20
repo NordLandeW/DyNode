@@ -53,6 +53,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 # --- doctest ---
+set(DOCTEST_NO_INSTALL ON CACHE BOOL "Skip doctest install when embedded in DyCore" FORCE)
 FetchContent_Declare(
     doctest
     GIT_REPOSITORY https://github.com/doctest/doctest.git
@@ -232,7 +233,7 @@ option(DYCORE_BUILD_TESTS "Build DyCore doctest-based unit tests" ON)
 if(DYCORE_BUILD_TESTS AND BUILD_TESTING)
     file(GLOB DYCORE_TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
 
-    add_executable(DyCore_tests
+    add_executable(DyCore_tests EXCLUDE_FROM_ALL
         ${DYCORE_SOURCES}
         ${DYCORE_TEST_SOURCES}
     )
@@ -248,7 +249,20 @@ if(DYCORE_BUILD_TESTS AND BUILD_TESTING)
   )
 
     add_test(
+            NAME DyCore.build_tests
+            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target DyCore_tests
+    )
+
+    set_tests_properties(DyCore.build_tests PROPERTIES
+        FIXTURES_SETUP DyCoreTestsBuilt
+    )
+
+    add_test(
             NAME DyCore.doctest
-            COMMAND DyCore_tests --order-by=file --duration=true
+            COMMAND $<TARGET_FILE:DyCore_tests> --order-by=file --duration=true
+    )
+
+    set_tests_properties(DyCore.doctest PROPERTIES
+        FIXTURES_REQUIRED DyCoreTestsBuilt
     )
 endif()
