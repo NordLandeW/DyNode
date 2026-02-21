@@ -51,7 +51,7 @@ function get_about_text() {
     // Head part.
     result += "[scale,0.75][sprIcon]\n\n";
     result += "[mDynamix][scale, 2.5]DyNode[/scale]\n\n";
-    result += "[sprMsdfNotoSans][scale, 0.8]Yet another Dynamix Charting tool.\n";
+    result += "[sprMsdfNotoSans][scale, 0.8]Yet another Dynamix charting tool.\n";
     result += "[sprMsdfNotoSans][scale, 0.75]made by [scale, 1.2]NordLandeW\n";
     result += "\n\n\n";
 
