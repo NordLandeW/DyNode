@@ -180,7 +180,7 @@ GoogHit("login", {
 if(DEBUG_MODE) test_at_start();
 
 if(DEBUG_MODE) {
-	room_goto(rMain);
+	room_goto(rCredits);
 }
 else
 	room_goto(rStartPage);

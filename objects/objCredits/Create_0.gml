@@ -16,8 +16,15 @@ currentLoopAcceleration = loopAcceleration;
 accelerationDamping = 0.998;
 loopAccelerationDamping = 0.9;
 
+// Layout parameters
 nowY = height + 50;
 nowX = 10;
+
+creditsMidPadding = 20;
+creditsRowPadding = 20;
+creditsPartPadding = 200;
+creditsRowHeight = 30;
+creditsNameYOffset = 10;
 
 // Credits.
 
@@ -45,7 +52,6 @@ function read_license_text() {
 read_license_text();
 
 function get_about_text() {
-
     var result = "";
 
     // Head part.
@@ -53,28 +59,6 @@ function get_about_text() {
     result += "[mDynamix][scale, 2.5]DyNode[/scale]\n\n";
     result += "[sprMsdfNotoSans][scale, 0.8]Yet another Dynamix charting tool.\n";
     result += "[sprMsdfNotoSans][scale, 0.8]... by [scale, 1.2]NordLandeW\n";
-    result += "\n\n\n";
-
-    // Localization
-    result += "[scale,1.6]" + i18n_get("credits_localization_title") + "\n";
-    for(var i = 0; i < array_length(localization); i++) {
-        var name = localization[i][0];
-        var contribution = localization[i][1];
-        result += $"[scale,1.2]{name}   [scale,0.8]{i18n_get(contribution)}[/scale]\n";
-    }
-    result += "\n\n\n";
-
-    // Special thanks
-    result += "[scale,1.6]" + i18n_get("credits_special_thanks_title") + "\n";
-    for(var i = 0; i < array_length(special_thanks); i++) {
-        var name = special_thanks[i][0];
-        var contribution = special_thanks[i][1];
-        result += $"[scale,1.2]{name}";
-        if(contribution != "")
-            result += $"   [scale,0.8]{i18n_get(contribution)}[/scale]";
-        result += "\n";
-    }
-    result += "\n\n\n";
 
     return result;
 }
@@ -91,3 +75,47 @@ function get_license_text() {
 
 middleText = get_about_text();
 rightText = get_license_text();
+
+function draw_credits(credits_array, X, offsetY) {
+    var curY = offsetY;
+    for(var i = 0; i < array_length(credits_array); i++) {
+        var _cur = credits_array[i];
+        var _name = _cur[0];
+        var _contribution = i18n_get(_cur[1]);
+        curY += creditsRowHeight;
+
+        var _ele = scribble(_name)
+            .starting_format("sprMsdfNotoSans", c_white)
+            .scale(1.2)
+            .align(fa_right, fa_bottom)
+            .msdf_shadow(c_black, 0.8, 0, 3, 6)
+            .blend(image_blend, image_alpha);
+        if(_contribution == "") {
+            _ele.align(fa_center, fa_bottom)
+                .draw(X, curY + creditsNameYOffset);
+        }
+        else {
+            _ele.draw(X - creditsMidPadding / 2, curY + creditsNameYOffset);
+        }
+        
+        if(DEBUG_MODE) {
+            draw_set_color(c_red);
+            draw_line(0, curY, width, curY);
+        }
+
+        if(_contribution != "") {
+            var _con_ele = scribble(_contribution)
+                .starting_format("sprMsdfNotoSans", c_white)
+                .scale(0.7)
+                .align(fa_left, fa_bottom)
+                .msdf_shadow(c_black, 0.8, 0, 3, 6)
+                .blend(image_blend, image_alpha);
+            _con_ele.draw(X + creditsMidPadding / 2, curY);
+        }
+
+        curY += creditsRowPadding;
+        
+    }
+
+    return curY - offsetY;
+}
