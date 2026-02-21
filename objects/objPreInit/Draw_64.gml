@@ -11,7 +11,7 @@ scribble("[delay,200]Loading...")
 var _width = sprite_get_width(sprFMOD);
 var _height = sprite_get_height(sprFMOD);
 var _scl = 0.5;
-var _logoX = BASE_RES_W - 40 - _width * _scl;
+var _logoX = BASE_RES_W - 30 - _width * _scl;
 var _logoY = BASE_RES_H - 30 - _height * _scl;
 
 draw_sprite_ext(sprFMOD, 0, _logoX, 
