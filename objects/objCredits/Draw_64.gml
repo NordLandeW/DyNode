@@ -51,7 +51,7 @@ surface_set_target(creditsSurf);
         .msdf_shadow(c_black, 0.8, 0, 3, 6)
         .blend(image_blend, image_alpha);
     _license_ele.draw(width - 100, nowY + curHeight);
-    curHeight += _license_ele.get_height() + creditsPartPadding;
+    curHeight += _license_ele.get_height();
 
     if(nowY + curHeight < - 50) {
         nowY = height + 50;

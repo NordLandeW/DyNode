@@ -24,7 +24,7 @@ creditsMidPadding = 20;
 creditsRowPadding = 20;
 creditsPartPadding = 200;
 creditsRowHeight = 30;
-creditsNameYOffset = 10;
+creditsNameYOffset = 8;
 
 // Credits.
 
@@ -106,7 +106,7 @@ function draw_credits(credits_array, X, offsetY) {
         if(_contribution != "") {
             var _con_ele = scribble(_contribution)
                 .starting_format("sprMsdfNotoSans", c_white)
-                .scale(0.7)
+                .scale(0.8)
                 .align(fa_left, fa_bottom)
                 .msdf_shadow(c_black, 0.8, 0, 3, 6)
                 .blend(image_blend, image_alpha);
