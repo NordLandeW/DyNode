@@ -11,7 +11,10 @@ speedDamping = 0.99999;
 currentSpeed = baseSpeed;
 currentAcceleration = 0;
 scrollAcceleration = 8000;
+renewAcceleration = 20000;
+currentRenewAcceleration = renewAcceleration;
 accelerationDamping = 0.998;
+renewAccelerationDamping = 0.9;
 
 nowY = height + 50;
 nowX = 10;

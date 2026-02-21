@@ -25,10 +25,14 @@ surface_set_target(creditsSurf);
     _license_ele.draw(width - 100, round(nowY + _ele.get_height() + 40));
 
     var _ele_total_height = _ele.get_height() + 40 + _license_ele.get_height();
-    if(nowY + _ele_total_height < - 50)
-        nowY = height+50;
-    else if(nowY > height + 50)
+    if(nowY + _ele_total_height < - 50) {
+        nowY = height + 50;
+        if(abs(baseSpeed - currentSpeed) < 10)
+            currentRenewAcceleration = renewAcceleration;
+    }
+    else if(nowY > height + 50) {
         nowY = -_ele_total_height;
+    }
     manually_reset_view_size();
 surface_reset_target();
 
