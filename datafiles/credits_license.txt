@@ -13,5 +13,7 @@ cubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren
 xxHash (under BSD 2-Clause License) Copyright (c) 2012-2021 Yann Collet
 Dynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd
 Dynamaker (under MIT License) Copyright (c) 2019 omegaPi
+
+FMOD by Firelight Technologies Pty Ltd.
 Dynamix produced by C4Cat Entertainment Limited
 Arcaea produced by lowiro limited

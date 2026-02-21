@@ -12,7 +12,7 @@ surface_set_target(creditsSurf);
 
     var _ele = scribble(middleText)
         .starting_format("sprMsdfNotoSans", c_white)
-        .align(fa_middle, fa_top)
+        .align(fa_center, fa_top)
         .msdf_shadow(c_black, 0.8, 0, 3, 6)
         .blend(image_blend, image_alpha);
     _ele.draw(width / 2, round(nowY));

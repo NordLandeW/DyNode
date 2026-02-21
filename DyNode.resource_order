@@ -38,6 +38,7 @@
     {"name":"Shaders","order":6,"path":"folders/Shaders.yy",},
     {"name":"Sounds","order":3,"path":"folders/Sounds.yy",},
     {"name":"Sprites","order":1,"path":"folders/Sprites.yy",},
+    {"name":"Attributions","order":37,"path":"folders/Sprites/Attributions.yy",},
     {"name":"Avatars","order":34,"path":"folders/Sprites/Avatars.yy",},
     {"name":"Difficulties","order":30,"path":"folders/Sprites/Difficulties.yy",},
     {"name":"Fonts","order":32,"path":"folders/Sprites/Fonts.yy",},
