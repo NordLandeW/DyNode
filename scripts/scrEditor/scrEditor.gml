@@ -963,7 +963,7 @@ function advanced_expr(expr = "") {
 		if(_expr == "") return;
 		var _using_bar = string_last_pos(_expr, "bar");
 		var _success = true;
-		var _exec = function(_noteProp, _expr) {
+		var _exec = function(_noteProp, _expr, _index) {
 			if(_noteProp.noteType != 3) {
 				/// @type {Struct.sNoteProp} 
 				var _prop = SnapDeepCopy(_noteProp);
@@ -977,6 +977,7 @@ function advanced_expr(expr = "") {
 				expr_set_var("side", _prop.side);
 				expr_set_var("htime", _prop.time);
 				expr_set_var("etime", _prop.time + _prop.lastTime);
+				expr_set_var("index", _index);
 				
 				var _result = expr_exec(_expr);
 
@@ -1012,17 +1013,15 @@ function advanced_expr(expr = "") {
 		if(_global) {
 			for(var i=0, l=DyCore_get_note_count(); i<l; i++) {
 				var _note = dyc_get_note_at_index_direct(i);
-				_success = _success && _exec(_note, _expr);
+				_success = _success && _exec(_note, _expr, i);
 				if(!_success) break;
 			}
 		}
 		else {
-			with(objNote) {
-				if(stateType == NOTE_STATES.SELECTED) {
-					_success = _success && _exec(get_prop(), _expr);
-					pull_prop();
-					if(!_success) return;
-				}
+			var selectedNotes = editor_get_selected_notes();
+			for(var i=0, l=array_length(selectedNotes); i<l; i++) {
+				_success = _success && _exec(selectedNotes[i], _expr, i);
+				if(!_success) break;
 			}
 		}
 		
