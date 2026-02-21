@@ -266,7 +266,7 @@ function __test_expr() {
     __assert_expr_real("step(0.5, 0.6)", 1, "step above edge");
     __assert_expr_real("clamp(5, 0, 3)", 3, "clamp upper bound");
     __assert_expr_in_range("rand(10)", 0, 10, "rand range [0, x]");
-    __assert_expr_in_range("rand_range(-2, 3)", -2, 3, "rand_range range [l, r]");
+    __assert_expr_in_range("randr(-2, 3)", -2, 3, "rand_range range [l, r]");
 
     // Function calls combined with operators
     __assert_expr_real("pow(2,3)+cos(0)", 9, "function + operator");
@@ -281,7 +281,7 @@ function __test_expr() {
     __assert_expr_with_var("clamp(pow(time, 2)-10, 0, 5)", "time", 4, 5, "clamp+pow with variable");
     __assert_expr_with_var("step(0.5, cos(time))", "time", 0, 1, "step+cos with variable");
     __assert_expr_with_var("exp(time) + pow(time, 2)", "time", 1, exp(1) + 1, "exp+pow with variable", 0.00001);
-    __assert_expr_in_range_with_var("rand_range(-time, time)", "time", 2, -2, 2, "rand_range with variable");
+    __assert_expr_in_range_with_var("randr(-time, time)", "time", 2, -2, 2, "rand_range with variable");
 }
 
 function test_at_start() {

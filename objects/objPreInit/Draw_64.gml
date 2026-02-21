@@ -12,7 +12,7 @@ var _width = sprite_get_width(sprFMOD);
 var _height = sprite_get_height(sprFMOD);
 var _scl = 1.5;
 var _logoX = BASE_RES_W - 30 - _width * _scl;
-var _logoY = BASE_RES_H - 40 - _height * _scl;
+var _logoY = BASE_RES_H - 35 - _height * _scl;
 
 draw_sprite_ext(sprFMOD, 0, _logoX, 
     _logoY + 3, 
