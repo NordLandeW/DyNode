@@ -3,7 +3,7 @@ var dT = global.timeManager.get_delta() / 1000000;
 
 // Update acceleration.
 currentAcceleration = lerp_timedep(currentAcceleration, 0, accelerationDamping);
-currentRenewAcceleration = lerp_timedep(currentRenewAcceleration, 0, renewAccelerationDamping);
+currentLoopAcceleration = lerp_timedep(currentLoopAcceleration, 0, loopAccelerationDamping);
 
 if(mouse_wheel_up()) {
     currentAcceleration += -1.5 * scrollAcceleration;
@@ -20,6 +20,6 @@ if(keyboard_check(vk_space)) {
 // Update speed.
 
 currentSpeed = lerp_timedep(currentSpeed, targetSpeed, speedDamping);
-currentSpeed += (currentAcceleration + currentRenewAcceleration) * dT;
+currentSpeed += (currentAcceleration + currentLoopAcceleration) * dT;
 
 nowY -= currentSpeed * dT;

@@ -28,7 +28,7 @@ surface_set_target(creditsSurf);
     if(nowY + _ele_total_height < - 50) {
         nowY = height + 50;
         if(abs(baseSpeed - currentSpeed) < 10)
-            currentRenewAcceleration = renewAcceleration;
+            currentLoopAcceleration = loopAcceleration;
     }
     else if(nowY > height + 50) {
         nowY = -_ele_total_height;
