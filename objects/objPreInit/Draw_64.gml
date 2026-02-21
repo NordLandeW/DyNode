@@ -10,7 +10,7 @@ scribble("[delay,200]Loading...")
 // Draw FMOD sprite as FMOD Attribution demands.
 var _width = sprite_get_width(sprFMOD);
 var _height = sprite_get_height(sprFMOD);
-var _scl = 0.5;
+var _scl = 1.5;
 var _logoX = BASE_RES_W - 30 - _width * _scl;
 var _logoY = BASE_RES_H - 30 - _height * _scl;
 

@@ -73,5 +73,6 @@ if(DEBUG_MODE) {
     dbgText += $"currentAcceleration: {string_format(currentAcceleration, 0, 2)}\n";
     dbgText += $"currentSpeed: {string_format(currentSpeed, 0, 2)}\n";
     draw_set_color(c_red);
+    draw_set_halign(fa_left);
     draw_text(10, 10, dbgText);
 }
