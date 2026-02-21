@@ -149,7 +149,14 @@ XmlImportData parse_legacy_format_xml(pugi::xml_node map_root) {
     if (!chartID.empty()) {
         importData.metaData.difficulty = difficulty_char_to_int(chartID.back());
     }
-    importData.metaData.title = chartID;
+
+    if(chartID[0] == 'f') {
+        // f {title}_{difficulty} ?
+        importData.metaData.title = chartID.substr(2, chartID.size() - 4);
+    } else {
+        // _map_{title}_{difficulty}
+        importData.metaData.title = chartID.substr(5, chartID.size() - 7);
+    }
 
     importData.metaData.sideType[0] =
         map_root.child("Left").attribute("Type").as_string();
