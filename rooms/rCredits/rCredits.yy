@@ -6,7 +6,6 @@
   "inheritCreationOrder":false,
   "inheritLayers":false,
   "instanceCreationOrder":[
-    {"name":"inst_42D9604A_1_1","path":"rooms/rCredits/rCredits.yy",},
     {"name":"inst_7B577985_1","path":"rooms/rCredits/rCredits.yy",},
     {"name":"inst_1F0E7606","path":"rooms/rCredits/rCredits.yy",},
     {"name":"inst_4FE3C2BD","path":"rooms/rCredits/rCredits.yy",},
@@ -14,9 +13,6 @@
   "isDnd":false,
   "layers":[
     {"$GMRInstanceLayer":"","%Name":"Instances","depth":0,"effectEnabled":true,"effectType":null,"gridX":32,"gridY":32,"hierarchyFrozen":false,"inheritLayerDepth":false,"inheritLayerSettings":false,"inheritSubLayers":true,"inheritVisibility":true,"instances":[
-        {"$GMRInstance":"v4","%Name":"inst_42D9604A_1_1","colour":4294967295,"frozen":false,"hasCreationCode":false,"ignore":false,"imageIndex":0,"imageSpeed":1.0,"inheritCode":false,"inheritedItemId":null,"inheritItemSettings":false,"isDnd":false,"name":"inst_42D9604A_1_1","objectId":{"name":"objUITitle","path":"objects/objUITitle/objUITitle.yy",},"properties":[
-            {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objUITitle","path":"objects/objUITitle/objUITitle.yy",},"propertyId":{"name":"title","path":"objects/objUITitle/objUITitle.yy",},"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"title_about",},
-          ],"resourceType":"GMRInstance","resourceVersion":"2.0","rotation":0.0,"scaleX":1.0,"scaleY":1.0,"x":0.0,"y":-32.0,},
         {"$GMRInstance":"v4","%Name":"inst_1F0E7606","colour":4294967295,"frozen":false,"hasCreationCode":true,"ignore":false,"imageIndex":0,"imageSpeed":1.0,"inheritCode":false,"inheritedItemId":null,"inheritItemSettings":false,"isDnd":false,"name":"inst_1F0E7606","objectId":{"name":"objCredits","path":"objects/objCredits/objCredits.yy",},"properties":[
             {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objTextBox","path":"objects/objTextBox/objTextBox.yy",},"propertyId":{"name":"text","path":"objects/objTextBox/objTextBox.yy",},"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"credits",},
             {"$GMOverriddenProperty":"v1","%Name":"","name":"","objectId":{"name":"objCredits","path":"objects/objCredits/objCredits.yy",},"propertyId":{"name":"height","path":"objects/objCredits/objCredits.yy",},"resourceType":"GMOverriddenProperty","resourceVersion":"2.0","value":"700",},

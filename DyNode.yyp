@@ -2,7 +2,7 @@
   "$GMProject":"v1",
   "%Name":"DyNode",
   "AudioGroups":[
-    {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
+    {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
   "configs":{
     "children":[],
@@ -92,6 +92,7 @@
     {"link":"io.gamemaker.sdfshaders-1.0.0","name":"io.gamemaker.sdfshaders-1.0.0","path":"io.gamemaker.sdfshaders-1.0.0.yyp",},
   ],
   "IncludedFiles":[
+    {"$GMIncludedFile":"","%Name":"credits_license.txt","CopyToMask":-1,"filePath":"datafiles","name":"credits_license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"NotoSansCJKkr-Black.otf","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"NotoSansCJKkr-Black.otf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"inigo quilez 2d sdf license.txt","CopyToMask":-1,"filePath":"datafiles","name":"inigo quilez 2d sdf license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"en-US.json","CopyToMask":-1,"filePath":"datafiles/lang","name":"en-US.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -551,6 +552,7 @@
     {"id":{"name":"sprHoldEdge","path":"sprites/sprHoldEdge/sprHoldEdge.yy",},},
     {"id":{"name":"sprHoldEdge2","path":"sprites/sprHoldEdge2/sprHoldEdge2.yy",},},
     {"id":{"name":"sprHoldGrey","path":"sprites/sprHoldGrey/sprHoldGrey.yy",},},
+    {"id":{"name":"sprIcon","path":"sprites/sprIcon/sprIcon.yy",},},
     {"id":{"name":"sprMain","path":"sprites/sprMain/sprMain.yy",},},
     {"id":{"name":"sprMainAssets","path":"sprites/sprMainAssets/sprMainAssets.yy",},},
     {"id":{"name":"sprManager","path":"sprites/sprManager/sprManager.yy",},},

@@ -410,6 +410,7 @@
     {"name":"sprHoldEdge","order":4,"path":"sprites/sprHoldEdge/sprHoldEdge.yy",},
     {"name":"sprHoldEdge2","order":10,"path":"sprites/sprHoldEdge2/sprHoldEdge2.yy",},
     {"name":"sprHoldGrey","order":13,"path":"sprites/sprHoldGrey/sprHoldGrey.yy",},
+    {"name":"sprIcon","order":36,"path":"sprites/sprIcon/sprIcon.yy",},
     {"name":"sprMain","order":14,"path":"sprites/sprMain/sprMain.yy",},
     {"name":"sprMainAssets","order":4,"path":"sprites/sprMainAssets/sprMainAssets.yy",},
     {"name":"sprManager","order":13,"path":"sprites/sprManager/sprManager.yy",},

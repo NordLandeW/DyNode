@@ -492,6 +492,11 @@ function lerp_a(from, to, amount) {
 	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165));
 }
 
+function lerp_timedep(from, to, amount) {
+	if(from == to) return from;
+	return lerp_safe(from, to, 1 - power(1 - amount, global.timeManager.get_delta() / 1000000));
+}
+
 function lerp_safe(from, to, amount) {
 	if(abs(to-from)<LERP_EPS) return to;
 	return lerp(from, to, amount);
