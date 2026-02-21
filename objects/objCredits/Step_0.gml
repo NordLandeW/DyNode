@@ -1,8 +1,25 @@
 
-if(keycheck(vk_space))
-    rollSpeedT = oRollSpeed * rollSpeedUpFactor;
-else
-    rollSpeedT = oRollSpeed;
+var dT = global.timeManager.get_delta() / 1000000;
 
-rollSpeed = lerp_a(rollSpeed, rollSpeedT, 0.3);
-nowY -= rollSpeed / room_speed;
+// Update acceleration.
+currentAcceleration = lerp_timedep(currentAcceleration, 0, accelerationDamping);
+currentLoopAcceleration = lerp_timedep(currentLoopAcceleration, 0, loopAccelerationDamping);
+
+if(mouse_wheel_up()) {
+    currentAcceleration += -1.5 * scrollAcceleration;
+} else if(mouse_wheel_down()) {
+    currentAcceleration += scrollAcceleration;
+}
+
+var targetSpeed = baseSpeed;
+if(keyboard_check(vk_space)) {
+    targetSpeed = baseSpeed * 3;
+}
+
+
+// Update speed.
+
+currentSpeed = lerp_timedep(currentSpeed, targetSpeed, speedDamping);
+currentSpeed += (currentAcceleration + currentLoopAcceleration) * dT;
+
+nowY -= currentSpeed * dT;

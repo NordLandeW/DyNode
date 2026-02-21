@@ -49,6 +49,10 @@ jobs:
         working-directory: ./DyCore
         run: cmake --build out/build/x64-release --config Release
 
+      - name: Run DyCore CTest
+        working-directory: ./DyCore
+        run: ctest --test-dir out/build/x64-release --output-on-failure
+
       # Build GameMaker project
       - id: find_yyp
         name: Find the .yyp file

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <format>
-#include <iostream>
 #include <memory_resource>
 #include <stdexcept>
 #include <string>
@@ -18,16 +17,14 @@
 #include "vertex.h"
 
 void SpriteManager::add_sprite(const SpriteData& data) {
-    std::cout << "add_sprite: name=" << data.name << ", size=(" << data.size.x
-              << ", " << data.size.y << ")"
-              << ", uv0=(" << data.uv0.x << ", " << data.uv0.y << ")"
-              << ", uv1=(" << data.uv1.x << ", " << data.uv1.y << ")"
-              << ", paddingLR=" << data.paddingLR
-              << ", paddingTop=" << data.paddingTop
-              << ", paddingBottom=" << data.paddingBottom
-              << ", drawType=" << static_cast<int>(data.drawSetting.type)
-              << std::endl;
-    sprites.emplace(data.name, data);
+    print_debug_message(std::format(
+        "add_sprite: name={}, size=({}, {}), uv0=({}, {}), uv1=({}, {}), "
+        "paddingLR={}, paddingTop={}, paddingBottom={}, drawType={}",
+        data.name, data.size.x, data.size.y, data.uv0.x, data.uv0.y, data.uv1.x,
+        data.uv1.y, data.paddingLR, data.paddingTop, data.paddingBottom,
+        static_cast<int>(data.drawSetting.type)));
+
+    sprites[data.name] = data;
 }
 
 const SpriteData& SpriteManager::get_sprite(const std::string& name) const {
@@ -391,6 +388,30 @@ void draw_sprite_part(char*& vertBuf, const SpriteData& sprite,
                       uv_rd, color);
 }
 
+// 1 Quad = 6 Vertices = 120 Bytes
+constexpr size_t BYTES_PER_QUAD = 120;
+
+size_t get_sprite_max_bytes(const SpriteData& sprite) {
+    try {
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::REPEAT_VERT) {
+            // The maximum render length is approximately the maximum screen dimension plus some padding.
+            float tile_y = std::max(1.0f, (float)sprite.size.y);
+            float max_len = std::max(BASE_RES_W, BASE_RES_H) + 3.0f * tile_y;
+            return static_cast<size_t>(std::ceil(max_len / tile_y)) * BYTES_PER_QUAD;
+        }
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SLICE_9) return 9 * BYTES_PER_QUAD;
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_5) return 5 * BYTES_PER_QUAD;
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_3) return 3 * BYTES_PER_QUAD;
+        return 1 * BYTES_PER_QUAD;
+    } catch (...) {
+        // Safe fallback value when the sprite atlas is not yet ready.
+        return 256 * BYTES_PER_QUAD;
+    }
+}
+size_t get_sprite_max_bytes(const std::string& name) {
+    return get_sprite_max_bytes(get_sprite_manager().get_sprite(name));
+}
+
 // For param state:
 //   0: Render addition bg
 //   1: Render hold bg
@@ -564,32 +585,12 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     static std::array<std::byte, 64 * 1024 * 1024> baseBuffer;
     static std::pmr::monotonic_buffer_resource monoBuffer{
         baseBuffer.data(), baseBuffer.size(), std::pmr::new_delete_resource()};
-    static std::pmr::unsynchronized_pool_resource pool(&monoBuffer);
+    monoBuffer.release();
 
     struct Task {
         char* buffer;
         int l, r;
         char* ptr;
-        Task(int l, int r) : l(l), r(r) {
-            if (l > r) {
-                throw std::invalid_argument("Invalid task range");
-            }
-            size_t bytes = 1ll * (r - l + 1) * 2040;
-            buffer = (char*)pool.allocate(bytes, 1);
-            ptr = (char*)buffer;
-        }
-        ~Task() {
-            if (buffer)
-                pool.deallocate(buffer, 1ll * (r - l + 1) * 2040);
-        }
-
-        Task(const Task& task) = delete;
-        Task& operator=(const Task&) = delete;
-
-        Task(Task&& other) noexcept
-            : buffer(other.buffer), l(other.l), r(other.r), ptr(other.ptr) {
-            other.buffer = nullptr;
-        }
     };
 
     if (concurrency > 1 &&
@@ -610,10 +611,23 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                     int blockSize = std::ceil(
                         static_cast<double>(activeList.size()) / concurrency);
                     for (int i = 0; i * blockSize < activeList.size(); i++) {
-                        tasks.emplace_back(
-                            i * blockSize,
+                        int l = i * blockSize;
+                        int r =
                             std::min((i + 1) * blockSize - 1,
-                                     static_cast<int>(activeList.size() - 1)));
+                                     static_cast<int>(activeList.size() - 1));
+
+                        if (l > r)
+                            continue;
+                        
+                        size_t bytes_per_item = 2040;
+                        if (type == 0) bytes_per_item = get_sprite_max_bytes(tapNoteSprite);
+                        else if (type == 1) bytes_per_item = get_sprite_max_bytes(chainNoteSprite);
+                        else if (type == 2) bytes_per_item = get_sprite_max_bytes(holdEdgeSprite);
+
+                        size_t bytes = 1ll * (r - l + 1) * bytes_per_item;
+                        char* alloc_buf = static_cast<char*>(
+                            monoBuffer.allocate(bytes, alignof(char)));
+                        tasks.push_back(Task{alloc_buf, l, r, alloc_buf});
                     }
 
                     taskflow.for_each(
@@ -691,14 +705,30 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 }
 
 size_t get_vertex_buffer_bound() {
-    const auto& activeNotes = get_note_activation_manager().get_active_notes();
-    // Worst case estimation: each note is a 9-sliced sprite.
-    // A 9-sliced sprite consists of 9 quads.
-    // A quad consists of 6 vertices (2 triangles).
-    // A vertex is 20 bytes (pos vec2, uv vec2, color i8vec4).
-    // So, the buffer size for one note is 9 * 6 * 20 = 1080 bytes.
-    // Hold's background add extra 8 quads.
-    return activeNotes.size() * (9 + 8) * 6 * 20;
+    const auto& actMan = get_note_activation_manager();
+    const auto& activeNotes = actMan.get_active_notes();
+    const auto& activeHolds = actMan.get_active_holds();
+    const auto& lastingHolds = actMan.get_lasting_holds();
+
+    // Pre-calculate the maximum quad cost for all sprites.
+    size_t bgBytes    = get_sprite_max_bytes("sprHoldGrey");
+    size_t barBytes   = get_sprite_max_bytes("sprHold");
+    size_t edgeBytes  = get_sprite_max_bytes("sprHoldEdge");
+    size_t tapBytes   = std::max(get_sprite_max_bytes("sprNote"), get_sprite_max_bytes("sprChain"));
+
+    size_t total_bound = 0;
+
+    // State 0
+    total_bound += lastingHolds.size() * bgBytes;
+
+    // State 1
+    total_bound += activeHolds.size() * barBytes;
+
+    // State 2 
+    total_bound += activeHolds.size() * edgeBytes;
+    total_bound += (activeNotes.size() - activeHolds.size()) * tapBytes;
+
+    return total_bound + 1024 * BYTES_PER_QUAD;
 }
 
 SpriteManager& get_sprite_manager() {

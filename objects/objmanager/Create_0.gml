@@ -14,8 +14,8 @@
 #macro EXPORT_XML_EPS 6
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
-#macro MAX_SELECTION_LIMIT 400
-#macro KPS_MEASURE_WINDOW 400
+#macro MAX_SELECTION_LIMIT 1500
+#macro KPS_MEASURE_WINDOW 2000
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DEBUG_MODE (debug_mode)
@@ -144,7 +144,8 @@ scribble_anim_cycle(0.2, 255, 255);
 
 // Window Init
 
-windowDisplayRatio = 0.7;
+windowDisplayRatio = 0.8;
+window_reset();
 window_enable_borderless_fullscreen(true);
 
 window_set_fullscreen(global.fullscreen);
@@ -179,7 +180,7 @@ GoogHit("login", {
 if(DEBUG_MODE) test_at_start();
 
 if(DEBUG_MODE) {
-	room_goto(rMain);
+	room_goto(rCredits);
 }
 else
 	room_goto(rStartPage);

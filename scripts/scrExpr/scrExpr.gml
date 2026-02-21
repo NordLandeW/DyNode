@@ -25,7 +25,6 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 		
 		// Value type check
 		
-		
 		if(symType == ExprSymbolTypes.NUMBER) {
 			if(is_string(_val) || is_int32(_val) || is_int64(_val) || is_bool(_val))
 				_val = real(_val);
@@ -57,8 +56,13 @@ function expr_init() {
 	expr_set_func("step", function(_edge, _x) { return real(_x >= _edge); });
 	expr_set_func("clamp", function(_x, _mn, _mx) { return clamp(_x, _mn, _mx); });
 	expr_set_func("exp", function(_x) { return exp(_x); });
+	expr_set_func("floor", function(_x) { return floor(_x); });
+	expr_set_func("ceil", function(_x) { return ceil(_x); });
+	expr_set_func("round", function(_x) { return round(_x); });
 	expr_set_func("rand", function(_x) { return random(_x); });
 	expr_set_func("randr", function(_l, _r) { return random_range(_l, _r); });
+	expr_set_func("irand", function(_x) { return irandom(_x); });
+	expr_set_func("irandr", function(_l, _r) { return irandom_range(_l, _r); });
 }
 
 function expr_symbol_copy(sym) {
@@ -146,6 +150,13 @@ function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 	if(is_undefined(_a) || is_undefined(_b))
 		throw $"Expression error: operator {_opt} need arguments to operate.";
 	// show_debug_message_safe($"EXPR CAC {_opt}, {_a}, {_b}")
+	var _is_arith_op = (_opt != "=");
+	if(_is_arith_op) {
+		if(is_struct(_a) && _a.symType == ExprSymbolTypes.FUNCTION)
+			throw $"Expression error: function symbol {_a.name} cannot participate in arithmetic operation {_opt}.";
+		if(global.__expr_prio[$ _opt][2] != 1 && is_struct(_b) && _b.symType == ExprSymbolTypes.FUNCTION)
+			throw $"Expression error: function symbol {_b.name} cannot participate in arithmetic operation {_opt}.";
+	}
 	var _va = (is_struct(_a)?_a.get_value():_a), _vb = (is_struct(_b)?_b.get_value():_b);
 	var _res = new ExprSymbol();
 	switch(_opt) {

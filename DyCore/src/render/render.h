@@ -68,6 +68,9 @@ class SpriteManager {
     const SpriteData& get_sprite(const std::string& name) const;
 };
 
+size_t get_sprite_max_bytes(const SpriteData& sprite);
+size_t get_sprite_max_bytes(const std::string& name);
+
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state);
 

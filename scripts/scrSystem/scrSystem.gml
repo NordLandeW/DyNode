@@ -470,7 +470,7 @@ function map_get_title() {
 
 function map_get_alt_title() {
 	if(!instance_exists(objMain)) return "example";
-	var _forbidden_chars = "?*:\"<>\\/|"
+	var _forbidden_chars = "?*:\"<>\\/|\n"
 	var _title = map_get_title();
 	for(var i=1, l=string_length(_forbidden_chars); i<l; i++)
 		_title = string_replace_all(_title, string_char_at(_forbidden_chars, i), "_");
@@ -810,12 +810,16 @@ function project_get_settings() {
 }
 
 function project_set_settings(str) {
-	editor_set_editmode(str.editmode == 0 ? 3: str.editmode);
-	if(str.editmode < 5)
-		editor_set_editside(str.editside);
-	with(objEditor) {
-		editorDefaultWidth = str.defaultWidth;
-		editorDefaultWidthMode = str.defaultWidthMode;
+	if(variable_struct_exists(str, "editmode")) {
+		editor_set_editmode(str.editmode == 0 ? 3: str.editmode);
+		if(str.editmode < 5)
+			editor_set_editside(str.editside);
+	}
+	if(variable_struct_exists(str, "defaultWidth") && variable_struct_exists(str, "defaultWidthMode")) {
+		with(objEditor) {
+			editorDefaultWidth = str.defaultWidth;
+			editorDefaultWidthMode = str.defaultWidthMode;
+		}
 	}
 	if(variable_struct_exists(str, "ntime")) {
 		objMain.nowTime = str.ntime;

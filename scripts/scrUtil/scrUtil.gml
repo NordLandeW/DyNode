@@ -445,32 +445,6 @@ function file_path_fix(_file) {
 }
 #endregion
 
-#region WINDOWS
-
-function window_reset() {
-	var _ratio = min(display_get_width() / BASE_RES_W, display_get_height() / BASE_RES_H) * objManager.windowDisplayRatio;
-	var w = BASE_RES_W * _ratio, h = BASE_RES_H * _ratio
-    window_set_rectangle(
-		(display_get_width() - w) * 0.5,
-		(display_get_height() - h) * 0.5,
-		w,
-		h
-	);
-}
-
-function resolution_set(width, height, updateViewport = true) {
-	surface_resize(application_surface, width, height);
-
-	if(updateViewport) {
-		view_wport[0] = width;
-		view_hport[0] = height;
-		view_xport[0] = 0;
-		view_yport[0] = 0;
-	}
-}
-
-#endregion
-
 function in_between(x, l, r) {
 	var _l, _r;
 	if(l>r) {
@@ -516,6 +490,11 @@ function lerp_a(from, to, amount) {
 	if(from == to) return from;
 	var fix_parameter = 60 / 165;
 	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165));
+}
+
+function lerp_timedep(from, to, amount) {
+	if(from == to) return from;
+	return lerp_safe(from, to, 1 - power(1 - amount, global.timeManager.get_delta() / 1000000));
 }
 
 function lerp_safe(from, to, amount) {

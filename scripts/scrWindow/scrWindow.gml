@@ -45,3 +45,47 @@ function window_on_files_dropped(fileList) {
         }
     }
 }
+
+
+
+function window_reset() {
+	var _ratio = min(display_get_width() / BASE_RES_W, display_get_height() / BASE_RES_H) * objManager.windowDisplayRatio;
+	var w = BASE_RES_W * _ratio, h = BASE_RES_H * _ratio
+    window_set_rectangle(
+		(display_get_width() - w) * 0.5,
+		(display_get_height() - h) * 0.5,
+		w,
+		h
+	);
+}
+
+function resolution_set(width, height, updateViewport = true) {
+	surface_resize(application_surface, width, height);
+
+	if(updateViewport) {
+		view_wport[0] = width;
+		view_hport[0] = height;
+		view_xport[0] = 0;
+		view_yport[0] = 0;
+	}
+}
+
+
+function window_toggle_fullscreen() {
+    global.fullscreen = !global.fullscreen;
+    window_set_fullscreen(global.fullscreen);
+
+    if(!global.fullscreen) {
+        // When exiting fullscreen, reset the window size to the default ratio of the display size.
+        window_reset();
+    }
+}
+
+function window_check_fullscreen() {
+    if(window_get_fullscreen() != global.fullscreen) {
+        global.fullscreen = window_get_fullscreen();
+        if(!global.fullscreen) {
+            window_reset();
+        }
+    }
+}
