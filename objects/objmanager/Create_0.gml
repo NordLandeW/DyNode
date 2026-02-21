@@ -14,8 +14,8 @@
 #macro EXPORT_XML_EPS 6
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
-#macro MAX_SELECTION_LIMIT 400
-#macro KPS_MEASURE_WINDOW 400
+#macro MAX_SELECTION_LIMIT 1500
+#macro KPS_MEASURE_WINDOW 2000
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
 #macro DEBUG_MODE (debug_mode)
