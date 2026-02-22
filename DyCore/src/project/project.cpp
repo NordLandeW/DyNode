@@ -58,8 +58,8 @@ void __async_save_project(SaveProjectParams params) {
     string projectString = "";
     try {
         // Update current chart.
-        get_project_manager().update_current_chart();
-        projectString = get_project_manager().dump();
+        ProjectManager::inst().update_current_chart();
+        projectString = ProjectManager::inst().dump();
         if (projectString == "" || verify_project(projectString) != 0) {
             print_debug_message("Invalid saving project property.");
             push_async_event(
@@ -140,7 +140,7 @@ void __async_save_project(SaveProjectParams params) {
 }
 
 void load_project(const char *filePath) {
-    get_project_manager().load_project_from_file(filePath);
+    ProjectManager::inst().load_project_from_file(filePath);
 }
 
 // Initiates an asynchronous save of the project.
@@ -170,31 +170,39 @@ double get_project_buffer(const string &projectString, char *targetBuffer,
 // =============================================================================
 
 void chart_set_metadata(const ChartMetadata &metaData) {
-    get_project_manager().set_chart_metadata(metaData);
+    ProjectManager::inst().set_chart_metadata(metaData);
 }
 ChartMetadata chart_get_metadata() {
-    return get_project_manager().get_chart_metadata();
+    return ProjectManager::inst().get_chart_metadata();
 }
 void chart_set_path(const ChartPath &path) {
-    get_project_manager().set_chart_path(path);
+    ProjectManager::inst().set_chart_path(path);
 }
 ChartPath chart_get_path() {
-    return get_project_manager().get_chart_path();
+    return ProjectManager::inst().get_chart_path();
+}
+int chart_load_music(const char *filePath) {
+    return ProjectManager::inst().load_chart_music(filePath);
 }
 void project_set_metadata(const nlohmann::json &metaData) {
-    get_project_manager().set_project_metadata(metaData);
+    ProjectManager::inst().set_project_metadata(metaData);
 }
 nlohmann::json project_get_metadata() {
-    return get_project_manager().get_project_metadata();
+    return ProjectManager::inst().get_project_metadata();
 }
 void project_set_current_chart(const int &index) {
-    get_project_manager().set_current_chart(index);
+    ProjectManager::inst().set_current_chart(index);
 }
 string project_get_version() {
-    return get_project_manager().get_version();
+    return ProjectManager::inst().get_version();
 }
 void project_set_version(const string &ver) {
-    get_project_manager().set_version(ver);
+    ProjectManager::inst().set_version(ver);
+}
+
+string project_get_full_path(const char *relativePath) {
+    auto &projectManager = ProjectManager::inst();
+    return projectManager.get_full_path(relativePath);
 }
 
 // =============================================================================

@@ -6,9 +6,19 @@
 #include "project.h"
 
 class ProjectManager {
+   public:
+    static ProjectManager &inst() {
+        static ProjectManager instance;
+        return instance;
+    }
+
    private:
     mutable std::shared_mutex mtx;
+
     Project project;
+    fs::path projectFilePath;
+    fs::path projectDirPath;
+
     int currentChartIndex = 0;
     uint64_t chartMetadataLastModifiedTime = 0;
     bool is_current_chart_set();
@@ -45,7 +55,17 @@ class ProjectManager {
     void set_version(const string &ver);
     string get_version() const;
 
+    string get_project_path() const {
+        return projectFilePath.string();
+    }
+    string get_project_dir_path() const {
+        return projectDirPath.string();
+    }
+
+    string get_full_path(const char *relativePath) const;
+
+    // Loads audio data for the current chart.
+    int load_chart_music(const char *filePath);
+
     std::string dump() const;
 };
-
-ProjectManager &get_project_manager();

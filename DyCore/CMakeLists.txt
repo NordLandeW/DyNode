@@ -112,6 +112,7 @@ set(DYCORE_COMMON_INCLUDE_DIRS
     src/utils
     src/render
     src/video
+    src/audio
     lib/
     lib/pugixml
     lib/sol

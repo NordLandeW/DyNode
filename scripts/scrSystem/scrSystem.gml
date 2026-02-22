@@ -313,6 +313,7 @@ function music_load(_file = "") {
         if(usingMP3)
         	show_debug_message_safe("The music file is using the mp3 format")
         
+		DyCore_load_chart_music(_file);
     }
     objManager.musicPath = _file;
     show_debug_message_safe("Load sucessfully.");

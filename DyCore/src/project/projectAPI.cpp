@@ -116,7 +116,7 @@ DYCORE_API const char* DyCore_get_chart_metadata() {
 }
 
 DYCORE_API double DyCore_get_chart_metadata_last_modified_time() {
-    return get_project_manager().get_chart_metadata_last_modified_time();
+    return ProjectManager::inst().get_chart_metadata_last_modified_time();
 }
 
 DYCORE_API const char* DyCore_get_chart_path() {
@@ -155,4 +155,8 @@ DYCORE_API double DyCore_set_project_metadata(const char* projectMetadataJson) {
 DYCORE_API double DyCore_set_project_version(const char* projectVersion) {
     project_set_version(projectVersion);
     return 0;
+}
+
+DYCORE_API double DyCore_load_chart_music(const char* filePath) {
+    return chart_load_music(filePath);
 }

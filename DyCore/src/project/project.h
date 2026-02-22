@@ -5,6 +5,7 @@
 #include <json.hpp>
 #include <string>
 
+#include "audio.h"
 #include "note.h"
 #include "timing.h"
 
@@ -39,6 +40,9 @@ struct Chart {
     ChartPath path;
     std::vector<Note> notes;
     std::vector<TimingPoint> timingPoints;
+
+    // Non-serialized fields
+    AudioData audioData;
 };
 void to_json(nlohmann::json &j, const Chart &chart);
 void from_json(const nlohmann::json &j, Chart &chart);
@@ -61,11 +65,20 @@ double get_project_buffer(const std::string &projectString, char *targetBuffer,
 
 void chart_set_metadata(const ChartMetadata &metaData);
 ChartMetadata chart_get_metadata();
+
 void chart_set_path(const ChartPath &path);
 ChartPath chart_get_path();
+
+int chart_load_music(const char *filePath);
+
 void project_set_metadata(const nlohmann::json &metaData);
 nlohmann::json project_get_metadata();
+
 string project_get_version();
 void project_set_version(const string &ver);
+
+// Utility function to get the full path of a chart resource based on the
+// project file location.
+string project_get_full_path(const char *relativePath);
 
 void project_set_current_chart(const int &index);
