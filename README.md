@@ -60,6 +60,8 @@ cubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren
 
 xxHash (under BSD 2-Clause License) Copyright (c) 2012-2021 Yann Collet
 
+miniaudio (under MIT-0 License) Copyright 2025 David Reid
+
 -------------------
 
 DyNode uses assets & designs from the following projects.

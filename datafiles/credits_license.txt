@@ -11,6 +11,7 @@ JSON (under MIT License) Copyright © 2013-2022 Niels Lohmann
 taskflow (under MIT License) Copyright (c) 2018-2025 Dr. Tsung-Wei Huang
 cubinterpp (under MIT License) Copyright (c) 2025 Sietze van Buuren
 xxHash (under BSD 2-Clause License) Copyright (c) 2012-2021 Yann Collet
+miniaudio (under MIT-0 License) Copyright 2025 David Reid
 Dynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd
 Dynamaker (under MIT License) Copyright (c) 2019 omegaPi
 
