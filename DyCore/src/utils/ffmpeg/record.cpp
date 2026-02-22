@@ -571,8 +571,14 @@ bool Recorder::is_encoder_available(const std::string& encoder_name) {
 std::string Recorder::get_default_encoder() {
     // Define the encoder priority list
     const std::vector<std::string> encoders_to_check = {
-        "hevc_nvenc", "hevc_qsv", "hevc_amf", "h264_nvenc",  "h264_qsv",
-        "h264_amf",   "libx265",  "libx264",  "libopenh264", "mpeg4"};
+        // 1) H.264
+        "h264_nvenc", "h264_qsv", "h264_amf", "libx264", "libopenh264",
+        // 2) AV1
+        "av1_nvenc", "av1_qsv", "av1_amf", "libsvtav1", "libaom-av1",
+        // 3) H.265/HEVC
+        "hevc_nvenc", "hevc_qsv", "hevc_amf", "libx265",
+        // Final fallback
+        "mpeg4"};
 
     for (const auto& encoder : encoders_to_check) {
         // Check cache first

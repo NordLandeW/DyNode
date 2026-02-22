@@ -19,20 +19,25 @@ class Recorder {
     // Encoder options tuned for medium-to-high quality at reasonable speed.
     const std::unordered_map<std::string, std::string> ffmpegEncoderOptions = {
         // CPU
-        {"libx264", "-preset fast -crf 20 "},  // H.264
-        {"libx265", "-preset fast -crf 22 "},  // HEVC
+        {"libx264", "-preset fast -crf 20 "},           // H.264
+        {"libx265", "-preset fast -crf 22 "},           // HEVC
+        {"libaom-av1", "-cpu-used 6 -crf 32 -b:v 0 "},  // AV1
+        {"libsvtav1", "-preset 8 -crf 34 "},            // AV1
 
         // NVIDIA NVENC
         {"hevc_nvenc", "-preset p6 -cq 22 "},  // HEVC preferred
         {"h264_nvenc", "-preset p6 -cq 20 "},  // H.264 fallback
+        {"av1_nvenc", "-preset p5 -cq 30 "},   // AV1
 
         // Intel Quick Sync Video (QSV)
         {"hevc_qsv", "-preset medium -rc icq -global_quality 23 "},
         {"h264_qsv", "-preset medium -rc icq -global_quality 21 "},
+        {"av1_qsv", "-preset medium -global_quality 30 "},
 
         // AMD AMF
         {"hevc_amf", "-rc cqp -qp_i 23 -qp_p 23 -qp_b 23 "},
         {"h264_amf", "-rc cqp -qp_i 21 -qp_p 21 -qp_b 21 "},
+        {"av1_amf", "-rc cqp -qp_i 30 -qp_p 30 -qp_b 30 "},
 
         // Essentials/other CPU fallbacks
         {"libopenh264", "-b:v 5M -g 120 "},  // H.264 via Cisco OpenH264

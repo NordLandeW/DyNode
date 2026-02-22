@@ -10,7 +10,6 @@
 #include "note.h"
 #include "notePoolManager.h"
 #include "project.h"
-#include "timer.h"
 #include "timing.h"
 #include "utils.h"
 
@@ -195,8 +194,6 @@ int ProjectManager::load_chart_audio(const char *filePath) {
     }
 
     std::thread([this, musicPath, chartIndex, requestId, chartTitle]() {
-        TIMER_SCOPE("load-music-async");
-
         AudioData loadedAudio;
         if (load_audio(musicPath.string().c_str(), loadedAudio) != 0) {
             if (requestId != chartMusicLoadRequestId) {
