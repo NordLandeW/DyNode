@@ -43,6 +43,7 @@ struct Chart {
 
     // Non-serialized fields
     AudioData audioData;
+    bool audioLoaded = false;
 };
 void to_json(nlohmann::json &j, const Chart &chart);
 void from_json(const nlohmann::json &j, Chart &chart);
@@ -69,7 +70,9 @@ ChartMetadata chart_get_metadata();
 void chart_set_path(const ChartPath &path);
 ChartPath chart_get_path();
 
-int chart_load_music(const char *filePath);
+// Load chart audio and store it in the current chart's audioData.
+int chart_load_audio(const char *filePath);
+void chart_unload_audio();
 
 void project_set_metadata(const nlohmann::json &metaData);
 nlohmann::json project_get_metadata();

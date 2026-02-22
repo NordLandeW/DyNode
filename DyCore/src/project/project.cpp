@@ -13,6 +13,7 @@
 #include "gm.h"
 #include "note.h"
 #include "projectManager.h"
+#include "timer.h"
 #include "timing.h"
 #include "utils.h"
 
@@ -140,6 +141,8 @@ void __async_save_project(SaveProjectParams params) {
 }
 
 void load_project(const char *filePath) {
+    TIMER_SCOPE("load_project");
+
     ProjectManager::inst().load_project_from_file(filePath);
 }
 
@@ -181,8 +184,11 @@ void chart_set_path(const ChartPath &path) {
 ChartPath chart_get_path() {
     return ProjectManager::inst().get_chart_path();
 }
-int chart_load_music(const char *filePath) {
-    return ProjectManager::inst().load_chart_music(filePath);
+int chart_load_audio(const char *filePath) {
+    return ProjectManager::inst().load_chart_audio(filePath);
+}
+void chart_unload_audio() {
+    ProjectManager::inst().unload_chart_audio();
 }
 void project_set_metadata(const nlohmann::json &metaData) {
     ProjectManager::inst().set_project_metadata(metaData);

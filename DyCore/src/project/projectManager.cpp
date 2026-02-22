@@ -1,12 +1,15 @@
 #include "projectManager.h"
 
+#include <mutex>
 #include <shared_mutex>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "format/dyn.h"
 #include "note.h"
 #include "notePoolManager.h"
+#include "project.h"
 #include "timer.h"
 #include "timing.h"
 #include "utils.h"
@@ -52,48 +55,51 @@ Chart &ProjectManager::get_current_chart() {
 
 void ProjectManager::clear_project() {
     std::lock_guard<std::shared_mutex> lock(mtx);
+    ++chartMusicLoadRequestId;
     project = Project();
     currentChartIndex = 0;
     chartMetadataLastModifiedTime = get_current_time();
 }
 
 // Loads audio data for all charts in the project.
-void load_all_audio_data(Project &project) {
-    TIMER_SCOPE("load_all_audio_data");
-    std::unordered_map<std::string, AudioData> loadedAudioCache;
-    std::unordered_set<std::string> failedAudioPaths;
+void ProjectManager::load_all_audio_data() {
+    std::thread([this]() {
+        std::lock_guard<std::mutex> lock(audioMtx);
+        std::unordered_map<std::string, AudioData> loadedAudioCache;
+        std::unordered_set<std::string> failedAudioPaths;
 
-    for (auto &chart : project.charts) {
-        const auto &musicPath = project_get_full_path(chart.path.music.c_str());
-        if (musicPath.empty()) {
-            continue;
-        }
+        for (auto &chart : project.charts) {
+            const auto &musicPath = get_full_path(chart.path.music.c_str());
+            if (musicPath.empty()) {
+                continue;
+            }
 
-        if (auto it = loadedAudioCache.find(musicPath);
-            it != loadedAudioCache.end()) {
-            chart.audioData = it->second;
-            continue;
-        }
+            if (auto it = loadedAudioCache.find(musicPath);
+                it != loadedAudioCache.end()) {
+                chart.audioData = it->second;
+                continue;
+            }
 
-        if (failedAudioPaths.find(musicPath) != failedAudioPaths.end()) {
-            continue;
-        }
+            if (failedAudioPaths.find(musicPath) != failedAudioPaths.end()) {
+                continue;
+            }
 
-        AudioData audioData;
-        if (load_audio(musicPath.c_str(), audioData) == 0) {
-            print_debug_message(
-                "Loaded audio path: " + musicPath +
-                ", totalSamples=" + std::to_string(audioData.pcmData.size()) +
-                ", sampleRate=" + std::to_string(audioData.sampleRate) +
-                ", channels=" + std::to_string(audioData.channels));
-            chart.audioData = audioData;
-            loadedAudioCache.emplace(musicPath, std::move(audioData));
-        } else {
-            failedAudioPaths.insert(musicPath);
-            print_debug_message("Failed to load audio for chart: " +
-                                chart.metadata.title);
+            AudioData audioData;
+            if (load_audio(musicPath.c_str(), audioData) == 0) {
+                print_debug_message(
+                    "Loaded audio path: " + musicPath + ", totalSamples=" +
+                    std::to_string(audioData.pcmData.size()) +
+                    ", sampleRate=" + std::to_string(audioData.sampleRate) +
+                    ", channels=" + std::to_string(audioData.channels));
+                chart.audioData = audioData;
+                loadedAudioCache.emplace(musicPath, std::move(audioData));
+            } else {
+                failedAudioPaths.insert(musicPath);
+                print_debug_message("Failed to load audio for chart: " +
+                                    chart.metadata.title);
+            }
         }
-    }
+    }).detach();
 }
 
 void ProjectManager::load_project_from_file(const char *filePath) {
@@ -103,7 +109,7 @@ void ProjectManager::load_project_from_file(const char *filePath) {
     projectFilePath = convert_char_to_path(filePath);
     projectDirPath = projectFilePath.parent_path();
 
-    load_all_audio_data(project);
+    load_all_audio_data();
 
     // Todo: (Future feature) Manually choose chart to start editing.
     set_current_chart(0);
@@ -169,21 +175,75 @@ string ProjectManager::get_full_path(const char *relativePath) const {
     return (projectDirPath / fs::path(relativePath)).string();
 }
 
-int ProjectManager::load_chart_music(const char *filePath) {
+int ProjectManager::load_chart_audio(const char *filePath) {
     fs::path musicPath = get_full_path(filePath);
-    AudioData &audioData = get_current_chart().audioData;
-    if (load_audio(musicPath.string().c_str(), audioData) == 0) {
+
+    int chartIndex = -1;
+    uint64_t requestId = 0;
+    std::string chartTitle;
+    {
+        std::shared_lock<std::shared_mutex> projectLock(mtx);
+        std::lock_guard<std::mutex> audioLock(audioMtx);
+        check_current_chart_set();
+        auto &chart = get_current_chart();
+        chart.audioData = AudioData();
+        chart.audioLoaded = false;
+
+        chartIndex = currentChartIndex;
+        chartTitle = chart.metadata.title;
+        requestId = ++chartMusicLoadRequestId;
+    }
+
+    std::thread([this, musicPath, chartIndex, requestId, chartTitle]() {
+        TIMER_SCOPE("load-music-async");
+
+        AudioData loadedAudio;
+        if (load_audio(musicPath.string().c_str(), loadedAudio) != 0) {
+            if (requestId != chartMusicLoadRequestId) {
+                return;
+            }
+            print_debug_message("Failed to load audio for chart: " +
+                                chartTitle);
+            return;
+        }
+
+        std::shared_lock<std::shared_mutex> projectLock(mtx);
+        std::lock_guard<std::mutex> audioLock(audioMtx);
+        if (requestId != chartMusicLoadRequestId) {
+            return;
+        }
+        if (chartIndex < 0 ||
+            chartIndex >= static_cast<int>(project.charts.size())) {
+            return;
+        }
+
+        auto &chart = project.charts[chartIndex];
+        chart.audioData = std::move(loadedAudio);
+        chart.audioLoaded = true;
+
+        auto &audioData = chart.audioData;
         print_debug_message(
             "Loaded audio path: " + musicPath.string() +
             ", totalSamples=" + std::to_string(audioData.pcmData.size()) +
             ", sampleRate=" + std::to_string(audioData.sampleRate) +
             ", channels=" + std::to_string(audioData.channels));
-    } else {
-        print_debug_message("Failed to load audio for chart: " +
-                            get_current_chart().metadata.title);
-        return -1;
-    }
+    }).detach();
+
     return 0;
+}
+
+void ProjectManager::unload_chart_audio() {
+    std::shared_lock<std::shared_mutex> projectLock(mtx);
+    std::lock_guard<std::mutex> audioLock(audioMtx);
+    ++chartMusicLoadRequestId;
+
+    auto &chart = get_current_chart();
+    if (chart.audioLoaded) {
+        chart.audioData = AudioData();
+        chart.audioLoaded = false;
+        print_debug_message("Unloaded audio for chart: " +
+                            chart.metadata.title);
+    }
 }
 
 void ProjectManager::set_project_metadata(const nlohmann::json &meta) {

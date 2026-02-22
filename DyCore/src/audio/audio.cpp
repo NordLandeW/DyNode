@@ -7,7 +7,7 @@
 #include "utils.h"
 
 int load_audio(const char* filePath, AudioData& audioData) {
-    TIMER_SCOPE("load_audio");
+    TIMER_SCOPE("audio.cpp::load_audio");
 
     ma_decoder decoder;
     ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);

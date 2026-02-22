@@ -1,5 +1,7 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <shared_mutex>
 
 #include "json.hpp"
@@ -14,16 +16,20 @@ class ProjectManager {
 
    private:
     mutable std::shared_mutex mtx;
+    mutable std::mutex audioMtx;
 
     Project project;
     fs::path projectFilePath;
     fs::path projectDirPath;
+    std::atomic<uint64_t> chartMusicLoadRequestId = 0;
 
     int currentChartIndex = 0;
     uint64_t chartMetadataLastModifiedTime = 0;
     bool is_current_chart_set();
     void check_current_chart_set();
     Chart &get_current_chart();
+
+    void load_all_audio_data();
 
    public:
     ProjectManager() {
@@ -65,7 +71,8 @@ class ProjectManager {
     string get_full_path(const char *relativePath) const;
 
     // Loads audio data for the current chart.
-    int load_chart_music(const char *filePath);
+    int load_chart_audio(const char *filePath);
+    void unload_chart_audio();
 
     std::string dump() const;
 };

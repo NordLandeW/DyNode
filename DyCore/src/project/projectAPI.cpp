@@ -157,6 +157,6 @@ DYCORE_API double DyCore_set_project_version(const char* projectVersion) {
     return 0;
 }
 
-DYCORE_API double DyCore_load_chart_music(const char* filePath) {
-    return chart_load_music(filePath);
+DYCORE_API double DyCore_load_chart_audio(const char* filePath) {
+    return chart_load_audio(filePath);
 }
