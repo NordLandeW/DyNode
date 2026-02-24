@@ -1,5 +1,6 @@
 *.yy linguist-language=Game Maker Language
 datafiles/** linguist-documentation
+DyCore/lib/** linguist-vendored
 
 ###############################################################################
 # Set default behavior to automatically normalize line endings.
