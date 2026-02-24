@@ -1,4 +1,4 @@
-*.yy linguist-language=Game Maker Language
+*.yy linguist-vendored
 datafiles/** linguist-documentation
 DyCore/lib/** linguist-vendored
 
