@@ -7,6 +7,10 @@
 #include "utils.h"
 
 int load_audio(const char* filePath, AudioData& audioData) {
+    // TODO: Not implemented yet, just a placeholder using miniaudio to load the
+    // audio data.
+    return 0;
+
     TIMER_SCOPE("audio.cpp::load_audio");
 
     ma_decoder decoder;

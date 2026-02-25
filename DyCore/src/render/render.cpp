@@ -394,14 +394,19 @@ constexpr size_t BYTES_PER_QUAD = 120;
 size_t get_sprite_max_bytes(const SpriteData& sprite) {
     try {
         if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::REPEAT_VERT) {
-            // The maximum render length is approximately the maximum screen dimension plus some padding.
+            // The maximum render length is approximately the maximum screen
+            // dimension plus some padding.
             float tile_y = std::max(1.0f, (float)sprite.size.y);
             float max_len = std::max(BASE_RES_W, BASE_RES_H) + 3.0f * tile_y;
-            return static_cast<size_t>(std::ceil(max_len / tile_y)) * BYTES_PER_QUAD;
+            return static_cast<size_t>(std::ceil(max_len / tile_y)) *
+                   BYTES_PER_QUAD;
         }
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SLICE_9) return 9 * BYTES_PER_QUAD;
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_5) return 5 * BYTES_PER_QUAD;
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_3) return 3 * BYTES_PER_QUAD;
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SLICE_9)
+            return 9 * BYTES_PER_QUAD;
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_5)
+            return 5 * BYTES_PER_QUAD;
+        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_3)
+            return 3 * BYTES_PER_QUAD;
         return 1 * BYTES_PER_QUAD;
     } catch (...) {
         // Safe fallback value when the sprite atlas is not yet ready.
@@ -582,7 +587,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     int concurrency = hardware_concurrency();
 
-    static std::array<std::byte, 64 * 1024 * 1024> baseBuffer;
+    static std::array<std::byte, 128 * 1024 * 1024> baseBuffer;
     static std::pmr::monotonic_buffer_resource monoBuffer{
         baseBuffer.data(), baseBuffer.size(), std::pmr::new_delete_resource()};
     monoBuffer.release();
@@ -597,78 +602,78 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         activeNotes.size() > MULTITHREAD_RENDERING_THRESHOLD) {
         static tf::Executor executor;
 
-        auto render_pass =
-            [&](const NoteActivationManager::ActiveLists& activeList,
-                int type) {
-                PROFILE_SCOPE_CONDITIONAL("RenderPass#" + std::to_string(type),
-                                          detailedProfiling);
-                tf::Taskflow taskflow;
-                std::vector<Task> tasks;
-                {
-                    PROFILE_SCOPE_CONDITIONAL(
-                        "RenderPassTaskGeneration#" + std::to_string(type),
-                        detailedProfiling);
-                    int blockSize = std::ceil(
-                        static_cast<double>(activeList.size()) / concurrency);
-                    for (int i = 0; i * blockSize < activeList.size(); i++) {
-                        int l = i * blockSize;
-                        int r =
-                            std::min((i + 1) * blockSize - 1,
+        auto render_pass = [&](const NoteActivationManager::ActiveLists&
+                                   activeList,
+                               int type) {
+            PROFILE_SCOPE_CONDITIONAL("RenderPass#" + std::to_string(type),
+                                      detailedProfiling);
+            tf::Taskflow taskflow;
+            std::vector<Task> tasks;
+            {
+                PROFILE_SCOPE_CONDITIONAL(
+                    "RenderPassTaskGeneration#" + std::to_string(type),
+                    detailedProfiling);
+                int blockSize = std::ceil(
+                    static_cast<double>(activeList.size()) / concurrency);
+                for (int i = 0; i * blockSize < activeList.size(); i++) {
+                    int l = i * blockSize;
+                    int r = std::min((i + 1) * blockSize - 1,
                                      static_cast<int>(activeList.size() - 1));
 
-                        if (l > r)
+                    if (l > r)
+                        continue;
+
+                    size_t bytes_per_item = 2040;
+                    if (type == 0)
+                        bytes_per_item = get_sprite_max_bytes(tapNoteSprite);
+                    else if (type == 1)
+                        bytes_per_item = get_sprite_max_bytes(chainNoteSprite);
+                    else if (type == 2)
+                        bytes_per_item = get_sprite_max_bytes(holdEdgeSprite);
+
+                    size_t bytes = 1ll * (r - l + 1) * bytes_per_item;
+                    char* alloc_buf = static_cast<char*>(
+                        monoBuffer.allocate(bytes, alignof(char)));
+                    tasks.push_back(Task{alloc_buf, l, r, alloc_buf});
+                }
+
+                taskflow.for_each(tasks.begin(), tasks.end(), [&](Task& task) {
+                    for (int i = task.l; i <= task.r; i++) {
+                        const auto& [time, noteID] = activeList[i];
+                        const auto& note =
+                            get_note_pool_manager().get_note_unsafe(noteID);
+                        if (note.type != type)
                             continue;
-                        
-                        size_t bytes_per_item = 2040;
-                        if (type == 0) bytes_per_item = get_sprite_max_bytes(tapNoteSprite);
-                        else if (type == 1) bytes_per_item = get_sprite_max_bytes(chainNoteSprite);
-                        else if (type == 2) bytes_per_item = get_sprite_max_bytes(holdEdgeSprite);
-
-                        size_t bytes = 1ll * (r - l + 1) * bytes_per_item;
-                        char* alloc_buf = static_cast<char*>(
-                            monoBuffer.allocate(bytes, alignof(char)));
-                        tasks.push_back(Task{alloc_buf, l, r, alloc_buf});
+                        switch (note.get_note_type()) {
+                            case NOTE_TYPE::NORMAL:
+                            case NOTE_TYPE::CHAIN:
+                                render_normal(task.ptr, note);
+                                break;
+                            case NOTE_TYPE::HOLD:
+                                render_hold(task.ptr, note, 2);
+                                break;
+                            default:
+                                break;
+                        }
                     }
-
-                    taskflow.for_each(
-                        tasks.begin(), tasks.end(), [&](Task& task) {
-                            for (int i = task.l; i <= task.r; i++) {
-                                const auto& [time, noteID] = activeList[i];
-                                const auto& note =
-                                    get_note_pool_manager().get_note_unsafe(
-                                        noteID);
-                                if (note.type != type)
-                                    continue;
-                                switch (note.get_note_type()) {
-                                    case NOTE_TYPE::NORMAL:
-                                    case NOTE_TYPE::CHAIN:
-                                        render_normal(task.ptr, note);
-                                        break;
-                                    case NOTE_TYPE::HOLD:
-                                        render_hold(task.ptr, note, 2);
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                        });
+                });
+            }
+            {
+                PROFILE_SCOPE_CONDITIONAL(
+                    "RenderPassTaskExecution#" + std::to_string(type),
+                    detailedProfiling);
+                executor.run(taskflow).wait();
+            }
+            {
+                PROFILE_SCOPE_CONDITIONAL(
+                    "RenderPassTaskBufferCopy#" + std::to_string(type),
+                    detailedProfiling);
+                for (auto& task : tasks) {
+                    memcpy(ptr, task.buffer, task.ptr - (char*)task.buffer);
+                    ptr += task.ptr - (char*)task.buffer;
                 }
-                {
-                    PROFILE_SCOPE_CONDITIONAL(
-                        "RenderPassTaskExecution#" + std::to_string(type),
-                        detailedProfiling);
-                    executor.run(taskflow).wait();
-                }
-                {
-                    PROFILE_SCOPE_CONDITIONAL(
-                        "RenderPassTaskBufferCopy#" + std::to_string(type),
-                        detailedProfiling);
-                    for (auto& task : tasks) {
-                        memcpy(ptr, task.buffer, task.ptr - (char*)task.buffer);
-                        ptr += task.ptr - (char*)task.buffer;
-                    }
-                }
-            };
+            }
+        };
         render_pass(activeHolds, 2);
         render_pass(activeNotes, 0);
         render_pass(activeNotes, 1);
@@ -711,10 +716,11 @@ size_t get_vertex_buffer_bound() {
     const auto& lastingHolds = actMan.get_lasting_holds();
 
     // Pre-calculate the maximum quad cost for all sprites.
-    size_t bgBytes    = get_sprite_max_bytes("sprHoldGrey");
-    size_t barBytes   = get_sprite_max_bytes("sprHold");
-    size_t edgeBytes  = get_sprite_max_bytes("sprHoldEdge");
-    size_t tapBytes   = std::max(get_sprite_max_bytes("sprNote"), get_sprite_max_bytes("sprChain"));
+    size_t bgBytes = get_sprite_max_bytes("sprHoldGrey");
+    size_t barBytes = get_sprite_max_bytes("sprHold");
+    size_t edgeBytes = get_sprite_max_bytes("sprHoldEdge");
+    size_t tapBytes = std::max(get_sprite_max_bytes("sprNote"),
+                               get_sprite_max_bytes("sprChain"));
 
     size_t total_bound = 0;
 
@@ -724,7 +730,7 @@ size_t get_vertex_buffer_bound() {
     // State 1
     total_bound += activeHolds.size() * barBytes;
 
-    // State 2 
+    // State 2
     total_bound += activeHolds.size() * edgeBytes;
     total_bound += (activeNotes.size() - activeHolds.size()) * tapBytes;
 
