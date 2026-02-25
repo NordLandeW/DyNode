@@ -63,6 +63,7 @@ function expr_init() {
 	expr_set_func("randr", function(_l, _r) { return random_range(_l, _r); });
 	expr_set_func("irand", function(_x) { return irandom(_x); });
 	expr_set_func("irandr", function(_l, _r) { return irandom_range(_l, _r); });
+	expr_set_func("pi", function() { return 3.14159265358979323846; });
 }
 
 function expr_symbol_copy(sym) {
