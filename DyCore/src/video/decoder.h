@@ -14,12 +14,90 @@ struct IMFSourceReader;
 struct IMFSample;
 
 /**
- * @brief Thin wrapper around Media Foundation video decoding.
+ * @brief Lightweight wrapper for Media Foundation video decoding.
  *
- * The decoder owns a background thread that continuously pulls frames from the
- * Media Foundation source reader into an internal pixel buffer. Public methods
- * control the lifetime, playback state, and data transfer into the host
- * engine's memory.
+ * Purpose:
+ * - Manages video open/close, background decoding, and frame output.
+ * - Exposes two frame-consumption models:
+ *   1) latest-frame mode via `get_frame`
+ *   2) external-clock sync mode via `set_sync_mode` and `get_frame_sync`
+ *
+ * Notes:
+ * - Singleton instance; prefer using it with an "open -> consume -> close"
+ *   lifecycle.
+ * - `open` starts the worker thread in paused state; call `set_pause(false)`
+ *   to begin producing frames.
+ * - When sync mode is enabled, use `get_frame_sync`; do not mix with
+ *   `get_frame`.
+ * - Output memory is caller-owned; ensure buffer capacity and validity.
+ * - Decoding runs on a worker thread. State accessors are cross-thread safe,
+ *   but frequent mode/state toggles should be rate-limited by upper layers.
+ *
+ * Time synchronization:
+ * - Asynchronous/latest-frame mode via `get_frame`:
+ *   - No external clock is required.
+ *   - The worker thread paces decode against sample timestamps scaled by
+ *     playback speed, then updates a single latest-frame snapshot.
+ *   - `get_frame` is non-blocking: it returns `1.0` only when a fresh snapshot
+ *     is ready and clears the ready flag after copy; otherwise returns `0.0`.
+ *   - If the consumer is slower than decode, intermediate frames may be
+ *     replaced by newer snapshots.
+ *
+ * - External-clock sync mode via `set_sync_mode(true)` and `get_frame_sync`:
+ *   - `get_frame_sync` advances an internal consumer clock by `delta_time`
+ *     seconds each call. Non-positive values are treated as 0.
+ *   - Decoded frames carry Media Foundation timestamps in 100ns ticks.
+ *   - A frame is considered due when its timestamp is less than or equal to
+ *     the consumer clock.
+ *   - If the next frame is not due yet, `get_frame_sync` returns `0.0`
+ *     immediately without copying.
+ *   - If the frame is due but decode output is temporarily behind,
+ *     `get_frame_sync` may block until a frame arrives, playback stops, sync
+ *     mode is disabled, decoder is paused, or EOS is reached.
+ *   - This design keeps presentation cadence controlled by the external clock,
+ *     while decode throughput remains asynchronous.
+ *
+ * Usage examples:
+ * - Latest-frame mode:
+ * @code
+ *   auto& dec = VideoDecoder::get_instance();
+ *   if (dec.open(L"example.mp4")) {
+ *       dec.set_pause(false);
+ *
+ *       const double bytes = dec.get_width() * dec.get_height() * 4.0;
+ *       std::vector<unsigned char> frame(static_cast<size_t>(bytes));
+ *
+ *       // Poll in your update loop.
+ *       if (dec.get_frame(frame.data(), static_cast<double>(frame.size())) ==
+ *           1.0) {
+ *           // Upload/use RGB32 pixels in frame.
+ *       }
+ *
+ *       dec.close();
+ *   }
+ * @endcode
+ *
+ * - External-clock sync mode:
+ * @code
+ *   auto& dec = VideoDecoder::get_instance();
+ *   if (dec.open(L"example.mp4")) {
+ *       dec.set_sync_mode(true);
+ *       dec.set_pause(false);
+ *
+ *       const double bytes = dec.get_width() * dec.get_height() * 4.0;
+ *       std::vector<unsigned char> frame(static_cast<size_t>(bytes));
+ *
+ *       // Call once per tick; deltaSec comes from your fixed/update step.
+ *       const double copied = dec.get_frame_sync(
+ *           frame.data(), static_cast<double>(frame.size()), deltaSec);
+ *       if (copied == 1.0) {
+ *           // Consume due frame.
+ *       }
+ *
+ *       dec.set_sync_mode(false);
+ *       dec.close();
+ *   }
+ * @endcode
  */
 class VideoDecoder {
    public:
@@ -35,8 +113,9 @@ class VideoDecoder {
      * @brief Opens a video file and starts the decode loop.
      *
      * This call initializes the Media Foundation source reader for the given
-     * file and spawns a background thread that begins decoding frames
-     * immediately. If a video is already loaded it will be closed first.
+     * file and spawns a background decode thread. The decoder starts paused;
+     * call set_pause(false) to begin pulling frames. If a video is already
+     * loaded it will be closed first.
      *
      * @param filename UTF-16 path to the video file.
      * @return true when the reader is created successfully, false otherwise.
@@ -44,7 +123,7 @@ class VideoDecoder {
     bool open(const wchar_t* filename);
 
     /**
-     * @brief Stops decoding and releases all Media Foundation resources.
+     * @brief Stops decoding and releases active runtime decode resources.
      *
      * This will signal the decode thread to exit and block until it has
      * terminated. It is safe to call multiple times; subsequent calls become
@@ -78,13 +157,13 @@ class VideoDecoder {
     /**
      * @brief Enables or disables the synchronous, clock-driven decode mode.
      *
-     * This mode exists to support deterministic consumers (e.g. a recorder)
+     * This mode exists to support deterministic consumers like a recorder
      * that drive presentation with an external timestep. When enabled, the
      * decode thread runs as fast as possible and pushes frames into an internal
-     * queue for get_frame_sync() to consume.
+     * queue for get_frame_sync to consume.
      *
-     * Important: get_frame() is intentionally not allowed while sync mode is
-     * enabled so the legacy "latest frame" semantics cannot interfere.
+     * Important: get_frame is intentionally not allowed while sync mode is
+     * enabled so the legacy latest frame semantics cannot interfere.
      */
     void set_sync_mode(bool enable);
 
@@ -96,13 +175,13 @@ class VideoDecoder {
      * @brief Copies the latest decoded frame into a caller-provided buffer.
      *
      * If a fresh frame is available and the buffer is large enough, the pixels
-     * are copied and the method returns 1.0. The internal "frame ready" flag is
+     * are copied and the method returns 1.0. The internal frame ready flag is
      * then cleared so subsequent calls will not return the same frame again.
+     * The destination pointer must be valid.
      *
      * @param gm_buffer_ptr Destination buffer pointer owned by the caller.
      * @param buffer_size   Size of the destination buffer in bytes.
-     * @return 1.0 when a frame was copied successfully, 0.0 otherwise
-     *         (for example when no frame is ready or the buffer is too small).
+     * @return 1.0 when a frame was copied successfully, 0.0 otherwise.
      */
     double get_frame(void* gm_buffer_ptr, double buffer_size);
 
@@ -113,22 +192,22 @@ class VideoDecoder {
      * set_sync_mode(true).
      *
      * Semantics:
-     * - The decoder maintains an internal clock ("clock B") advanced by
-     *   @p delta_time on every call.
-     * - If the next frame is not due yet (next frame timestamp > clock B), the
-     *   function returns 0.0 immediately.
-     * - If the next frame is due but the decode thread has not produced it yet
-     *   (queue is empty / behind), the function blocks until either:
-     *     - a new decoded frame becomes available, or
-     *     - playback stops/ends, or
-     *     - sync mode is disabled.
-     * - When a frame whose timestamp <= clock B is available, it is copied into
-     *   @p gm_buffer_ptr and the function returns 1.0.
+     * - The decoder maintains an internal clock advanced by delta_time on every
+     *   call. Non-positive values are clamped to 0.
+     * - If the next frame is not due yet, meaning the next frame timestamp is
+     *   greater than the internal clock, the function returns 0.0 immediately.
+     * - If the next frame is due but the decode thread has not produced it yet,
+     *   meaning the queue is empty or behind, the function blocks until either
+     *   a new decoded frame becomes available, playback is paused, stopped, or
+     *   ended, or sync mode is disabled.
+     * - When a frame whose timestamp is less than or equal to the internal
+     *   clock is available, it is copied into gm_buffer_ptr and the function
+     *   returns 1.0.
      *
      * @param gm_buffer_ptr Destination buffer pointer owned by the caller.
      * @param buffer_size   Size of the destination buffer in bytes.
-     * @param delta_time    External timestep in seconds; used to advance clock
-     * B.
+     * @param delta_time    External timestep in seconds; used to advance the
+     *                      internal clock.
      * @return 1.0 when a frame was copied successfully, 0.0 otherwise.
      */
     double get_frame_sync(void* gm_buffer_ptr, double buffer_size,
@@ -167,7 +246,7 @@ class VideoDecoder {
      * @brief Returns whether a source is currently open.
      *
      * Uses an explicit atomic load to avoid relying on implicit conversions
-     * (which are deprecated/removed in newer standard library implementations)
+     * which are deprecated or removed in newer standard library implementations
      * and to make the cross-thread intent clear.
      */
     bool is_loaded() const {
@@ -194,8 +273,9 @@ class VideoDecoder {
      * Speed affects the pacing of presentation timestamps in the decode thread.
      * It does not alter the underlying decode format.
      *
-     * @param speed Playback speed multiplier. Values <= 0 (or NaN) fall back to
-     *              1.0. Values are clamped to a reasonable range.
+     * @param speed Playback speed multiplier. Values less than or equal to 0 or
+     *              NaN fall back to 1.0. Values are clamped to a reasonable
+     *              range.
      * @return The effective speed that was applied.
      */
     double set_speed(double speed) {
@@ -240,36 +320,154 @@ class VideoDecoder {
 
     static constexpr size_t kMaxSyncQueueFrames = 3;
 
+    /**
+     * @brief Applies a pending seek request on the decode thread.
+     *
+     * Consumes m_seekTarget, performs reader seek, and initializes temporary
+     * frame-skip state so stale frames prior to the target time are ignored.
+     */
     void handle_pending_seek(
         bool isSyncMode, long long& skipUntilTime,
         std::chrono::high_resolution_clock::time_point& skipStartTime);
+
+    /**
+     * @brief Determines whether a decoded sample should be dropped.
+     *
+     * Used after seek to discard frames earlier than skipUntilTime, with a
+     * time-based escape hatch to avoid stalling if timestamps are irregular.
+     */
     bool should_drop_sample(
         LONGLONG timestamp, bool isSyncMode, long long& skipUntilTime,
         const std::chrono::high_resolution_clock::time_point& skipStartTime);
+
+    /**
+     * @brief Copies RGB32 pixels from a Media Foundation sample into memory.
+     *
+     * @param pSample Source sample to read from.
+     * @param dstBase Destination pixel buffer base address.
+     * @param expectedSize Expected byte size for the copied frame.
+     * @return true when conversion/copy succeeds and size matches.
+     */
     bool copy_pixels_from_sample(IMFSample* pSample, BYTE* dstBase,
                                  size_t expectedSize);
+
+    /**
+     * @brief Writes the decoded sample as the latest frame snapshot.
+     *
+     * Thread-safe helper that updates m_pixelBuffer and frame-ready state for
+     * get_frame().
+     */
     bool write_latest_frame(IMFSample* pSample, size_t expectedSize);
+
+    /**
+     * @brief Builds a sync-queue frame from a decoded sample.
+     *
+     * Populates outFrame with copied pixels and the sample timestamp.
+     */
     bool make_sync_frame(IMFSample* pSample, LONGLONG timestamp,
                          SyncFrame& outFrame, size_t expectedSize);
+
+    /**
+     * @brief Updates decoder timing hints from the latest timestamp.
+     *
+     * Refreshes last-decoded and estimated frame-duration atomics used by
+     * sync-mode pacing/availability checks.
+     */
     void update_decoded_timing(LONGLONG timestamp);
+
+    /**
+     * @brief Enqueues a frame for sync-mode consumers.
+     *
+     * Applies bounded-queue policy and notifies waiters that frame data is
+     * available.
+     */
     void enqueue_sync_frame(SyncFrame&& frame);
+
+    /**
+     * @brief Applies real-time pacing against presentation timestamp.
+     *
+     * Used in non-sync mode to avoid decoding too far ahead.
+     */
     void pace_for_timestamp(LONGLONG timestamp);
+
+    /**
+     * @brief Checks whether the source reader is valid for decoding.
+     *
+     * @return true when decoding may proceed; false when caller should abort
+     *         current loop iteration.
+     */
     bool ensure_reader_available_for_decode();
+
+    /**
+     * @brief Blocks while paused and exits early on stop/close.
+     *
+     * @return true when decoding should continue, false when loop should end.
+     */
     bool wait_if_paused();
+
+    /**
+     * @brief Reads one sample from the source reader.
+     *
+     * @param pSample [out] Returned sample pointer, may be null on EOS.
+     * @param flags [out] Media Foundation reader flags.
+     * @param timestamp [out] Sample timestamp in 100ns ticks.
+     * @return true on successful reader call, false on read failure.
+     */
     bool read_sample_from_reader(IMFSample*& pSample, DWORD& flags,
                                  LONGLONG& timestamp);
+
+    /**
+     * @brief Handles end-of-stream flags and related decoder state updates.
+     */
     void handle_end_of_stream_flag(DWORD flags, IMFSample*& pSample,
                                    long long& skipUntilTime);
+
+    /**
+     * @brief Processes one decoded sample for the active output mode.
+     *
+     * Routes sample to latest-frame or sync-queue path and performs timestamp
+     * bookkeeping.
+     */
     bool process_sample_for_output(
         IMFSample* pSample, LONGLONG timestamp, bool isSyncMode,
         long long& skipUntilTime,
         const std::chrono::high_resolution_clock::time_point& skipStartTime);
+
+    /**
+     * @brief Computes the timestamp threshold for the next sync frame.
+     *
+     * Requires m_syncMutex held by caller.
+     */
     long long compute_next_due_ticks_locked() const;
+
+    /**
+     * @brief Waits until a due sync frame may be consumed.
+     *
+     * Requires m_syncMutex held; may block on condition variables.
+     */
     bool wait_for_due_sync_frame_locked(std::unique_lock<std::mutex>& lock);
+
+    /**
+     * @brief Checks whether the front queued frame can be copied now.
+     *
+     * Requires m_syncMutex held.
+     */
     bool can_copy_front_sync_frame_locked(long long clockTicks,
                                           double buffer_size) const;
+
+    /**
+     * @brief Copies and pops the front sync frame.
+     *
+     * Requires m_syncMutex held; returns 1.0 on successful copy.
+     */
     double copy_front_sync_frame_locked(void* gm_buffer_ptr,
                                         std::unique_lock<std::mutex>& lock);
+
+    /**
+     * @brief Core implementation for sync-mode frame acquisition.
+     *
+     * Requires m_syncMutex held by caller.
+     */
     double get_frame_sync_locked(void* gm_buffer_ptr, double buffer_size,
                                  long long clockTicks,
                                  std::unique_lock<std::mutex>& lock);
