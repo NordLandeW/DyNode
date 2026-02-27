@@ -320,9 +320,9 @@ bool VideoDecoder::read_sample_from_reader(IMFSample*& pSample, DWORD& flags,
         pSample = nullptr;
     }
 
-    print_debug_message(std::format(
-        "VideoDecoder::decode_loop ReadSample failed, hr=0x{:08X}",
-        static_cast<unsigned long>(hr)));
+    print_debug_message(
+        std::format("VideoDecoder::decode_loop ReadSample failed, hr=0x{:08X}",
+                    static_cast<unsigned long>(hr)));
     return false;
 }
 
@@ -351,16 +351,17 @@ bool VideoDecoder::process_sample_for_output(
     IMFSample* pSample, LONGLONG timestamp, bool isSyncMode,
     long long& skipUntilTime,
     const std::chrono::high_resolution_clock::time_point& skipStartTime) {
-    if (should_drop_sample(timestamp, isSyncMode, skipUntilTime, skipStartTime)) {
+    if (should_drop_sample(timestamp, isSyncMode, skipUntilTime,
+                           skipStartTime)) {
         pSample->Release();
         return false;
     }
 
     const size_t expectedSize = m_width * m_height * 4;
     SyncFrame syncFrame;
-    const bool copied =
-        isSyncMode ? make_sync_frame(pSample, timestamp, syncFrame, expectedSize)
-                   : write_latest_frame(pSample, expectedSize);
+    const bool copied = isSyncMode ? make_sync_frame(pSample, timestamp,
+                                                     syncFrame, expectedSize)
+                                   : write_latest_frame(pSample, expectedSize);
 
     pSample->Release();
 
@@ -856,6 +857,17 @@ double VideoDecoder::get_duration() {
     return m_duration;
 }
 
+double VideoDecoder::get_position() {
+    const long long timestampTicks =
+        m_lastDecodedTimestampTicks.load(std::memory_order_relaxed);
+
+    if (timestampTicks <= 0) {
+        return 0.0;
+    }
+
+    return static_cast<double>(timestampTicks) / 10.0;
+}
+
 double VideoDecoder::get_frame(void* gm_buffer_ptr, double buffer_size) {
     if (m_isSyncMode.load(std::memory_order_relaxed)) {
         // In sync mode frames are consumed via get_frame_sync() only.
@@ -936,7 +948,7 @@ bool VideoDecoder::wait_for_due_sync_frame_locked(
 }
 
 bool VideoDecoder::can_copy_front_sync_frame_locked(long long clockTicks,
-                                                     double buffer_size) const {
+                                                    double buffer_size) const {
     if (m_syncQueue.empty()) {
         return false;
     }

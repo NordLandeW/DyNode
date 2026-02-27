@@ -156,6 +156,14 @@ class VideoDecoder {
     double get_duration();
 
     /**
+     * @brief Returns the current decoded frame position in microseconds.
+     *
+     * The value is derived from the last decoded Media Foundation timestamp
+     * (100ns ticks) and converted to microseconds.
+     */
+    double get_position();
+
+    /**
      * @brief Returns whether a source is currently open.
      *
      * Uses an explicit atomic load to avoid relying on implicit conversions

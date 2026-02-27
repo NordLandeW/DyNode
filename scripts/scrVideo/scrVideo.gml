@@ -126,3 +126,8 @@ function dyc_video_get_sync_mode() {
 function dyc_video_get_duration() {
     return DyCore_video_get_duration();
 }
+
+/// @description Get the current position of the video in seconds.
+function dyc_video_get_position() {
+    return DyCore_video_get_position() / 1000000;
+}

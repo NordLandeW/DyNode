@@ -82,6 +82,11 @@ DYCORE_API double DyCore_video_get_duration() {
     return decoder.get_duration();
 }
 
+DYCORE_API double DyCore_video_get_position() {
+    auto &decoder = VideoDecoder::get_instance();
+    return decoder.get_position();
+}
+
 DYCORE_API double DyCore_video_get_buffer_size() {
     auto &decoder = VideoDecoder::get_instance();
     return static_cast<double>(decoder.get_width() * decoder.get_height() * 4);

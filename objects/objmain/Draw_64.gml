@@ -67,7 +67,14 @@ if(showDebugInfo == 1) {
 	_debug_str += "RAUDIO_OFFSET: " + string(nowTime - sfmod_channel_get_position(channel)) + "\n";
 	_debug_str += "FMOD CPU Usage: " + string(FMODGMS_Sys_Get_CPUUsage()) + "\n";
 	_debug_str += "Project Compression Level: " + string(DYCORE_COMPRESSION_LEVEL) + "\n";
-	
+	_debug_str += "Music Length: " + string(musicLength) + "\n";
+
+	if(dyc_video_is_loaded()) {
+		_debug_str += "Video Duration: " + string(dyc_video_get_duration()) + " s\n";
+		_debug_str += "Video Position: " + string(dyc_video_get_position()) + " s\n";
+		_debug_str += "Video Offset: " + string(dyc_video_get_position() * 1000 - nowTime) + " ms\n";
+	}
+
 	// var _stat = gc_get_stats();
 	// _debug_str += "T_TIME: " + string(_stat.traversal_time) + "\n";
 	// _debug_str += "C_TIME: " + string(_stat.collection_time) + "\n";
