@@ -43,6 +43,7 @@ jobs:
         env:
           GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
           GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
+          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
         run: cmake --preset=x64-release .
 
       - name: Build and Install DyCore
