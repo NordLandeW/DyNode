@@ -112,4 +112,12 @@ int window_init() {
     return 0;
 }
 
+void disable_ime() {
+    print_debug_message("IME disable skipped: not on Windows.");
+}
+
+void enable_ime() {
+    print_debug_message("IME enable skipped: not on Windows.");
+}
+
 #endif
