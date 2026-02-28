@@ -1,16 +1,16 @@
 
-if(!variable_global_exists("__aptabaseSystem"))
+if(!variable_global_exists("__aptabaseClient"))
     return;
 
-var aptabaseSystem = global.__aptabaseSystem;
-if(!is_struct(aptabaseSystem))
+var aptabaseCli = global.__aptabaseClient;
+if(!is_struct(aptabaseCli))
     return;
 
-var isDebug = variable_struct_exists(aptabaseSystem, "isDebug") && aptabaseSystem.isDebug;
+var isDebug = variable_struct_exists(aptabaseCli, "isDebug") && aptabaseCli.isDebug;
 
 var requestID = string(async_load[? "id"]);
 
-if(aptabaseSystem.is_request_existed(requestID)) {
+if(aptabaseCli.is_request_existed(requestID)) {
     if(async_load[? "status"] == 1) {
         return;
     }
@@ -29,7 +29,7 @@ if(aptabaseSystem.is_request_existed(requestID)) {
         if(isDebug)
             show_debug_message("Aptabase HTTP request " + requestID + " succeeded and acknowledged.");
 
-        aptabaseSystem.acknowledge_request(requestID);
+        aptabaseCli.acknowledge_request(requestID);
     } else {
         if(isDebug) {
             var debugStatus = ds_map_exists(async_load, "status") ? string(async_load[? "status"]) : "n/a";
@@ -42,7 +42,7 @@ if(aptabaseSystem.is_request_existed(requestID)) {
             }
         }
 
-        aptabaseSystem.repush_request(requestID);
+        aptabaseCli.repush_request(requestID);
     }
 }
 
