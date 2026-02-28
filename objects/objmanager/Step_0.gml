@@ -9,7 +9,8 @@ if(os_type == os_windows) {
 	window_check_fullscreen();
 	
 	if(window_command_check(window_command_close)) {
-		game_end_confirm();
+		if(game_end_confirm())
+			return;
 	}
 }
 else {
@@ -103,8 +104,10 @@ if(keycheck_down(vk_f9))
 	theme_next();
 
 if(keycheck_down(vk_escape)) {
-	if(!instance_exists(objEditor))
-		game_end_confirm();
+	if(!instance_exists(objEditor)) {
+		if(game_end_confirm())
+			return;
+	}
 }
 
 // Debug functions

@@ -34,6 +34,10 @@
         
         var _nowhard = false, _noww, _nowl, _nowh;
         var _ny, _nyl, _nyr;
+        var _shortestLengthOffset = 0;
+        for(var _offsetIndex = 1; _offsetIndex < array_length(beatlineLengthOffset); _offsetIndex++)
+            _shortestLengthOffset = min(_shortestLengthOffset, beatlineLengthOffset[_offsetIndex]);
+        _shortestLengthOffset -= 10; // Extra offset for very short beatlines (e.g. 1/64)
         
             // Background Glow
             with(objMain) {
@@ -45,7 +49,7 @@
         if(beatlineVisible)
         while(((_nowTpTime - nowTime) * playbackSpeed <= _nh || _nowat == 0) && beatlineAlphaMul > 0.01) {
             for(var i = _nowBeats; i * _nowTp.beatLength + _nowTpTime + 1 < _nextTpTime && (i * _nowTp.beatLength + _nowTpTime - nowTime) * playbackSpeed <= _nh; i++) {
-                for(var j = 28; j >= 1; j--) if(j == get_div() || beatlineEnabled[j]) {
+                for(var j = beatlineMaxDiv; j >= 1; j--) if(j == get_div() || beatlineEnabled[j]) {
                     for(var k = (j == 1? 0:1/j); k < 1 && (i + k) * _nowTp.beatLength + _nowTpTime < _nextTpTime; k += ((j&1)? 1:2)/j) {
                         _ny =  note_time_to_y(_nowTpTime + (i + k) * _nowTp.beatLength, 0);
                         _nyl = note_time_to_y(_nowTpTime + (i + k) * _nowTp.beatLength, 1);
@@ -55,12 +59,17 @@
                         _nowl = _nowhard ? beatlineHardLength : beatlineLength;
                         _nowh = _nowhard ? beatlineHardHeight : beatlineHeight;
                         _noww = _noww * 3;
-                        if(j<=28)
+                        if(j<=array_length(beatlineLengthOffset)-1)
                         	_nowl += beatlineLengthOffset[j];
+                        else
+                            _nowl += _shortestLengthOffset - j;
                         if(_ny < 0 && _nyl > _nw / 2)
                             break;
                         
-                        var _ncol = j<=28?beatlineColors[j]:0;
+                        var _defaultNonTrivialCol = c_grey;
+                        var _ncol = (j <= array_length(beatlineColors)-1 && beatlineColors[j] != 0)
+                            ? beatlineColors[j]
+                            : _defaultNonTrivialCol;
                         /// If beatline style is mono
                         if(beatlineStyleCurrent == BeatlineStyles.BS_MONO ||
                            beatlineStyleCurrent == BeatlineStyles.BS_MONOLONG) {
@@ -71,9 +80,6 @@
                            beatlineStyleCurrent == BeatlineStyles.BS_MONOLONG) {
                            		_nowl = _nowhard ? beatlineHardLength : beatlineLengthLong;
                            }
-                        
-                        if(_ncol == 0)
-                        	_ncol = c_grey;
                         
                         // draw_set_color(beatlineColors[j]);
                         // LR
@@ -158,8 +164,6 @@
                         }
                     }
                     
-                    if(j > 28)
-                    	j = 29;
                 }
             }
             _totalBeats += ceil((_nextTpTime - _nowTpTime) / (_nowTp.beatLength * _nowTp.meter));

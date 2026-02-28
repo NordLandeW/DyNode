@@ -40,7 +40,7 @@
             beatlineAlpha[i] = lerp_a(beatlineAlpha[i], min(animBeatlineTargetAlpha[i], 1), animSpeed);
         }
         
-        for(var i=0; i<=28; i++)
+        for(var i=0; i<=beatlineMaxDiv; i++)
             beatlineEnabled[i] = 0;
         if(beatlineDivs[beatlineNowGroup][beatlineNowMode] == get_div()) {
         	var l = array_length(beatlineModes[beatlineNowGroup][beatlineNowMode]);
@@ -49,7 +49,7 @@
         }
         else {
         	beatlineEnabled[1] = 1;
-        	if(get_div()<=28)
+            if(get_div()<=beatlineMaxDiv)
         		beatlineEnabled[get_div()] = 1;
         }
     }

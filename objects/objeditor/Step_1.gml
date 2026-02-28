@@ -273,7 +273,8 @@ editorSelectMultiple = editorSelectCount > 1;
             _attach_reset_request = true;
         }
         else {
-            game_end_confirm();
+            if(game_end_confirm())
+                return;
         }
     }
     

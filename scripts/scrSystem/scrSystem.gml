@@ -1346,7 +1346,9 @@ function game_end_confirm() {
 	if(_confirm_exit) {
 		map_close();
 		game_end();
+		return true;
 	}
+	return false;
 }
 
 function reset_scoreboard() {

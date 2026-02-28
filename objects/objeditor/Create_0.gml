@@ -149,7 +149,8 @@ beatlineDivs = [[1, 2, 3, 4, 6, 8, 16, 12, 32, 64, 128], [1, 5, 7, 10, 14, 20, 2
 beatlineNowGroup = 0;
 beatlineNowMode = 3;
 beatlineDiv = -1;
-beatlineEnabled = array_create(28, 0);
+beatlineMaxDiv = 128;
+beatlineEnabled = array_create(beatlineMaxDiv + 1, 0);
 
 beatlineHardWidth = 3.5;
 beatlineWidth = 2;
