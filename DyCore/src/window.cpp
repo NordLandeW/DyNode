@@ -6,6 +6,7 @@
 
 #include "DyCore.h"
 #include "gm.h"
+#include "imm.h"
 #include "window.h"
 
 WNDPROC g_fnOldWndProc = NULL;
@@ -90,6 +91,18 @@ void SetupWindowHooks(HWND targetHwnd) {
 int window_init() {
     SetupWindowHooks(get_hwnd_handle());
     return 0;
+}
+
+void disable_ime() {
+    HWND hwnd = get_hwnd_handle();
+    ImmAssociateContext(hwnd, NULL);
+    print_debug_message("IME disabled.");
+}
+
+void enable_ime() {
+    HWND hwnd = get_hwnd_handle();
+    ImmAssociateContextEx(hwnd, NULL, IACE_DEFAULT);
+    print_debug_message("IME enabled.");
 }
 
 #else

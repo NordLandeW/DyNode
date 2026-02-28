@@ -89,3 +89,11 @@ function window_check_fullscreen() {
         }
     }
 }
+
+function window_enable_ime() {
+    return dyc_enable_ime();
+}
+
+function window_disable_ime() {
+    return dyc_disable_ime();
+}

@@ -142,6 +142,7 @@ function(dycore_apply_common_target_settings target)
 
     target_link_libraries(${target} PRIVATE 
         zstd lua pugixml delaunator glm::glm xxhash
+        $<$<PLATFORM_ID:Windows>:imm32>
     )
 endfunction()
 

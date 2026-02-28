@@ -152,6 +152,8 @@ window_set_fullscreen(global.fullscreen);
 if(os_type == os_windows)
 	window_command_hook(window_command_close);
 
+dyc_disable_ime();
+
 // Randomize
 
 randomize();

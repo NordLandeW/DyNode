@@ -643,6 +643,14 @@ function dyc_get_string(prompt, default_text) {
     return result;
 }
 
+function dyc_enable_ime() {
+    return DyCore_enable_ime();
+}
+
+function dyc_disable_ime() {
+    return DyCore_disable_ime();
+}
+
 function dyc_random_range(min, max) {
     return DyCore_random_range(min, max);
 }
