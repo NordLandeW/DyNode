@@ -107,6 +107,9 @@ class VideoDecoder {
     }
 
     VideoDecoder();
+
+    // Call close() before destruction to ensure the decode thread is stopped
+    // and joined, and COM objects are released on the correct thread.
     ~VideoDecoder();
 
     /**
@@ -129,7 +132,7 @@ class VideoDecoder {
      * terminated. It is safe to call multiple times; subsequent calls become
      * no-ops once resources are already released.
      */
-    void close(bool cleanup = false);
+    void close();
 
     /**
      * @brief Pauses or resumes playback without tearing down the reader.

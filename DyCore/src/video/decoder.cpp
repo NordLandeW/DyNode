@@ -451,7 +451,6 @@ VideoDecoder::VideoDecoder() {
 }
 
 VideoDecoder::~VideoDecoder() {
-    close(true);
     HRESULT hr = MFShutdown();
     if (FAILED(hr)) {
         print_debug_message(std::format(
@@ -737,7 +736,7 @@ bool VideoDecoder::open(const wchar_t* filename) {
     return true;
 }
 
-void VideoDecoder::close(bool cleanup) {
+void VideoDecoder::close() {
     if (!m_isLoaded && !m_pReader && !m_decodeThread.joinable()) {
         // Avoid noisy logs when close() is called on an already-closed decoder.
         return;
@@ -760,7 +759,7 @@ void VideoDecoder::close(bool cleanup) {
         print_debug_message("VideoDecoder::close joined decode thread.");
     }
 
-    if (!cleanup && m_pReader) {
+    if (m_pReader) {
         m_pReader->Release();
         m_pReader = nullptr;
         print_debug_message("VideoDecoder::close released source reader.");

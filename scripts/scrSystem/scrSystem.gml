@@ -1343,8 +1343,10 @@ function sfmod_get_dsp_latency() {
 
 function game_end_confirm() {
 	var _confirm_exit = instance_exists(objMain) ? show_question_i18n("confirm_close") : true;
-	if(_confirm_exit)
+	if(_confirm_exit) {
+		map_close();
 		game_end();
+	}
 }
 
 function reset_scoreboard() {
