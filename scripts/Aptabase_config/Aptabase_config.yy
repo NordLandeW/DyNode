@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"Aptabase_config",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"Aptabase_config",
+  "parent":{
+    "name":"Aptabase",
+    "path":"folders/Extensions/Aptabase.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

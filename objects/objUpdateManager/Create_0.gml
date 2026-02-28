@@ -54,12 +54,16 @@ function start_update() {
 	_update_status = UPDATE_STATUS.CHECKING_I;
 	_update_download_event_handle = http_get_file(_update_github_url, UPDATE_TARGET_FILE);
 	announcement_play("autoupdate_process_2");
+
+	analytics_track_event("AutoUpdateStart", { version: _update_version });
 }
 
 function fallback_update() {
 	_update_status = UPDATE_STATUS.CHECKING_II;
 	_update_download_event_handle = http_get_file(SOURCE_IORI + _update_filename, UPDATE_TARGET_FILE);
 	announcement_play("autoupdate_process_3");
+
+	analytics_track_event("AutoUpdateFallback", { version: _update_version });
 }
 
 function start_update_unzip() {
@@ -71,18 +75,21 @@ function update_ready() {
 	_update_status = UPDATE_STATUS.READY;
 
 	announcement_play("autoupdate_process_4");
+	analytics_track_event("AutoUpdateReady", { version: _update_version });
 }
 
 function skip_update() {
 	global.lastCheckedVersion = _update_version;
 
 	announcement_play("autoupdate_skip");
+	analytics_track_event("AutoUpdateSkip", { version: _update_version });
 }
 
 function stop_autoupdate() {
 	if(global.autoupdate) {
 		global.autoupdate = false;
 		announcement_play("autoupdate_remove");
+		analytics_track_event("AutoUpdateStop", { version: _update_version });
 	}
 }
 

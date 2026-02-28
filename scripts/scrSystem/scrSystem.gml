@@ -250,6 +250,7 @@ function map_import_osu(_file = "") {
     note_sort_all(true);
     
     announcement_play("anno_import_info_complete", 1000);
+	analytics_track_event("ChartImportOsu");
 }
 
 function map_import_dyn(_file) {
@@ -430,6 +431,7 @@ function map_export_xml(_export_to_dym) {
 		announcement_play("anno_export_complete");
 
 	show_debug_message("Export done.");
+	analytics_track_event("ChartExportXML", { result: _result });
 }
 
 function map_load_struct(_str, _import_info = true, _import_tp = true) {
@@ -666,6 +668,8 @@ function project_load(_file = "") {
 	}
     
     announcement_play("anno_project_load_complete");
+
+	analytics_track_event("ProjectLoad");
     
     return 1;
 }
@@ -750,6 +754,8 @@ function project_save_callback(event) {
 
 	objManager.projectPath = objManager.nextProjectPath;
 	objManager.nextProjectPath = "";
+
+	analytics_track_event("ProjectSave");
 }
 
 function project_file_duplicate(_project, _propath) {
@@ -1335,6 +1341,30 @@ function sfmod_get_dsp_latency() {
 		dspLatency += FMOD_DSP_APP_PITCHSHIFT_FFTSIZE / outputSampleRate * 1000;
 	}
 	return dspLatency;
+}
+
+#endregion
+
+#region Analytics
+
+function analytics_init() {
+	if(!global.analytics) return;
+
+	// Google analytics
+	GoogHit("login", {
+	version: VERSION, 
+	session_id: random_id(16),
+	engagement_time_msec: "100"});
+
+	// Aptabase
+	aptabase_init(DyCore_get_aptabase_app_key());
+	aptabase_track("AppStart");
+}
+
+function analytics_track_event(event_name, event_data = {}) {
+	if(!global.analytics) return;
+
+	aptabase_track(event_name, event_data);
 }
 
 #endregion

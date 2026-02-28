@@ -172,12 +172,12 @@ if(DyCore_ffmpeg_is_available()) {
 // Console init
 console_init();
 
-// Init finished
+// Analytics Init
+analytics_init();
 
-GoogHit("login", {
-	version: VERSION, 
-	session_id: random_id(16),
-	engagement_time_msec: "100"}); // Analytics: Version
+
+
+// Init finished.
 
 if(DEBUG_MODE) test_at_start();
 

@@ -1,0 +1,7 @@
+
+#macro APTABASE_APP_VERSION     VERSION
+#macro APTABASE_BASE_URL        ""
+#macro APTABASE_IS_DEBUG        debug_mode
+#macro APTABASE_MAX_BATCH_SIZE  25
+#macro APTABASE_FLUSH_INTERVAL  10
+

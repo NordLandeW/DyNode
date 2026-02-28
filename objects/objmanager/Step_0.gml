@@ -77,6 +77,8 @@ if(room == rMain) {
 			if(_str.bg != "") background_load(_str.bg);
 			if(_str.chart != "") map_load(_str.chart);
 			initVars = undefined;
+
+			analytics_track_event("ProjectCreate");
 		}
 		
 		// Or there is a init project

@@ -119,3 +119,5 @@ function draw_credits(credits_array, X, offsetY) {
 
     return curY - offsetY;
 }
+
+analytics_track_event("CreditsOpen");

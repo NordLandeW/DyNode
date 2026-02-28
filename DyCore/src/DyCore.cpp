@@ -104,3 +104,7 @@ DYCORE_API const char* DyCore_get_goog_measurement_id() {
 DYCORE_API const char* DyCore_get_goog_api_secret() {
     return GOOG_API_SECRET.c_str();
 }
+
+DYCORE_API const char* DyCore_get_aptabase_app_key() {
+    return APTABASE_APP_KEY.c_str();
+}

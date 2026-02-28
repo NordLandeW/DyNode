@@ -323,6 +323,7 @@ function dyc_chart_import_xml(filePath, importInfo, importTiming) {
     }
 
     show_debug_message("Load XML file completed.");
+    analytics_track_event("ChartImportXML", { result: _result });
     return 0;
 }
 
@@ -337,6 +338,7 @@ function dyc_chart_import_dy(filePath, importInfo, importTiming) {
     }
 
     show_debug_message("Load DY file completed.");
+    analytics_track_event("ChartImportDY", { result: _result });
     return 0;
 }
 
