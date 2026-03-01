@@ -103,6 +103,7 @@ message(STATUS "DyNode Version: ${DYNODE_VERSION}")
 set(VERSION_HEADER "${CMAKE_BINARY_DIR}/generated/version.h")
 configure_file(src/version.h.in ${VERSION_HEADER})
 
+# API secrets from environment variables
 message(STATUS "Checking for API secrets in environment variables...")
 set(GOOG_API_SECRET "$ENV{GOOG_API_SECRET}")
 set(GOOG_MEASUREMENT_ID "$ENV{GOOG_MEASUREMENT_ID}")
