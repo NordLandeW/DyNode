@@ -62,6 +62,10 @@ void ProjectManager::clear_project() {
 
 // Loads audio data for all charts in the project.
 void ProjectManager::load_all_audio_data() {
+    // TODO: Not implemented yet, just a placeholder using miniaudio to load the
+    // audio data.
+    return;
+
     std::thread([this]() {
         std::lock_guard<std::mutex> lock(audioMtx);
         std::unordered_map<std::string, AudioData> loadedAudioCache;
@@ -108,7 +112,10 @@ void ProjectManager::load_project_from_file(const char *filePath) {
     projectFilePath = convert_char_to_path(filePath);
     projectDirPath = projectFilePath.parent_path();
 
-    load_all_audio_data();
+    // TODO: (Future feature) Load audio data for all charts after loading the
+    // project.
+
+    // load_all_audio_data();
 
     // Todo: (Future feature) Manually choose chart to start editing.
     set_current_chart(0);
@@ -175,6 +182,10 @@ string ProjectManager::get_full_path(const char *relativePath) const {
 }
 
 int ProjectManager::load_chart_audio(const char *filePath) {
+    // TODO: Not implemented yet, just a placeholder using miniaudio to load the
+    // audio data.
+    return 0;
+
     fs::path musicPath = get_full_path(filePath);
 
     int chartIndex = -1;
