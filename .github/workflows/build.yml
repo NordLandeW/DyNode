@@ -27,6 +27,19 @@ jobs:
           lfs: true # Enable Git LFS for large files
           fetch-depth: 0
 
+      - name: Cache Sentry Native
+        id: cache-sentry
+        uses: actions/cache@v4
+        with:
+          path: DyCore/lib/sentry
+          key: ${{ runner.os }}-sentry-${{ hashFiles('DyCore/build_sentry.bat') }}
+
+      - name: Build Sentry Native
+        if: steps.cache-sentry.outputs.cache-hit != 'true'
+        working-directory: ./DyCore
+        shell: cmd
+        run: build_sentry.bat
+
       # Build DyCore C++ subproject
       - name: Setup MSVC Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1

@@ -57,6 +57,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
+add_library(sentry SHARED IMPORTED)
+
+set(SENTRY_DIR "${CMAKE_SOURCE_DIR}/lib/sentry")
+set_target_properties(sentry PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${SENTRY_DIR}/include"
+    IMPORTED_LOCATION "${SENTRY_DIR}/bin/sentry.dll"
+    IMPORTED_IMPLIB   "${SENTRY_DIR}/lib/sentry.lib"
+)
+
 # Version metadata and generated headers
 
 find_package(Git REQUIRED)
@@ -142,7 +151,7 @@ function(dycore_apply_common_target_settings target)
     )
 
     target_link_libraries(${target} PRIVATE 
-        zstd lua pugixml delaunator glm::glm xxhash
+        zstd lua pugixml delaunator glm::glm xxhash sentry
         $<$<PLATFORM_ID:Windows>:imm32>
     )
 endfunction()
@@ -172,6 +181,12 @@ dycore_apply_common_target_settings(DyCore)
 
 install(TARGETS DyCore
     RUNTIME DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
+)
+
+install(FILES
+    "${SENTRY_DIR}/bin/sentry.dll"
+    "${SENTRY_DIR}/bin/crashpad_handler.exe"
+    DESTINATION "${CMAKE_SOURCE_DIR}/../extensions/DyCore"
 )
 
 add_custom_command(TARGET DyCore POST_BUILD
