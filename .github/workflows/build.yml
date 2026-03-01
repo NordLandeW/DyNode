@@ -81,6 +81,7 @@ jobs:
         with:
           target-yyp: ${{ steps.find_yyp.outputs.yyp-path }}
           access-key: ${{ secrets.ACCESS_KEY }}
+          cache: true
 
       - name: Build with Igor
         uses: bscotch/igor-build@v1
