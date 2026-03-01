@@ -25,14 +25,14 @@ def get_version_from_git():
         tag_bytes = subprocess.check_output(command)
         tag = tag_bytes.decode("utf-8").strip()
 
-        # Parse version from tag (e.g., v1.2.3 -> 1.2.3)
-        match = re.match(r"v?(\d+)\.(\d+)\.(\d+)", tag)
+        # Parse version from tag (e.g., v1.2.3 or v1.2.3.4).
+        match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?", tag)
         if not match:
             print(f"Warning: Could not parse version from tag '{tag}'.")
             return None
 
-        major, minor, patch = match.groups()
-        version = f"{major}.{minor}.{patch}.0"
+        major, minor, patch, build = match.groups()
+        version = f"{major}.{minor}.{patch}.{build or '0'}"
         print(f"Using version {version} from git tag '{tag}'.")
         return version
 

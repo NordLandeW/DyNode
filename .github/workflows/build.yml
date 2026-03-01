@@ -71,15 +71,6 @@ jobs:
         working-directory: ./DyCore
         run: ctest --test-dir out/build/x64-release --output-on-failure
 
-      - name: Upload PDBs to Sentry
-        working-directory: ./DyCore
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: nulrom
-          SENTRY_PROJECT: dynode
-        run: |
-          sentry-cli debug-files upload --wait --include-sources ./out/build/x64-release
-
       # Build GameMaker project
       - id: find_yyp
         name: Find the .yyp file
@@ -147,3 +138,12 @@ jobs:
         with:
           name: windows-build
           path: ${{ steps.unzip.outputs.unzip-dir }}
+
+      - name: Upload PDBs to Sentry
+        working-directory: ./DyCore
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: nulrom
+          SENTRY_PROJECT: dynode
+        run: |
+          sentry-cli debug-files upload --wait --include-sources ./out/build/x64-release
