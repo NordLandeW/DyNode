@@ -2,11 +2,11 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '17 0 * * 2'
+    - cron: "17 0 * * 2"
 
 jobs:
   analyze:
@@ -33,51 +33,52 @@ jobs:
             os: windows-2022
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        lfs: true
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
 
-    - name: Cache Sentry Native
-      if: matrix.language == 'c-cpp'
-      id: cache-sentry
-      uses: actions/cache@v4
-      with:
-        path: DyCore/lib/sentry
-        key: ${{ runner.os }}-sentry-${{ hashFiles('DyCore/build_sentry.bat') }}
+      - name: Cache Sentry Native
+        if: matrix.language == 'c-cpp'
+        id: cache-sentry
+        uses: actions/cache@v4
+        with:
+          path: DyCore/lib/sentry
+          key: ${{ runner.os }}-sentry-${{ hashFiles('DyCore/build_sentry.bat') }}
 
-    - name: Build Sentry Native
-      if: matrix.language == 'c-cpp' && steps.cache-sentry.outputs.cache-hit != 'true'
-      working-directory: ./DyCore
-      shell: cmd
-      run: build_sentry.bat
+      - name: Build Sentry Native
+        if: matrix.language == 'c-cpp' && steps.cache-sentry.outputs.cache-hit != 'true'
+        working-directory: ./DyCore
+        shell: cmd
+        run: build_sentry.bat
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
 
-    - name: Setup MSVC Developer Command Prompt
-      if: matrix.language == 'c-cpp'
-      uses: ilammy/msvc-dev-cmd@v1
+      - name: Setup MSVC Developer Command Prompt
+        if: matrix.language == 'c-cpp'
+        uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Configure DyCore (CMake preset)
-      if: matrix.language == 'c-cpp'
-      working-directory: ./DyCore
-      env:
-        GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
-        GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
-        APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
-      run: cmake --preset=x64-release .
+      - name: Configure DyCore (CMake preset)
+        if: matrix.language == 'c-cpp'
+        working-directory: ./DyCore
+        env:
+          GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
+          GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
+          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: cmake --preset=x64-release .
 
-    - name: Build DyCore
-      if: matrix.language == 'c-cpp'
-      working-directory: ./DyCore
-      run: cmake --build out/build/x64-release --config Release
+      - name: Build DyCore
+        if: matrix.language == 'c-cpp'
+        working-directory: ./DyCore
+        run: cmake --build out/build/x64-release --config Release
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{ matrix.language }}"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

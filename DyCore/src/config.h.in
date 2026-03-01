@@ -5,3 +5,4 @@
 const std::string GOOG_API_SECRET = "@GOOG_API_SECRET@";
 const std::string GOOG_MEASUREMENT_ID = "@GOOG_MEASUREMENT_ID@";
 const std::string APTABASE_APP_KEY = "@APTABASE_APP_KEY@";
+const std::string SENTRY_DSN = "@SENTRY_DSN@";

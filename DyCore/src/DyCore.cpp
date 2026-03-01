@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "analytics.h"
 #include "api.h"
 #include "config.h"
 #include "ffmpeg/base.h"
@@ -57,6 +58,9 @@ std::filesystem::path get_program_path() {
 //
 // @return "success" on successful initialization.
 DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
+    // Initialize analytics
+    init_analytics();
+
     std::ios::sync_with_stdio(false);
     HWND hwndHandle = reinterpret_cast<HWND>(const_cast<char*>(hwnd));
     ::programPath = convert_char_to_path(programPath);

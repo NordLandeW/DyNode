@@ -107,6 +107,7 @@ message(STATUS "Checking for API secrets in environment variables...")
 set(GOOG_API_SECRET "$ENV{GOOG_API_SECRET}")
 set(GOOG_MEASUREMENT_ID "$ENV{GOOG_MEASUREMENT_ID}")
 set(APTABASE_APP_KEY "$ENV{APTABASE_APP_KEY}")
+set(SENTRY_DSN "$ENV{SENTRY_DSN}")
 
 set(CONFIG_HEADER "${CMAKE_BINARY_DIR}/generated/config.h")
 configure_file(src/config.h.in ${CONFIG_HEADER})
@@ -132,10 +133,10 @@ set(DYCORE_COMMON_INCLUDE_DIRS
 
 if(MSVC)
     message(STATUS "Compiler is MSVC or Clang-cl, applying MSVC-specific options")
-    set(DYCORE_RELEASE_OPT /O2)
+    set(DYCORE_RELEASE_OPT /O2 /Zi)
 else()
     message(STATUS "Compiler is GCC/Clang (or other), applying GNU-style options")
-    set(DYCORE_RELEASE_OPT -O3)
+    set(DYCORE_RELEASE_OPT -O3 -g -gcodeview)
 endif()
 
 function(dycore_apply_common_target_settings target)
@@ -177,6 +178,17 @@ endif()
 add_library(DyCore SHARED $<TARGET_OBJECTS:DyCore_objs> ${DYCORE_RESOURCES})
 dycore_apply_common_target_settings(DyCore) 
 
+if(WIN32)
+    if(MSVC)
+        target_link_options(DyCore PRIVATE $<$<CONFIG:RELEASE>:/DEBUG /OPT:REF /OPT:ICF>)
+    else()
+        target_link_options(DyCore PRIVATE $<$<CONFIG:RELEASE>:-Wl,/DEBUG -Wl,/OPT:REF -Wl,/OPT:ICF>)
+        
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_link_options(DyCore PRIVATE $<$<CONFIG:RELEASE>:-Wl,--pdb=DyCore.pdb>)
+        endif()
+    endif()
+endif()
 # Install and post-build steps
 
 install(TARGETS DyCore

@@ -40,6 +40,9 @@ jobs:
         shell: cmd
         run: build_sentry.bat
 
+      - name: Install Sentry CLI
+        run: npm install -g @sentry/cli
+
       # Build DyCore C++ subproject
       - name: Setup MSVC Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
@@ -57,6 +60,7 @@ jobs:
           GOOG_MEASUREMENT_ID: ${{ secrets.GOOG_MEASUREMENT_ID }}
           GOOG_API_SECRET: ${{ secrets.GOOG_API_SECRET }}
           APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: cmake --preset=x64-release .
 
       - name: Build and Install DyCore
@@ -66,6 +70,15 @@ jobs:
       - name: Run DyCore CTest
         working-directory: ./DyCore
         run: ctest --test-dir out/build/x64-release --output-on-failure
+
+      - name: Upload PDBs to Sentry
+        working-directory: ./DyCore
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: nulrom
+          SENTRY_PROJECT: dynode
+        run: |
+          sentry-cli debug-files upload --wait --include-sources ./out/build/x64-release
 
       # Build GameMaker project
       - id: find_yyp
