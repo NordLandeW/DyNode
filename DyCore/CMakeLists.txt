@@ -236,6 +236,16 @@ add_executable(DyCore_tests
 dycore_apply_common_target_settings(DyCore_tests)
 target_link_libraries(DyCore_tests PRIVATE doctest::doctest)
 
+add_custom_command(TARGET DyCore_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SENTRY_DIR}/bin/sentry.dll"
+        "$<TARGET_FILE_DIR:DyCore_tests>/sentry.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SENTRY_DIR}/bin/crashpad_handler.exe"
+        "$<TARGET_FILE_DIR:DyCore_tests>/crashpad_handler.exe"
+    COMMENT "Copying Sentry runtime files for DyCore_tests"
+)
+
 add_custom_target(run_tests
     COMMAND DyCore_tests --order-by=file --duration=true
     DEPENDS DyCore_tests
