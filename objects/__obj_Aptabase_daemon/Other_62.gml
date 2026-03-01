@@ -16,18 +16,23 @@ if(aptabaseCli.is_request_existed(requestID)) {
     }
     
     var isSuccess = false;
+    var isClientError = false;
     if(ds_map_exists(async_load, "http_status")) {
         var httpStatus = real(async_load[? "http_status"]);
         isSuccess = (httpStatus >= 200) && (httpStatus < 300);
+        isClientError = (httpStatus >= 400) && (httpStatus < 500) && (httpStatus != 429) && (httpStatus != 408);
     }
     else if(ds_map_exists(async_load, "status")) {
         var status = real(async_load[? "status"]);
         isSuccess = (status >= 0);
     }
     
-    if(isSuccess) {
-        if(isDebug)
+    if(isSuccess || isClientError) {
+        if(isDebug && isClientError) {
+            show_debug_message("Aptabase request failed with client error " + string(httpStatus) + ", dropping events.");
+        } else if(isDebug) {
             show_debug_message("Aptabase HTTP request " + requestID + " succeeded and acknowledged.");
+        }
 
         aptabaseCli.acknowledge_request(requestID);
     } else {

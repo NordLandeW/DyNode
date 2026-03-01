@@ -16,8 +16,10 @@ function __AptabaseEvent(eventName, props) constructor {
     }
 
     static utc_timestamp_iso8601 = function() {
-        var nowLocal = date_current_datetime();
-        var nowUTC = date_inc_minute(nowLocal, -date_get_timezone());
+        var prev_tz = date_get_timezone();
+        date_set_timezone(timezone_utc);
+        var nowUTC = date_current_datetime();
+        date_set_timezone(prev_tz);
 
         var year = date_get_year(nowUTC);
         var month = date_get_month(nowUTC);
@@ -128,6 +130,39 @@ function __AptabaseEvent(eventName, props) constructor {
         }
     }
 
+    static get_cached_system_profile = function() {
+        static cachedSystemProfile = undefined;
+        if(is_struct(cachedSystemProfile)) {
+            return cachedSystemProfile;
+        }
+
+        var resolvedLocale = get_locale_code();
+        var resolvedOsName = os_type_to_name();
+        var resolvedOsVersion = "";
+        var resolvedDeviceModel = "";
+
+        var osInfo = os_get_info();
+        if(ds_exists(osInfo, ds_type_map)) {
+            resolvedOsName = map_get_first_string(osInfo, ["os_name", "system_name", "platform", "name"], resolvedOsName);
+            resolvedOsVersion = map_get_first_string(osInfo, ["os_version_string", "version_string", "system_version", "os_version", "version", "release", "build"], resolvedOsVersion);
+            resolvedDeviceModel = map_get_first_string(osInfo, ["device_model", "model", "hardware_model", "machine", "hardware", "device", "product", "manufacturer"], resolvedDeviceModel);
+
+            ds_map_destroy(osInfo);
+        }
+
+        if(string_length(resolvedOsVersion) <= 0) resolvedOsVersion = decode_os_version();
+        if(string_length(resolvedDeviceModel) <= 0) resolvedDeviceModel = "unknown";
+
+        cachedSystemProfile = {
+            locale: resolvedLocale,
+            osName: resolvedOsName,
+            osVersion: resolvedOsVersion,
+            deviceModel: resolvedDeviceModel
+        };
+
+        return cachedSystemProfile;
+    }
+
     var resolvedSessionID = "";
     var resolvedIsDebug = false;
     var resolvedAppVersion = APTABASE_APP_VERSION;
@@ -139,44 +174,21 @@ function __AptabaseEvent(eventName, props) constructor {
     }
 
     var resolvedProps = sanitize_props(props, resolvedIsDebug);
-
-    var readableLocale = get_locale_code();
-    var readableOsName = os_type_to_name();
-    var readableOsVersion = "";
-    var readableDeviceModel = "";
-
-    var osInfo = os_get_info();
-    if(ds_exists(osInfo, ds_type_map)) {
-        readableOsName = map_get_first_string(osInfo, ["os_name", "system_name", "platform", "name"], readableOsName);
-        readableOsVersion = map_get_first_string(osInfo, ["os_version_string", "version_string", "system_version", "os_version", "version", "release", "build"], readableOsVersion);
-        readableDeviceModel = map_get_first_string(osInfo, ["device_model", "model", "hardware_model", "machine", "hardware", "device", "product", "manufacturer"], readableDeviceModel);
-
-        ds_map_destroy(osInfo);
-    }
-
-    if(string_length(readableOsVersion) <= 0) readableOsVersion = decode_os_version();
-    if(string_length(readableDeviceModel) <= 0) readableDeviceModel = "unknown";
+    var systemProfile = get_cached_system_profile();
 
     self.timestamp = utc_timestamp_iso8601();
     self.sessionId = resolvedSessionID;
     self.eventName = eventName;
     self.systemProps = {
-        locale: readableLocale,
-        osName: readableOsName,
-        osVersion: readableOsVersion,
-        deviceModel: readableDeviceModel,
+        locale: systemProfile.locale,
+        osName: systemProfile.osName,
+        osVersion: systemProfile.osVersion,
+        deviceModel: systemProfile.deviceModel,
         isDebug: resolvedIsDebug,
         appVersion: resolvedAppVersion,
         sdkVersion: $"gm-aptabase@{__APTABASE_SDK_VERSION}"
     };
     self.props = resolvedProps;
-}
-
-function __AptabaseSendingEvent(requestID, events) constructor {
-    self.requestID = requestID;
-    
-    /// @type {Array<Struct.__AptabaseEvent>} 
-    self.events = events;
 }
 
 function __AptabaseClient() constructor {
@@ -200,8 +212,14 @@ function __AptabaseClient() constructor {
     flushEventHandle = undefined;
 
     static new_session_id = function() {
-        randomize();
-        var nowUTC = date_inc_minute(date_current_datetime(), -date_get_timezone());
+        if(APTABASE_RANDOMIZE)
+            randomize();
+
+        var prev_tz = date_get_timezone();
+        date_set_timezone(timezone_utc);
+        var nowUTC = date_current_datetime();
+        date_set_timezone(prev_tz);
+
         var unixTimestamp = floor((nowUTC - 25569) * 86400);
         var randomNumber = irandom_range(0, 99999999);
         return string(unixTimestamp) + string(randomNumber);
@@ -210,10 +228,15 @@ function __AptabaseClient() constructor {
     sessionID = new_session_id();
 
     static get_host_from_app_key = function(appKey) {
-        if(string_pos("SH", appKey) > 0) {
+        var prefix = string_copy(appKey, 1, 5);
+        if(prefix == "A-SH-") {
+            if(APTABASE_SH_HOST == "") {
+                show_debug_message("Aptabase warning: Detected A-SH- type App Key but no self-hosted host is configured. Please set APTABASE_SH_HOST in Aptabase_config.gml or provide base_url in config when initializing.");
+                return APTABASE_US_HOST;
+            }
             return APTABASE_SH_HOST;
         }
-        if(string_pos("EU", appKey) > 0) {
+        if(prefix == "A-EU-") {
             return APTABASE_EU_HOST;
         }
         return APTABASE_US_HOST;
@@ -253,8 +276,11 @@ function __AptabaseClient() constructor {
         return requestID;
     }
 
-    /// @param {Struct.__AptabaseEvent} event 
+    /// @param {Struct.__AptabaseEvent} event
     static push_event = function(event) {
+        if(array_length(eventQueue) >= 10000) {
+            array_delete(eventQueue, 0, 1);
+        }
         array_push(eventQueue, event);
     }
 
@@ -270,7 +296,8 @@ function __AptabaseClient() constructor {
 
         var requestID = send_request(json_stringify(sentEvents));
         if(requestID >= 0) {
-            sendingEvents[$ requestID] = sentEvents;
+            var reqIdStr = string(requestID);
+            sendingEvents[$ reqIdStr] = sentEvents;
             array_delete(eventQueue, 0, eventsToSend);
         } else if(isDebug) {
             show_debug_message("Aptabase flush aborted: requestID < 0, events kept in queue.");
@@ -281,19 +308,19 @@ function __AptabaseClient() constructor {
         if(!is_struct(config)) return;
 
         if(variable_struct_exists(config, "app_key"))
-            appKey = config[? "app_key"];
+            appKey = config[$ "app_key"];
         if(variable_struct_exists(config, "app_version"))
-            appVersion = string(config[? "app_version"]);
+            appVersion = string(config[$ "app_version"]);
         if(variable_struct_exists(config, "base_url"))
-            baseURL = config[? "base_url"];
+            baseURL = config[$ "base_url"];
         if(variable_struct_exists(config, "max_batch_size"))
-            maxBatchSize = min(config[? "max_batch_size"], __APTABASE_MAX_BATCH_SIZE_LIMIT);
+            maxBatchSize = min(config[$ "max_batch_size"], __APTABASE_MAX_BATCH_SIZE_LIMIT);
         if(variable_struct_exists(config, "flush_interval")) {
-            flushInterval = config[? "flush_interval"];
+            flushInterval = config[$ "flush_interval"];
             start();
         }
         if(variable_struct_exists(config, "is_debug"))
-            isDebug = bool(config[? "is_debug"]);
+            isDebug = bool(config[$ "is_debug"]);
     }
 
     static is_request_existed = function(id) {
@@ -335,11 +362,6 @@ function __AptabaseClient() constructor {
             flushEventHandle = undefined;
         }
     }
-
-    // Create daemon object.
-    call_later(1, time_source_units_frames, function() {
-        instance_create_depth(0, 0, 10000, __obj_Aptabase_daemon);
-    });
 }
 
 

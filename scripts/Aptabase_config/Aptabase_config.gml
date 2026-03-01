@@ -17,3 +17,6 @@
 
 // Time interval (in seconds) for automatic flushing of events.
 #macro APTABASE_FLUSH_INTERVAL  10
+
+// Whether to use randomize() on session ID generation.
+#macro APTABASE_RANDOMIZE       true
