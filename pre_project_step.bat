@@ -12,6 +12,22 @@ for /f "usebackq delims=" %%a in ("%YYprojectDir%/.env") do (
     set "%%a"
 )
 
+echo --- Entering DyCore directory...
+cd /d "%YYprojectDir%\DyCore"
+if not exist "lib\sentry\bin\sentry.dll" (
+    echo --- sentry.dll not found.
+    echo --- Running build_sentry.bat...
+    
+    call "build_sentry.bat"
+    
+    if not exist "lib\sentry\bin\sentry.dll" (
+        echo [ERROR] Sentry build failed, sentry.dll still missing.
+        exit /b 1
+    )
+) else (
+    echo --- sentry.dll already exists.
+)
+
 :: Set build mode here: "release" or "debug"
 set BUILD_MODE=release
 

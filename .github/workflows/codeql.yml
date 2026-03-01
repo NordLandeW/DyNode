@@ -39,12 +39,25 @@ jobs:
         lfs: true
         fetch-depth: 0
 
+    - name: Cache Sentry Native
+      if: matrix.language == 'c-cpp'
+      id: cache-sentry
+      uses: actions/cache@v4
+      with:
+        path: DyCore/lib/sentry
+        key: ${{ runner.os }}-sentry-${{ hashFiles('DyCore/build_sentry.bat') }}
+
+    - name: Build Sentry Native
+      if: matrix.language == 'c-cpp' && steps.cache-sentry.outputs.cache-hit != 'true'
+      working-directory: ./DyCore
+      shell: cmd
+      run: build_sentry.bat
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-        # queries: +security-extended,security-and-quality
 
     - name: Setup MSVC Developer Command Prompt
       if: matrix.language == 'c-cpp'
