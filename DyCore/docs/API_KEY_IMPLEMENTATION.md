@@ -45,6 +45,7 @@ const std::string GOOG_MEASUREMENT_ID = "@GOOG_MEASUREMENT_ID@";
 
 ```
 
+- 如果要在 DyCore 中使用 API Key，只需引用头文件 `config.h`。
 - 如果 Gamemaker 侧需要读取该 API_KEY，则在 `DyCore.cpp` 中追加相应的接口，并更新 Gamemaker Extension 中的接口函数列表。
 
 ```cpp

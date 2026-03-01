@@ -46,6 +46,7 @@ const std::string GOOG_MEASUREMENT_ID = "@GOOG_MEASUREMENT_ID@";
 
 ```
 
+- Include `config.h` header to use the API keys.
 - If GameMaker needs to read this API_KEY, add the corresponding interface in `DyCore.cpp`, and update the interface function list in the GameMaker Extension.
 
 ```cpp
