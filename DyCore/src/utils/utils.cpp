@@ -5,12 +5,14 @@
 
 #include <chrono>
 #include <cstdio>
+#include <ctime>
 #include <filesystem>
 #include <iostream>
 #include <mutex>
 #include <random>
 #include <taskflow/taskflow.hpp>
 
+#include "analytics.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -89,18 +91,67 @@ std::string gb2312ToUtf8(const std::string& gbStr) {
 // Retrieves the last modification time of a file as a formatted string.
 // The format is "YYYY_MM_DD_HH_MM_SS".
 std::string get_file_modification_time(char* file_path) {
+    constexpr const char* kFallbackTimestamp = "1970_01_01_00_00_00";
+
     namespace fs = std::filesystem;
-    std::error_code ec;
-    auto ftime = fs::last_write_time(fs::path((char8_t*)file_path), ec);
+    try {
+        std::error_code ec;
+        auto ftime = fs::last_write_time(fs::path((char8_t*)file_path), ec);
 
-    if (ec) {
-        std::cout << "Error reading file time: " << file_path << std::endl;
-        return "failed";
+        if (ec) {
+            print_debug_message("Error reading file time: " +
+                                std::string(file_path));
+            report_exception_error(
+                "std::runtime_error",
+                std::runtime_error("std::filesystem::last_write_time failed."));
+            return kFallbackTimestamp;
+        }
+
+#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+        const auto sys_time =
+            std::chrono::clock_cast<std::chrono::system_clock>(ftime);
+#else
+        const auto sys_time =
+            std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                ftime - fs::file_time_type::clock::now() +
+                std::chrono::system_clock::now());
+#endif
+        const auto sys_time_sec =
+            std::chrono::floor<std::chrono::seconds>(sys_time);
+        const std::time_t time_value =
+            std::chrono::system_clock::to_time_t(sys_time_sec);
+
+        std::tm local_time{};
+#if defined(_WIN32)
+        if (localtime_s(&local_time, &time_value) != 0) {
+            print_debug_message("Failed to convert file time: " +
+                                std::string(file_path));
+            report_exception_error("std::runtime_error",
+                                   std::runtime_error("localtime_s failed."));
+            return kFallbackTimestamp;
+        }
+#else
+        if (localtime_r(&time_value, &local_time) == nullptr) {
+            print_debug_message("Failed to convert file time: " +
+                                std::string(file_path));
+            report_exception_error("std::runtime_error",
+                                   std::runtime_error("localtime_r failed."));
+            return kFallbackTimestamp;
+        }
+#endif
+
+        return std::format("{:04}_{:02}_{:02}_{:02}_{:02}_{:02}",
+                           local_time.tm_year + 1900, local_time.tm_mon + 1,
+                           local_time.tm_mday, local_time.tm_hour,
+                           local_time.tm_min, local_time.tm_sec);
+    } catch (const std::exception& ex) {
+        report_exception_error("std::exception", ex);
+        return kFallbackTimestamp;
+    } catch (...) {
+        report_exception_error("std::runtime_error",
+                               std::runtime_error("Unknown exception."));
+        return kFallbackTimestamp;
     }
-
-    auto ftime_sec = std::chrono::floor<std::chrono::seconds>(ftime);
-
-    return std::format("{:%Y_%m_%d_%H_%M_%S}", ftime_sec);
 }
 
 // Generates a random string of a specified length.
