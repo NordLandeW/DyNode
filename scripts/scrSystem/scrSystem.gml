@@ -755,7 +755,11 @@ function project_save_callback(event) {
 	objManager.projectPath = objManager.nextProjectPath;
 	objManager.nextProjectPath = "";
 
-	analytics_track_event("ProjectSave");
+	static lastSaveTime = 0;
+	if(current_time - lastSaveTime > 6 * 60 * 1000) {
+		analytics_track_event("ProjectSave");
+		lastSaveTime = current_time;
+	}
 }
 
 function project_file_duplicate(_project, _propath) {
