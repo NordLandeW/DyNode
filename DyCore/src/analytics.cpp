@@ -10,6 +10,10 @@
 void init_analytics() {
     std::string version = "DyNode@" + std::string(DYNODE_VERSION);
 
+    if (version.find("dirty") != std::string::npos) {
+        return;
+    }
+
     sentry_options_t* options = sentry_options_new();
     sentry_options_set_dsn(options, SENTRY_DSN.c_str());
     // TODO: Set to standard path for all platforms.
