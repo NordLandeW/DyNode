@@ -78,6 +78,7 @@ if(GIT_EXACT_TAG)
     set(DYNODE_VERSION ${GIT_EXACT_TAG})
     if(GIT_DIRTY_STATUS)
         message(WARNING "Building a release version (${DYNODE_VERSION}) from a dirty repository!")
+        set(DYNODE_BUILD_TYPE "DEV")
         set(DYNODE_VERSION "${DYNODE_VERSION} (dirty)")
     endif()
 else()
@@ -208,22 +209,6 @@ add_custom_command(TARGET DyCore POST_BUILD
 )
 
 message(STATUS "DyCore will be installed to ${CMAKE_SOURCE_DIR}/../extensions/DyCore")
-
-if(CMAKE_EXPORT_COMPILE_COMMANDS)
-    set(COMPILE_COMMANDS_SOURCE "${CMAKE_BINARY_DIR}/compile_commands.json")
-    set(COMPILE_COMMANDS_LINK "${CMAKE_SOURCE_DIR}/compile_commands.json")
-
-    add_custom_command(
-        OUTPUT ${COMPILE_COMMANDS_LINK}
-        COMMAND ${CMAKE_COMMAND} -E create_symlink ${COMPILE_COMMANDS_SOURCE} ${COMPILE_COMMANDS_LINK}
-        DEPENDS ${COMPILE_COMMANDS_SOURCE}
-        COMMENT "Creating symlink for compile_commands.json in project root"
-    )
-    
-    add_custom_target(symlink_compile_commands ALL
-        DEPENDS ${COMPILE_COMMANDS_LINK}
-    )
-endif()
 
 # Unit tests
 
