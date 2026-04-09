@@ -23,10 +23,10 @@ class ProjectManager {
     fs::path projectDirPath;
     std::atomic<uint64_t> chartMusicLoadRequestId = 0;
 
-    int currentChartIndex = -1;
+    int currentChartIndex;
     uint64_t chartMetadataLastModifiedTime = 0;
     bool is_current_chart_set();
-    void check_current_chart_set();
+    bool check_current_chart_set();
     Chart &get_current_chart();
 
     void load_all_audio_data();
@@ -39,6 +39,7 @@ class ProjectManager {
                                            .sideType = {"MIXER", "PAD"},
                                            .difficulty = 3,
                                        }});
+        currentChartIndex = 0;
     }
 
     void clear_project();

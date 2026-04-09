@@ -17,14 +17,11 @@ bool ProjectManager::is_current_chart_set() {
     return currentChartIndex != -1;
 }
 
-void ProjectManager::check_current_chart_set() {
-    if (!is_current_chart_set()) {
-        throw std::out_of_range("No current chart set");
-    }
-
+bool ProjectManager::check_current_chart_set() {
     if (currentChartIndex < 0 || currentChartIndex >= get_chart_count()) {
-        throw std::out_of_range("Current chart index out of range");
+        return false;
     }
+    return true;
 }
 
 int ProjectManager::get_chart_count() const {
@@ -52,7 +49,9 @@ void ProjectManager::set_current_chart(int index) {
 }
 
 Chart &ProjectManager::get_current_chart() {
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        throw std::runtime_error("Current chart is not set");
+    }
     return project.charts[currentChartIndex];
 }
 
@@ -127,7 +126,10 @@ void ProjectManager::load_project_from_file(const char *filePath) {
 
 void ProjectManager::update_current_chart() {
     std::lock_guard<std::shared_mutex> lock(mtx);
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        print_debug_message("Current chart is not set. Cannot update chart.");
+        return;
+    }
     auto &chart = get_current_chart();
     // Update timing points.
     get_timing_manager().get_timing_points(chart.timingPoints);
@@ -137,7 +139,10 @@ void ProjectManager::update_current_chart() {
 
 void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {
     std::lock_guard<std::shared_mutex> lock(mtx);
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        print_debug_message("Current chart is not set. Cannot set metadata.");
+        return;
+    }
     get_current_chart().metadata = meta;
 
     chartMetadataLastModifiedTime = get_current_time();
@@ -145,7 +150,9 @@ void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {
 
 ChartMetadata ProjectManager::get_chart_metadata() {
     std::shared_lock<std::shared_mutex> lock(mtx);
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        return ChartMetadata();
+    }
     return get_current_chart().metadata;
 }
 
@@ -155,13 +162,18 @@ uint64_t ProjectManager::get_chart_metadata_last_modified_time() const {
 
 void ProjectManager::set_chart_path(const ChartPath &path) {
     std::lock_guard<std::shared_mutex> lock(mtx);
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        print_debug_message("Current chart is not set. Cannot set path.");
+        return;
+    }
     get_current_chart().path = path;
 }
 
 ChartPath ProjectManager::get_chart_path() {
     std::shared_lock<std::shared_mutex> lock(mtx);
-    check_current_chart_set();
+    if (!check_current_chart_set()) {
+        return ChartPath();
+    }
     return get_current_chart().path;
 }
 
@@ -198,7 +210,10 @@ int ProjectManager::load_chart_audio(const char *filePath) {
     {
         std::shared_lock<std::shared_mutex> projectLock(mtx);
         std::lock_guard<std::mutex> audioLock(audioMtx);
-        check_current_chart_set();
+        if (!check_current_chart_set()) {
+            print_debug_message("Current chart is not set. Cannot load audio.");
+            return -1;
+        }
         auto &chart = get_current_chart();
         chart.audioData = AudioData();
         chart.audioLoaded = false;
@@ -248,6 +263,11 @@ void ProjectManager::unload_chart_audio() {
     std::shared_lock<std::shared_mutex> projectLock(mtx);
     std::lock_guard<std::mutex> audioLock(audioMtx);
     ++chartMusicLoadRequestId;
+
+    if (!check_current_chart_set()) {
+        print_debug_message("Current chart is not set. Cannot unload audio.");
+        return;
+    }
 
     auto &chart = get_current_chart();
     if (chart.audioLoaded) {
