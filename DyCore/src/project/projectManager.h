@@ -23,7 +23,7 @@ class ProjectManager {
     fs::path projectDirPath;
     std::atomic<uint64_t> chartMusicLoadRequestId = 0;
 
-    int currentChartIndex = 0;
+    int currentChartIndex = -1;
     uint64_t chartMetadataLastModifiedTime = 0;
     bool is_current_chart_set();
     void check_current_chart_set();

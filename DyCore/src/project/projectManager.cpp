@@ -21,6 +21,10 @@ void ProjectManager::check_current_chart_set() {
     if (!is_current_chart_set()) {
         throw std::out_of_range("No current chart set");
     }
+
+    if (currentChartIndex < 0 || currentChartIndex >= get_chart_count()) {
+        throw std::out_of_range("Current chart index out of range");
+    }
 }
 
 int ProjectManager::get_chart_count() const {
@@ -56,7 +60,7 @@ void ProjectManager::clear_project() {
     std::lock_guard<std::shared_mutex> lock(mtx);
     ++chartMusicLoadRequestId;
     project = Project();
-    currentChartIndex = 0;
+    currentChartIndex = -1;
     chartMetadataLastModifiedTime = get_current_time();
 }
 
