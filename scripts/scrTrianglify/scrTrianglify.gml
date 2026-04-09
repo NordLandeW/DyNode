@@ -152,13 +152,16 @@ function trianglify_generate(w, h, speedRange, cellSize=75, variance=0.75) {
 
 function trianglify_step(tri_struct) {
 	var _arr = tri_struct.points;
+	var dt = global.timeManager.get_delta() / 1000000;
 	for(var i=0; i<array_length(_arr); i++) {
-		if(!in_between(_arr[i].x+_arr[i].vx, 0, tri_struct.width))
+		var dx = _arr[i].vx * dt;
+		var dy = _arr[i].vy * dt;
+		if(!in_between(_arr[i].x + dx, 0, tri_struct.width))
 			_arr[i].vx = -_arr[i].vx;
-		if(!in_between(_arr[i].y+_arr[i].vy, 0, tri_struct.height))
+		if(!in_between(_arr[i].y + dy, 0, tri_struct.height))
 			_arr[i].vy = -_arr[i].vy;
-		_arr[i].x += _arr[i].vx;
-		_arr[i].y += _arr[i].vy;
+		_arr[i].x += dx;
+		_arr[i].y += dy;
 	}
 }
 
