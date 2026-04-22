@@ -44,6 +44,8 @@ function i18n_init() {
     }
 }
 
+/// @description Set the current language.
+/// @param {String} language The language to set (case-insensitive).
 function i18n_set_lang(language) {
     if(is_string(language)) {
         for(var i=0, l=global.i18nCount; i<l; i++)
