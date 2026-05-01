@@ -15,19 +15,44 @@ for /f "usebackq delims=" %%a in ("%YYprojectDir%/.env") do (
 echo --- Entering DyCore directory...
 cd /d "%YYprojectDir%\DyCore"
 if not exist "lib\sentry\bin\sentry.dll" (
-    echo --- sentry.dll not found.
-    echo --- Running build_sentry.bat...
-    
-    call "build_sentry.bat"
-    
-    if not exist "lib\sentry\bin\sentry.dll" (
-        echo [ERROR] Sentry build failed, sentry.dll still missing.
-        exit /b 1
-    )
-) else (
-    echo --- sentry.dll already exists.
+    goto build_sentry
+)
+if not exist "lib\sentry\bin\crashpad_handler.exe" (
+    goto build_sentry
+)
+if not exist "lib\sentry\lib\sentry.lib" (
+    goto build_sentry
+)
+if not exist "lib\sentry\include\sentry.h" (
+    goto build_sentry
 )
 
+echo --- Sentry dependency already exists.
+goto build_dycore
+
+:build_sentry
+    echo --- Sentry dependency not found or incomplete.
+    echo --- Running build_sentry.bat...
+
+    call "build_sentry.bat"
+    if %errorlevel% neq 0 (
+        echo [ERROR] Sentry build failed.
+        exit /b 1
+    )
+
+    if not exist "lib\sentry\bin\sentry.dll" goto sentry_missing
+    if not exist "lib\sentry\bin\crashpad_handler.exe" goto sentry_missing
+    if not exist "lib\sentry\lib\sentry.lib" goto sentry_missing
+    if not exist "lib\sentry\include\sentry.h" goto sentry_missing
+
+    echo --- Sentry dependency is ready.
+    goto build_dycore
+
+:sentry_missing
+    echo [ERROR] Sentry build finished, but required files are still missing.
+    exit /b 1
+
+:build_dycore
 :: Set build mode here: "release" or "debug"
 set BUILD_MODE=release
 
