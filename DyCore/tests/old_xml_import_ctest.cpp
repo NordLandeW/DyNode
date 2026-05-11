@@ -10,7 +10,7 @@
 #include "project/format/xml.h"
 #include "timing.h"
 
-TEST_CASE("old xml import parses legacy DynamixMap correctly") {
+TEST_CASE("OldXmlImport") {
     namespace fs = std::filesystem;
 
     constexpr const char* oldXmlContent =

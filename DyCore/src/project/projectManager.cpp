@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
@@ -110,7 +111,9 @@ void ProjectManager::load_all_audio_data() {
 
 void ProjectManager::load_project_from_file(const char *filePath) {
     clear_project();
-    project_import_dyn(filePath, project);
+    if (project_import_dyn(filePath, project) != 0) {
+        throw std::runtime_error("Failed to import DYN project file.");
+    }
 
     projectFilePath = convert_char_to_path(filePath);
     projectDirPath = projectFilePath.parent_path();

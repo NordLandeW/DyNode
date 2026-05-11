@@ -53,10 +53,20 @@ DYCORE_API const char* DyCore_get_async_event() {
 /// and optional arguments to fill in the i18n placeholders.
 void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
                             std::vector<string> args) {
-    json j = json::object();
-    j["msg"] = message;
-    j["args"] = args;
-    AsyncEvent event = {GM_ANNOUNCEMENT, (int)type, j.dump()};
-    push_async_event(event);
+    try {
+        json j = json::object();
+        j["msg"] = message;
+        j["args"] = args;
+        AsyncEvent event = {
+            GM_ANNOUNCEMENT, (int)type,
+            j.dump(-1, ' ', false, json::error_handler_t::replace)};
+        push_async_event(event);
+    } catch (const std::exception& e) {
+        print_debug_message("GameMaker announcement failed: " +
+                            string(e.what()));
+        push_async_event(
+            {GM_ANNOUNCEMENT, (int)GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+             R"({"msg":"anno_dycore_error","args":["Failed to create announcement."]})"});
+    }
     return;
 }

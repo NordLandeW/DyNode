@@ -72,9 +72,9 @@ DYCORE_API double DyCore_project_load(const char* filePath) {
     try {
         load_project(filePath);
     } catch (const std::exception& e) {
+        print_debug_message("Project load failed: " + string(e.what()));
         gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
                                "anno_project_load_failed", {e.what()});
-        print_debug_message("Project load failed: " + string(e.what()));
         return -1;
     }
     return 0;

@@ -56,6 +56,7 @@ FetchContent_Declare(
     GIT_TAG        v2.4.12
 )
 FetchContent_MakeAvailable(doctest)
+include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 
 add_library(sentry SHARED IMPORTED)
 
@@ -239,7 +240,6 @@ add_custom_target(run_tests
     COMMENT "Running DyCore doctest suite"
 )
 
-add_test(
-    NAME DyCore.doctest
-    COMMAND $<TARGET_FILE:DyCore_tests> --order-by=file --duration=true
+doctest_discover_tests(DyCore_tests
+    TEST_PREFIX "DyCore."
 )
