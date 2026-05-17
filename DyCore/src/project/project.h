@@ -2,6 +2,7 @@
 #include <zstd.h>
 
 #include <array>
+#include <filesystem>
 #include <json.hpp>
 #include <string>
 
@@ -60,6 +61,7 @@ void __async_save_project(SaveProjectParams params);
 
 void load_project(const char *filePath);
 void save_project(const char *filePath, double compressionLevel);
+void backup_existing_project_file(const std::filesystem::path &finalPath);
 
 double get_project_buffer(const std::string &projectString, char *targetBuffer,
                           double compressionLevel);

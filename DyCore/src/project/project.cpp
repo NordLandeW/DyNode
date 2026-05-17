@@ -30,6 +30,8 @@
 
 namespace {
 
+constexpr int MAX_EMERGENCY_PROJECT_BACKUPS_COUNT = 3;
+
 std::mutex projectSaveMutex;
 
 #ifdef _WIN32
@@ -110,7 +112,61 @@ void replace_file_durably(const std::filesystem::path &tempPath,
 #endif
 }
 
+void delete_file_durably(const std::filesystem::path &path) {
+    if (!std::filesystem::exists(path)) {
+        return;
+    }
+#ifdef _WIN32
+    if (!DeleteFileW(path.wstring().c_str())) {
+        throw_last_windows_error("Error deleting file.");
+    }
+#else
+    if (!std::filesystem::remove(path)) {
+        throw std::runtime_error("Error deleting file.");
+    }
+#endif
+}
+
+std::filesystem::path emergency_backup_path(
+    const std::filesystem::path &finalPath, int version) {
+    std::filesystem::path backupName = finalPath.stem();
+    backupName += ".bak.";
+    backupName += std::to_string(version);
+    backupName += finalPath.extension();
+    return finalPath.parent_path() / "backups" / backupName;
+}
+
 }  // namespace
+
+void backup_existing_project_file(const std::filesystem::path &finalPath) {
+    namespace fs = std::filesystem;
+
+    if (!fs::exists(finalPath)) {
+        return;
+    }
+
+    const fs::path backupDir = finalPath.parent_path() / "backups";
+    fs::create_directories(backupDir);
+
+    static_assert(MAX_EMERGENCY_PROJECT_BACKUPS_COUNT > 0);
+
+    delete_file_durably(
+        emergency_backup_path(finalPath, MAX_EMERGENCY_PROJECT_BACKUPS_COUNT));
+    delete_file_durably(emergency_backup_path(
+        finalPath, MAX_EMERGENCY_PROJECT_BACKUPS_COUNT - 1));
+
+    for (int version = MAX_EMERGENCY_PROJECT_BACKUPS_COUNT - 2; version >= 0;
+         --version) {
+        const fs::path currentPath = emergency_backup_path(finalPath, version);
+        if (!fs::exists(currentPath)) {
+            continue;
+        }
+        replace_file_durably(currentPath,
+                             emergency_backup_path(finalPath, version + 1));
+    }
+
+    replace_file_durably(finalPath, emergency_backup_path(finalPath, 0));
+}
 
 // Verifies the integrity of a project string by checking its JSON structure.
 //
@@ -175,6 +231,7 @@ void __async_save_project(SaveProjectParams params) {
     auto chartBuffer =
         std::make_unique<char[]>(compress_bound(projectString.size()));
     fs::path finalPath, tempPath;
+    bool tempFileVerified = false;
 
     try {
         const double compressedSize = get_project_buffer(
@@ -211,11 +268,13 @@ void __async_save_project(SaveProjectParams params) {
                 throw std::runtime_error("Saved file is corrupted.");
             }
         }
+        tempFileVerified = true;
 
+        backup_existing_project_file(finalPath);
         replace_file_durably(tempPath, finalPath);
         print_debug_message("Project save completed.");
     } catch (const std::exception &e) {
-        if (fs::exists(tempPath))
+        if (!tempFileVerified && fs::exists(tempPath))
             fs::remove(tempPath);
 
         print_debug_message("Encounter errors. Details:" +
