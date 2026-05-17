@@ -774,7 +774,7 @@ function project_file_duplicate(_project, _propath) {
 	var _nmu = _new_file_path(_mu, _propath);
 	
 	var _process = function(_pro, _varname, _file, _nfile) {
-		if(is_relative_path(_file) == "") return;	// If already relative path
+		if(is_relative_path(_file)) return;	// If already relative path
 		if(file_exists(_file)) {
 			if(!file_exists(_nfile))
 				file_copy(_file, _nfile);
