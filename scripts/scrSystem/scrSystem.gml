@@ -692,10 +692,6 @@ function project_save_as(_file = "") {
 	if(_file == "") return 0;
 
 	global.isSaving = true;
-	
-	var _contents;
-	var _corruption = false;
-	var _corruption_file_id = random_id(6);
 
 	DyCore_set_project_version(VERSION);
 	DyCore_set_project_metadata(json_stringify({
@@ -742,6 +738,9 @@ function project_save_callback(event) {
 	global.isSaving = false;
 	if(event[$ "status"] < 0) {
 		announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));
+		objManager.nextProjectPath = "";
+		objManager.autosaving = false;
+		return;
 	}
 
 	if(objManager.autosaving) {

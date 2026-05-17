@@ -56,23 +56,26 @@ TEST_CASE("ProjectBackupRotate") {
 
         write_text(projectPath, "current0");
         backup_existing_project_file(projectPath);
-        CHECK_FALSE(fs::exists(projectPath));
+        CHECK(read_text(projectPath) == "current0");
         CHECK(read_text(backup_path(projectPath, 0)) == "current0");
         CHECK_FALSE(fs::exists(backup_path(projectPath, 1)));
 
         write_text(projectPath, "current1");
         backup_existing_project_file(projectPath);
+        CHECK(read_text(projectPath) == "current1");
         CHECK(read_text(backup_path(projectPath, 0)) == "current1");
         CHECK(read_text(backup_path(projectPath, 1)) == "current0");
 
         write_text(projectPath, "current2");
         backup_existing_project_file(projectPath);
+        CHECK(read_text(projectPath) == "current2");
         CHECK(read_text(backup_path(projectPath, 0)) == "current2");
         CHECK(read_text(backup_path(projectPath, 1)) == "current1");
         CHECK(read_text(backup_path(projectPath, 2)) == "current0");
 
         write_text(projectPath, "current3");
         backup_existing_project_file(projectPath);
+        CHECK(read_text(projectPath) == "current3");
         CHECK(read_text(backup_path(projectPath, 0)) == "current3");
         CHECK(read_text(backup_path(projectPath, 1)) == "current2");
         CHECK(read_text(backup_path(projectPath, 2)) == "current1");
@@ -81,6 +84,28 @@ TEST_CASE("ProjectBackupRotate") {
         std::error_code ec;
         fs::remove_all(dir, ec);
         FAIL("exception thrown during project backup rotation test");
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("ProjectBackupPreservesSource") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_temp_dir();
+    try {
+        const fs::path projectPath = dir / "Rollback Source.dyn";
+
+        write_text(projectPath, "original project");
+        backup_existing_project_file(projectPath);
+
+        CHECK(read_text(projectPath) == "original project");
+        CHECK(read_text(backup_path(projectPath, 0)) == "original project");
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        FAIL("exception thrown during project backup preserve test");
     }
 
     std::error_code ec;

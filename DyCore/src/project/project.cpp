@@ -30,7 +30,7 @@
 
 namespace {
 
-constexpr int MAX_EMERGENCY_PROJECT_BACKUPS_COUNT = 3;
+constexpr int EMERGENCY_PROJECT_BACKUP_SLOT_COUNT = 3;
 
 std::mutex projectSaveMutex;
 
@@ -127,6 +127,20 @@ void delete_file_durably(const std::filesystem::path &path) {
 #endif
 }
 
+void copy_file_durably(const std::filesystem::path &sourcePath,
+                       const std::filesystem::path &targetPath) {
+#ifdef _WIN32
+    if (!CopyFileW(sourcePath.wstring().c_str(), targetPath.wstring().c_str(),
+                   FALSE)) {
+        throw_last_windows_error("Error copying project file.");
+    }
+#else
+    std::filesystem::copy_file(
+        sourcePath, targetPath,
+        std::filesystem::copy_options::overwrite_existing);
+#endif
+}
+
 std::filesystem::path emergency_backup_path(
     const std::filesystem::path &finalPath, int version) {
     std::filesystem::path backupName = finalPath.stem();
@@ -148,14 +162,12 @@ void backup_existing_project_file(const std::filesystem::path &finalPath) {
     const fs::path backupDir = finalPath.parent_path() / "backups";
     fs::create_directories(backupDir);
 
-    static_assert(MAX_EMERGENCY_PROJECT_BACKUPS_COUNT > 0);
+    static_assert(EMERGENCY_PROJECT_BACKUP_SLOT_COUNT > 0);
 
-    delete_file_durably(
-        emergency_backup_path(finalPath, MAX_EMERGENCY_PROJECT_BACKUPS_COUNT));
     delete_file_durably(emergency_backup_path(
-        finalPath, MAX_EMERGENCY_PROJECT_BACKUPS_COUNT - 1));
+        finalPath, EMERGENCY_PROJECT_BACKUP_SLOT_COUNT - 1));
 
-    for (int version = MAX_EMERGENCY_PROJECT_BACKUPS_COUNT - 2; version >= 0;
+    for (int version = EMERGENCY_PROJECT_BACKUP_SLOT_COUNT - 2; version >= 0;
          --version) {
         const fs::path currentPath = emergency_backup_path(finalPath, version);
         if (!fs::exists(currentPath)) {
@@ -165,7 +177,7 @@ void backup_existing_project_file(const std::filesystem::path &finalPath) {
                              emergency_backup_path(finalPath, version + 1));
     }
 
-    replace_file_durably(finalPath, emergency_backup_path(finalPath, 0));
+    copy_file_durably(finalPath, emergency_backup_path(finalPath, 0));
 }
 
 // Verifies the integrity of a project string by checking its JSON structure.
