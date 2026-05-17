@@ -3,6 +3,10 @@ function sTimingPoint(_time, _beatlength, _beats) constructor {
     time = _time;
     beatLength = _beatlength;
     meter = _beats;             // x/4
+
+    static copy = function() {
+        return new sTimingPoint(time, beatLength, meter);
+    }
 }
 
 enum OPERATION_TYPE {
@@ -172,6 +176,6 @@ function sNoteProp(_initProp = undefined) constructor {
 
     /// @returns {Struct.sNoteProp} 
     static copy = function() {
-        return SnapDeepCopy(self);
+        return new sNoteProp(self);
     }
 }

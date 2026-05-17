@@ -519,6 +519,10 @@ function operation_synctime_sync() {
 /// @param {Struct.sNoteProp|Struct.sTimingPoint|Real} _from From property.
 /// @param {Any} _to To property.
 function operation_step_add(_type, _from, _to) {
+
+	if(is_struct(_from)) _from = variable_struct_exists(_from, "copy") ? _from.copy() : SnapDeepCopy(_from);
+	if(is_struct(_to)) _to = variable_struct_exists(_to, "copy") ? _to.copy() : SnapDeepCopy(_to);
+
 	// Operation validate
 	if(_type == OPERATION_TYPE.REMOVE) {
 		if(_to != -1) {
@@ -966,8 +970,8 @@ function advanced_expr(expr = "") {
 		var _exec = function(_noteProp, _expr, _index) {
 			if(_noteProp.noteType != 3) {
 				/// @type {Struct.sNoteProp} 
-				var _prop = SnapDeepCopy(_noteProp);
-				var _nprop = SnapDeepCopy(_noteProp);
+				var _prop = _noteProp.copy();
+				var _nprop = _noteProp.copy();
 				
 				expr_init(); // Reset symbol table
 				expr_set_var("time", _prop.time);

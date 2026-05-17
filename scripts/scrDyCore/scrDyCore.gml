@@ -168,6 +168,8 @@ function dyc_update_note(noteProp, record = false, recursive = false) {
     // Check if noteProp is sNoteProp type.
     if(!variable_struct_exists(noteProp, "copy"))
         noteProp = new sNoteProp(noteProp);
+    else
+        noteProp = noteProp.copy();
 
     var noteID = noteProp.noteID;
     if(!dyc_note_exists(noteID)) {
