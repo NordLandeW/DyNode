@@ -603,10 +603,14 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			break;
 		case OPERATION_TYPE.TPCHANGE:
 			var _tp = timing_point_get_at(_from.time);
+			if(!is_struct(_tp)) {
+				announcement_error($"Error in operation_do (TPCHANGE): cannot find timingpoint at {_from.time},");
+			}
+			var _oldTime = _tp.time;
 			_tp.time = _to.time;
 			_tp.beatLength = _to.beatLength;
 			_tp.meter = _to.meter;
-			dyc_timingpoints_change(_tp.time, _tp);
+			dyc_timingpoints_change(_oldTime, _tp);
 			break;
 		case OPERATION_TYPE.OFFSET:
 			map_add_offset(_from);
