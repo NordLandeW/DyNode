@@ -3,10 +3,21 @@
 
 #include <zstd.h>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
+#include <algorithm>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <mutex>
+#include <system_error>
 
 #include "compress.h"
 #include "format/dyn.h"
@@ -16,6 +27,90 @@
 #include "timer.h"
 #include "timing.h"
 #include "utils.h"
+
+namespace {
+
+std::mutex projectSaveMutex;
+
+#ifdef _WIN32
+void throw_last_windows_error(const char *message) {
+    throw std::system_error(static_cast<int>(GetLastError()),
+                            std::system_category(), message);
+}
+#endif
+
+void write_file_durably(const std::filesystem::path &path, const char *data,
+                        size_t size) {
+#ifdef _WIN32
+    HANDLE handle = CreateFileW(
+        path.wstring().c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        throw_last_windows_error("Error opening file for writing.");
+    }
+
+    size_t writtenTotal = 0;
+    while (writtenTotal < size) {
+        const size_t remaining = size - writtenTotal;
+        const DWORD chunkSize =
+            static_cast<DWORD>(std::min<size_t>(remaining, MAXDWORD));
+        DWORD written = 0;
+        if (!WriteFile(handle, data + writtenTotal, chunkSize, &written,
+                       nullptr)) {
+            const DWORD error = GetLastError();
+            CloseHandle(handle);
+            throw std::system_error(static_cast<int>(error),
+                                    std::system_category(),
+                                    "Error writing to file.");
+        }
+        if (written == 0) {
+            CloseHandle(handle);
+            throw std::runtime_error("Error writing to file.");
+        }
+        writtenTotal += written;
+    }
+
+    if (!FlushFileBuffers(handle)) {
+        const DWORD error = GetLastError();
+        CloseHandle(handle);
+        throw std::system_error(static_cast<int>(error),
+                                std::system_category(),
+                                "Error flushing file to disk.");
+    }
+
+    if (!CloseHandle(handle)) {
+        throw_last_windows_error("Error closing file.");
+    }
+#else
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) {
+        throw std::runtime_error("Error opening file for writing.");
+    }
+    file.write(data, size);
+    file.flush();
+    if (file.fail()) {
+        throw std::runtime_error("Error writing to file.");
+    }
+    file.close();
+    if (file.fail()) {
+        throw std::runtime_error("Error closing file.");
+    }
+#endif
+}
+
+void replace_file_durably(const std::filesystem::path &tempPath,
+                          const std::filesystem::path &finalPath) {
+#ifdef _WIN32
+    if (!MoveFileExW(tempPath.wstring().c_str(), finalPath.wstring().c_str(),
+                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        throw_last_windows_error("Error replacing project file.");
+    }
+#else
+    std::filesystem::rename(tempPath, finalPath);
+#endif
+}
+
+}  // namespace
 
 // Verifies the integrity of a project string by checking its JSON structure.
 //
@@ -54,6 +149,8 @@ int verify_project_buffer(const char *buffer, size_t size) {
 void __async_save_project(SaveProjectParams params) {
     namespace fs = std::filesystem;
 
+    std::lock_guard<std::mutex> saveLock(projectSaveMutex);
+
     bool err = false;
     string errInfo = "";
     string projectString = "";
@@ -80,10 +177,13 @@ void __async_save_project(SaveProjectParams params) {
     fs::path finalPath, tempPath;
 
     try {
-        size_t cSize = get_project_buffer(projectString, chartBuffer.get(),
-                                          params.compressionLevel);
+        const double compressedSize = get_project_buffer(
+            projectString, chartBuffer.get(), params.compressionLevel);
+        if (compressedSize < 0) {
+            throw std::runtime_error("Error compressing project data.");
+        }
+        size_t cSize = static_cast<size_t>(compressedSize);
 
-        // Write to file using std::ofstream
         print_debug_message("Open file at:" + params.filePath);
         finalPath = convert_char_to_path(params.filePath.c_str());
         fs::path tempName = finalPath.filename();
@@ -91,20 +191,7 @@ void __async_save_project(SaveProjectParams params) {
         tempName += ".tmp";
 
         tempPath = finalPath.parent_path() / tempName;
-        std::ofstream file(tempPath, std::ios::binary);
-        if (!file.is_open()) {
-            print_debug_message(L"Error opening file for writing: " +
-                                tempPath.wstring());
-            throw std::runtime_error("Error opening file.");
-        } else {
-            file.write(chartBuffer.get(), cSize);
-            if (file.fail()) {
-                print_debug_message(L"Error writing to file: " +
-                                    tempPath.wstring());
-                throw std::runtime_error("Error writing to file.");
-            }
-            file.close();
-        }
+        write_file_durably(tempPath, chartBuffer.get(), cSize);
 
         print_debug_message("Verifying...");
 
@@ -121,11 +208,11 @@ void __async_save_project(SaveProjectParams params) {
             vfile.close();
 
             if (verify_project_buffer(buffer.c_str(), buffer.size()) != 0) {
-                throw std::exception("Saved file is corrupted.");
+                throw std::runtime_error("Saved file is corrupted.");
             }
         }
 
-        fs::rename(tempPath, finalPath);
+        replace_file_durably(tempPath, finalPath);
         print_debug_message("Project save completed.");
     } catch (const std::exception &e) {
         if (fs::exists(tempPath))
