@@ -571,8 +571,13 @@ function operation_step_flush(_array) {
 
 /// @param {Any} _to 
 function operation_do(_type, _from, _to = -1, _safe_ = false) {
-	if(_to != -1)
+	if(_to != -1) {
+		if(!is_struct(_to)) {
+			announcement_error("Error in operation_do: _to is not -1 nor a struct.");
+			return;
+		}
 		operation_synctime_set(_to.time);
+	}
 	else if(is_struct(_from))
 		operation_synctime_set(_from.time);
 	switch(_type) {
@@ -605,6 +610,7 @@ function operation_do(_type, _from, _to = -1, _safe_ = false) {
 			var _tp = timing_point_get_at(_from.time);
 			if(!is_struct(_tp)) {
 				announcement_error($"Error in operation_do (TPCHANGE): cannot find timingpoint at {_from.time},");
+				break;
 			}
 			var _oldTime = _tp.time;
 			_tp.time = _to.time;
