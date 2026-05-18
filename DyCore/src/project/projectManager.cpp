@@ -109,6 +109,21 @@ void ProjectManager::load_all_audio_data() {
     }).detach();
 }
 
+void ProjectManager::setup_default_chart() {
+    std::lock_guard<std::shared_mutex> lock(mtx);
+    ++chartMusicLoadRequestId;
+
+    Project defaultProject;
+    defaultProject.charts.push_back(Chart{.metadata = {
+                                              .title = "Last Train at 25 O'clock",
+                                              .sideType = {"MIXER", "PAD"},
+                                              .difficulty = 3,
+                                          }});
+    project = std::move(defaultProject);
+    currentChartIndex = 0;
+    chartMetadataLastModifiedTime = get_current_time();
+}
+
 void ProjectManager::load_project_from_file(const char *filePath) {
     clear_project();
     if (project_import_dyn(filePath, project) != 0) {
@@ -124,7 +139,13 @@ void ProjectManager::load_project_from_file(const char *filePath) {
     // load_all_audio_data();
 
     // Todo: (Future feature) Manually choose chart to start editing.
-    set_current_chart(0);
+    if (get_chart_count() > 0) {
+        set_current_chart(0);
+    } else {
+        throw std::runtime_error(
+            "This project does not contain any chart. The project file may be "
+            "corrupted.");
+    }
 }
 
 void ProjectManager::update_current_chart() {

@@ -3,6 +3,8 @@
 
 #include <zstd.h>
 
+#include <exception>
+
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -75,8 +77,7 @@ void write_file_durably(const std::filesystem::path &path, const char *data,
     if (!FlushFileBuffers(handle)) {
         const DWORD error = GetLastError();
         CloseHandle(handle);
-        throw std::system_error(static_cast<int>(error),
-                                std::system_category(),
+        throw std::system_error(static_cast<int>(error), std::system_category(),
                                 "Error flushing file to disk.");
     }
 
@@ -301,7 +302,13 @@ void __async_save_project(SaveProjectParams params) {
 void load_project(const char *filePath) {
     TIMER_SCOPE("load_project");
 
-    ProjectManager::inst().load_project_from_file(filePath);
+    try {
+        ProjectManager::inst().load_project_from_file(filePath);
+    } catch (const std::exception &) {
+        // If encounter any errors, reset to default chart.
+        ProjectManager::inst().setup_default_chart();
+        throw;
+    }
 }
 
 // Initiates an asynchronous save of the project.

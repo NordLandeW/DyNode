@@ -33,14 +33,10 @@ class ProjectManager {
 
    public:
     ProjectManager() {
-        // Create a default chart.
-        project.charts.push_back(Chart{.metadata = {
-                                           .title = "Last Train at 25 O'clock",
-                                           .sideType = {"MIXER", "PAD"},
-                                           .difficulty = 3,
-                                       }});
-        currentChartIndex = 0;
+        setup_default_chart();
     }
+
+    void setup_default_chart();
 
     void clear_project();
     void load_project(const Project &proj);
