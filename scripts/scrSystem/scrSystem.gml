@@ -601,7 +601,8 @@ function project_load(_file = "") {
     
 	var result = dyc_project_load(_file);
 	if(result < 0) {
-		show_debug_message("Project load failed. Terminated.");
+		show_debug_message("Project load failed. Go back to new project page.");
+		project_new(true);
 		return;
 	}
 	show_debug_message("Project loaded.");
@@ -863,10 +864,12 @@ function project_set_settings(str) {
 	}
 }
 
-function project_new() {
+function project_new(forced = false) {
 	
-	var _confirm = show_question_i18n(i18n_get("new_project_warn"));
-	if(!_confirm) return;
+	if(!forced) {
+		var _confirm = show_question_i18n(i18n_get("new_project_warn"));
+		if(!_confirm) return;
+	}
 	
 	with(objManager) {
 		musicPath = "";
