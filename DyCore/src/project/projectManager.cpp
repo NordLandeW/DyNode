@@ -114,14 +114,16 @@ void ProjectManager::setup_default_chart() {
     ++chartMusicLoadRequestId;
 
     Project defaultProject;
-    defaultProject.charts.push_back(Chart{.metadata = {
-                                              .title = "Last Train at 25 O'clock",
-                                              .sideType = {"MIXER", "PAD"},
-                                              .difficulty = 3,
-                                          }});
+    defaultProject.charts.push_back(
+        Chart{.metadata = {
+                  .title = "Last Train at 25 O'clock",
+                  .sideType = {"MIXER", "PAD"},
+                  .difficulty = 3,
+              }});
     project = std::move(defaultProject);
-    currentChartIndex = 0;
     chartMetadataLastModifiedTime = get_current_time();
+
+    set_current_chart(0);
 }
 
 void ProjectManager::load_project_from_file(const char *filePath) {
