@@ -2,8 +2,8 @@
   "FolderOrderSettings":[
     {"name":"Animation Curves","order":12,"path":"folders/Animation Curves.yy",},
     {"name":"Easing Curves","order":3,"path":"folders/Animation Curves/Easing Curves.yy",},
-    {"name":"Aptabase","order":12,"path":"folders/Extensions/Aptabase.yy",},
     {"name":"Extensions","order":14,"path":"folders/Extensions.yy",},
+    {"name":"Aptabase","order":12,"path":"folders/Extensions/Aptabase.yy",},
     {"name":"Clean Shapes","order":11,"path":"folders/Extensions/Clean Shapes.yy",},
     {"name":"(System)","order":1,"path":"folders/Extensions/Clean Shapes/(System).yy",},
     {"name":"Batches","order":2,"path":"folders/Extensions/Clean Shapes/Batches.yy",},
