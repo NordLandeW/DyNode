@@ -910,6 +910,9 @@ function project_backup_get_name(project_path) {
 }
 
 function project_backup(project_path) {
+	if(!file_exists(project_path))
+		return;
+
 	var proDir = filename_dir(project_path);
 	var bckDir = proDir + "\\backups\\";
 
