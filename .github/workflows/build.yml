@@ -66,6 +66,7 @@ jobs:
         id: igor
         with:
           target-yyp: ${{ steps.find_yyp.outputs.yyp-path }}
+          runtime-version: "2026.0.0.23"
           access-key: ${{ secrets.ACCESS_KEY }}
           cache: true
 
