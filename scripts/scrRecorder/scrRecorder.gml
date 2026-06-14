@@ -27,7 +27,6 @@ function RecordManager() constructor {
 
         if(!DyCore_ffmpeg_is_available()) {
             show_debug_message("-- FFMPEG not available!");
-            // TODO: Show announcement.
             return;
         }
 
