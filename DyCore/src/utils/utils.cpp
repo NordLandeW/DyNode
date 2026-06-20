@@ -19,6 +19,44 @@ namespace fs = std::filesystem;
 
 std::mutex g_debug_print_mutex;
 
+namespace {
+
+constexpr const char* kFallbackTimestamp = "1970_01_01_00_00_00";
+
+std::string format_local_timestamp(
+    std::chrono::system_clock::time_point timePoint) {
+    const std::time_t timeValue = std::chrono::system_clock::to_time_t(
+        std::chrono::floor<std::chrono::seconds>(timePoint));
+
+    std::tm localTime{};
+#if defined(_WIN32)
+    if (localtime_s(&localTime, &timeValue) != 0) {
+        return "";
+    }
+#else
+    if (localtime_r(&timeValue, &localTime) == nullptr) {
+        return "";
+    }
+#endif
+
+    return std::format("{:04}_{:02}_{:02}_{:02}_{:02}_{:02}",
+                       localTime.tm_year + 1900, localTime.tm_mon + 1,
+                       localTime.tm_mday, localTime.tm_hour, localTime.tm_min,
+                       localTime.tm_sec);
+}
+
+std::string fallback_file_modification_timestamp() {
+    const auto fallbackTime =
+        std::chrono::system_clock::now() - std::chrono::seconds(2);
+    const std::string timestamp = format_local_timestamp(fallbackTime);
+    if (timestamp.empty()) {
+        return kFallbackTimestamp;
+    }
+    return timestamp;
+}
+
+}  // namespace
+
 // Prints a debug message to the console, prefixed with "[DyCore] ".
 void print_debug_message(std::string str) {
     // iostream output is not guaranteed to be atomic across threads; serialize
@@ -91,20 +129,27 @@ std::string gb2312ToUtf8(const std::string& gbStr) {
 // Retrieves the last modification time of a file as a formatted string.
 // The format is "YYYY_MM_DD_HH_MM_SS".
 std::string get_file_modification_time(char* file_path) {
-    constexpr const char* kFallbackTimestamp = "1970_01_01_00_00_00";
-
     namespace fs = std::filesystem;
     try {
         std::error_code ec;
-        auto ftime = fs::last_write_time(fs::path((char8_t*)file_path), ec);
+        const fs::path path = fs::path((char8_t*)file_path);
+        auto ftime = fs::last_write_time(path, ec);
 
         if (ec) {
+            const std::string fallbackTimestamp =
+                fallback_file_modification_timestamp();
             print_debug_message("Error reading file time: " +
-                                std::string(file_path));
+                                std::string(file_path) +
+                                ". Error: " + ec.message());
             report_exception_error(
                 "std::runtime_error",
-                std::runtime_error("std::filesystem::last_write_time failed."));
-            return kFallbackTimestamp;
+                std::runtime_error("std::filesystem::last_write_time failed."),
+                {{"operation", "std::filesystem::last_write_time"},
+                 {"path", std::string(file_path)},
+                 {"error_code", std::to_string(ec.value())},
+                 {"error_message", ec.message()},
+                 {"fallback_timestamp", fallbackTimestamp}});
+            return fallbackTimestamp;
         }
 
         // Avoid std::chrono::clock_cast here. On MSVC, converting
@@ -114,41 +159,28 @@ std::string get_file_modification_time(char* file_path) {
             std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                 ftime - fs::file_time_type::clock::now() +
                 std::chrono::system_clock::now());
-        const auto sys_time_sec =
-            std::chrono::floor<std::chrono::seconds>(sys_time);
-        const std::time_t time_value =
-            std::chrono::system_clock::to_time_t(sys_time_sec);
-
-        std::tm local_time{};
-#if defined(_WIN32)
-        if (localtime_s(&local_time, &time_value) != 0) {
+        const std::string timestamp = format_local_timestamp(sys_time);
+        if (timestamp.empty()) {
+            const std::string fallbackTimestamp =
+                fallback_file_modification_timestamp();
             print_debug_message("Failed to convert file time: " +
                                 std::string(file_path));
-            report_exception_error("std::runtime_error",
-                                   std::runtime_error("localtime_s failed."));
-            return kFallbackTimestamp;
+            report_exception_error(
+                "std::runtime_error", std::runtime_error("localtime failed."),
+                {{"operation", "format file modification timestamp"},
+                 {"path", std::string(file_path)},
+                 {"fallback_timestamp", fallbackTimestamp}});
+            return fallbackTimestamp;
         }
-#else
-        if (localtime_r(&time_value, &local_time) == nullptr) {
-            print_debug_message("Failed to convert file time: " +
-                                std::string(file_path));
-            report_exception_error("std::runtime_error",
-                                   std::runtime_error("localtime_r failed."));
-            return kFallbackTimestamp;
-        }
-#endif
 
-        return std::format("{:04}_{:02}_{:02}_{:02}_{:02}_{:02}",
-                           local_time.tm_year + 1900, local_time.tm_mon + 1,
-                           local_time.tm_mday, local_time.tm_hour,
-                           local_time.tm_min, local_time.tm_sec);
+        return timestamp;
     } catch (const std::exception& ex) {
         report_exception_error("std::exception", ex);
-        return kFallbackTimestamp;
+        return fallback_file_modification_timestamp();
     } catch (...) {
         report_exception_error("std::runtime_error",
                                std::runtime_error("Unknown exception."));
-        return kFallbackTimestamp;
+        return fallback_file_modification_timestamp();
     }
 }
 

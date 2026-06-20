@@ -885,6 +885,12 @@ function project_new(forced = false) {
 function project_auto_save() {
 	if(!instance_exists(objMain)) return;
 	if(editor_get_editmode() == 0) return;		// If in copy mode, skip this autosave.
+
+	if(global.isSaving) {
+		show_debug_message("Autosave skipped because save operation is already in progress.");
+		return;
+	}
+
 	with(objManager) {
 		if(projectPath != "") {
 			autosaving = true;

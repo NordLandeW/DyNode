@@ -3,6 +3,8 @@
 #include <sentry.h>
 
 #include <exception>
+#include <map>
+#include <string>
 
 #include "config.h"
 #include "version.h"
@@ -29,10 +31,26 @@ void init_analytics() {
 
 void report_exception_error(const std::string exceptionType,
                             const std::exception& ex) {
+    report_exception_error(exceptionType, ex, {});
+}
+
+void report_exception_error(const std::string exceptionType,
+                            const std::exception& ex,
+                            const std::map<std::string, std::string>& extra) {
     sentry_value_t event = sentry_value_new_event();
     sentry_value_t exc =
         sentry_value_new_exception(exceptionType.c_str(), ex.what());
     sentry_value_set_stacktrace(exc, NULL, 0);
     sentry_event_add_exception(event, exc);
+
+    if (!extra.empty()) {
+        sentry_value_t extraValue = sentry_value_new_object();
+        for (const auto& [key, value] : extra) {
+            sentry_value_set_by_key(extraValue, key.c_str(),
+                                    sentry_value_new_string(value.c_str()));
+        }
+        sentry_value_set_by_key(event, "extra", extraValue);
+    }
+
     sentry_capture_event(event);
 }
