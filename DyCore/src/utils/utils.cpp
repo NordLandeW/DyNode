@@ -107,15 +107,13 @@ std::string get_file_modification_time(char* file_path) {
             return kFallbackTimestamp;
         }
 
-#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
-        const auto sys_time =
-            std::chrono::clock_cast<std::chrono::system_clock>(ftime);
-#else
+        // Avoid std::chrono::clock_cast here. On MSVC, converting
+        // file_clock -> utc_clock -> system_clock can load the timezone/leap
+        // second database and fail on systems without the required ICU module.
         const auto sys_time =
             std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                 ftime - fs::file_time_type::clock::now() +
                 std::chrono::system_clock::now());
-#endif
         const auto sys_time_sec =
             std::chrono::floor<std::chrono::seconds>(sys_time);
         const std::time_t time_value =
