@@ -130,7 +130,7 @@
         "beatline_divs": "節拍細分：1/$0\n節拍細分組：$1",
         "beatline_without_timing": "Timing 尚未設定，因此無法顯示拍線。\n你可以使用 Y 鍵來放置至少一個 Timing Point。\n你可以使用 F12 開啟指南來查看更多資訊。",
         "warning_note_outbound": "你正在放置一個完全不可見於畫面內的音符，該音符日後可能無法被編輯。\n你可使用復原返回上一步操作。",
-        "warning_note_cover": "你正在放置一个可能被其它音符完全覆盖的音符。\n你可以使用撤销来退回上一步操作。",
+        "warning_note_cover": "你正在放置一個可能被其他音符完全覆蓋的音符。\n你可使用復原返回上一步操作。",
         "copy_width": "寬度已複製：$0",
         "adjust_grid_y": "時間方向格線吸附",
         "adjust_grid_x": "位置方向格線吸附",
