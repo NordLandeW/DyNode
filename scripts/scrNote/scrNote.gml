@@ -435,8 +435,8 @@ function note_check_covered_by_other_note(noteProp) {
 	if(noteProp.noteType != NOTE_TYPE.NORMAL)
 		return false;
 
-	var lb = dyc_get_note_index_lowerbound(noteProp.time - EPS);
-	var ub = dyc_get_note_index_upperbound(noteProp.time + EPS);
+	var lb = dyc_get_note_index_lowerbound(noteProp.time - NOTE_COVER_CHECK_TIME_EPS);
+	var ub = dyc_get_note_index_upperbound(noteProp.time + NOTE_COVER_CHECK_TIME_EPS);
 
 	var count = 0;
 
