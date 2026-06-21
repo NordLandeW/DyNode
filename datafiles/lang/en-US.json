@@ -130,7 +130,7 @@
         "beatline_divs": "Beat subdivision: 1/$0\nBeat subdivision group: $1",
         "beatline_without_timing": "Timing has not been configured, so beatlines cannot be displayed.\nYou can use the Y key to place at least one Timing Point.\nYou can press F12 to open the guide for more information.",
         "warning_note_outbound": "You are placing a completely off-screen note. It may become uneditable.\nUse Undo to revert if necessary.",
-        "warning_note_cover": "You are placing a note that may be completely covered by another note.\nUse Undo to revert if necessary.",
+        "warning_note_cover": "你正在放置一个可能被其它音符完全覆盖的音符。\n你可以使用撤销来退回上一步操作。",
         "copy_width": "Width copied: $0",
         "adjust_grid_y": "Time-axis grid snapping",
         "adjust_grid_x": "Position-axis grid snapping",
