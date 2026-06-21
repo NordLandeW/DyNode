@@ -1,4 +1,7 @@
 
+#macro NOTE_COVER_CHECK_LIMIT (10)
+#macro NOTE_COVER_CHECK_TIME_EPS (0.1)
+
 function NoteIDManager() constructor {
 
 	/// @type {Any} Map noteID to instance.ID.
@@ -132,6 +135,7 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 	}
 
 	note_sort_request();
+	return _newNote;
 }
 
 // This function can only be accessed in destroy event.
@@ -422,4 +426,33 @@ function note_get_all_props() {
 		array_push(noteProps, noteProp);
 	}
 	return noteProps;
+}
+
+/// @description Check if the given noteProp is fully covered by another note.
+/// @param {Struct.sNoteProp} noteProp The given noteProp.
+/// @returns {Bool}
+function note_check_covered_by_other_note(noteProp) {
+	if(noteProp.noteType != NOTE_TYPE.NORMAL)
+		return false;
+
+	var lb = dyc_get_note_index_lowerbound(noteProp.time - EPS);
+	var ub = dyc_get_note_index_upperbound(noteProp.time + EPS);
+
+	var count = 0;
+
+	for(var i = lb; i < ub; i++) {
+		var otherNote = dyc_get_note_at_index_direct(i);
+
+		if(otherNote.noteID == noteProp.noteID) continue;
+		if(otherNote.noteType != NOTE_TYPE.NORMAL) continue;
+		if(otherNote.side != noteProp.side) continue;
+
+		if(otherNote.ledge() <= noteProp.ledge() && otherNote.redge() >= noteProp.redge())
+			return true;
+		
+		count ++;
+		if(count >= NOTE_COVER_CHECK_LIMIT)
+			return false;
+	}
+	return false;
 }

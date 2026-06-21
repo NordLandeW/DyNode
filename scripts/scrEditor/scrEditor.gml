@@ -1080,6 +1080,10 @@ function note_outbound_warning() {
 	announcement_warning("warning_note_outbound", 5000, "wob");
 }
 
+function note_cover_warning() {
+	announcement_warning("warning_note_cover", 5000, "note_cover");
+}
+
 #region Curve Sampling Functions
 
 /// @description Linear sampling on selected notes.

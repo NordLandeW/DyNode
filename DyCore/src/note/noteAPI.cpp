@@ -222,6 +222,13 @@ DYCORE_API double DyCore_get_active_notes_bound() {
     return man.get_bitwrite_bound();
 }
 
+DYCORE_API double DyCore_get_note_index_lower_bound(double time) {
+    auto& noteMan = get_note_pool_manager();
+    noteMan.array_sort_request();
+    int lowerBound = noteMan.get_index_lowerbound(time);
+    return lowerBound;
+}
+
 DYCORE_API double DyCore_get_note_index_upper_bound(double time) {
     auto& noteMan = get_note_pool_manager();
     noteMan.array_sort_request();

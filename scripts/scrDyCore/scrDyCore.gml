@@ -604,6 +604,10 @@ function dyc_add_sprite_data(data) {
     }
 }
 
+function dyc_get_note_index_lowerbound(time) {
+    return DyCore_get_note_index_lower_bound(time);
+}
+
 function dyc_get_note_index_upperbound(time) {
     return DyCore_get_note_index_upper_bound(time);
 }

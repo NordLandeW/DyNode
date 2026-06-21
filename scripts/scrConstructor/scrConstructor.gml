@@ -178,4 +178,12 @@ function sNoteProp(_initProp = undefined) constructor {
     static copy = function() {
         return new sNoteProp(self);
     }
+
+    static ledge = function() {
+        return position - width / 2;
+    }
+
+    static redge = function() {
+        return position + width / 2;
+    }
 }

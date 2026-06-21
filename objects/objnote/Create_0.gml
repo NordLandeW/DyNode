@@ -512,13 +512,19 @@ image_yscale = 1;
                     editor_lrside_lock_set(true);
                     return;
                 }
-                build_note({
+                var _newNoteProp = build_note({
                         noteType: noteType,
                         time: time,
                         position: position,
                         width: width,
                         side: side
                     }, true, _toSelectState, true);
+                
+                // Only do covering check on editmode 1~3.
+                if(editor_get_editmode() <= 3 && editor_get_editmode() >= 1) {
+                    if(note_check_covered_by_other_note(_newNoteProp))
+                        note_cover_warning();
+                }
                 
                 note_outscreen_check();
                 
