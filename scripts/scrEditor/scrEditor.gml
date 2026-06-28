@@ -981,16 +981,39 @@ function advanced_expr(expr = "") {
 			if(_noteProp.noteType != 3) {
 				/// @type {Struct.sNoteProp} 
 				var _prop = _noteProp.copy();
+				/// @type {Struct.sNoteProp} 
 				var _nprop = _noteProp.copy();
 				
 				expr_init(); // Reset symbol table
-				expr_set_var("time", _prop.time);
-				expr_set_var("pos", _prop.position);
-				expr_set_var("wid", _prop.width);
-				expr_set_var("len", _prop.lastTime);
-				expr_set_var("side", _prop.side);
-				expr_set_var("htime", _prop.time);
-				expr_set_var("etime", _prop.time + _prop.lastTime);
+				expr_set_var("time", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.time; }))
+					.set_setter(method({_nprop: _nprop}, function(val) { _nprop.time = val; }));
+				expr_set_var("pos", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.position; }))
+					.set_setter(method({_nprop: _nprop}, function(val) { _nprop.position = val; }));
+				expr_set_var("wid", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.width; }))
+					.set_setter(method({_nprop: _nprop}, function(val) { _nprop.width = val; }));
+				expr_set_var("len", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.lastTime; }))
+					.set_setter(method({_nprop: _nprop}, function(val) { _nprop.set_length(val); }));
+				expr_set_var("side", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.side; }))
+					.set_setter(method({_nprop: _nprop}, function(val) { _nprop.side = (val % 3 + 3) % 3; }));
+				expr_set_var("htime", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.time; }))
+					.set_setter(method({_nprop: _nprop}, function(val) {
+						var subTime = _nprop.time + _nprop.lastTime;
+						_nprop.time = val;
+						_nprop.set_length(subTime - _nprop.time);
+					}));
+				expr_set_var("etime", 0)
+					.set_getter(method({_nprop: _nprop}, function() { return _nprop.time + _nprop.lastTime; }))
+					.set_setter(method({_nprop: _nprop}, function(val) {
+						var headTime = _nprop.time;
+						_nprop.set_length(val - headTime);
+						_nprop.time = val - _nprop.lastTime;
+					}));
 				expr_set_var("index", _index);
 				
 				var _result = expr_exec(_expr);
@@ -998,21 +1021,6 @@ function advanced_expr(expr = "") {
 				if(!_result) {
 					announcement_error("advanced_expr_error");
 					return false;
-				}
-				
-				_nprop.time = expr_get_var("time");
-				_nprop.position = expr_get_var("pos");
-				_nprop.width = expr_get_var("wid");
-				_nprop.side = (expr_get_var("side") % 3 + 3) % 3;
-				if(_noteProp.noteType == 2) {
-					if(expr_get_var("htime") != _prop.time) {
-						_nprop.lastTime = _prop.lastTime - (expr_get_var("htime") - _prop.time);
-						_nprop.time = expr_get_var("htime");
-					}
-					if(expr_get_var("len") != _prop.lastTime)
-						_nprop.lastTime = expr_get_var("len");
-					else if(expr_get_var("etime") != _prop.lastTime + _prop.time)
-						_nprop.lastTime = expr_get_var("etime") - _nprop.time;
 				}
 				
 				dyc_update_note(_nprop, true);

@@ -174,6 +174,11 @@ function sNoteProp(_initProp = undefined) constructor {
         return self;
     }
 
+    static set_length = function(length) {
+        lastTime = max(length, HOLD_MINIMUM_LENGTH);
+        return self;
+    }
+
     /// @returns {Struct.sNoteProp} 
     static copy = function() {
         return new sNoteProp(self);

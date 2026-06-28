@@ -9,14 +9,31 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 	symType = _typ;
 	value = undefined;
 	tempVar = _temp;
+
+	/// @type {Function} A getter that can be overrided.
+	getter = function() {
+		return value;
+	}
+
+	/// @type {Function} A setter that can be overrided.
+	setter = function(val) {
+		value = val;
+	}
 	
 	static get_type = function () {
 		return symType;
 	}
 	static get_value = function () {
-		return value;
+		if(getter == undefined) {
+			throw $"Symbol {name} is writeonly.";
+		}
+		return getter();
 	}
 	static set_value = function (_val, _init = false) {
+		if(setter == undefined) {
+			throw $"Symbol {name} is readonly, which cannot be set to {_val}.";
+		}
+
 		if(tempVar && !_init)
 			throw $"You cannot assign a tempvar {value} with a value {_val}.";
 		
@@ -36,11 +53,23 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 		if(symType == ExprSymbolTypes.STRING && !is_string(_val))
 			throw $"Symbol {name} is a string, which cannot be set to {_val}";
 		
-		value = _val;
+		if(setter != undefined) {
+			setter(_val);
+		}
 	}
 	
 	static toString = function () {
 		return string(value);
+	}
+
+	static set_setter = function(setter) {
+		self.setter = setter;
+		return self;
+	}
+
+	static set_getter = function(getter) {
+		self.getter = getter;
+		return self;
 	}
 	
 	set_value(_val, true);
@@ -71,11 +100,15 @@ function expr_symbol_copy(sym) {
 }
 
 function expr_set_var(name, val) {
-	variable_struct_set(global.__expr_symbols, name, new ExprSymbol(name, ExprSymbolTypes.NUMBER, val, 0));
+	var symbol = new ExprSymbol(name, ExprSymbolTypes.NUMBER, val, 0)
+	variable_struct_set(global.__expr_symbols, name, symbol);
+	return symbol;
 }
 
 function expr_set_func(name, fn) {
-	variable_struct_set(global.__expr_symbols, name, new ExprSymbol(name, ExprSymbolTypes.FUNCTION, fn, 0));
+	var symbol = new ExprSymbol(name, ExprSymbolTypes.FUNCTION, fn, 0)
+	variable_struct_set(global.__expr_symbols, name, symbol);
+	return symbol;
 }
 
 /// @returns {Any} The value of the variable.

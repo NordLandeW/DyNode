@@ -1,5 +1,7 @@
 /// @description 
 
+#macro HOLD_MINIMUM_LENGTH (0.0001)
+
 // Inherit the parent event
 event_inherited();
 
@@ -33,7 +35,7 @@ _prop_init(true);
 		sinst.depth = depth;
 		sinst.side = side;
 		sinst.finst = id;
-		sinst.time = max(sinst.time, time+0.0001);
+		sinst.time = max(sinst.time, time + HOLD_MINIMUM_LENGTH);
 		
 		if(fixedLastTime != -1)
 			sinst.time = time + fixedLastTime;
