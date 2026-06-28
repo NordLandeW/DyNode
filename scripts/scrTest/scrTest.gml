@@ -284,12 +284,46 @@ function __test_expr() {
     __assert_expr_in_range_with_var("randr(-time, time)", "time", 2, -2, 2, "rand_range with variable");
 }
 
+function __test_time_bar_dyn() {
+    show_debug_message("=====TEST TIME BAR DYN======");
+
+    var __assert_time_bar_real = function(_got, _expected, _label, _eps = 0.000001) {
+        var _ok = abs(_got - _expected) <= _eps;
+        if(_ok)
+            show_debug_message($"[TIME_BAR][PASS] {_label} => {string(_got)}");
+        else
+            show_debug_message($"[TIME_BAR][FAIL] {_label} => {string(_got)} (expected {string(_expected)})");
+    };
+
+    var originalTimingPoints = dyc_get_timingpoints();
+    dyc_timingpoints_reset();
+
+    dyc_insert_timingpoint(new sTimingPoint(0, 1000, 1));
+    dyc_insert_timingpoint(new sTimingPoint(1500, 2000, 1));
+    dyc_insert_timingpoint(new sTimingPoint(2500, 1000, 1));
+
+    __assert_time_bar_real(time_add_bar_delta_dyn(1400, 0.1), 1500, "forward lands on next TimingPoint and skips the remaining nonexistent bar");
+    __assert_time_bar_real(time_add_bar_delta_dyn(1400, 0.2), 1700, "forward skips nonexistent bar positions after a short segment");
+    __assert_time_bar_real(time_add_bar_delta_dyn(1700, -0.2), 1400, "backward skips nonexistent bar positions before a TimingPoint");
+    __assert_time_bar_real(time_add_bar_delta_dyn(1500, -0.1), 1400, "backward from TimingPoint boundary skips the preceding nonexistent bar tail");
+    __assert_time_bar_real(time_add_bar_delta_dyn(-500, 0.5), 0, "before first TimingPoint preserves extrapolated source position");
+
+    __assert_time_bar_real(time_add_bar_delta_dyn(1400, 0.8), 2700, "forward skips nonexistent bar positions across two TimingPoints");
+    __assert_time_bar_real(time_add_bar_delta_dyn(2700, -0.8), 1400, "backward skips nonexistent bar positions across two TimingPoints");
+    __assert_time_bar_real(time_add_bar_delta_dyn(1499.5, 0.1), 1699, "near-boundary forward movement does not switch TimingPoint early");
+    dyc_timingpoints_reset();
+    for(var i=0, l=array_length(originalTimingPoints); i<l; i++) {
+        dyc_insert_timingpoint(originalTimingPoints[i]);
+    }
+}
+
 function test_at_start() {
     show_debug_message("=====DEBUG======")
     
     __test_misc();
     __test_expr();
 
+    __test_time_bar_dyn();
     var TEST_QUICK_SORT = false;
     var TEST_VERTEX_CONSTRUCTION = false;
 

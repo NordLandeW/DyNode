@@ -170,8 +170,10 @@ function time_to_bar_for_dym(time) {
 	show_error("CONVERSION FATAL ERROR", true);
 }
 
-// Accurate bar in DyNode's concept.
-// limit argument only used by timing_fix.
+/// @description Convert an absolute time in milliseconds to DyNode's 1-based bar position.
+/// @param {Real} time Absolute time in milliseconds.
+/// @param {Real} limit Optional timing point cutoff; timing points after this time are ignored when selecting the active segment.
+/// @returns {Real} DyNode bar position. Fractional values indicate progress within the current bar.
 function time_to_bar_dyn(time, limit = 0x7fffffff) {
 	var timingPoints = dyc_get_timingpoints();
 	if (!array_length(timingPoints)) return 0;
@@ -194,6 +196,10 @@ function time_to_bar_dyn(time, limit = 0x7fffffff) {
 	return totalBars + nowBars;
 }
 
+/// @description Convert a DyNode 1-based bar position to absolute time in milliseconds.
+/// Bar positions skipped when a later TimingPoint starts a new bar are extrapolated from the previous TimingPoint.
+/// @param {Real} bar DyNode bar position. Fractional values indicate progress within the current bar.
+/// @returns {Real} Absolute time in milliseconds. Returns 0 when timing data is missing or bar is not positive.
 function bar_to_time_dyn(bar) {
 	var timingPoints = dyc_get_timingpoints();
 	if (!array_length(timingPoints) || bar <= 0) return 0;
@@ -217,6 +223,50 @@ function bar_to_time_dyn(bar) {
 	var time = nowTP.time + remainingBeats * nowTP.beatLength;
 
 	return time;
+}
+
+/// @description Move an absolute time by a DyNode bar delta, skipping bar positions that do not exist at TimingPoint gaps.
+/// @param {Real} time Source absolute time in milliseconds.
+/// @param {Real} deltaBars Signed DyNode bar delta.
+/// @returns {Real} New absolute time in milliseconds. Returns the source time when timing data is missing or delta is zero.
+function time_add_bar_delta_dyn(time, deltaBars) {
+	var timingPoints = dyc_get_timingpoints();
+	var l = array_length(timingPoints);
+	if(!l || deltaBars == 0) return time;
+
+	var nowAt = 0;
+	while(nowAt + 1 != l && timingPoints[nowAt + 1].time <= time) {
+		nowAt++;
+	}
+	var remainingBars = abs(deltaBars);
+	if(deltaBars > 0) {
+		while(true) {
+			var nowTP = timingPoints[nowAt];
+			var barDuration = nowTP.beatLength * nowTP.meter;
+			if(nowAt + 1 == l) return time + remainingBars * barDuration;
+
+			var nextTime = timingPoints[nowAt + 1].time;
+			var barsToNext = max((nextTime - time) / barDuration, 0);
+			if(remainingBars <= barsToNext) return time + remainingBars * barDuration;
+
+			remainingBars -= barsToNext;
+			time = nextTime;
+			nowAt++;
+		}
+	}
+
+	while(true) {
+		var nowTP = timingPoints[nowAt];
+		var barDuration = nowTP.beatLength * nowTP.meter;
+		var barsFromSegmentStart = max((time - nowTP.time) / barDuration, 0);
+		if(remainingBars <= barsFromSegmentStart) return time - remainingBars * barDuration;
+
+		remainingBars -= barsFromSegmentStart;
+		if(nowAt == 0) return time - remainingBars * barDuration;
+
+		time = nowTP.time;
+		nowAt--;
+	}
 }
 
 #endregion

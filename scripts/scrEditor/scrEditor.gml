@@ -1027,6 +1027,23 @@ function advanced_expr(expr = "") {
 						return timingPoint.get_bpm();
 					}));
 				
+				expr_set_var("bar", 0)
+					.set_getter(method({_nprop: _nprop}, function() {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. Bar cannot be read."
+						}
+
+						return time_to_bar_dyn(_nprop.time);
+					}))
+					.set_setter(method({_nprop: _nprop}, function(val) {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. Bar cannot be set."
+						}
+
+						var currentBar = time_to_bar_dyn(_nprop.time);
+						_nprop.time = time_add_bar_delta_dyn(_nprop.time, val - currentBar);
+					}));
+
 				var _result = expr_exec(_expr);
 
 				if(!_result) {
