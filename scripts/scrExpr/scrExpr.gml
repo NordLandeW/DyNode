@@ -106,6 +106,13 @@ function expr_init() {
 
 		return time_to_bar_dyn(_time);
 	});
+	expr_set_func("tabd", function(_time, _deltaBars) {
+		if(dyc_get_timingpoints_count() == 0) {
+			throw "Timing information is not set correctly. tabd cannot be used."
+		}
+
+		return time_add_bar_delta_dyn(_time, _deltaBars);
+	});
 
 	expr_set_var("pi", 3.14159265358979323846).set_setter(undefined);
 }

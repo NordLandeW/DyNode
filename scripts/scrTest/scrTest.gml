@@ -341,10 +341,13 @@ function __test_time_bar_dyn() {
     __assert_expr_time_bar_real("ttb(1400)", 2.4, "ttb converts time to DyNode bar");
     __assert_expr_time_bar_real("btt(2.4)", 1400, "btt converts DyNode bar to time");
     __assert_expr_time_bar_real("btt(ttb(2700))", 2700, "btt and ttb can roundtrip existing bar positions");
+    __assert_expr_time_bar_real("tabd(1400, 0.2)", 1700, "tabd moves time by DyNode bar delta");
+    __assert_expr_time_bar_real("tabd(2700, -0.8)", 1400, "tabd moves time backward across TimingPoints");
 
     dyc_timingpoints_reset();
     __assert_expr_time_bar_throws("ttb(1400)", "ttb requires timing points");
     __assert_expr_time_bar_throws("btt(2.4)", "btt requires timing points");
+    __assert_expr_time_bar_throws("tabd(1400, 0.2)", "tabd requires timing points");
     for(var i=0, l=array_length(originalTimingPoints); i<l; i++) {
         dyc_insert_timingpoint(originalTimingPoints[i]);
     }
