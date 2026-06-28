@@ -1014,7 +1014,7 @@ function advanced_expr(expr = "") {
 						_nprop.set_length(val - headTime);
 						_nprop.time = val - _nprop.lastTime;
 					}));
-				expr_set_var("index", _index);
+				expr_set_var("index", _index).set_setter(undefined);
 				
 				var _result = expr_exec(_expr);
 
