@@ -8,6 +8,18 @@ DYCORE_API const char* DyCore_get_timing_array_string() {
     return timingArrayString.c_str();
 }
 
+DYCORE_API const char* DyCore_get_timing_point_at(double time) {
+    static std::string timingPointString;
+    TimingPoint timingPoint;
+    if (!get_timing_manager().get_timing_point_at(time, timingPoint)) {
+        timingPointString.clear();
+        return timingPointString.c_str();
+    }
+
+    timingPointString = nlohmann::json(timingPoint).dump();
+    return timingPointString.c_str();
+}
+
 DYCORE_API double DyCore_insert_timing_point(const char* timingPointObject) {
     get_timing_manager().add_timing_point(
         nlohmann::json::parse(timingPointObject).get<TimingPoint>());

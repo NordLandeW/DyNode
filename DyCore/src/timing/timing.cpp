@@ -68,6 +68,25 @@ bool TimingManager::has_timing_point_at(double time) {
     return false;
 }
 
+bool TimingManager::get_timing_point_at(double time, TimingPoint& outPoint) {
+    sort();
+    if (timingPoints.empty()) {
+        return false;
+    }
+
+    auto it = std::upper_bound(timingPoints.begin(), timingPoints.end(), time,
+                               [](double value, const TimingPoint& point) {
+                                   return value < point.time;
+                               });
+
+    if (it == timingPoints.begin()) {
+        outPoint = *it;
+    } else {
+        outPoint = *std::prev(it);
+    }
+    return true;
+}
+
 void TimingManager::change_timing_point_at_time(double time,
                                                 const TimingPoint& tp) {
     for (auto& point : timingPoints) {

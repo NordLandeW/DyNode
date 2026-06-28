@@ -485,11 +485,33 @@ function dyc_get_timingpoints() {
         _lastModifiedTime = _lastModified;
         try {
             _timingpoints = json_parse(DyCore_get_timing_array_string());
+            for(var i=0, l=array_length(_timingpoints); i<l; i++) {
+                var data = _timingpoints[i];
+                _timingpoints[i] = build_timingpoint_from_data(data);
+                delete data;
+            }
         } catch (e) {
             show_debug_message("Error parsing timing points: " + string(e));
         }
     }
     return _timingpoints;
+}
+
+/// @description Get the timing point containing the specified time.
+/// @param {Real} time Time to query.
+/// @returns {Struct.sTimingPoint} 
+function dyc_get_timingpoint_at(time) {
+    var _timingPoint = DyCore_get_timing_point_at(time);
+    if (_timingPoint == "") {
+        show_debug_message($"Cannot get timingpoint at {time}.");
+        return undefined;
+    }
+    try {
+        return build_timingpoint_from_data(json_parse(_timingPoint));
+    } catch (e) {
+        show_debug_message("Error parsing timing point: " + string(e));
+        return undefined;
+    }
 }
 
 function dyc_get_timingpoints_count() {

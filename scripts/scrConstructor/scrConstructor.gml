@@ -7,6 +7,21 @@ function sTimingPoint(_time, _beatlength, _beats) constructor {
     static copy = function() {
         return new sTimingPoint(time, beatLength, meter);
     }
+
+    static set_bpm = function(bpm) {
+        beatLength = 60000 / bpm;
+    }
+
+    static get_bpm = function() {
+        return 60000 / beatLength;
+    }
+}
+
+/// @description Build an sTimingPoint instance from plain timing point data parsed from JSON.
+/// @param {Any} data Plain timing point data with time, beatLength, and meter fields.
+/// @returns {Struct.sTimingPoint} Timing point instance with sTimingPoint static methods.
+function build_timingpoint_from_data(data) {
+    return new sTimingPoint(data.time, data.beatLength, data.meter);
 }
 
 enum OPERATION_TYPE {

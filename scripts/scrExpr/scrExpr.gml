@@ -192,7 +192,7 @@ function expr_cac(_opt, _a, _b=new ExprSymbol()) {
 		if(global.__expr_prio[$ _opt][2] != 1 && is_struct(_b) && _b.symType == ExprSymbolTypes.FUNCTION)
 			throw $"Expression error: function symbol {_b.name} cannot participate in arithmetic operation {_opt}.";
 	}
-	var _va = (is_struct(_a)?_a.get_value():_a), _vb = (is_struct(_b)?_b.get_value():_b);
+	var _va = (_is_arith_op && is_struct(_a)?_a.get_value():_a), _vb = (is_struct(_b)?_b.get_value():_b);
 	var _res = new ExprSymbol();
 	switch(_opt) {
 		case "=":

@@ -1015,6 +1015,17 @@ function advanced_expr(expr = "") {
 						_nprop.time = val - _nprop.lastTime;
 					}));
 				expr_set_var("index", _index).set_setter(undefined);
+
+				expr_set_var("bpm", 0)
+					.set_setter(undefined)
+					.set_getter(method({_nprop: _nprop}, function() {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. BPM cannot be read."
+						}
+
+						var timingPoint = dyc_get_timingpoint_at(_nprop.time);
+						return timingPoint.get_bpm();
+					}));
 				
 				var _result = expr_exec(_expr);
 
