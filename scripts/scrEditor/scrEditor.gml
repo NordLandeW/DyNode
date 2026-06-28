@@ -1027,6 +1027,28 @@ function advanced_expr(expr = "") {
 						return timingPoint.get_bpm();
 					}));
 				
+				expr_set_var("meter", 0)
+					.set_setter(undefined)
+					.set_getter(method({_nprop: _nprop}, function() {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. BPM cannot be read."
+						}
+
+						var timingPoint = dyc_get_timingpoint_at(_nprop.time);
+						return timingPoint.meter;
+					}));
+				
+				expr_set_var("tptime", 0)
+					.set_setter(undefined)
+					.set_getter(method({_nprop: _nprop}, function() {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. BPM cannot be read."
+						}
+
+						var timingPoint = dyc_get_timingpoint_at(_nprop.time);
+						return timingPoint.time;
+					}));
+				
 				expr_set_var("bar", 0)
 					.set_getter(method({_nprop: _nprop}, function() {
 						if(dyc_get_timingpoints_count() == 0) {
@@ -1042,6 +1064,16 @@ function advanced_expr(expr = "") {
 
 						var currentBar = time_to_bar_dyn(_nprop.time);
 						_nprop.time = time_add_bar_delta_dyn(_nprop.time, val - currentBar);
+					}));
+				
+				expr_set_var("abar", 0)
+					.set_getter(undefined)
+					.set_setter(method({_nprop: _nprop}, function(val) {
+						if(dyc_get_timingpoints_count() == 0) {
+							throw "Timing information is not set correctly. Bar cannot be set."
+						}
+
+						_nprop.time = bar_to_time_dyn(val);
 					}));
 
 				var _result = expr_exec(_expr);

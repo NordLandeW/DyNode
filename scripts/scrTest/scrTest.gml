@@ -295,6 +295,32 @@ function __test_time_bar_dyn() {
             show_debug_message($"[TIME_BAR][FAIL] {_label} => {string(_got)} (expected {string(_expected)})");
     };
 
+    var __assert_expr_time_bar_real = function(_expr, _expected, _label, _eps = 0.000001) {
+        try {
+            expr_init();
+            var _res = expr_eval(_expr);
+            var _got = is_struct(_res) ? variable_struct_get(_res, "value") : _res;
+            var _ok = abs(_got - _expected) <= _eps;
+            if(_ok)
+                show_debug_message($"[TIME_BAR][PASS] {_label} | expr='{_expr}' => {string(_got)}");
+            else
+                show_debug_message($"[TIME_BAR][FAIL] {_label} | expr='{_expr}' => {string(_got)} (expected {string(_expected)})");
+        } catch(e) {
+            show_debug_message($"[TIME_BAR][FAIL] {_label} | expr='{_expr}' threw: {string(e)}");
+        }
+    };
+
+    var __assert_expr_time_bar_throws = function(_expr, _label) {
+        try {
+            expr_init();
+            var _res = expr_eval(_expr);
+            var _got = is_struct(_res) ? variable_struct_get(_res, "value") : _res;
+            show_debug_message($"[TIME_BAR][FAIL] {_label} | expr='{_expr}' returned {string(_got)} instead of throwing");
+        } catch(e) {
+            show_debug_message($"[TIME_BAR][PASS] {_label} | expr='{_expr}' threw: {string(e)}");
+        }
+    };
+
     var originalTimingPoints = dyc_get_timingpoints();
     dyc_timingpoints_reset();
 
@@ -311,7 +337,14 @@ function __test_time_bar_dyn() {
     __assert_time_bar_real(time_add_bar_delta_dyn(1400, 0.8), 2700, "forward skips nonexistent bar positions across two TimingPoints");
     __assert_time_bar_real(time_add_bar_delta_dyn(2700, -0.8), 1400, "backward skips nonexistent bar positions across two TimingPoints");
     __assert_time_bar_real(time_add_bar_delta_dyn(1499.5, 0.1), 1699, "near-boundary forward movement does not switch TimingPoint early");
+
+    __assert_expr_time_bar_real("ttb(1400)", 2.4, "ttb converts time to DyNode bar");
+    __assert_expr_time_bar_real("btt(2.4)", 1400, "btt converts DyNode bar to time");
+    __assert_expr_time_bar_real("btt(ttb(2700))", 2700, "btt and ttb can roundtrip existing bar positions");
+
     dyc_timingpoints_reset();
+    __assert_expr_time_bar_throws("ttb(1400)", "ttb requires timing points");
+    __assert_expr_time_bar_throws("btt(2.4)", "btt requires timing points");
     for(var i=0, l=array_length(originalTimingPoints); i<l; i++) {
         dyc_insert_timingpoint(originalTimingPoints[i]);
     }

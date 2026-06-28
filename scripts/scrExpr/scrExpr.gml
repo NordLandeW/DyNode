@@ -92,6 +92,20 @@ function expr_init() {
 	expr_set_func("randr", function(_l, _r) { return random_range(_l, _r); });
 	expr_set_func("irand", function(_x) { return irandom(_x); });
 	expr_set_func("irandr", function(_l, _r) { return irandom_range(_l, _r); });
+	expr_set_func("btt", function(_bar) {
+		if(dyc_get_timingpoints_count() == 0) {
+			throw "Timing information is not set correctly. btt cannot be used."
+		}
+
+		return bar_to_time_dyn(_bar);
+	});
+	expr_set_func("ttb", function(_time) {
+		if(dyc_get_timingpoints_count() == 0) {
+			throw "Timing information is not set correctly. ttb cannot be used."
+		}
+
+		return time_to_bar_dyn(_time);
+	});
 
 	expr_set_var("pi", 3.14159265358979323846).set_setter(undefined);
 }
