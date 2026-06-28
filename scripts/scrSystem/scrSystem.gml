@@ -643,9 +643,6 @@ function project_load(_file = "") {
 	    	background_load(_path_deal(backgroundPath, _propath));
 	    if(videoPath != "")
 	    	background_load(_path_deal(videoPath, _propath));
-	    	
-	    timing_point_reset();
-	    timing_point_sort();
 	    
 	    projectPath = _file;
 	    

@@ -38,7 +38,7 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 			throw $"You cannot assign a tempvar {value} with a value {_val}.";
 		
 		if(is_struct(_val) && !is_method(_val))
-			_val = _val.value;
+			_val = _val.get_value();
 		
 		// Value type check
 		
@@ -59,7 +59,7 @@ function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) 
 	}
 	
 	static toString = function () {
-		return string(value);
+		return string(get_value());
 	}
 
 	static set_setter = function(setter) {
@@ -118,7 +118,21 @@ function expr_init() {
 }
 
 function expr_symbol_copy(sym) {
-	return new ExprSymbol("tempVar", sym.symType, sym.value, true);
+	var _initialValue = 0;
+	if(sym.getter != undefined) {
+		_initialValue = sym.get_value();
+	}
+	else if(sym.symType == ExprSymbolTypes.STRING) {
+		_initialValue = "";
+	}
+	else if(sym.symType == ExprSymbolTypes.FUNCTION) {
+		_initialValue = function() {};
+	}
+
+	var _copy = new ExprSymbol("tempVar", sym.symType, _initialValue, true);
+	_copy.set_getter(sym.getter);
+	_copy.set_setter(sym.setter);
+	return _copy;
 }
 
 function expr_set_var(name, val) {
@@ -137,7 +151,7 @@ function expr_set_func(name, fn) {
 function expr_get_var(name) {
 	if(!variable_struct_exists(global.__expr_symbols, name))
 		throw $"Variable {name} was not defined.";
-	return global.__expr_symbols[$ name].value;
+	return global.__expr_symbols[$ name].get_value();
 }
 
 /// @returns {Struct.ExprSymbol} The symbol of the variable.
@@ -181,10 +195,10 @@ function expr_call_func(_name, _args_text) {
 	var _args = [];
 	for(var _i = 0, _l = array_length(_arg_exprs); _i < _l; _i++) {
 		var _arg_res = expr_eval(_arg_exprs[_i]);
-		array_push(_args, is_struct(_arg_res) ? variable_struct_get(_arg_res, "value") : _arg_res);
+		array_push(_args, is_struct(_arg_res) ? _arg_res.get_value() : _arg_res);
 	}
 	
-	var _fn = _fn_sym.value;
+	var _fn = _fn_sym.get_value();
 	var _ret = 0;
 	switch(array_length(_args)) {
 		case 0: _ret = _fn(); break;

@@ -1031,7 +1031,7 @@ function advanced_expr(expr = "") {
 					.set_setter(undefined)
 					.set_getter(method({_nprop: _nprop}, function() {
 						if(dyc_get_timingpoints_count() == 0) {
-							throw "Timing information is not set correctly. BPM cannot be read."
+							throw "Timing information is not set correctly. meter cannot be read."
 						}
 
 						var timingPoint = dyc_get_timingpoint_at(_nprop.time);
@@ -1042,7 +1042,7 @@ function advanced_expr(expr = "") {
 					.set_setter(undefined)
 					.set_getter(method({_nprop: _nprop}, function() {
 						if(dyc_get_timingpoints_count() == 0) {
-							throw "Timing information is not set correctly. BPM cannot be read."
+							throw "Timing information is not set correctly. tptime cannot be read."
 						}
 
 						var timingPoint = dyc_get_timingpoint_at(_nprop.time);
