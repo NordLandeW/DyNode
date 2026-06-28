@@ -219,14 +219,12 @@ image_yscale = 1;
     }
 
     function can_pull() {
-        if(noteType < 2)
-            return stateType != NOTE_STATES.SELECTED;
+        var _selected = stateType == NOTE_STATES.SELECTED;
         if(noteType == 2)
-            return stateType != NOTE_STATES.SELECTED && 
-                (!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED);
+            _selected = _selected || (note_exists(sinst) && sinst.stateType == NOTE_STATES.SELECTED);
         if(noteType == 3)
-            return stateType != NOTE_STATES.SELECTED && 
-                (!note_exists(finst) || finst.stateType != NOTE_STATES.SELECTED);
+            _selected = _selected || (note_exists(finst) && finst.stateType == NOTE_STATES.SELECTED);
+        return !(_selected && editor_select_is_dragging());
     }
 
     /// @description Pull the note's properties from backend.
