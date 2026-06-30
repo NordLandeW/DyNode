@@ -138,9 +138,9 @@ std::string get_file_modification_time(char* file_path) {
         if (ec) {
             const std::string fallbackTimestamp =
                 fallback_file_modification_timestamp();
-            print_debug_message("Error reading file time: " +
-                                std::string(file_path) +
-                                ". Error: " + ec.message());
+            print_debug_message(
+                "Error reading file time: " + std::string(file_path) +
+                ". Error: " + ec.message());
             report_exception_error(
                 "std::runtime_error",
                 std::runtime_error("std::filesystem::last_write_time failed."),
@@ -234,7 +234,7 @@ std::string format_double_with_precision(double value, int precision) {
 }
 
 uint64_t get_current_time() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
+    return std::chrono::duration_cast<std::chrono::microseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
 }

@@ -60,7 +60,7 @@ class TimingManager {
     uint64_t lastModifiedTime = 0;
 
     void mark_modified() {
-        lastModifiedTime = get_current_time();
+        lastModifiedTime++;
     }
 
    public:

@@ -61,7 +61,7 @@ void ProjectManager::clear_project() {
     ++chartMusicLoadRequestId;
     project = Project();
     currentChartIndex = -1;
-    chartMetadataLastModifiedTime = get_current_time();
+    chartMetadataLastModifiedTime++;
 }
 
 // Loads audio data for all charts in the project.
@@ -121,7 +121,7 @@ void ProjectManager::setup_default_chart() {
                   .difficulty = 3,
               }});
     project = std::move(defaultProject);
-    chartMetadataLastModifiedTime = get_current_time();
+    chartMetadataLastModifiedTime++;
 
     set_current_chart(0);
 }
@@ -171,7 +171,7 @@ void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {
     }
     get_current_chart().metadata = meta;
 
-    chartMetadataLastModifiedTime = get_current_time();
+    chartMetadataLastModifiedTime++;
 }
 
 ChartMetadata ProjectManager::get_chart_metadata() {
