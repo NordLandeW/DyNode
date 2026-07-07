@@ -518,7 +518,7 @@ function project_sideload(_file) {
 
 			var _search_largest_file = function(path, mask, size = -1) {
 				var _resultFile = "";
-				var _curFile = file_find_first(path + mask, fa_none);
+				var _curFile = file_find_first(path + mask, 0);
 				while(_curFile != "") {
 					var _curSize = file_get_size(path + _curFile);
 					if(_curSize > size) {
@@ -567,7 +567,7 @@ function project_sideload(_file) {
 
 	// Check if other projects exist.
 	var _chartPath = filename_path(_file);
-	var _dynFiles = file_find_first(_chartPath + "*.dyn", fa_none);
+	var _dynFiles = file_find_first(_chartPath + "*.dyn", 0);
 	if(_dynFiles != "") {
 		announcement_warning(i18n_get("anno_project_sideload_warning"));
 	}
