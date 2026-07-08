@@ -421,33 +421,40 @@ int Recorder::start_recording(const std::wstring& filename,
 
 int Recorder::push_frame(const void* frameData, int frameSize) {
 #ifdef _WIN32
-    auto fail = [&](const std::string& msg) -> int {
-        print_debug_message("Error: " + msg);
+    auto fail = [&](int code, const std::string& msg) -> int {
+        print_debug_message("Error: " + msg + " Code: " +
+                            std::to_string(code));
         finish_recording();
-        return -1;
+        return code;
     };
 
     if (!frameData || frameSize <= 0) {
-        return fail("push_frame called with invalid parameters.");
+        return fail(FFMPEG_PUSH_FRAME_INVALID_ARGUMENT,
+                    "push_frame called with invalid parameters.");
     }
     if (!recording_active) {
-        return fail("push_frame called when recording is not active.");
+        return fail(FFMPEG_PUSH_FRAME_NOT_RECORDING,
+                    "push_frame called when recording is not active.");
     }
     if (!ffmpeg_pipe) {
-        return fail("FFmpeg pipe is not available.");
+        return fail(FFMPEG_PUSH_FRAME_PIPE_UNAVAILABLE,
+                    "FFmpeg pipe is not available.");
     }
     if (g_ffmpeg_pi.hProcess == NULL) {
-        return fail("FFmpeg process handle is invalid.");
+        return fail(FFMPEG_PUSH_FRAME_PROCESS_HANDLE_INVALID,
+                    "FFmpeg process handle is invalid.");
     }
 
     DWORD wait = WaitForSingleObject(g_ffmpeg_pi.hProcess, 0);
     if (wait == WAIT_OBJECT_0) {
         DWORD exit_code = 0;
         GetExitCodeProcess(g_ffmpeg_pi.hProcess, &exit_code);
-        return fail("FFmpeg process has exited. Exit code: " +
-                    std::to_string(exit_code));
+        return fail(FFMPEG_PUSH_FRAME_PROCESS_EXITED,
+                    "FFmpeg process has exited. Exit code: " +
+                        std::to_string(exit_code));
     } else if (wait == WAIT_FAILED) {
-        return fail("WaitForSingleObject on FFmpeg process failed.");
+        return fail(FFMPEG_PUSH_FRAME_PROCESS_WAIT_FAILED,
+                    "WaitForSingleObject on FFmpeg process failed.");
     }
 
     try {
@@ -458,18 +465,20 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
             frame_queue.push(std::move(frame_copy));
         }
         queue_cond.notify_one();
-        return 0;
+        return FFMPEG_PUSH_FRAME_OK;
     } catch (const std::exception& e) {
-        return fail(std::string("Exception while enqueuing frame: ") +
-                    e.what());
+        return fail(FFMPEG_PUSH_FRAME_ENQUEUE_FAILED,
+                    std::string("Exception while enqueuing frame: ") +
+                        e.what());
     }
 #else
     (void)frameData;
     (void)frameSize;
     print_debug_message(
-        "Error: push_frame is not supported on non-Windows builds.");
+        "Error: push_frame is not supported on non-Windows builds. Code: " +
+        std::to_string(FFMPEG_PUSH_FRAME_UNSUPPORTED_PLATFORM));
     finish_recording();
-    return -1;
+    return FFMPEG_PUSH_FRAME_UNSUPPORTED_PLATFORM;
 #endif
 }
 

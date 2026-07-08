@@ -4,6 +4,40 @@
 #macro RECORDING_RESOLUTION_W 1920
 #macro RECORDING_RESOLUTION_H 1080
 
+enum FFmpegPushFrameError {
+    INVALID_ARGUMENT = -1,
+    NOT_RECORDING = -2,
+    PIPE_UNAVAILABLE = -3,
+    PROCESS_HANDLE_INVALID = -4,
+    PROCESS_EXITED = -5,
+    PROCESS_WAIT_FAILED = -6,
+    ENQUEUE_FAILED = -7,
+    UNSUPPORTED_PLATFORM = -8,
+}
+
+function ffmpeg_push_frame_error_text(code) {
+    switch(code) {
+        case FFmpegPushFrameError.INVALID_ARGUMENT:
+            return "Invalid frame data or frame size.";
+        case FFmpegPushFrameError.NOT_RECORDING:
+            return "Recording is not active.";
+        case FFmpegPushFrameError.PIPE_UNAVAILABLE:
+            return "FFmpeg pipe is unavailable.";
+        case FFmpegPushFrameError.PROCESS_HANDLE_INVALID:
+            return "FFmpeg process handle is invalid.";
+        case FFmpegPushFrameError.PROCESS_EXITED:
+            return "FFmpeg process exited before receiving the frame.";
+        case FFmpegPushFrameError.PROCESS_WAIT_FAILED:
+            return "Failed to query FFmpeg process state.";
+        case FFmpegPushFrameError.ENQUEUE_FAILED:
+            return "Failed to enqueue frame data.";
+        case FFmpegPushFrameError.UNSUPPORTED_PLATFORM:
+            return "push_frame is unsupported on this platform.";
+        default:
+            return "Unknown push_frame error.";
+    }
+}
+
 function RecordManager() constructor {
 
     prepareRecording = false;
@@ -72,8 +106,9 @@ function RecordManager() constructor {
         var err = DyCore_ffmpeg_push_frame(buffer_get_address(frameBuffer), buffer_get_size(frameBuffer));
 
         if(err < 0) {
-            show_debug_message("-- Failed to push frame. Error code: " + string(err));
-            announcement_task(i18n_get("recording_failed", [err]), 5000, "recording", ANNO_STATE.ERROR);
+            var errText = ffmpeg_push_frame_error_text(err);
+            show_debug_message("-- Failed to push frame. Error code: " + string(err) + ". " + errText);
+            announcement_task(i18n_get("recording_failed", ["[" + string(err) + "] " + errText]), 5000, "recording", ANNO_STATE.ERROR);
             global.recordManager.abort_recording();
             return;
         }

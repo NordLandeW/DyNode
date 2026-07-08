@@ -8,6 +8,18 @@
 #include <unordered_map>
 #include <vector>
 
+enum FFmpegPushFrameError {
+    FFMPEG_PUSH_FRAME_OK = 0,
+    FFMPEG_PUSH_FRAME_INVALID_ARGUMENT = -1,
+    FFMPEG_PUSH_FRAME_NOT_RECORDING = -2,
+    FFMPEG_PUSH_FRAME_PIPE_UNAVAILABLE = -3,
+    FFMPEG_PUSH_FRAME_PROCESS_HANDLE_INVALID = -4,
+    FFMPEG_PUSH_FRAME_PROCESS_EXITED = -5,
+    FFMPEG_PUSH_FRAME_PROCESS_WAIT_FAILED = -6,
+    FFMPEG_PUSH_FRAME_ENQUEUE_FAILED = -7,
+    FFMPEG_PUSH_FRAME_UNSUPPORTED_PLATFORM = -8,
+};
+
 // Handle FFmpeg recording functionalities.
 class Recorder {
     FILE* ffmpeg_pipe = nullptr;
@@ -75,7 +87,7 @@ class Recorder {
                         const std::wstring& musicPath, int width, int height,
                         int fps, double musicOffset);
     // Push a frame to the recorder.
-    // Returns 0 on success, -1 on error or when FFmpeg is not working.
+    // Returns 0 on success, or FFmpegPushFrameError on failure.
     int push_frame(const void* frameData, int frameSize);
     // Finish recording.
     void finish_recording();
