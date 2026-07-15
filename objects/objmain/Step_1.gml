@@ -67,8 +67,8 @@ chartSideType = _metadata.sideType;
             var curOffset = nowTime - sfmod_channel_get_position(channel);
             if(abs(curOffset) > 15 && abs(curOffset) < 50) {
                 nowTime += -curOffset * 0.05;
-                if(DEBUG_MODE)
-                    show_debug_message("Add offset correction: " + string(-curOffset * 0.05) + " ms");
+                // if(DEBUG_MODE)
+                //     show_debug_message("Add offset correction: " + string(-curOffset * 0.05) + " ms");
             }
         }
     }
