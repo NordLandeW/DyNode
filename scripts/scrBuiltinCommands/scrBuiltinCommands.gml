@@ -517,7 +517,7 @@ function CommandFix():CommandSignature("fix") constructor {
     }
 }
 
-function CommandDuplicate():CommandSignature("duplicate", ["dup"]) constructor {
+function CommandDuplicate():CommandSignature("duplicate", ["dup", "d"]) constructor {
     add_variant(0, 1, "Quick duplicate selected notes.");
 
     static execute = function(args, matchedVariant) {
