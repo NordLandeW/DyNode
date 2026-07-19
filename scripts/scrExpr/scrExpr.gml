@@ -332,7 +332,8 @@ global.__expr_prio[$ "&&"] 	= 		[11, 		0, 				0];
 global.__expr_prio[$ "||"] 	= 		[12, 		0, 				0];
 global.__expr_prio[$ "="] 	= 		[13, 		1, 				0];
 
-///@desc Expression Evaluator
+/// @description Expression Evaluator
+/// @returns {Struct.ExprSymbol} 
 function expr_eval(_expr) {
 	_expr += " ";
 	// show_debug_message("CAC EXPR "+_expr);
