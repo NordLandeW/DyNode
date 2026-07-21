@@ -48,7 +48,7 @@ Zstandard (under BSD License) Copyright (c) Meta Platforms, Inc. and affiliates
 
 [Lua](https://www.lua.org/license.html) (under MIT License) Copyright © 1994-2025 Lua.org, PUC-Rio.
 
-sol (under MIT License) Copyright (c) 2013 Danny Y., Rapptz
+LuaBridge3 (under MIT License) Copyright (c) 2020 kunitoki
 
 pugixml (under MIT License) Copyright (c) 2006-2025 Arseny Kapoulkine
 

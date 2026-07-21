@@ -129,7 +129,6 @@ set(DYCORE_COMMON_INCLUDE_DIRS
     src/audio
     lib/
     lib/pugixml
-    lib/sol
     res/
     ${CMAKE_BINARY_DIR}/generated
 )
