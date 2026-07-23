@@ -1,0 +1,18 @@
+If:
+  PathMatch: DyCore/lib/LuaBridge/LuaBridge\.h
+
+CompileFlags:
+  Add:
+    # This header is closer to Lua's C sources than to its C++ includer, so
+    # clangd otherwise infers a C compile command from lib/lua/lapi.c.
+    - -xc++
+    - -std=gnu++23
+    # LuaBridge intentionally expects the Lua API to have been included first.
+    - -include
+    - lua.hpp
+
+Diagnostics:
+  # Optional standard-library integrations in the amalgamated vendor header
+  # trigger include-cleaner even though their includes are intentional.
+  Suppress:
+    - unused-includes

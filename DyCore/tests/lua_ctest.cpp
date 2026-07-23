@@ -1,11 +1,8 @@
 #include <doctest/doctest.h>
 
-// clang-format off
-#include <lua.hpp>
-#include <LuaBridge/LuaBridge.h>
-// clang-format on
-
 #include <string>
+
+#include "luaext.h"
 
 TEST_CASE("LuaRuntimeVersionIs55") {
     CHECK(LUA_VERSION_NUM == 505);
