@@ -298,12 +298,12 @@ function CommandLua():CommandSignature("lua") constructor {
     add_variant(0, 0, "Runs script.lua through DyCore.");
 
     static execute = function(args, matchedVariant) {
-        if(DyCore_run_lua_script() < 0) {
-            console_echo_error("Lua script execution failed.");
-            return;
+        try {
+            lua_run();
+            console_echo("Lua script executed.");
+        } catch(e) {
+            console_echo_error("Lua script execution failed: " + string(e));
         }
-
-        console_echo("Lua script executed.");
     }
 }
 

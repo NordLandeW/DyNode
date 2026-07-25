@@ -20,13 +20,11 @@ using std::string;
 // GENERAL_ERROR: Called when an error occurs.
 // GM_ANNOUNCEMENT: Call GM announcement function.
 // ON_FILES_DROPPED: Called when files are dropped into the window.
-// GM_EXECUTE: Call a whitelisted GameMaker function.
 enum ASYNC_EVENT_TYPE {
     PROJECT_SAVING,
     GENERAL_ERROR,
     GM_ANNOUNCEMENT,
-    ON_FILES_DROPPED,
-    GM_EXECUTE
+    ON_FILES_DROPPED
 };
 
 struct AsyncEvent {
@@ -48,5 +46,3 @@ enum class GM_ANNOUNCEMENT_TYPE { ANNO_INFO, ANNO_WARNING, ANNO_ERROR };
 
 void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
                             std::vector<string> args = {}, int lastTime = -1);
-
-void gamemaker_execute(string functionName, json args);

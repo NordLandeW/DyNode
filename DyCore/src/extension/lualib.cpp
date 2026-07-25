@@ -5,11 +5,13 @@
 #include <filesystem>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include "DyCore.h"
 #include "LuaBridge/LuaBridge.h"
 #include "editor.h"
 #include "gm.h"
+#include "luaRunner.h"
 #include "version.h"
 
 void ll_gm_announcement(std::string str, std::string type, int lastTime) {
@@ -37,6 +39,20 @@ void ll_gm_announcement(std::string str, std::string type, int lastTime) {
     gamemaker_announcement(announcementType, std::move(str), {}, lastTime);
 }
 
+luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(std::string functionName,
+                                                      lua_State* L) {
+    std::vector<luabridge::LuaRef> args;
+    const int argumentCount = lua_gettop(L);
+    args.reserve(
+        static_cast<size_t>(argumentCount > 1 ? argumentCount - 1 : 0));
+    for (int index = 2; index <= argumentCount; ++index) {
+        args.push_back(luabridge::LuaRef::fromStack(L, index));
+    }
+
+    return LuaRunner::inst().gamemaker_execute(std::move(functionName),
+                                               std::move(args));
+}
+
 std::string ll_gm_prop_get_program_directory() {
     const std::filesystem::path programDirectory = get_program_path();
     if (programDirectory.empty()) {
@@ -61,12 +77,18 @@ int ll_editor_prop_get_editmode() {
     return GMEditorManager::inst().get_editmode();
 }
 
-void ll_editor_set_editmode(int editMode) {
-    if (editMode < 1) {
+luabridge::CppCoroutine<luabridge::LuaRef> ll_editor_set_editmode(
+    luabridge::LuaRef editMode) {
+    const auto convertedEditMode = editMode.cast<double>();
+    if (!convertedEditMode) {
+        throw std::invalid_argument("GameMaker editor mode must be a double.");
+    }
+    if (*convertedEditMode <= 0) {
         throw std::invalid_argument(
             "GameMaker editor mode cannot be non-positive.");
     }
-    gamemaker_execute("editor_set_editmode", json::array({editMode}));
+    return LuaRunner::inst().gamemaker_execute("editor_set_editmode",
+                                               {std::move(editMode)});
 }
 
 void game_lualayer_openlibs(lua_State* L) {
@@ -79,12 +101,13 @@ void game_lualayer_openlibs(lua_State* L) {
 
         .beginNamespace("gm")
         .addFunction("announce", ll_gm_announcement)
+        .addCoroutine("exec", ll_gm_exec)
         .endNamespace()
 
         .beginNamespace("editor")
         .addFunction("is_ready", ll_editor_is_ready)
         .addFunction("get_editmode", ll_editor_prop_get_editmode)
-        .addFunction("set_editmode", ll_editor_set_editmode)
+        .addCoroutine("set_editmode", ll_editor_set_editmode)
         .endNamespace()
 
         .endNamespace();

@@ -3,25 +3,54 @@
 
 #include "api.h"
 #include "extension.h"
-#include "gm.h"
-#include "utils.h"
 
-DYCORE_API double DyCore_run_lua_script() {
+namespace {
+
+std::string luaRunnerResult;
+
+const char* store_lua_result(nlohmann::json result) {
+    luaRunnerResult =
+        result.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+    return luaRunnerResult.c_str();
+}
+
+}  // namespace
+
+DYCORE_API const char* DyCore_lua_start(const char* luaPath) {
     try {
-        run_lua_script();
+        if (luaPath == nullptr || *luaPath == '\0') {
+            return store_lua_result(
+                lua_error_result("luaPath cannot be empty."));
+        }
+        return store_lua_result(run_lua_script(luaPath));
     } catch (const std::exception& e) {
-        const std::string errorMessage =
-            "DyCore_run_lua_script failed: " + std::string(e.what());
-        print_debug_message(errorMessage);
-        throw_error_event(errorMessage);
-        return -1.0;
+        return store_lua_result(lua_error_result(e.what()));
     } catch (...) {
-        constexpr const char* errorMessage =
-            "DyCore_run_lua_script failed: unknown error";
-        print_debug_message(errorMessage);
-        throw_error_event(errorMessage);
-        return -1.0;
+        return store_lua_result(
+            lua_error_result("Failed to start Lua coroutine: unknown error."));
     }
+}
 
+DYCORE_API const char* DyCore_lua_resume(const char* result) {
+    try {
+        if (result == nullptr) {
+            return store_lua_result(
+                lua_error_result("GameMaker result cannot be null."));
+        }
+
+        return store_lua_result(
+            resume_lua_script(nlohmann::json::parse(result)));
+    } catch (const std::exception& e) {
+        cancel_lua_script();
+        return store_lua_result(lua_error_result(e.what()));
+    } catch (...) {
+        cancel_lua_script();
+        return store_lua_result(
+            lua_error_result("Failed to resume Lua coroutine: unknown error."));
+    }
+}
+
+DYCORE_API double DyCore_lua_cancel() {
+    cancel_lua_script();
     return 0.0;
 }

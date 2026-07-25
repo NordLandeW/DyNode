@@ -16,6 +16,9 @@
 // milliseconds and must not be negative.
 void ll_gm_announcement(std::string str, std::string type, int lastTime);
 
+luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(std::string functionName,
+                                                      lua_State* L);
+
 // Return the absolute dynode.exe program directory.
 std::string ll_gm_prop_get_program_directory();
 
@@ -29,8 +32,8 @@ bool ll_editor_is_ready();
 // Return the current GameMaker editor mode.
 int ll_editor_prop_get_editmode();
 
-// Queue a request for GameMaker to switch to a non-negative editor mode.
-void ll_editor_set_editmode(int editMode);
+luabridge::CppCoroutine<luabridge::LuaRef> ll_editor_set_editmode(
+    luabridge::LuaRef editMode);
 
 // Register all DyCore-provided libraries in a Lua state.
-void game_lualayer_openlibs(lua_State *);
+void game_lualayer_openlibs(lua_State*);

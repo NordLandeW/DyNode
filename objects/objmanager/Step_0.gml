@@ -124,7 +124,7 @@ if(DEBUG_MODE) {
 		_debug_stop_record();
 	}
 	if(keycheck_down_ctrl(vk_numpad1)) {
-		DyCore_run_lua_script();
+		lua_run();
 	}
 }
 

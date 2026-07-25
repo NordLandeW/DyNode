@@ -10,6 +10,7 @@ function editor_set_editmode(mode) {
 		editorMode = mode;
 		editorModeSwitching = 2;
 	}
+	dyc_editor_sync_states({ editMode: mode });
 }
 
 function editor_get_editmode() {

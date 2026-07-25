@@ -1,35 +1,62 @@
 #include "extension.h"
 
 #include <memory>
+#include <mutex>
 #include <stdexcept>
-#include <string>
 
-#include "luaext.h"
-#include "lualib.h"
+#include "luaRunner.h"
 
-void run_lua_script(const std::filesystem::path& scriptPath) {
-    std::unique_ptr<lua_State, decltype(&lua_close)> lua(luaL_newstate(),
-                                                         &lua_close);
-    if (!lua) {
-        throw std::runtime_error("Failed to create Lua state.");
-    }
+namespace {
 
-    auto L = lua.get();
+std::unique_ptr<LuaRunner> activeLuaRunner;
+std::mutex luaRunnerMutex;
 
-    // Initialize libraries.
-    luaL_openlibs(L);
-    game_lualayer_openlibs(L);
-
-    const std::string scriptPathString = scriptPath.string();
-    const int result = luaL_dofile(L, scriptPathString.c_str());
-    if (result != LUA_OK) {
-        const char* luaError = lua_tostring(L, -1);
-        throw std::runtime_error(
-            "Failed to run Lua script '" + scriptPathString +
-            "': " + (luaError ? luaError : "unknown Lua error"));
+void reset_dead_lua_runner() {
+    if (activeLuaRunner != nullptr && activeLuaRunner->is_dead()) {
+        activeLuaRunner.reset();
     }
 }
 
-void run_lua_script() {
-    run_lua_script(std::filesystem::current_path() / "script.lua");
+}  // namespace
+
+nlohmann::json run_lua_script(const std::filesystem::path& luaPath) {
+    std::lock_guard<std::mutex> lock(luaRunnerMutex);
+
+    if (activeLuaRunner != nullptr) {
+        throw std::runtime_error("Another Lua coroutine is already running.");
+    }
+
+    std::filesystem::path path = luaPath;
+    if (path.is_relative()) {
+        path = std::filesystem::current_path() / path;
+    }
+
+    activeLuaRunner = std::make_unique<LuaRunner>(path);
+    nlohmann::json result = activeLuaRunner->start();
+    reset_dead_lua_runner();
+    return result;
+}
+
+nlohmann::json resume_lua_script(nlohmann::json result) {
+    std::lock_guard<std::mutex> lock(luaRunnerMutex);
+
+    if (activeLuaRunner == nullptr) {
+        throw std::runtime_error("No Lua coroutine is running.");
+    }
+
+    nlohmann::json response = activeLuaRunner->resume(std::move(result));
+    reset_dead_lua_runner();
+    return response;
+}
+
+void cancel_lua_script() {
+    std::lock_guard<std::mutex> lock(luaRunnerMutex);
+    activeLuaRunner.reset();
+}
+
+nlohmann::json lua_error_result(const std::string& error) {
+    return {
+        {"state", "dead"},
+        {"error", error},
+    };
 }

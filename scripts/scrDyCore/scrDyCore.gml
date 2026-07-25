@@ -1,6 +1,6 @@
 /// DyCore Interface.
 
-enum DYCORE_ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR, GM_ANNOUNCEMENT, ON_FILES_DROPPED, GM_EXECUTE };
+enum DYCORE_ASYNC_EVENT_TYPE { PROJECT_SAVING, GENERAL_ERROR, GM_ANNOUNCEMENT, ON_FILES_DROPPED };
 function DyCoreManager() constructor {
     // DyCore Step function.
     static step = function() {
@@ -60,10 +60,6 @@ function DyCoreManager() constructor {
                 break;
             case DYCORE_ASYNC_EVENT_TYPE.ON_FILES_DROPPED:
                 window_on_files_dropped(event[$ "content"]);
-                break;
-            case DYCORE_ASYNC_EVENT_TYPE.GM_EXECUTE:
-                var _execute = json_parse(event[$ "content"]);
-                gm_execute(_execute[$ "name"], _execute[$ "args"]);
                 break;
             default:
                 show_debug_message("!Warning: Unknown dycore async event type.");

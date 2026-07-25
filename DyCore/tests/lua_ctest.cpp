@@ -12,18 +12,21 @@
 #include "editor.h"
 #include "extension.h"
 #include "gm.h"
+#include "luaRunner.h"
 #include "luaext.h"
 #include "lualib.h"
 
 extern "C" double DyCore_has_async_event();
 extern "C" const char* DyCore_get_async_event();
+extern "C" const char* DyCore_lua_start(const char* luaPath);
+extern "C" const char* DyCore_lua_resume(const char* result);
+extern "C" double DyCore_lua_cancel();
 
 namespace {
 
 std::filesystem::path make_lua_temp_dir() {
-    const auto ticks = std::chrono::steady_clock::now()
-                           .time_since_epoch()
-                           .count();
+    const auto ticks =
+        std::chrono::steady_clock::now().time_since_epoch().count();
     auto dir = std::filesystem::temp_directory_path() /
                ("dynode_lua_script_test_" + std::to_string(ticks));
     std::filesystem::create_directories(dir);
@@ -85,10 +88,10 @@ TEST_CASE("LuaGmAnnouncementQueuesEvent") {
 
     luaL_openlibs(lua);
     game_lualayer_openlibs(lua);
-    REQUIRE(luaL_dostring(
-                lua,
-                "dynode.gm.announce('Lua announcement', 'warning', 4321)") ==
-            LUA_OK);
+    REQUIRE(
+        luaL_dostring(
+            lua, "dynode.gm.announce('Lua announcement', 'warning', 4321)") ==
+        LUA_OK);
     lua_close(lua);
 
     REQUIRE(DyCore_has_async_event() > 0);
@@ -113,10 +116,8 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
     try {
         fs::current_path(dir);
 
-        const std::string programDirectory =
-            ll_gm_prop_get_program_directory();
-        const std::string workingDirectory =
-            ll_gm_prop_get_working_directory();
+        const std::string programDirectory = ll_gm_prop_get_program_directory();
+        const std::string workingDirectory = ll_gm_prop_get_working_directory();
 
         const fs::path configuredProgramDirectory = get_program_path();
         const std::string expectedProgramDirectory =
@@ -136,10 +137,10 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
 
         luaL_openlibs(lua);
         game_lualayer_openlibs(lua);
-        REQUIRE(luaL_dostring(
-                    lua,
-                    "return dynode.ProgramDirectory, "
-                    "dynode.WorkingDirectory, dynode.Version") == LUA_OK);
+        REQUIRE(luaL_dostring(lua,
+                              "return dynode.ProgramDirectory, "
+                              "dynode.WorkingDirectory, dynode.Version") ==
+                LUA_OK);
         REQUIRE(lua_isstring(lua, -3));
         REQUIRE(lua_isstring(lua, -2));
         REQUIRE(lua_isstring(lua, -1));
@@ -175,40 +176,397 @@ TEST_CASE("LuaEditorGetterReflectsSynchronizedGameMakerState") {
     lua_close(lua);
 }
 
-TEST_CASE("LuaEditorSetEditmodeQueuesGameMakerExecute") {
+TEST_CASE("LuaRunnerReturnsArray") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "array.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "return {1, 'two', {three = 3}}\n";
+    }
+
+    try {
+        LuaRunner runner(scriptPath);
+        const auto result = runner.start();
+
+        CHECK(result.at("state") == "dead");
+        CHECK(result.at("resultType") == "array");
+        CHECK(result.at("result") ==
+              nlohmann::json::array(
+                  {1.0, "two", nlohmann::json{{"three", 3.0}}}));
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaRunnerResumesGameMakerExecuteWithResult") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "gamemaker_execute.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "local result = dynode.editor.set_editmode(1)\n"
+               << "return {\n"
+               << "    editMode = dynode.editor.get_editmode(),\n"
+               << "    result = result\n"
+               << "}\n";
+    }
+
+    try {
+        LuaRunner runner(scriptPath);
+        const auto suspended = runner.start();
+
+        REQUIRE(suspended.at("state") == "suspended");
+        CHECK(suspended.at("resultType") == "event");
+        const auto& event = suspended.at("result");
+        CHECK(event.at("type") == "GM_EXECUTE");
+        CHECK(event.at("name") == "editor_set_editmode");
+        CHECK(event.at("args") == nlohmann::json::array({1}));
+
+        gmeditor_sync_states({{"editMode", 1}});
+        const auto completed =
+            runner.resume({{"result", nlohmann::json::array()}});
+
+        CHECK(completed.at("state") == "dead");
+        CHECK(completed.at("resultType") == "struct");
+        CHECK(completed.at("result").at("editMode") == 1.0);
+        CHECK(completed.at("result").at("result") == nlohmann::json::array());
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaRunnerExecutesArbitraryGameMakerFunctionsWithVarargs") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "gamemaker_exec.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "local first = dynode.gm.exec(\n"
+               << "    '__test_lua_gm_deep_io',\n"
+               << "    {number = 1.25, nested = {true, nil, 'tail'}},\n"
+               << "    nil,\n"
+               << "    false,\n"
+               << "    'text'\n"
+               << ")\n"
+               << "local second = dynode.gm.exec('__test_lua_gm_no_args')\n"
+               << "return {first = first, second = second}\n";
+    }
+
+    try {
+        LuaRunner runner(scriptPath);
+        const auto firstEvent = runner.start();
+
+        REQUIRE(firstEvent.at("state") == "suspended");
+        CHECK(firstEvent.at("resultType") == "event");
+        CHECK(firstEvent.at("result").at("name") == "__test_lua_gm_deep_io");
+        CHECK(firstEvent.at("result").at("args") ==
+              nlohmann::json::array(
+                  {{{"number", 1.25},
+                    {"nested", nlohmann::json::array({true, nullptr, "tail"})}},
+                   nullptr,
+                   false,
+                   "text"}));
+
+        const nlohmann::json firstResult = {
+            {"fromGml",
+             nlohmann::json::array(
+                 {nullptr, true, {{"nested", nlohmann::json::array({1, 2})}}})},
+        };
+        const auto secondEvent = runner.resume({{"result", firstResult}});
+
+        REQUIRE(secondEvent.at("state") == "suspended");
+        CHECK(secondEvent.at("result").at("name") == "__test_lua_gm_no_args");
+        CHECK(secondEvent.at("result").at("args") == nlohmann::json::array());
+
+        const nlohmann::json secondResult = nlohmann::json::array();
+        const auto completed = runner.resume({{"result", secondResult}});
+
+        CHECK(completed.at("state") == "dead");
+        CHECK(completed.at("resultType") == "struct");
+        CHECK(completed.at("result") == nlohmann::json{
+                                            {"first", firstResult},
+                                            {"second", secondResult},
+                                        });
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaRunnerReturnsGameMakerErrorsToLua") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "gamemaker_error.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "local ok, err = pcall(function()\n"
+               << "    dynode.editor.set_editmode(1)\n"
+               << "end)\n"
+               << "return {ok = ok, error = err}\n";
+    }
+
+    try {
+        LuaRunner runner(scriptPath);
+        const auto suspended = runner.start();
+        REQUIRE(suspended.at("state") == "suspended");
+
+        const auto completed =
+            runner.resume({{"error", "intentional GameMaker failure"}});
+
+        CHECK(completed.at("state") == "dead");
+        CHECK(completed.at("resultType") == "struct");
+        CHECK(completed.at("result").at("ok") == false);
+        CHECK(completed.at("result").at("error").get<std::string>().find(
+                  "intentional GameMaker failure") != std::string::npos);
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaApiProcessesGameMakerExecuteWithoutAsyncEvents") {
+    namespace fs = std::filesystem;
+
     while (DyCore_has_async_event() > 0) {
         DyCore_get_async_event();
     }
+    DyCore_lua_cancel();
 
-    lua_State* lua = luaL_newstate();
-    REQUIRE(lua != nullptr);
-
-    luaL_openlibs(lua);
-    game_lualayer_openlibs(lua);
-
-    REQUIRE(luaL_dostring(lua, "dynode.editor.set_editmode(0)") == LUA_OK);
-    REQUIRE(luaL_dostring(lua, "dynode.editor.set_editmode(5)") == LUA_OK);
-
-    for (const int expectedMode : {0, 5}) {
-        REQUIRE(DyCore_has_async_event() > 0);
-        const auto event = nlohmann::json::parse(DyCore_get_async_event());
-        const auto content = nlohmann::json::parse(
-            event.at("content").get_ref<const std::string&>());
-
-        CHECK(event.at("type") == GM_EXECUTE);
-        CHECK(content.at("name") == "editor_set_editmode");
-        CHECK(content.at("args") == nlohmann::json::array({expectedMode}));
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "lua_api.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "dynode.editor.set_editmode(1)\n"
+               << "dynode.editor.set_editmode(5)\n"
+               << "return 'done'\n";
     }
-    CHECK(DyCore_has_async_event() == 0);
 
-    CHECK(luaL_dostring(lua, "dynode.editor.set_editmode(-1)") != LUA_OK);
-    const char* error = lua_tostring(lua, -1);
-    REQUIRE(error != nullptr);
-    CHECK(std::string(error).find("cannot be negative") != std::string::npos);
-    lua_pop(lua, 1);
-    CHECK(DyCore_has_async_event() == 0);
+    try {
+        auto response = nlohmann::json::parse(
+            DyCore_lua_start(scriptPath.string().c_str()));
+        REQUIRE(response.at("state") == "suspended");
+        CHECK(response.at("result").at("args") == nlohmann::json::array({1}));
+        CHECK(DyCore_has_async_event() == 0);
 
-    lua_close(lua);
+        response = nlohmann::json::parse(DyCore_lua_resume("{}"));
+        REQUIRE(response.at("state") == "suspended");
+        CHECK(response.at("result").at("args") == nlohmann::json::array({5}));
+        CHECK(DyCore_has_async_event() == 0);
+
+        response = nlohmann::json::parse(DyCore_lua_resume("{}"));
+        CHECK(response.at("state") == "dead");
+        CHECK(response.at("resultType") == "string");
+        CHECK(response.at("result") == "done");
+        CHECK(DyCore_has_async_event() == 0);
+    } catch (...) {
+        DyCore_lua_cancel();
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaRunnerReportsCoroutineAndValueErrors") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    try {
+        const fs::path yieldPath = dir / "unsupported_yield.lua";
+        {
+            std::ofstream script(yieldPath, std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "coroutine.yield('unsupported')\n";
+        }
+        LuaRunner yieldRunner(yieldPath);
+        const auto yieldResult = yieldRunner.start();
+        CHECK(yieldResult.at("state") == "dead");
+        CHECK(yieldResult.at("error").get<std::string>().find("unsupported") !=
+              std::string::npos);
+
+        const fs::path cyclicPath = dir / "cyclic_result.lua";
+        {
+            std::ofstream script(cyclicPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "local result = {}\n"
+                   << "result.self = result\n"
+                   << "return result\n";
+        }
+        LuaRunner cyclicRunner(cyclicPath);
+        const auto cyclicResult = cyclicRunner.start();
+        CHECK(cyclicResult.at("state") == "dead");
+        CHECK(cyclicResult.at("error").get<std::string>().find("cyclic") !=
+              std::string::npos);
+
+        const fs::path runtimeErrorPath = dir / "runtime_error.lua";
+        {
+            std::ofstream script(runtimeErrorPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "local function fail()\n"
+                   << "    error('intentional Lua runtime error')\n"
+                   << "end\n"
+                   << "fail()\n";
+        }
+        LuaRunner runtimeErrorRunner(runtimeErrorPath);
+        const auto runtimeErrorResult = runtimeErrorRunner.start();
+        CHECK(runtimeErrorResult.at("state") == "dead");
+        const auto error = runtimeErrorResult.at("error").get<std::string>();
+        CHECK(error.find("intentional Lua runtime error") != std::string::npos);
+        CHECK(error.find("stack traceback") != std::string::npos);
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaRunnerDeepConvertsJSONValues") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    try {
+        const fs::path argumentPath = dir / "invalid_argument.lua";
+        {
+            std::ofstream script(argumentPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return dynode.editor.set_editmode(true)\n";
+        }
+        LuaRunner argumentRunner(argumentPath);
+        const auto argumentResult = argumentRunner.start();
+        CHECK(argumentResult.at("state") == "dead");
+        CHECK(argumentResult.at("error").get<std::string>().find(
+                  "must be a double") != std::string::npos);
+
+        const fs::path nonPositiveArgumentPath =
+            dir / "non_positive_argument.lua";
+        {
+            std::ofstream script(nonPositiveArgumentPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return dynode.editor.set_editmode(0)\n";
+        }
+        LuaRunner nonPositiveArgumentRunner(nonPositiveArgumentPath);
+        const auto nonPositiveArgumentResult =
+            nonPositiveArgumentRunner.start();
+        CHECK(nonPositiveArgumentResult.at("state") == "dead");
+        CHECK(nonPositiveArgumentResult.at("error").get<std::string>().find(
+                  "non-positive") != std::string::npos);
+
+        const fs::path nestedBooleanPath = dir / "nested_boolean.lua";
+        {
+            std::ofstream script(nestedBooleanPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return {nested = {true}}\n";
+        }
+        LuaRunner nestedBooleanRunner(nestedBooleanPath);
+        const auto nestedBooleanResult = nestedBooleanRunner.start();
+        CHECK(nestedBooleanResult.at("state") == "dead");
+        CHECK(nestedBooleanResult.at("resultType") == "struct");
+        CHECK(nestedBooleanResult.at("result") ==
+              nlohmann::json{{"nested", nlohmann::json::array({true})}});
+
+        const fs::path resultPath = dir / "deep_gamemaker_result.lua";
+        {
+            std::ofstream script(resultPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return dynode.editor.set_editmode(1)\n";
+        }
+        LuaRunner resultRunner(resultPath);
+        const auto suspended = resultRunner.start();
+        REQUIRE(suspended.at("state") == "suspended");
+        const nlohmann::json deepResult =
+            nlohmann::json::array({true, nullptr, "tail"});
+        const auto resumedResult =
+            resultRunner.resume({{"result", deepResult}});
+        CHECK(resumedResult.at("state") == "dead");
+        CHECK(resumedResult.at("resultType") == "array");
+        CHECK(resumedResult.at("result") == deepResult);
+
+        const fs::path noResultPath = dir / "no_result.lua";
+        {
+            std::ofstream script(noResultPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return\n";
+        }
+        LuaRunner noResultRunner(noResultPath);
+        const auto noResult = noResultRunner.start();
+        CHECK(noResult.at("state") == "dead");
+        CHECK(noResult.at("resultType") == "undefined");
+        CHECK(noResult.at("result").is_null());
+
+        const fs::path sparseArrayPath = dir / "sparse_array.lua";
+        {
+            std::ofstream script(sparseArrayPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return {[1] = true, [3] = 'tail'}\n";
+        }
+        LuaRunner sparseArrayRunner(sparseArrayPath);
+        const auto sparseArray = sparseArrayRunner.start();
+        CHECK(sparseArray.at("state") == "dead");
+        CHECK(sparseArray.at("resultType") == "array");
+        CHECK(sparseArray.at("result") ==
+              nlohmann::json::array({true, nullptr, "tail"}));
+
+        const fs::path mixedTablePath = dir / "mixed_table.lua";
+        {
+            std::ofstream script(mixedTablePath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return {[1] = 'array', named = 'struct'}\n";
+        }
+        LuaRunner mixedTableRunner(mixedTablePath);
+        const auto mixedTable = mixedTableRunner.start();
+        CHECK(mixedTable.at("state") == "dead");
+        CHECK(mixedTable.at("error").get<std::string>().find(
+                  "arrays or structs") != std::string::npos);
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
 }
 
 TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
@@ -229,7 +587,9 @@ TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
 
     try {
         fs::current_path(dir);
-        run_lua_script();
+        const auto completed = run_lua_script("script.lua");
+        CHECK(completed.at("state") == "dead");
+        CHECK_FALSE(completed.contains("error"));
 
         std::ifstream result(resultPath, std::ios::binary);
         REQUIRE(result.is_open());
@@ -243,9 +603,10 @@ TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
             REQUIRE(script.is_open());
             script << "error('intentional Lua failure')\n";
         }
-        CHECK_THROWS_WITH_AS(
-            run_lua_script(),
-            doctest::Contains("intentional Lua failure"), std::runtime_error);
+        const auto failed = run_lua_script("script.lua");
+        CHECK(failed.at("state") == "dead");
+        CHECK(failed.at("error").get<std::string>().find(
+                  "intentional Lua failure") != std::string::npos);
 
         fs::current_path(originalWorkingDirectory);
     } catch (...) {
