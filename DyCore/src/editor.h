@@ -1,8 +1,9 @@
 #pragma once
 
+#include <mutex>
+
 #include "json.hpp"
 
-#include <mutex>
 
 class GMEditorManager {
     mutable std::mutex mutex;

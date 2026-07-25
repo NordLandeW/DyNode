@@ -342,6 +342,7 @@
     {"id":{"name":"scrDyCore","path":"scripts/scrDyCore/scrDyCore.yy",},},
     {"id":{"name":"scrEditor","path":"scripts/scrEditor/scrEditor.yy",},},
     {"id":{"name":"scrExpr","path":"scripts/scrExpr/scrExpr.yy",},},
+    {"id":{"name":"scrGMExec","path":"scripts/scrGMExec/scrGMExec.yy",},},
     {"id":{"name":"scrGUI","path":"scripts/scrGUI/scrGUI.yy",},},
     {"id":{"name":"scrGUIElements","path":"scripts/scrGUIElements/scrGUIElements.yy",},},
     {"id":{"name":"scrI18n","path":"scripts/scrI18n/scrI18n.yy",},},

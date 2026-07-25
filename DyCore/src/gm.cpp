@@ -1,6 +1,9 @@
 
 #include "gm.h"
 
+#include <stdexcept>
+#include <utility>
+
 #include "api.h"
 #include "utils.h"
 
@@ -72,4 +75,19 @@ void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
              R"({"msg":"anno_dycore_error","args":["Failed to create announcement."]})"});
     }
     return;
+}
+
+void gamemaker_execute(string functionName, json args) {
+    if (!args.is_array()) {
+        throw std::invalid_argument(
+            "GameMaker execute arguments must be an array.");
+    }
+
+    json content = {
+        {"name", std::move(functionName)},
+        {"args", std::move(args)},
+    };
+    push_async_event(
+        {GM_EXECUTE, 0,
+         content.dump(-1, ' ', false, json::error_handler_t::replace)});
 }

@@ -61,6 +61,14 @@ int ll_editor_prop_get_editmode() {
     return GMEditorManager::inst().get_editmode();
 }
 
+void ll_editor_set_editmode(int editMode) {
+    if (editMode < 1) {
+        throw std::invalid_argument(
+            "GameMaker editor mode cannot be non-positive.");
+    }
+    gamemaker_execute("editor_set_editmode", json::array({editMode}));
+}
+
 void game_lualayer_openlibs(lua_State* L) {
     luabridge::getGlobalNamespace(L)
         .beginNamespace("dynode")
@@ -75,7 +83,8 @@ void game_lualayer_openlibs(lua_State* L) {
 
         .beginNamespace("editor")
         .addFunction("is_ready", ll_editor_is_ready)
-        .addProperty("editmode", ll_editor_prop_get_editmode)
+        .addFunction("get_editmode", ll_editor_prop_get_editmode)
+        .addFunction("set_editmode", ll_editor_set_editmode)
         .endNamespace()
 
         .endNamespace();

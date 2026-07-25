@@ -24,12 +24,13 @@ std::string ll_gm_prop_get_working_directory();
 
 std::string ll_prop_get_game_version();
 
-int ll_editor_prop_get_editmode();
-
 bool ll_editor_is_ready();
 
 // Return the current GameMaker editor mode.
 int ll_editor_prop_get_editmode();
+
+// Queue a request for GameMaker to switch to a non-negative editor mode.
+void ll_editor_set_editmode(int editMode);
 
 // Register all DyCore-provided libraries in a Lua state.
 void game_lualayer_openlibs(lua_State *);

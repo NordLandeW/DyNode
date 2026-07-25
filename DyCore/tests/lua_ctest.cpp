@@ -160,7 +160,7 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
     fs::remove_all(dir, ec);
 }
 
-TEST_CASE("LuaEditorPropertyReflectsSynchronizedGameMakerState") {
+TEST_CASE("LuaEditorGetterReflectsSynchronizedGameMakerState") {
     gmeditor_sync_states({{"editMode", 4}});
 
     lua_State* lua = luaL_newstate();
@@ -168,9 +168,46 @@ TEST_CASE("LuaEditorPropertyReflectsSynchronizedGameMakerState") {
 
     luaL_openlibs(lua);
     game_lualayer_openlibs(lua);
-    REQUIRE(luaL_dostring(lua, "return dynode.editor.editmode") == LUA_OK);
+    REQUIRE(luaL_dostring(lua, "return dynode.editor.get_editmode()") ==
+            LUA_OK);
     REQUIRE(lua_isinteger(lua, -1));
     CHECK(lua_tointeger(lua, -1) == 4);
+    lua_close(lua);
+}
+
+TEST_CASE("LuaEditorSetEditmodeQueuesGameMakerExecute") {
+    while (DyCore_has_async_event() > 0) {
+        DyCore_get_async_event();
+    }
+
+    lua_State* lua = luaL_newstate();
+    REQUIRE(lua != nullptr);
+
+    luaL_openlibs(lua);
+    game_lualayer_openlibs(lua);
+
+    REQUIRE(luaL_dostring(lua, "dynode.editor.set_editmode(0)") == LUA_OK);
+    REQUIRE(luaL_dostring(lua, "dynode.editor.set_editmode(5)") == LUA_OK);
+
+    for (const int expectedMode : {0, 5}) {
+        REQUIRE(DyCore_has_async_event() > 0);
+        const auto event = nlohmann::json::parse(DyCore_get_async_event());
+        const auto content = nlohmann::json::parse(
+            event.at("content").get_ref<const std::string&>());
+
+        CHECK(event.at("type") == GM_EXECUTE);
+        CHECK(content.at("name") == "editor_set_editmode");
+        CHECK(content.at("args") == nlohmann::json::array({expectedMode}));
+    }
+    CHECK(DyCore_has_async_event() == 0);
+
+    CHECK(luaL_dostring(lua, "dynode.editor.set_editmode(-1)") != LUA_OK);
+    const char* error = lua_tostring(lua, -1);
+    REQUIRE(error != nullptr);
+    CHECK(std::string(error).find("cannot be negative") != std::string::npos);
+    lua_pop(lua, 1);
+    CHECK(DyCore_has_async_event() == 0);
+
     lua_close(lua);
 }
 
