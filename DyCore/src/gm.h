@@ -1,13 +1,14 @@
 // gm.h: Bridge for asynchronous communication between DyCore and GameMaker.
 //
 // This header defines the data structures and functions used to pass events
-// from DyCore to GameMaker. It utilizes a thread-safe event stack to handle
+// from DyCore to GameMaker. It utilizes a thread-safe event queue to handle
 // asynchronous operations, allowing DyCore to perform tasks in the background
 // and notify GameMaker upon completion.
 
 #pragma once
 #include <json.hpp>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -35,7 +36,7 @@ inline void to_json(json &j, const AsyncEvent &a) {
     j = json{{"type", a.type}, {"status", a.status}, {"content", a.content}};
 }
 
-extern std::vector<AsyncEvent> asyncEventStack;
+extern std::queue<AsyncEvent> asyncEventQueue;
 extern std::mutex mtxSaveProject;
 
 void throw_error_event(std::string error_info);
