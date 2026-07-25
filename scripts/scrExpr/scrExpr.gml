@@ -7,6 +7,7 @@ enum ExprSymbolTypes {
 function ExprSymbol(_name="zero", _typ=ExprSymbolTypes.NUMBER, _val=0, _temp=1) constructor {
 	name = _name;
 	symType = _typ;
+	/// @type {Any}
 	value = undefined;
 	tempVar = _temp;
 
@@ -437,7 +438,7 @@ function expr_eval(_expr) {
 				_opt = both_to_unary_prefix + _opt;
 			}
 			
-			// Caculation
+			// Calculation
 			while(array_length(_stopt)>0) {
 				var _prio_now = _prio[$ _opt];
 				var _prio_top = _prio[$ array_top(_stopt)];

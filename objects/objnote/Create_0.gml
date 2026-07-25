@@ -627,7 +627,7 @@ image_yscale = 1;
                 var _delta_pos;
                 var _delta_side;
                 /// @self Id.Instance.objNote
-                var _caculation = function() {
+                var _calculation = function() {
                     if(side == 0) {
                         lastAttachBar = editor_snap_to_grid_y(origY + mouse_get_delta_last_y_l(), side);
                         y = lastAttachBar.y;
@@ -643,13 +643,13 @@ image_yscale = 1;
                         time = lastAttachBar.time;
                     }
                 }
-                _caculation();
+                _calculation();
 
                 if(objEditor.editorLRSide) {
                     var _side = cac_LR_side();
                     if(_side != side) {
                         side = _side;
-                        _caculation();
+                        _calculation();
                     }
                 }
 
