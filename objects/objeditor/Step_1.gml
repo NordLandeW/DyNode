@@ -452,3 +452,11 @@ editorSelectMultiple = editorSelectCount > 1;
     attachRequest = 0;
 
 #endregion
+
+#region Sync to DyCore
+
+dyc_editor_sync_states(
+    { editMode: editorMode }
+);
+
+#endregion

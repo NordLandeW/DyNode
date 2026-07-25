@@ -564,6 +564,26 @@ function dyc_project_get_version() {
     return DyCore_get_project_version();
 }
 
+/// @description Set whether a objEditor instance is ready.
+/// @param {Bool} ready
+/// @returns {Real}
+function dyc_editor_set_ready(ready) {
+    return DyCore_gmeditor_set_ready(ready);
+}
+
+/// @description Check whether a objEditor instance is ready.
+/// @returns {Bool}
+function dyc_editor_get_ready() {
+    return DyCore_gmeditor_get_ready();
+}
+
+/// @description Synchronize objEditor state to DyCore.
+/// @param {Struct} states
+/// @returns {Real}
+function dyc_editor_sync_states(states) {
+    return DyCore_gmeditor_sync_states(json_stringify(states));
+}
+
 function dyc_get_active_notes(nowTime, noteSpeed) {
     static _activeNotes = [];
     static lastUpdateTime = -1;

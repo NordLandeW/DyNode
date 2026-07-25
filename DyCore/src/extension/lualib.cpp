@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <stdexcept>
 #include <utility>
 
+#include "DyCore.h"
 #include "LuaBridge/LuaBridge.h"
+#include "editor.h"
 #include "gm.h"
+#include "version.h"
 
 void ll_gm_announcement(std::string str, std::string type, int lastTime) {
     std::transform(
@@ -33,11 +37,46 @@ void ll_gm_announcement(std::string str, std::string type, int lastTime) {
     gamemaker_announcement(announcementType, std::move(str), {}, lastTime);
 }
 
+std::string ll_gm_prop_get_program_directory() {
+    const std::filesystem::path programDirectory = get_program_path();
+    if (programDirectory.empty()) {
+        return {};
+    }
+    return std::filesystem::absolute(programDirectory).string();
+}
+
+std::string ll_gm_prop_get_working_directory() {
+    return std::filesystem::current_path().string();
+}
+
+std::string ll_prop_get_game_version() {
+    return DYNODE_VERSION;
+}
+
+bool ll_editor_is_ready() {
+    return GMEditorManager::inst().is_ready();
+}
+
+int ll_editor_prop_get_editmode() {
+    return GMEditorManager::inst().get_editmode();
+}
+
 void game_lualayer_openlibs(lua_State* L) {
     luabridge::getGlobalNamespace(L)
         .beginNamespace("dynode")
+
+        .addProperty("Version", ll_prop_get_game_version)
+        .addProperty("ProgramDirectory", ll_gm_prop_get_program_directory)
+        .addProperty("WorkingDirectory", ll_gm_prop_get_working_directory)
+
         .beginNamespace("gm")
         .addFunction("announce", ll_gm_announcement)
         .endNamespace()
+
+        .beginNamespace("editor")
+        .addFunction("is_ready", ll_editor_is_ready)
+        .addProperty("editmode", ll_editor_prop_get_editmode)
+        .endNamespace()
+
         .endNamespace();
 }

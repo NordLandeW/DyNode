@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "DyCore.h"
+#include "editor.h"
 #include "extension.h"
 #include "gm.h"
 #include "luaext.h"
@@ -100,6 +102,76 @@ TEST_CASE("LuaGmAnnouncementQueuesEvent") {
     CHECK(content.at("msg") == "Lua announcement");
     CHECK(content.at("args").empty());
     CHECK(content.at("lastTime") == 4321);
+}
+
+TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
+    namespace fs = std::filesystem;
+
+    const fs::path originalWorkingDirectory = fs::current_path();
+    const fs::path dir = make_lua_temp_dir();
+
+    try {
+        fs::current_path(dir);
+
+        const std::string programDirectory =
+            ll_gm_prop_get_program_directory();
+        const std::string workingDirectory =
+            ll_gm_prop_get_working_directory();
+
+        const fs::path configuredProgramDirectory = get_program_path();
+        const std::string expectedProgramDirectory =
+            configuredProgramDirectory.empty()
+                ? std::string()
+                : fs::absolute(configuredProgramDirectory).string();
+
+        CHECK(programDirectory == expectedProgramDirectory);
+        if (!programDirectory.empty()) {
+            CHECK(fs::path(programDirectory).is_absolute());
+        }
+        CHECK(workingDirectory == dir.string());
+        CHECK(fs::path(workingDirectory).is_absolute());
+
+        lua_State* lua = luaL_newstate();
+        REQUIRE(lua != nullptr);
+
+        luaL_openlibs(lua);
+        game_lualayer_openlibs(lua);
+        REQUIRE(luaL_dostring(
+                    lua,
+                    "return dynode.ProgramDirectory, "
+                    "dynode.WorkingDirectory, dynode.Version") == LUA_OK);
+        REQUIRE(lua_isstring(lua, -3));
+        REQUIRE(lua_isstring(lua, -2));
+        REQUIRE(lua_isstring(lua, -1));
+        CHECK(std::string(lua_tostring(lua, -3)) == programDirectory);
+        CHECK(std::string(lua_tostring(lua, -2)) == workingDirectory);
+        CHECK(std::string(lua_tostring(lua, -1)) == ll_prop_get_game_version());
+        lua_close(lua);
+
+        fs::current_path(originalWorkingDirectory);
+    } catch (...) {
+        std::error_code ec;
+        fs::current_path(originalWorkingDirectory, ec);
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaEditorPropertyReflectsSynchronizedGameMakerState") {
+    gmeditor_sync_states({{"editMode", 4}});
+
+    lua_State* lua = luaL_newstate();
+    REQUIRE(lua != nullptr);
+
+    luaL_openlibs(lua);
+    game_lualayer_openlibs(lua);
+    REQUIRE(luaL_dostring(lua, "return dynode.editor.editmode") == LUA_OK);
+    REQUIRE(lua_isinteger(lua, -1));
+    CHECK(lua_tointeger(lua, -1) == 4);
+    lua_close(lua);
 }
 
 TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
