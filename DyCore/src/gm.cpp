@@ -52,11 +52,14 @@ DYCORE_API const char* DyCore_get_async_event() {
 /// Sends a GameMaker announcement event with the specified type, message,
 /// and optional arguments to fill in the i18n placeholders.
 void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
-                            std::vector<string> args) {
+                            std::vector<string> args, int lastTime) {
     try {
         json j = json::object();
         j["msg"] = message;
         j["args"] = args;
+        if (lastTime >= 0) {
+            j["lastTime"] = lastTime;
+        }
         AsyncEvent event = {
             GM_ANNOUNCEMENT, (int)type,
             j.dump(-1, ' ', false, json::error_handler_t::replace)};

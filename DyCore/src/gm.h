@@ -44,4 +44,4 @@ void push_async_event(AsyncEvent asyncEvent);
 enum class GM_ANNOUNCEMENT_TYPE { ANNO_INFO, ANNO_WARNING, ANNO_ERROR };
 
 void gamemaker_announcement(GM_ANNOUNCEMENT_TYPE type, string message,
-                            std::vector<string> args = {});
+                            std::vector<string> args = {}, int lastTime = -1);

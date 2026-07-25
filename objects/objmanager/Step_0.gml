@@ -123,6 +123,9 @@ if(DEBUG_MODE) {
 	if(keycheck_down_ctrl(vk_numpad9)) {
 		_debug_stop_record();
 	}
+	if(keycheck_down_ctrl(vk_numpad1)) {
+		DyCore_run_lua_script();
+	}
 }
 
 // Update project time

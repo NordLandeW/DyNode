@@ -18,11 +18,13 @@
 #macro KPS_MEASURE_WINDOW 2000
 #macro AUTOSAVE_TIME (global.autoSaveTime)	// in seconds
 #macro DYCORE_COMPRESSION_LEVEL (global.PROJECT_COMPRESSION_LEVEL)		// max = 22
-#macro DEBUG_MODE (debug_mode)
+#macro DEBUG_MODE (debug_mode || global.DYCORE_DEBUG_BUILD)
 #macro FMOD_DSP_BUFFERSIZE (256)
 #macro FMOD_DSP_BUFFERCOUNT (4)
 #macro FMOD_DSP_APP_PITCHSHIFT_FFTSIZE (4096)
 math_set_epsilon(0.00000001);				// 1E-8
+
+global.DYCORE_DEBUG_BUILD = DyCore_is_debug_build() != 0;
 
 // Global Configs
 global.fps = display_get_frequency();

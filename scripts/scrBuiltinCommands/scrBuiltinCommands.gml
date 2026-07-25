@@ -8,6 +8,7 @@ global.BUILTIN_COMMANDS = [
     CommandClear,
     CommandEcho,
     CommandExpr,
+    CommandLua,
     CommandQuit,
     CommandRandomize,
     CommandSnap,
@@ -290,6 +291,19 @@ function CommandExpr():CommandSignature("expr", ["e"]) constructor {
         catch(e) {
             console_echo_error("Error evaluating expression: " + string(e));
         }
+    }
+}
+
+function CommandLua():CommandSignature("lua") constructor {
+    add_variant(0, 0, "Runs script.lua through DyCore.");
+
+    static execute = function(args, matchedVariant) {
+        if(DyCore_run_lua_script() < 0) {
+            console_echo_error("Lua script execution failed.");
+            return;
+        }
+
+        console_echo("Lua script executed.");
     }
 }
 

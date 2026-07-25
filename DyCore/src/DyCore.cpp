@@ -80,8 +80,10 @@ DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
         print_debug_message("FFmpeg is available.");
     }
 
-    print_debug_message("DyCore Initialization finished. No errors.");
-    print_debug_message("Program path: " + ::programPath.string());
+    print_debug_message("-- DyCore Initialization finished. No errors.");
+    print_debug_message("-- Program path: " + ::programPath.string());
+    print_debug_message("-- Working directory: " +
+                        std::filesystem::current_path().string());
 
     // Initialize window functions
     window_init();
@@ -99,6 +101,10 @@ DYCORE_API double DyCore_is_release_build() {
     } else {
         return 0.0;
     }
+}
+
+DYCORE_API double DyCore_is_debug_build() {
+    return DYCORE_DEBUG_BUILD ? 1.0 : 0.0;
 }
 
 DYCORE_API const char* DyCore_get_goog_measurement_id() {

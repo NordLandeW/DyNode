@@ -1,8 +1,34 @@
 #include <doctest/doctest.h>
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <json.hpp>
+#include <stdexcept>
 #include <string>
 
+#include "extension.h"
+#include "gm.h"
 #include "luaext.h"
+#include "lualib.h"
+
+extern "C" double DyCore_has_async_event();
+extern "C" const char* DyCore_get_async_event();
+
+namespace {
+
+std::filesystem::path make_lua_temp_dir() {
+    const auto ticks = std::chrono::steady_clock::now()
+                           .time_since_epoch()
+                           .count();
+    auto dir = std::filesystem::temp_directory_path() /
+               ("dynode_lua_script_test_" + std::to_string(ticks));
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+}  // namespace
 
 TEST_CASE("LuaRuntimeVersionIs55") {
     CHECK(LUA_VERSION_NUM == 505);
@@ -45,4 +71,81 @@ TEST_CASE("LuaBridgeSupportsLua55") {
     }
 
     lua_close(lua);
+}
+
+TEST_CASE("LuaGmAnnouncementQueuesEvent") {
+    while (DyCore_has_async_event() > 0) {
+        DyCore_get_async_event();
+    }
+
+    lua_State* lua = luaL_newstate();
+    REQUIRE(lua != nullptr);
+
+    luaL_openlibs(lua);
+    game_lualayer_openlibs(lua);
+    REQUIRE(luaL_dostring(
+                lua,
+                "dynode.gm.announce('Lua announcement', 'warning', 4321)") ==
+            LUA_OK);
+    lua_close(lua);
+
+    REQUIRE(DyCore_has_async_event() > 0);
+
+    const auto event = nlohmann::json::parse(DyCore_get_async_event());
+    const auto content = nlohmann::json::parse(
+        event.at("content").get_ref<const std::string&>());
+
+    CHECK(event.at("status") ==
+          static_cast<int>(GM_ANNOUNCEMENT_TYPE::ANNO_WARNING));
+    CHECK(content.at("msg") == "Lua announcement");
+    CHECK(content.at("args").empty());
+    CHECK(content.at("lastTime") == 4321);
+}
+
+TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "script.lua";
+    const fs::path resultPath = dir / "result.txt";
+    const fs::path originalWorkingDirectory = fs::current_path();
+
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "local output = assert(io.open('result.txt', 'w'))\n"
+               << "output:write('Lua script ran')\n"
+               << "output:close()\n";
+    }
+
+    try {
+        fs::current_path(dir);
+        run_lua_script();
+
+        std::ifstream result(resultPath, std::ios::binary);
+        REQUIRE(result.is_open());
+        CHECK(std::string(std::istreambuf_iterator<char>(result),
+                          std::istreambuf_iterator<char>()) ==
+              "Lua script ran");
+
+        {
+            std::ofstream script(scriptPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "error('intentional Lua failure')\n";
+        }
+        CHECK_THROWS_WITH_AS(
+            run_lua_script(),
+            doctest::Contains("intentional Lua failure"), std::runtime_error);
+
+        fs::current_path(originalWorkingDirectory);
+    } catch (...) {
+        std::error_code ec;
+        fs::current_path(originalWorkingDirectory, ec);
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
 }
