@@ -53,6 +53,92 @@ nlohmann::json lua_value_to_json(lua_State* lua, int index,
                                  std::unordered_set<const void*>& activeTables,
                                  int depth);
 
+class ActiveLuaTable {
+   public:
+    ActiveLuaTable(std::unordered_set<const void*>& activeTables,
+                   const void* tablePointer)
+        : activeTables(activeTables), tablePointer(tablePointer) {
+        if (!activeTables.insert(tablePointer).second) {
+            throw std::runtime_error("Lua result contains a cyclic table.");
+        }
+    }
+
+    ~ActiveLuaTable() {
+        activeTables.erase(tablePointer);
+    }
+
+    ActiveLuaTable(const ActiveLuaTable&) = delete;
+    ActiveLuaTable& operator=(const ActiveLuaTable&) = delete;
+
+   private:
+    std::unordered_set<const void*>& activeTables;
+    const void* tablePointer;
+};
+
+struct LuaTableShape {
+    lua_Integer arrayLength;
+    bool isArray;
+    bool isStruct;
+};
+
+LuaTableShape inspect_lua_table(lua_State* lua, int tableIndex) {
+    const auto markedLength = marked_array_length(lua, tableIndex);
+    LuaTableShape shape{markedLength.value_or(0), true, true};
+    bool hasArrayKey = false;
+
+    lua_pushnil(lua);
+    while (lua_next(lua, tableIndex) != 0) {
+        if (!lua_isinteger(lua, -2)) {
+            shape.isArray = false;
+        } else {
+            const lua_Integer key = lua_tointeger(lua, -2);
+            if (key < 1) {
+                shape.isArray = false;
+            } else {
+                hasArrayKey = true;
+                shape.arrayLength = std::max(shape.arrayLength, key);
+            }
+        }
+
+        if (lua_type(lua, -2) != LUA_TSTRING) {
+            shape.isStruct = false;
+        }
+
+        lua_pop(lua, 1);
+    }
+
+    if (!hasArrayKey && !markedLength.has_value()) {
+        shape.isArray = false;
+    }
+    return shape;
+}
+
+nlohmann::json lua_array_to_json(lua_State* lua, int tableIndex,
+                                 lua_Integer arrayLength,
+                                 std::unordered_set<const void*>& activeTables,
+                                 int depth) {
+    nlohmann::json result = nlohmann::json::array();
+    for (lua_Integer i = 1; i <= arrayLength; ++i) {
+        lua_rawgeti(lua, tableIndex, i);
+        result.push_back(lua_value_to_json(lua, -1, activeTables, depth + 1));
+        lua_pop(lua, 1);
+    }
+    return result;
+}
+
+nlohmann::json lua_struct_to_json(lua_State* lua, int tableIndex,
+                                  std::unordered_set<const void*>& activeTables,
+                                  int depth) {
+    nlohmann::json result = nlohmann::json::object();
+    lua_pushnil(lua);
+    while (lua_next(lua, tableIndex) != 0) {
+        const char* key = lua_tostring(lua, -2);
+        result[key] = lua_value_to_json(lua, -1, activeTables, depth + 1);
+        lua_pop(lua, 1);
+    }
+    return result;
+}
+
 nlohmann::json lua_table_to_json(lua_State* lua, int index,
                                  std::unordered_set<const void*>& activeTables,
                                  int depth) {
@@ -62,72 +148,18 @@ nlohmann::json lua_table_to_json(lua_State* lua, int index,
 
     const int tableIndex = lua_absindex(lua, index);
     const void* tablePointer = lua_topointer(lua, tableIndex);
-    if (!activeTables.insert(tablePointer).second) {
-        throw std::runtime_error("Lua result contains a cyclic table.");
+    const ActiveLuaTable activeTable(activeTables, tablePointer);
+    const LuaTableShape shape = inspect_lua_table(lua, tableIndex);
+
+    if (shape.isArray) {
+        return lua_array_to_json(lua, tableIndex, shape.arrayLength,
+                                 activeTables, depth);
     }
-
-    try {
-        const auto markedLength = marked_array_length(lua, tableIndex);
-        lua_Integer arrayLength = markedLength.value_or(0);
-        bool hasArrayKey = false;
-        bool isArray = true;
-        bool isStruct = true;
-
-        lua_pushnil(lua);
-        while (lua_next(lua, tableIndex) != 0) {
-            if (!lua_isinteger(lua, -2)) {
-                isArray = false;
-            } else {
-                const lua_Integer key = lua_tointeger(lua, -2);
-                if (key < 1) {
-                    isArray = false;
-                } else {
-                    hasArrayKey = true;
-                    arrayLength = std::max(arrayLength, key);
-                }
-            }
-
-            if (lua_type(lua, -2) != LUA_TSTRING) {
-                isStruct = false;
-            }
-
-            lua_pop(lua, 1);
-        }
-
-        if (!hasArrayKey && !markedLength.has_value()) {
-            isArray = false;
-        }
-
-        nlohmann::json result;
-        if (isArray) {
-            result = nlohmann::json::array();
-            for (lua_Integer i = 1; i <= arrayLength; ++i) {
-                lua_rawgeti(lua, tableIndex, i);
-                result.push_back(
-                    lua_value_to_json(lua, -1, activeTables, depth + 1));
-                lua_pop(lua, 1);
-            }
-        } else if (isStruct) {
-            result = nlohmann::json::object();
-            lua_pushnil(lua);
-            while (lua_next(lua, tableIndex) != 0) {
-                const char* key = lua_tostring(lua, -2);
-                result[key] =
-                    lua_value_to_json(lua, -1, activeTables, depth + 1);
-                lua_pop(lua, 1);
-            }
-        } else {
-            throw std::runtime_error(
-                "Lua result tables must be arrays or structs with string "
-                "keys.");
-        }
-
-        activeTables.erase(tablePointer);
-        return result;
-    } catch (...) {
-        activeTables.erase(tablePointer);
-        throw;
+    if (shape.isStruct) {
+        return lua_struct_to_json(lua, tableIndex, activeTables, depth);
     }
+    throw std::runtime_error(
+        "Lua result tables must be arrays or structs with string keys.");
 }
 
 nlohmann::json lua_value_to_json(lua_State* lua, int index,
