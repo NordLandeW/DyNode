@@ -44,7 +44,7 @@ function lua_run(luaPath = "script.lua") {
         return undefined;
     } catch(e) {
         DyCore_lua_cancel();
-        throw e;
+        announcement_error($"Lua run failed.\nDetails:\n[scale,0.6]{e}");
     }
 }
 
