@@ -85,6 +85,7 @@
 
 #if __cplusplus >= 202302L || (defined(_MSC_VER) && _HAS_CXX23)
 #define LUABRIDGE_CXX23_OR_GREATER 1
+#define LUABRIDGE_CXX20_OR_GREATER 1
 #elif __cplusplus >= 202002L || (defined(_MSC_VER) && _HAS_CXX20)
 #define LUABRIDGE_CXX20_OR_GREATER 1
 #endif
@@ -10460,7 +10461,7 @@ struct CppCoroutineFrame
 
     ~CppCoroutineFrame()
     {
-        if (handle && !handle.done())
+        if (handle)
             handle.destroy();
     }
 };
@@ -15119,4 +15120,3 @@ struct Stack<std::vector<T, Allocator>>
 
 // End File: Source/LuaBridge/Vector.h
 // clang-format on
-

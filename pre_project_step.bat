@@ -53,8 +53,16 @@ goto build_dycore
     exit /b 1
 
 :build_dycore
-:: Set build mode here: "release" or "debug"
-set BUILD_MODE=release
+:: Build Debug when requested by .env; otherwise keep the Release default.
+set "BUILD_MODE=release"
+if /I "%DYCORE_DEBUG_BUILD%"=="1" set "BUILD_MODE=debug"
+if /I "%DYCORE_DEBUG_BUILD%"=="true" set "BUILD_MODE=debug"
+if /I "%DYCORE_DEBUG_BUILD%"=="on" set "BUILD_MODE=debug"
+if /I "%DYCORE_DEBUG_BUILD%"=="yes" set "BUILD_MODE=debug"
+
+:: Keep the value consumed by CMake/config.h aligned with the selected profile.
+set "DYCORE_DEBUG_BUILD=0"
+if /I "%BUILD_MODE%"=="debug" set "DYCORE_DEBUG_BUILD=1"
 
 set CMAKE_PRESET=x64-%BUILD_MODE%
 set BUILD_DIR=out/build/x64-%BUILD_MODE%

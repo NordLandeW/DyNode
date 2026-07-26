@@ -31,15 +31,27 @@ function DyCoreManager() constructor {
                 var _anno_content = json_parse(event[$ "content"]);
                 var _msg = _anno_content[$ "msg"];
                 var _args = _anno_content[$ "args"];
+                var _last_time = variable_struct_exists(_anno_content, "lastTime")
+                    ? _anno_content[$ "lastTime"]
+                    : undefined;
                 switch(event[$ "status"]) {
                     case 0:
-                        announcement_play(i18n_get(_msg, _args));
+                        if(is_undefined(_last_time))
+                            announcement_play(i18n_get(_msg, _args));
+                        else
+                            announcement_play(i18n_get(_msg, _args), _last_time);
                         break;
                     case 1:
-                        announcement_warning(i18n_get(_msg, _args));
+                        if(is_undefined(_last_time))
+                            announcement_warning(i18n_get(_msg, _args));
+                        else
+                            announcement_warning(i18n_get(_msg, _args), _last_time);
                         break;
                     case 2:
-                        announcement_error(i18n_get(_msg, _args));
+                        if(is_undefined(_last_time))
+                            announcement_error(i18n_get(_msg, _args));
+                        else
+                            announcement_error(i18n_get(_msg, _args), _last_time);
                         break;
                     default:
                         announcement_error("Unknown GM announcement type from DyCore.");
@@ -550,6 +562,26 @@ function dyc_timingpoints_add_offset(offset) {
 
 function dyc_project_get_version() {
     return DyCore_get_project_version();
+}
+
+/// @description Set whether a objEditor instance is ready.
+/// @param {Bool} ready
+/// @returns {Real}
+function dyc_editor_set_ready(ready) {
+    return DyCore_gmeditor_set_ready(ready);
+}
+
+/// @description Check whether a objEditor instance is ready.
+/// @returns {Bool}
+function dyc_editor_get_ready() {
+    return DyCore_gmeditor_get_ready();
+}
+
+/// @description Synchronize objEditor state to DyCore.
+/// @param {Struct} states
+/// @returns {Real}
+function dyc_editor_sync_states(states) {
+    return DyCore_gmeditor_sync_states(json_stringify(states));
 }
 
 function dyc_get_active_notes(nowTime, noteSpeed) {

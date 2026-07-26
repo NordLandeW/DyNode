@@ -123,6 +123,14 @@ if(DEBUG_MODE) {
 	if(keycheck_down_ctrl(vk_numpad9)) {
 		_debug_stop_record();
 	}
+	if(keycheck_down_ctrl(vk_numpad5)) {
+		var result = lua_run();
+		if(result.state == "error") {
+			announcement_error(
+				$"Lua run failed.\nDetails:\n[scale,0.6]{result.error}"
+			);
+		}
+	}
 }
 
 // Update project time
