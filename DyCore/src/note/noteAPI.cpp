@@ -1,5 +1,4 @@
 
-#include <json.hpp>
 #include <string>
 
 #include "activation.h"
@@ -8,44 +7,13 @@
 #include "notePoolManager.h"
 #include "utils.h"
 
-// Synchronizes the note map with a given array of notes in JSON format.
-// This will clear all existing notes and replace them with the new ones.
-//
-// @param notesArray A JSON string representing an array of Note objects.
-// @return 0 on success, -1 on parsing failure.
-DYCORE_API double DyCore_sync_notes_array(const char* notesArray) {
-    print_debug_message("Start syncing... ");
-
-    json j;
-    try {
-        j = json::parse(notesArray);
-    } catch (json::exception& e) {
-        print_debug_message("Parse failed:" + string(e.what()));
-        return -1;
-    }
-
-    print_debug_message("Parse finished.");
-
-    auto array = j.template get<std::vector<Note>>();
-
-    print_debug_message(string("Sync notes successfully. ") +
-                        std::to_string(array.size()));
-    clear_notes();
-    for (auto note : array)
-        insert_note(note);
-    return 0;
-}
-
 // Clears all notes from the note map.
 DYCORE_API double DyCore_clear_notes() {
     clear_notes();
     return 0;
 }
 
-// Inserts a single note from a JSON string.
-//
-// @param prop A JSON string representing a Note object.
-// @return 0 on success, -1 on failure.
+// Inserts a single note.
 DYCORE_API double DyCore_insert_note(const char* prop) {
     Note note;
     note.read(prop);
@@ -53,37 +21,16 @@ DYCORE_API double DyCore_insert_note(const char* prop) {
 }
 
 // Deletes a single note from noteID.
-//
-// @param noteID A string representing the ID of the Note to delete.
-// @return 0 on success, -1 on failure.
 DYCORE_API double DyCore_delete_note(const char* noteID) {
     return delete_note(noteID);
 }
 
-// Modifies a single note from a JSON string.
-//
-// @param prop A JSON string representing a Note object.
-// @return 0 on success, -1 on failure.
 DYCORE_API double DyCore_modify_note(const char* prop) {
-    json j;
     try {
-        j = json::parse(prop);
-    } catch (json::exception& e) {
-        print_debug_message("Parse failed:" + string(e.what()));
+        return modify_note(prop);
+    } catch (...) {
         return -1;
     }
-
-    Note note = j.template get<Note>();
-    return modify_note(note);
-}
-
-DYCORE_API double DyCore_modify_note_bitwise(const char* noteID,
-                                             const char* prop) {
-    if (!note_exists(noteID)) {
-        return -1;
-    }
-    get_note_pool_manager().set_note_bitwise(noteID, prop);
-    return 0;
 }
 
 DYCORE_API double DyCore_sort_notes() {

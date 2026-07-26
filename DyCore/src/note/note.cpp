@@ -97,6 +97,11 @@ int modify_note(const Note& note) {
     get_note_pool_manager().set_note(note);
     return 0;
 }
+int modify_note(const char* prop) {
+    Note note;
+    note.read(prop);
+    return modify_note(note);
+}
 
 void get_notes_array(std::vector<Note>& notes, bool excludeSub) {
     get_note_pool_manager().get_notes(notes, excludeSub);

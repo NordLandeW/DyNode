@@ -182,7 +182,7 @@ function dyc_update_note(noteProp, record = false, recursive = false) {
 
     static buffer = buffer_create(1024, buffer_grow, 1);
     dyc_note_serialization(buffer, noteProp);
-    var result = DyCore_modify_note_bitwise(noteID, buffer_get_address(buffer));
+    var result = DyCore_modify_note(buffer_get_address(buffer));
 
     if(result == 0 && record) {
         operation_step_add(OPERATION_TYPE.MOVE, origProp, noteProp);

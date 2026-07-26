@@ -24,6 +24,7 @@ int create_note(const Note &note, bool randomID = true, bool createSub = true);
 int delete_note(const Note &note);
 int delete_note(const std::string &noteID);
 int modify_note(const Note &note);
+int modify_note(const char *prop);
 
 string generate_note_id();
 
