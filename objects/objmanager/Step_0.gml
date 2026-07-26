@@ -123,7 +123,7 @@ if(DEBUG_MODE) {
 	if(keycheck_down_ctrl(vk_numpad9)) {
 		_debug_stop_record();
 	}
-	if(keycheck_down_ctrl(vk_numpad1)) {
+	if(keycheck_down_ctrl(vk_numpad5)) {
 		var result = lua_run();
 		if(result.state == "error") {
 			announcement_error(
