@@ -128,24 +128,10 @@ void NotePoolManager::set_note(const Note& note) {
     sync_hold_note_length(*note_ptr);
 }
 
-void NotePoolManager::set_note_bitwise(const std::string& noteID,
-                                       const char* prop) {
-    nptr note_ptr;
-    {
-        std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-        if (noteInfoMap.find(noteID) == noteInfoMap.end()) {
-            throw std::runtime_error("Note not found: " + noteID);
-        }
-        note_ptr = get_note_pointer(noteID);
-    }  // Release the manager lock
-
-    double origTime = note_ptr->time;
-    note_ptr->read(prop);
-
-    if (origTime != note_ptr->time)
-        set_ooo();
-    sync_head_note_to_sub(*note_ptr);
-    sync_hold_note_length(*note_ptr);
+void NotePoolManager::set_note_bitwise(const char* prop) {
+    Note note;
+    note.read(prop);
+    set_note(note);
 }
 
 void NotePoolManager::access_note(const std::string& noteID,

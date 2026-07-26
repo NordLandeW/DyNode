@@ -34,7 +34,7 @@ class NotePoolManager {
     /// valid.
     const Note &get_note_direct(int index);
     void set_note(const Note &note);
-    void set_note_bitwise(const std::string &noteID, const char *prop);
+    void set_note_bitwise(const char *prop);
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
     void access_all_notes(std::function<void(Note &)> executor);

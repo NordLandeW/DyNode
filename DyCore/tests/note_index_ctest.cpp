@@ -1,63 +1,29 @@
 #include <doctest/doctest.h>
 
-#include <string>
+#include "note.h"
 
 extern "C" double DyCore_clear_notes();
 extern "C" double DyCore_get_note_index_lower_bound(double time);
 extern "C" double DyCore_get_note_index_upper_bound(double time);
-extern "C" double DyCore_sync_notes_array(const char* notesArray);
 
 TEST_CASE("NoteIndexBounds") {
     DyCore_clear_notes();
 
-    const std::string notes = R"([
-        {
-            "time": 100.0,
-            "side": 0,
-            "width": 1.0,
-            "position": 1.0,
-            "length": 0.0,
-            "type": 0,
-            "noteID": "note-a",
-            "subNoteID": "",
-            "beginTime": 0.0
-        },
-        {
-            "time": 200.0,
-            "side": 0,
-            "width": 1.0,
-            "position": 2.0,
-            "length": 0.0,
-            "type": 0,
-            "noteID": "note-b",
-            "subNoteID": "",
-            "beginTime": 0.0
-        },
-        {
-            "time": 200.0,
-            "side": 1,
-            "width": 1.0,
-            "position": 3.0,
-            "length": 0.0,
-            "type": 0,
-            "noteID": "note-c",
-            "subNoteID": "",
-            "beginTime": 0.0
-        },
-        {
-            "time": 300.0,
-            "side": 0,
-            "width": 1.0,
-            "position": 4.0,
-            "length": 0.0,
-            "type": 0,
-            "noteID": "note-d",
-            "subNoteID": "",
-            "beginTime": 0.0
-        }
-    ])";
+    const auto insertTestNote = [](double time, int side, double position,
+                                   const char* noteID) {
+        Note note{};
+        note.time = time;
+        note.side = side;
+        note.width = 1.0;
+        note.position = position;
+        note.noteID = noteID;
+        return insert_note(note);
+    };
 
-    REQUIRE(DyCore_sync_notes_array(notes.c_str()) == 0);
+    REQUIRE(insertTestNote(100.0, 0, 1.0, "note-a") == 0);
+    REQUIRE(insertTestNote(200.0, 0, 2.0, "note-b") == 0);
+    REQUIRE(insertTestNote(200.0, 1, 3.0, "note-c") == 0);
+    REQUIRE(insertTestNote(300.0, 0, 4.0, "note-d") == 0);
 
     CHECK(DyCore_get_note_index_lower_bound(50.0) == 0);
     CHECK(DyCore_get_note_index_upper_bound(50.0) == 0);
