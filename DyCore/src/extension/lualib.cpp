@@ -39,7 +39,8 @@ void ll_gm_announcement(std::string str, std::string type, int lastTime) {
     gamemaker_announcement(announcementType, std::move(str), {}, lastTime);
 }
 
-luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(std::string functionName,
+luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(LuaRunner& luaRunner,
+                                                      std::string functionName,
                                                       lua_State* L) {
     std::vector<luabridge::LuaRef> args;
     const int argumentCount = lua_gettop(L);
@@ -49,8 +50,8 @@ luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(std::string functionName,
         args.push_back(luabridge::LuaRef::fromStack(L, index));
     }
 
-    return LuaRunner::inst().gamemaker_execute(std::move(functionName),
-                                               std::move(args));
+    return luaRunner.gamemaker_execute(std::move(functionName),
+                                       std::move(args));
 }
 
 std::string ll_gm_prop_get_program_directory() {
@@ -78,7 +79,7 @@ int ll_editor_prop_get_editmode() {
 }
 
 luabridge::CppCoroutine<luabridge::LuaRef> ll_editor_set_editmode(
-    luabridge::LuaRef editMode) {
+    LuaRunner& luaRunner, luabridge::LuaRef editMode) {
     const auto convertedEditMode = editMode.cast<double>();
     if (!convertedEditMode) {
         throw std::invalid_argument("GameMaker editor mode must be a double.");
@@ -87,11 +88,13 @@ luabridge::CppCoroutine<luabridge::LuaRef> ll_editor_set_editmode(
         throw std::invalid_argument(
             "GameMaker editor mode cannot be non-positive.");
     }
-    return LuaRunner::inst().gamemaker_execute("editor_set_editmode",
-                                               {std::move(editMode)});
+    return luaRunner.gamemaker_execute("editor_set_editmode",
+                                       {std::move(editMode)});
 }
 
-void game_lualayer_openlibs(lua_State* L) {
+void game_lualayer_openlibs(LuaRunner& luaRunner) {
+    lua_State* L = luaRunner.lua.get();
+
     luabridge::getGlobalNamespace(L)
         .beginNamespace("dynode")
 
@@ -101,13 +104,21 @@ void game_lualayer_openlibs(lua_State* L) {
 
         .beginNamespace("gm")
         .addFunction("announce", ll_gm_announcement)
-        .addCoroutine("exec", ll_gm_exec)
+        .addCoroutine("exec",
+                      [&luaRunner](std::string functionName, lua_State* L) {
+                          return ll_gm_exec(luaRunner, std::move(functionName),
+                                            L);
+                      })
         .endNamespace()
 
         .beginNamespace("editor")
         .addFunction("is_ready", ll_editor_is_ready)
         .addFunction("get_editmode", ll_editor_prop_get_editmode)
-        .addCoroutine("set_editmode", ll_editor_set_editmode)
+        .addCoroutine("set_editmode",
+                      [&luaRunner](luabridge::LuaRef editMode) {
+                          return ll_editor_set_editmode(luaRunner,
+                                                        std::move(editMode));
+                      })
         .endNamespace()
 
         .endNamespace();

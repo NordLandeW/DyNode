@@ -17,8 +17,6 @@ class LuaRunner {
     LuaRunner(const LuaRunner&) = delete;
     LuaRunner& operator=(const LuaRunner&) = delete;
 
-    static LuaRunner& inst();
-
     nlohmann::json start();
     nlohmann::json resume(nlohmann::json result);
     bool is_dead() const;
@@ -42,5 +40,5 @@ class LuaRunner {
     bool waitingForGamemaker = false;
     std::optional<nlohmann::json> gamemakerResult;
 
-    static LuaRunner* instance;
+    friend void game_lualayer_openlibs(LuaRunner& luaRunner);
 };

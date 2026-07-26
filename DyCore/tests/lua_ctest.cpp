@@ -79,20 +79,31 @@ TEST_CASE("LuaBridgeSupportsLua55") {
 }
 
 TEST_CASE("LuaGmAnnouncementQueuesEvent") {
+    namespace fs = std::filesystem;
+
     while (DyCore_has_async_event() > 0) {
         DyCore_get_async_event();
     }
 
-    lua_State* lua = luaL_newstate();
-    REQUIRE(lua != nullptr);
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "announcement.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "dynode.gm.announce("
+                  "'Lua announcement', 'warning', 4321)\n";
+    }
 
-    luaL_openlibs(lua);
-    game_lualayer_openlibs(lua);
-    REQUIRE(
-        luaL_dostring(
-            lua, "dynode.gm.announce('Lua announcement', 'warning', 4321)") ==
-        LUA_OK);
-    lua_close(lua);
+    try {
+        LuaRunner runner(scriptPath);
+        const auto result = runner.start();
+        CHECK(result.at("state") == "dead");
+        CHECK_FALSE(result.contains("error"));
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
 
     REQUIRE(DyCore_has_async_event() > 0);
 
@@ -105,6 +116,9 @@ TEST_CASE("LuaGmAnnouncementQueuesEvent") {
     CHECK(content.at("msg") == "Lua announcement");
     CHECK(content.at("args").empty());
     CHECK(content.at("lastTime") == 4321);
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
 }
 
 TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
@@ -132,22 +146,25 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
         CHECK(workingDirectory == dir.string());
         CHECK(fs::path(workingDirectory).is_absolute());
 
-        lua_State* lua = luaL_newstate();
-        REQUIRE(lua != nullptr);
+        const fs::path scriptPath = dir / "directories.lua";
+        {
+            std::ofstream script(scriptPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return {\n"
+                   << "    program = dynode.ProgramDirectory,\n"
+                   << "    working = dynode.WorkingDirectory,\n"
+                   << "    version = dynode.Version\n"
+                   << "}\n";
+        }
 
-        luaL_openlibs(lua);
-        game_lualayer_openlibs(lua);
-        REQUIRE(luaL_dostring(lua,
-                              "return dynode.ProgramDirectory, "
-                              "dynode.WorkingDirectory, dynode.Version") ==
-                LUA_OK);
-        REQUIRE(lua_isstring(lua, -3));
-        REQUIRE(lua_isstring(lua, -2));
-        REQUIRE(lua_isstring(lua, -1));
-        CHECK(std::string(lua_tostring(lua, -3)) == programDirectory);
-        CHECK(std::string(lua_tostring(lua, -2)) == workingDirectory);
-        CHECK(std::string(lua_tostring(lua, -1)) == ll_prop_get_game_version());
-        lua_close(lua);
+        LuaRunner runner(scriptPath);
+        const auto result = runner.start();
+        REQUIRE(result.at("state") == "dead");
+        REQUIRE(result.at("resultType") == "struct");
+        CHECK(result.at("result").at("program") == programDirectory);
+        CHECK(result.at("result").at("working") == workingDirectory);
+        CHECK(result.at("result").at("version") == ll_prop_get_game_version());
 
         fs::current_path(originalWorkingDirectory);
     } catch (...) {
@@ -162,18 +179,32 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
 }
 
 TEST_CASE("LuaEditorGetterReflectsSynchronizedGameMakerState") {
+    namespace fs = std::filesystem;
+
     gmeditor_sync_states({{"editMode", 4}});
 
-    lua_State* lua = luaL_newstate();
-    REQUIRE(lua != nullptr);
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "editor_getter.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "return dynode.editor.get_editmode()\n";
+    }
 
-    luaL_openlibs(lua);
-    game_lualayer_openlibs(lua);
-    REQUIRE(luaL_dostring(lua, "return dynode.editor.get_editmode()") ==
-            LUA_OK);
-    REQUIRE(lua_isinteger(lua, -1));
-    CHECK(lua_tointeger(lua, -1) == 4);
-    lua_close(lua);
+    try {
+        LuaRunner runner(scriptPath);
+        const auto result = runner.start();
+        CHECK(result.at("state") == "dead");
+        CHECK(result.at("resultType") == "double");
+        CHECK(result.at("result") == 4.0);
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
 }
 
 TEST_CASE("LuaRunnerReturnsArray") {
@@ -314,6 +345,53 @@ TEST_CASE("LuaRunnerExecutesArbitraryGameMakerFunctionsWithVarargs") {
     fs::remove_all(dir, ec);
 }
 
+TEST_CASE("LuaRunnersKeepGameMakerExecutionStateIndependent") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path firstPath = dir / "first.lua";
+    const fs::path secondPath = dir / "second.lua";
+    {
+        std::ofstream first(firstPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(first.is_open());
+        first << "return dynode.gm.exec('first_runner')\n";
+
+        std::ofstream second(secondPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(second.is_open());
+        second << "return dynode.gm.exec('second_runner')\n";
+    }
+
+    try {
+        LuaRunner firstRunner(firstPath);
+        LuaRunner secondRunner(secondPath);
+
+        const auto firstEvent = firstRunner.start();
+        const auto secondEvent = secondRunner.start();
+
+        REQUIRE(firstEvent.at("state") == "suspended");
+        REQUIRE(secondEvent.at("state") == "suspended");
+        CHECK(firstEvent.at("result").at("name") == "first_runner");
+        CHECK(secondEvent.at("result").at("name") == "second_runner");
+
+        const auto firstResult =
+            firstRunner.resume({{"result", "first_result"}});
+        const auto secondResult =
+            secondRunner.resume({{"result", "second_result"}});
+
+        CHECK(firstResult.at("state") == "dead");
+        CHECK(firstResult.at("result") == "first_result");
+        CHECK(secondResult.at("state") == "dead");
+        CHECK(secondResult.at("result") == "second_result");
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
 TEST_CASE("LuaRunnerReturnsGameMakerErrorsToLua") {
     namespace fs = std::filesystem;
 
@@ -397,6 +475,20 @@ TEST_CASE("LuaApiProcessesGameMakerExecuteWithoutAsyncEvents") {
     fs::remove_all(dir, ec);
 }
 
+TEST_CASE("LuaApiUsesErrorStateForInvalidRequests") {
+    DyCore_lua_cancel();
+
+    const auto invalidPath =
+        nlohmann::json::parse(DyCore_lua_start(""));
+    CHECK(invalidPath.at("state") == "error");
+    CHECK(invalidPath.at("error") == "luaPath cannot be empty.");
+
+    const auto invalidResult =
+        nlohmann::json::parse(DyCore_lua_resume("{"));
+    CHECK(invalidResult.at("state") == "error");
+    CHECK(invalidResult.at("error").is_string());
+}
+
 TEST_CASE("LuaRunnerReportsCoroutineAndValueErrors") {
     namespace fs = std::filesystem;
 
@@ -410,7 +502,7 @@ TEST_CASE("LuaRunnerReportsCoroutineAndValueErrors") {
         }
         LuaRunner yieldRunner(yieldPath);
         const auto yieldResult = yieldRunner.start();
-        CHECK(yieldResult.at("state") == "dead");
+        CHECK(yieldResult.at("state") == "error");
         CHECK(yieldResult.at("error").get<std::string>().find("unsupported") !=
               std::string::npos);
 
@@ -425,7 +517,7 @@ TEST_CASE("LuaRunnerReportsCoroutineAndValueErrors") {
         }
         LuaRunner cyclicRunner(cyclicPath);
         const auto cyclicResult = cyclicRunner.start();
-        CHECK(cyclicResult.at("state") == "dead");
+        CHECK(cyclicResult.at("state") == "error");
         CHECK(cyclicResult.at("error").get<std::string>().find("cyclic") !=
               std::string::npos);
 
@@ -441,7 +533,7 @@ TEST_CASE("LuaRunnerReportsCoroutineAndValueErrors") {
         }
         LuaRunner runtimeErrorRunner(runtimeErrorPath);
         const auto runtimeErrorResult = runtimeErrorRunner.start();
-        CHECK(runtimeErrorResult.at("state") == "dead");
+        CHECK(runtimeErrorResult.at("state") == "error");
         const auto error = runtimeErrorResult.at("error").get<std::string>();
         CHECK(error.find("intentional Lua runtime error") != std::string::npos);
         CHECK(error.find("stack traceback") != std::string::npos);
@@ -469,7 +561,7 @@ TEST_CASE("LuaRunnerDeepConvertsJSONValues") {
         }
         LuaRunner argumentRunner(argumentPath);
         const auto argumentResult = argumentRunner.start();
-        CHECK(argumentResult.at("state") == "dead");
+        CHECK(argumentResult.at("state") == "error");
         CHECK(argumentResult.at("error").get<std::string>().find(
                   "must be a double") != std::string::npos);
 
@@ -484,7 +576,7 @@ TEST_CASE("LuaRunnerDeepConvertsJSONValues") {
         LuaRunner nonPositiveArgumentRunner(nonPositiveArgumentPath);
         const auto nonPositiveArgumentResult =
             nonPositiveArgumentRunner.start();
-        CHECK(nonPositiveArgumentResult.at("state") == "dead");
+        CHECK(nonPositiveArgumentResult.at("state") == "error");
         CHECK(nonPositiveArgumentResult.at("error").get<std::string>().find(
                   "non-positive") != std::string::npos);
 
@@ -556,7 +648,7 @@ TEST_CASE("LuaRunnerDeepConvertsJSONValues") {
         }
         LuaRunner mixedTableRunner(mixedTablePath);
         const auto mixedTable = mixedTableRunner.start();
-        CHECK(mixedTable.at("state") == "dead");
+        CHECK(mixedTable.at("state") == "error");
         CHECK(mixedTable.at("error").get<std::string>().find(
                   "arrays or structs") != std::string::npos);
     } catch (...) {
@@ -604,7 +696,7 @@ TEST_CASE("RunLuaScriptUsesWorkingDirectory") {
             script << "error('intentional Lua failure')\n";
         }
         const auto failed = run_lua_script("script.lua");
-        CHECK(failed.at("state") == "dead");
+        CHECK(failed.at("state") == "error");
         CHECK(failed.at("error").get<std::string>().find(
                   "intentional Lua failure") != std::string::npos);
 

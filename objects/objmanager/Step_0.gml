@@ -124,7 +124,12 @@ if(DEBUG_MODE) {
 		_debug_stop_record();
 	}
 	if(keycheck_down_ctrl(vk_numpad1)) {
-		lua_run();
+		var result = lua_run();
+		if(result.state == "error") {
+			announcement_error(
+				$"Lua run failed.\nDetails:\n[scale,0.6]{result.error}"
+			);
+		}
 	}
 }
 

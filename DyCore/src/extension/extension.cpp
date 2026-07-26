@@ -56,7 +56,7 @@ void cancel_lua_script() {
 
 nlohmann::json lua_error_result(const std::string& error) {
     return {
-        {"state", "dead"},
+        {"state", "error"},
         {"error", error},
     };
 }

@@ -7,7 +7,9 @@
 
 #include <string>
 
+#include "luaRunner.h"
 #include "luaext.h"
+
 
 // Queue an announcement for the GameMaker UI.
 //
@@ -16,7 +18,8 @@
 // milliseconds and must not be negative.
 void ll_gm_announcement(std::string str, std::string type, int lastTime);
 
-luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(std::string functionName,
+luabridge::CppCoroutine<luabridge::LuaRef> ll_gm_exec(LuaRunner& luaRunner,
+                                                      std::string functionName,
                                                       lua_State* L);
 
 // Return the absolute dynode.exe program directory.
@@ -33,7 +36,7 @@ bool ll_editor_is_ready();
 int ll_editor_prop_get_editmode();
 
 luabridge::CppCoroutine<luabridge::LuaRef> ll_editor_set_editmode(
-    luabridge::LuaRef editMode);
+    LuaRunner& luaRunner, luabridge::LuaRef editMode);
 
-// Register all DyCore-provided libraries in a Lua state.
-void game_lualayer_openlibs(lua_State*);
+// Register all DyCore-provided libraries in a LuaRunner's state.
+void game_lualayer_openlibs(LuaRunner& luaRunner);

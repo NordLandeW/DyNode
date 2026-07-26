@@ -309,8 +309,6 @@ std::string lua_error_message(lua_State* lua) {
 
 }  // namespace
 
-LuaRunner* LuaRunner::instance = nullptr;
-
 void LuaRunner::LuaStateDeleter::operator()(lua_State* lua) const {
     if (lua != nullptr) {
         lua_close(lua);
@@ -322,30 +320,20 @@ LuaRunner::LuaRunner(const std::filesystem::path& luaPath)
     if (!lua) {
         throw std::runtime_error("Failed to create Lua state.");
     }
-    if (instance != nullptr) {
-        throw std::runtime_error("Another Lua coroutine is already running.");
+
+    luaL_openlibs(lua.get());
+    game_lualayer_openlibs(*this);
+
+    luaCoroutine = lua_newthread(lua.get());
+    if (luaCoroutine == nullptr) {
+        throw std::runtime_error("Failed to create Lua coroutine.");
     }
-    instance = this;
+    luaCoroutineRef = luaL_ref(lua.get(), LUA_REGISTRYINDEX);
 
-    try {
-        luaL_openlibs(lua.get());
-        game_lualayer_openlibs(lua.get());
-
-        luaCoroutine = lua_newthread(lua.get());
-        if (luaCoroutine == nullptr) {
-            throw std::runtime_error("Failed to create Lua coroutine.");
-        }
-        luaCoroutineRef = luaL_ref(lua.get(), LUA_REGISTRYINDEX);
-
-        const std::string luaPathString = luaPath.string();
-        if (luaL_loadfile(luaCoroutine, luaPathString.c_str()) != LUA_OK) {
-            throw std::runtime_error("Failed to load Lua script '" +
-                                     luaPathString +
-                                     "': " + lua_error_message(luaCoroutine));
-        }
-    } catch (...) {
-        instance = nullptr;
-        throw;
+    const std::string luaPathString = luaPath.string();
+    if (luaL_loadfile(luaCoroutine, luaPathString.c_str()) != LUA_OK) {
+        throw std::runtime_error("Failed to load Lua script '" + luaPathString +
+                                 "': " + lua_error_message(luaCoroutine));
     }
 }
 
@@ -353,16 +341,6 @@ LuaRunner::~LuaRunner() {
     if (lua && luaCoroutineRef != LUA_NOREF) {
         luaL_unref(lua.get(), LUA_REGISTRYINDEX, luaCoroutineRef);
     }
-    if (instance == this) {
-        instance = nullptr;
-    }
-}
-
-LuaRunner& LuaRunner::inst() {
-    if (instance == nullptr) {
-        throw std::runtime_error("GameMaker functions require lua_run.");
-    }
-    return *instance;
 }
 
 nlohmann::json LuaRunner::start() {
@@ -519,9 +497,6 @@ nlohmann::json LuaRunner::run() {
     }
 
     dead = true;
-    if (instance == this) {
-        instance = nullptr;
-    }
     return {
         {"state", "dead"},
         {"resultType", result_type(result)},
@@ -531,11 +506,8 @@ nlohmann::json LuaRunner::run() {
 
 nlohmann::json LuaRunner::finish_with_error(std::string error) {
     dead = true;
-    if (instance == this) {
-        instance = nullptr;
-    }
     return {
-        {"state", "dead"},
+        {"state", "error"},
         {"error", std::move(error)},
     };
 }

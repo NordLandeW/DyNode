@@ -350,11 +350,23 @@ function __test_lua() {
             );
         }
     };
+    var __lua_succeeded = function(_response) {
+        return is_struct(_response)
+            && _response[$ "state"] == "dead"
+            && !variable_struct_exists(_response, "error");
+    };
+    /// @returns {Any}
+    var __lua_result = function(_response) {
+        if(variable_struct_exists(_response, "result")) {
+            return _response[$ "result"];
+        }
+        return undefined;
+    };
 
     show_debug_message("=====TEST LUA======");
 
     try {
-        var _result = lua_run_script(
+        var _deepResponse = lua_run_script(
             "return {"
             + "number = 1.5, "
             + "text = 'ok', "
@@ -363,8 +375,10 @@ function __test_lua() {
             + "nested = {value = 'deep'}"
             + "}"
         );
+        var _result = __lua_result(_deepResponse);
         __assert_lua(
-            is_struct(_result)
+            __lua_succeeded(_deepResponse)
+            && is_struct(_result)
             && _result.number == 1.5
             && _result.text == "ok"
             && is_bool(_result.boolean)
@@ -385,22 +399,26 @@ function __test_lua() {
     }
 
     try {
-        var _undefinedResult = lua_run_script("return nil");
+        var _nilResponse = lua_run_script("return nil");
+        var _undefinedResult = __lua_result(_nilResponse);
         __assert_lua(
-            is_undefined(_undefinedResult),
+            __lua_succeeded(_nilResponse)
+            && is_undefined(_undefinedResult),
             "nil maps to undefined",
-            _undefinedResult
+            _nilResponse
         );
     } catch(e) {
         __assert_lua(false, "nil maps to undefined", string(e));
     }
 
     try {
-        var _sparseArray = lua_run_script(
+        var _sparseResponse = lua_run_script(
             "return {[1] = true, [3] = 'tail'}"
         );
+        var _sparseArray = __lua_result(_sparseResponse);
         __assert_lua(
-            is_array(_sparseArray)
+            __lua_succeeded(_sparseResponse)
+            && is_array(_sparseArray)
             && array_length(_sparseArray) == 3
             && _sparseArray[0]
             && is_undefined(_sparseArray[1])
@@ -416,19 +434,24 @@ function __test_lua() {
         );
     }
 
-    var _mixedTableFailed = false;
-    try {
-        lua_run_script("return {[1] = 'array', named = 'struct'}");
-    } catch(e) {
-        _mixedTableFailed = string_pos("arrays or structs", string(e)) > 0;
-    }
+    var _mixedResponse = lua_run_script(
+        "return {[1] = 'array', named = 'struct'}"
+    );
+    var _mixedTableFailed = is_struct(_mixedResponse)
+        && _mixedResponse[$ "state"] == "error"
+        && variable_struct_exists(_mixedResponse, "error")
+        && string_pos(
+            "arrays or structs",
+            string(_mixedResponse[$ "error"])
+        ) > 0;
     __assert_lua(
         _mixedTableFailed,
-        "mixed Lua table is rejected"
+        "mixed Lua table is rejected",
+        _mixedResponse
     );
 
     try {
-        var _deepIo = lua_run_script(
+        var _deepIoResponse = lua_run_script(
             "return dynode.gm.exec("
             + "'__test_lua_gm_deep_io', "
             + "2.25, "
@@ -439,8 +462,10 @@ function __test_lua() {
             + "{nested = {flag = false, values = {3, 4}}}"
             + ")"
         );
+        var _deepIo = __lua_result(_deepIoResponse);
         __assert_lua(
-            is_struct(_deepIo)
+            __lua_succeeded(_deepIoResponse)
+            && is_struct(_deepIo)
             && _deepIo.inputValid
             && is_array(_deepIo.output)
             && array_length(_deepIo.output) == 5
@@ -466,7 +491,7 @@ function __test_lua() {
     }
 
     try {
-        var _recursiveResult = lua_run_script(
+        var _recursiveResponse = lua_run_script(
             "local function recurse(depth, value) "
             + "    if depth == 0 then return value end "
             + "    local nextValue = dynode.gm.exec("
@@ -479,8 +504,10 @@ function __test_lua() {
             + "    {origin = 'lua', chain = {true, nil, 'tail'}}"
             + ")"
         );
+        var _recursiveResult = __lua_result(_recursiveResponse);
         __assert_lua(
-            is_struct(_recursiveResult)
+            __lua_succeeded(_recursiveResponse)
+            && is_struct(_recursiveResult)
             && _recursiveResult.depth == 1
             && _recursiveResult.fromGml
             && _recursiveResult.value.depth == 2
@@ -508,11 +535,13 @@ function __test_lua() {
     }
 
     try {
-        var _noArgsResult = lua_run_script(
+        var _noArgsResponse = lua_run_script(
             "return dynode.gm.exec('__test_lua_gm_no_args')"
         );
+        var _noArgsResult = __lua_result(_noArgsResponse);
         __assert_lua(
-            is_array(_noArgsResult)
+            __lua_succeeded(_noArgsResponse)
+            && is_array(_noArgsResult)
             && array_length(_noArgsResult) == 0,
             "dynode.gm.exec supports zero arguments",
             _noArgsResult
@@ -529,15 +558,17 @@ function __test_lua() {
     if(_editMode >= 0) {
         var _luaEditMode = max(1, _editMode);
         try {
-            var _executeResult = lua_run_script(
+            var _editModeResponse = lua_run_script(
                 "return dynode.editor.set_editmode("
                 + string(_luaEditMode)
                 + ")"
             );
+            var _executeResult = __lua_result(_editModeResponse);
             __assert_lua(
-                is_undefined(_executeResult),
+                __lua_succeeded(_editModeResponse)
+                && is_undefined(_executeResult),
                 "GM_EXECUTE coroutine returns undefined",
-                _executeResult
+                _editModeResponse
             );
         } catch(e) {
             __assert_lua(
