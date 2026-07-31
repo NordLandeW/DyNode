@@ -68,7 +68,7 @@ function InputManager() constructor {
         frozen = false;
     }
     static is_frozen = function() {
-        return frozen;
+        return frozen || debug_overlay_blocks_input();
     }
     
     last_mouse_x = 0;
@@ -389,4 +389,9 @@ function input_check_group_reset() {
 }
 function input_group_validate(input_group = global.__InputManager.inputGroup) {
     return input_group == global.__InputManager.checkGroup;
+}
+
+function debug_overlay_blocks_input() {
+    return is_keyboard_used_debug_overlay()
+        || is_mouse_over_debug_overlay();
 }

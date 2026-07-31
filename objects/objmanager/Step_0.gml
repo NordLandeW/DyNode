@@ -41,6 +41,8 @@ if(_fmoderr < 0) {
 if(keycheck_down_ctrl(vk_f11)) {
 	debugLayer = !debugLayer;
 	show_debug_overlay(debugLayer);
+
+	global.debugGizmos = !global.debugGizmos;
 }
 	
 	
