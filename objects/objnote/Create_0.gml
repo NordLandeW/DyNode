@@ -134,15 +134,18 @@ image_yscale = 1;
     _prop_hold_update = function(sync_to_array = true) {}   // Place holder.
 
     function _mouse_inbound_check(_mode = 0) {
+        var _bbox = get_bbox();
+
         switch _mode {
             case 0:
-                return mouse_inbound(bbox_left, bbox_top, bbox_right, bbox_bottom);
+                return mouse_inbound(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom);
             case 1:
-                return mouse_inbound_last_l(bbox_left, bbox_top, bbox_right, bbox_bottom);
+                return mouse_inbound_last_l(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom);
             case 2:
-                return mouse_inbound_last_double_l(bbox_left, bbox_top, bbox_right, bbox_bottom);
+                return mouse_inbound_last_double_l(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom);
         }
-        
+
+        delete _bbox;
     }
 
     function get_array_pos() {
@@ -172,7 +175,28 @@ image_yscale = 1;
         prop.noteID = noteID;
         dyc_update_note(prop, record);
         pull_prop();
-    } 
+    }
+
+    /// @returns {Any} 
+    function get_bbox() {
+        var wid = pWidth;
+        if(side == 0) {
+            return {
+                left: x - wid / 2,
+                right: x + wid / 2,
+                top: bbox_top,
+                bottom: bbox_bottom
+            }
+        }
+        else {
+            return {
+                left: bbox_left,
+                right: bbox_right,
+                top: y - wid / 2,
+                bottom: y + wid / 2
+            }
+        }
+    }
     
     /// @description Push the note's property structure and sync to backend.
     function update_prop() {
