@@ -17,7 +17,9 @@
 namespace {
 
 constexpr const char* gmNamespaceSource = R"lua(
-gm = setmetatable({ exec = dynode.gm.exec }, {
+local exec = dynode.gm.exec
+
+gm = setmetatable({ exec = exec }, {
     __index = function(_, functionName)
         return function(...)
             return exec(functionName, ...)
