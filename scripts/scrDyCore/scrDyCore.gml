@@ -666,6 +666,15 @@ function dyc_get_note_index_upperbound(time) {
     return DyCore_get_note_index_upper_bound(time);
 }
 
+/// @description Get the first note index on a side at or after an array index.
+/// @param {Real} side The note side to search for.
+/// @param {Real} index The notes array index at which to begin searching.
+/// @param {Real} [untilTime=-1] The inclusive maximum note time, or -1 for no limit.
+/// @returns {Real} The matching note index, or -1 if no note was found.
+function dyc_get_note_index_on_side_after_index(side, index, untilTime = -1) {
+    return DyCore_get_note_index_on_side_after_index(side, index, untilTime);
+}
+
 function dyc_get_open_filename(filter, filename, dir, title) {
     var result = DyCore_get_open_filename(filter, filename, dir, title);
 

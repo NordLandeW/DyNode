@@ -192,3 +192,26 @@ DYCORE_API const char* DyCore_get_note_hash(const char* noteID,
     hashStr = note.get_hash_string(includeID != 0);
     return hashStr.c_str();
 }
+
+// This function is linear time.
+DYCORE_API double DyCore_get_note_index_on_side_after_index(
+    double side, double index, double untilTime = -1) {
+    auto& noteMan = get_note_pool_manager();
+    const int noteSide = static_cast<int>(side);
+    const int beginIndex = static_cast<int>(index);
+    noteMan.array_sort_request();
+
+    if (beginIndex < 0)
+        return -1;
+
+    for (int i = beginIndex, l = noteMan.get_note_count(); i < l; i++) {
+        const auto& note = noteMan[i];
+        if (untilTime != -1 && note.time > untilTime)
+            return -1;
+        if (note.side == noteSide) {
+            return i;
+        }
+    }
+
+    return -1;
+}

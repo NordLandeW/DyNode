@@ -128,16 +128,16 @@ depth = 0;
             if(nowTime < sideLastHitTime[i]) continue;
             if(sideHinterState[i] == -1)
             {
-                for(var j=chartNotesArrayAt, l=dyc_get_note_count(); j<l; j++) {
-                    var _note = dyc_get_note_at_index(j);
-                    if(_note.time - nowTime > SIDEHINT_SEARCH_TIME) break;
-                    if(_note.side == i + 1) {
-                        if(_note.time - sideLastHitTime[i] >= SIDEHINT_AHEAD_TIME) {
-                            sideHinterState[i] = 0;
-                            sideHinterTimer[i] = 0;
-                            sideLastHitTime[i] = _note.time;
-                        }
-                        break;
+                var _noteIndex = dyc_get_note_index_on_side_after_index(
+                    i + 1,
+                    chartNotesArrayAt,
+                    nowTime + SIDEHINT_SEARCH_TIME);
+                if(_noteIndex >= 0) {
+                    var _noteTime = dyc_get_note_time_at_index(_noteIndex);
+                    if(_noteTime - sideLastHitTime[i] >= SIDEHINT_AHEAD_TIME) {
+                        sideHinterState[i] = 0;
+                        sideHinterTimer[i] = 0;
+                        sideLastHitTime[i] = _noteTime;
                     }
                 }
             }
