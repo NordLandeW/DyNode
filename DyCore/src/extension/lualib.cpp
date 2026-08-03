@@ -14,6 +14,32 @@
 #include "luaRunner.h"
 #include "version.h"
 
+namespace {
+
+constexpr const char* gmNamespaceSource = R"lua(
+gm = setmetatable({ exec = dynode.gm.exec }, {
+    __index = function(_, functionName)
+        return function(...)
+            return exec(functionName, ...)
+        end
+    end,
+})
+)lua";
+
+void open_gm_namespace(lua_State* L) {
+    if (luaL_dostring(L, gmNamespaceSource) == LUA_OK) {
+        return;
+    }
+
+    const char* message = lua_tostring(L, -1);
+    const std::string error =
+        message != nullptr ? message : "unknown Lua error";
+    lua_pop(L, 1);
+    throw std::runtime_error("Failed to register gm namespace: " + error);
+}
+
+}  // namespace
+
 void ll_gm_announcement(std::string str, std::string type, int lastTime) {
     std::transform(
         type.begin(), type.end(), type.begin(),
@@ -122,4 +148,6 @@ void game_lualayer_openlibs(LuaRunner& luaRunner) {
         .endNamespace()
 
         .endNamespace();
+
+    open_gm_namespace(L);
 }

@@ -345,6 +345,51 @@ TEST_CASE("LuaRunnerExecutesArbitraryGameMakerFunctionsWithVarargs") {
     fs::remove_all(dir, ec);
 }
 
+TEST_CASE("LuaGmNamespaceForwardsArbitraryFunctionsToExec") {
+    namespace fs = std::filesystem;
+
+    const fs::path dir = make_lua_temp_dir();
+    const fs::path scriptPath = dir / "gamemaker_namespace.lua";
+    {
+        std::ofstream script(scriptPath, std::ios::binary | std::ios::trunc);
+        REQUIRE(script.is_open());
+        script << "return gm.__test_lua_gm_namespace(\n"
+               << "    {number = 1.25},\n"
+               << "    nil,\n"
+               << "    false,\n"
+               << "    'text'\n"
+               << ")\n";
+    }
+
+    try {
+        LuaRunner runner(scriptPath);
+        const auto event = runner.start();
+
+        REQUIRE(event.at("state") == "suspended");
+        CHECK(event.at("resultType") == "event");
+        CHECK(event.at("result").at("name") == "__test_lua_gm_namespace");
+        CHECK(event.at("result").at("args") ==
+              nlohmann::json::array(
+                  {{{"number", 1.25}}, nullptr, false, "text"}));
+
+        const nlohmann::json gameMakerResult = {
+            {"forwarded", true},
+        };
+        const auto completed = runner.resume({{"result", gameMakerResult}});
+
+        CHECK(completed.at("state") == "dead");
+        CHECK(completed.at("resultType") == "struct");
+        CHECK(completed.at("result") == gameMakerResult);
+    } catch (...) {
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
 TEST_CASE("LuaRunnersKeepGameMakerExecutionStateIndependent") {
     namespace fs = std::filesystem;
 
