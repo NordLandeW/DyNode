@@ -500,11 +500,25 @@ size_t get_sprite_render_bytes(const SpriteData& sprite, glm::vec2 size) {
     throw std::runtime_error("Unsupported sprite draw type");
 }
 
+size_t renderWorkerCountOverride = 0;
+bool renderWorkspaceInitialized = false;
+
+int configured_render_worker_count() {
+    const int availableWorkerCount = std::max(1, hardware_concurrency());
+    if (renderWorkerCountOverride == 0) {
+        return availableWorkerCount;
+    }
+    return static_cast<int>(
+        std::clamp<size_t>(renderWorkerCountOverride, 1,
+                           static_cast<size_t>(availableWorkerCount)));
+}
+
 class RenderWorkspace {
    public:
     RenderWorkspace()
-        : workerCount(std::max(1, hardware_concurrency())),
+        : workerCount(configured_render_worker_count()),
           executor(static_cast<size_t>(workerCount)) {
+        renderWorkspaceInitialized = true;
     }
 
     int workerCount;
@@ -512,6 +526,7 @@ class RenderWorkspace {
     tf::Taskflow taskflow;
     std::vector<RenderSource> sources;
     std::vector<RenderSource> deferredSources;
+    std::vector<const Note*> resolvedNotes;
     std::vector<PreparedSprite> prepared;
     std::vector<RenderChunk> chunks;
     std::vector<tf::Task> prepareTasks;
@@ -524,6 +539,14 @@ RenderWorkspace& get_render_workspace() {
 }
 
 }  // namespace
+
+void set_render_worker_count_override(size_t workerCount) {
+    if (renderWorkspaceInitialized) {
+        throw std::logic_error(
+            "Render worker count must be configured before the first render");
+    }
+    renderWorkerCountOverride = workerCount;
+}
 
 // For param state:
 //   0: Render addition bg
@@ -707,6 +730,52 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         sources.push_back({&note, kind});
         add_estimated_bytes(maxBytes);
     };
+    auto resolve_notes =
+        [&](const NoteActivationManager::ActiveLists& list,
+            size_t maxBytes) -> const std::vector<const Note*>& {
+        auto& resolvedNotes = workspace.resolvedNotes;
+        resolvedNotes.resize(list.size());
+        if (maxBytes == 0) {
+            throw std::logic_error(
+                "Render item maximum byte count must be positive");
+        }
+        const size_t parallelThreshold =
+            (MULTITHREAD_RENDERING_BYTE_THRESHOLD + maxBytes - 1) / maxBytes;
+        const bool parallelResolve = workspace.workerCount > 1 &&
+                                     list.size() > 1 &&
+                                     list.size() >= parallelThreshold;
+        if (!parallelResolve) {
+            for (size_t index = 0; index < list.size(); ++index) {
+                resolvedNotes[index] = &get_note_pool_manager().get_note_unsafe(
+                    list[index].second);
+            }
+            return resolvedNotes;
+        }
+
+        auto& taskflow = workspace.taskflow;
+        auto& resolveTasks = workspace.prepareTasks;
+        taskflow.clear();
+        resolveTasks.clear();
+        const size_t resolveChunkCount = std::min(
+            list.size(), static_cast<size_t>(workspace.workerCount) * 4);
+        const size_t resolveChunkSize =
+            (list.size() + resolveChunkCount - 1) / resolveChunkCount;
+        resolveTasks.reserve(resolveChunkCount);
+        // Activation and note mutation finish before rendering. These tasks
+        // only read the stable note map and write disjoint output slots.
+        for (size_t begin = 0; begin < list.size(); begin += resolveChunkSize) {
+            const size_t end = std::min(begin + resolveChunkSize, list.size());
+            resolveTasks.push_back(taskflow.emplace([&, begin, end] {
+                for (size_t index = begin; index < end; ++index) {
+                    resolvedNotes[index] =
+                        &get_note_pool_manager().get_note_unsafe(
+                            list[index].second);
+                }
+            }));
+        }
+        workspace.executor.run(taskflow).get();
+        return resolvedNotes;
+    };
 
     if (state == 0) {
         sources.reserve(lastingHolds.size());
@@ -717,27 +786,29 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         }
     } else if (state == 1) {
         sources.reserve(activeHolds.size());
-        for (const auto& [time, noteID] : activeHolds) {
-            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            append_source(note, RenderItemKind::HOLD_BAR, holdBarMaxBytes);
+        for (const Note* note : resolve_notes(activeHolds, holdBarMaxBytes)) {
+            append_source(*note, RenderItemKind::HOLD_BAR, holdBarMaxBytes);
         }
     } else {
-        sources.reserve(activeHolds.size() + activeNotes.size());
-        for (const auto& [time, noteID] : activeHolds) {
-            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.get_note_type() != NOTE_TYPE::HOLD)
-                continue;
-            append_source(note, RenderItemKind::HOLD_EDGE, holdEdgeMaxBytes);
+        const auto& resolvedNotes = resolve_notes(activeNotes, tapMaxBytes);
+
+        // activeHolds is the ordered HOLD subset of activeNotes, so filtering
+        // here preserves the original HOLD -> NORMAL -> CHAIN draw order.
+        sources.reserve(activeNotes.size());
+        for (const Note* note : resolvedNotes) {
+            if (note->get_note_type() == NOTE_TYPE::HOLD) {
+                append_source(*note, RenderItemKind::HOLD_EDGE,
+                              holdEdgeMaxBytes);
+            }
         }
         state2HoldCount = sources.size();
 
         deferredSources.reserve(activeNotes.size());
-        for (const auto& [time, noteID] : activeNotes) {
-            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.get_note_type() == NOTE_TYPE::NORMAL) {
-                append_source(note, RenderItemKind::NORMAL, tapMaxBytes);
-            } else if (note.get_note_type() == NOTE_TYPE::CHAIN) {
-                deferredSources.push_back({&note, RenderItemKind::NORMAL});
+        for (const Note* note : resolvedNotes) {
+            if (note->get_note_type() == NOTE_TYPE::NORMAL) {
+                append_source(*note, RenderItemKind::NORMAL, tapMaxBytes);
+            } else if (note->get_note_type() == NOTE_TYPE::CHAIN) {
+                deferredSources.push_back({note, RenderItemKind::NORMAL});
                 add_estimated_bytes(chainMaxBytes);
             }
         }

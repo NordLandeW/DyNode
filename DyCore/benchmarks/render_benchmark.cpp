@@ -19,6 +19,7 @@
 #include "notePoolManager.h"
 #include "project.h"
 #include "render.h"
+#include "utils.h"
 
 namespace {
 
@@ -29,6 +30,7 @@ struct BenchmarkOptions {
     std::string scenario = "mixed";
     std::string chartPath;
     double noteSpeed = 0.0;
+    size_t workerCount = 0;
 };
 
 struct BenchmarkContext {
@@ -296,6 +298,8 @@ BenchmarkOptions parse_options(int argc, char** argv) {
             options.chartPath = require_value();
         } else if (argument == "--speed") {
             options.noteSpeed = std::stod(std::string(require_value()));
+        } else if (argument == "--workers") {
+            options.workerCount = std::stoull(std::string(require_value()));
         } else {
             throw std::invalid_argument("Unknown argument: " +
                                         std::string(argument));
@@ -320,6 +324,7 @@ int main(int argc, char** argv) {
     try {
         NotePoolCleanup cleanup;
         const BenchmarkOptions options = parse_options(argc, argv);
+        set_render_worker_count_override(options.workerCount);
         initialize_sprites();
         const BenchmarkContext context =
             options.chartPath.empty() ? initialize_synthetic_notes(options)
@@ -390,6 +395,13 @@ int main(int argc, char** argv) {
         }
 
         const auto& activation = get_note_activation_manager();
+        const size_t availableWorkerCount =
+            static_cast<size_t>(std::max(1, hardware_concurrency()));
+        const size_t configuredWorkerCount =
+            options.workerCount == 0
+                ? availableWorkerCount
+                : std::clamp(options.workerCount, size_t{1},
+                             availableWorkerCount);
         std::cout << "scenario="
                   << (options.chartPath.empty() ? options.scenario : "chart")
                   << " source_notes=" << context.sourceNoteCount
@@ -397,6 +409,7 @@ int main(int argc, char** argv) {
                   << " active_holds=" << activation.get_active_holds().size()
                   << " now_time=" << context.nowTime
                   << " note_speed=" << context.noteSpeed
+                  << " workers=" << configuredWorkerCount
                   << " iterations=" << options.iterations << '\n';
         for (const int state : {0, 1, 2}) {
             std::cout << "state" << state << ".bytes=" << outputSizes[state]

@@ -75,6 +75,10 @@ size_t get_sprite_max_bytes(const std::string& name);
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state);
 
+// Must be called before the first render. A value of zero keeps the automatic
+// hardware-concurrency setting.
+void set_render_worker_count_override(size_t workerCount);
+
 size_t get_vertex_buffer_bound();
 
 SpriteManager& get_sprite_manager();
