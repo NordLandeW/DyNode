@@ -117,10 +117,91 @@ double get_note_rotation(int side) {
     }
 }
 
+namespace {
+
+struct SpriteRenderData {
+    const SpriteData* sprite;
+    std::array<std::array<glm::vec2, 4>, 8> quadUvs{};
+};
+
+SpriteRenderData make_sprite_render_data(const SpriteData& sprite) {
+    SpriteRenderData data{.sprite = &sprite};
+    auto set_pos_uv_quad = [&](size_t index, float left, float right, float top,
+                               float bottom) {
+        data.quadUvs[index] = {sprite.pos_to_uv({left, top}),
+                               sprite.pos_to_uv({right, top}),
+                               sprite.pos_to_uv({left, bottom}),
+                               sprite.pos_to_uv({right, bottom})};
+    };
+
+    const auto& setting = sprite.drawSetting;
+    switch (setting.type) {
+        case SPRITE_DRAW_TYPE::NORMAL:
+            data.quadUvs[0] = {
+                sprite.map_uv({0.0f, 0.0f}), sprite.map_uv({1.0f, 0.0f}),
+                sprite.map_uv({0.0f, 1.0f}), sprite.map_uv({1.0f, 1.0f})};
+            break;
+        case SPRITE_DRAW_TYPE::SEG_3: {
+            const float seg0Width = setting.data[0];
+            const float seg2Width = setting.data[1];
+            const float seg1UvWidth = sprite.size.x - seg0Width - seg2Width;
+            set_pos_uv_quad(0, 0.0f, seg0Width, 0.0f, sprite.size.y);
+            set_pos_uv_quad(1, seg0Width, seg0Width + seg1UvWidth, 0.0f,
+                            sprite.size.y);
+            set_pos_uv_quad(2, sprite.size.x - seg2Width, sprite.size.x, 0.0f,
+                            sprite.size.y);
+            break;
+        }
+        case SPRITE_DRAW_TYPE::SEG_5: {
+            const float seg0Width = setting.data[0];
+            const float seg2Width = setting.data[1];
+            const float seg4Width = setting.data[2];
+            const float seg13UvWidth =
+                sprite.size.x - seg0Width - seg2Width - seg4Width;
+            const std::array<float, 5> widths = {seg0Width, seg13UvWidth / 2.0f,
+                                                 seg2Width, seg13UvWidth / 2.0f,
+                                                 seg4Width};
+            float current = 0.0f;
+            for (size_t index = 0; index < widths.size(); ++index) {
+                set_pos_uv_quad(index, current, current + widths[index], 0.0f,
+                                sprite.size.y);
+                current += widths[index];
+            }
+            break;
+        }
+        case SPRITE_DRAW_TYPE::SLICE_9: {
+            const float xCoordinates[] = {
+                0.0f, static_cast<float>(setting.data[0]),
+                sprite.size.x - setting.data[1], sprite.size.x};
+            const float yCoordinates[] = {
+                0.0f, static_cast<float>(setting.data[2]),
+                sprite.size.y - setting.data[3], sprite.size.y};
+            size_t quadIndex = 0;
+            for (int row = 0; row < 3; ++row) {
+                for (int column = 0; column < 3; ++column) {
+                    if (row == 1 && column == 1) {
+                        continue;
+                    }
+                    set_pos_uv_quad(quadIndex++, xCoordinates[column],
+                                    xCoordinates[column + 1], yCoordinates[row],
+                                    yCoordinates[row + 1]);
+                }
+            }
+            break;
+        }
+        case SPRITE_DRAW_TYPE::REPEAT_VERT:
+            break;
+    }
+    return data;
+}
+
+}  // namespace
+
 // Draw a sprite with the given position, size, and rotation
-void draw_sprite(char*& vertBuf, const SpriteData& sprite, const PIVOT pivot,
-                 glm::vec2 position, glm::vec2 size, double rotation,
-                 glm::ivec4 color) {
+void draw_sprite(char*& vertBuf, const SpriteRenderData& renderData,
+                 const PIVOT pivot, glm::vec2 position, glm::vec2 size,
+                 double rotation, glm::ivec4 color) {
+    const auto& sprite = *renderData.sprite;
     // Calculate quad range.
     glm::vec2 halfSize = size / 2.0f;
     glm::vec2 leftUp, rightDown;
@@ -180,131 +261,94 @@ void draw_sprite(char*& vertBuf, const SpriteData& sprite, const PIVOT pivot,
             break;
         }
         case SPRITE_DRAW_TYPE::NORMAL: {
-            vertex_quad_write(
-                vertBuf, rotate(leftUp), rotate(rightUp), rotate(leftDown),
-                rotate(rightDown), sprite.map_uv({0.0, 0.0}),
-                sprite.map_uv({1.0, 0.0}), sprite.map_uv({0.0, 1.0}),
-                sprite.map_uv({1.0, 1.0}), color);
+            const auto& uv = renderData.quadUvs[0];
+            vertex_quad_write(vertBuf, rotate(leftUp), rotate(rightUp),
+                              rotate(leftDown), rotate(rightDown), uv[0], uv[1],
+                              uv[2], uv[3], color);
             break;
         }
         case SPRITE_DRAW_TYPE::SEG_3: {
             const float seg0_w = setting.data[0];
             const float seg2_w = setting.data[1];
-            const float seg1_uv_w = sprite.size.x - seg0_w - seg2_w;
             const float seg1_screen_w = size.x - seg0_w - seg2_w;
 
             // Draw seg-0
+            const auto& uv0 = renderData.quadUvs[0];
             vertex_quad_write(vertBuf, rotate({leftUp.x, leftUp.y}),
                               rotate({leftUp.x + seg0_w, leftUp.y}),
                               rotate({leftDown.x, leftDown.y}),
-                              rotate({leftDown.x + seg0_w, leftDown.y}),
-                              sprite.pos_to_uv({0, 0}),
-                              sprite.pos_to_uv({seg0_w, 0}),
-                              sprite.pos_to_uv({0, sprite.size.y}),
-                              sprite.pos_to_uv({seg0_w, sprite.size.y}), color);
+                              rotate({leftDown.x + seg0_w, leftDown.y}), uv0[0],
+                              uv0[1], uv0[2], uv0[3], color);
             // Draw seg-1
+            const auto& uv1 = renderData.quadUvs[1];
             vertex_quad_write(
                 vertBuf, rotate({leftUp.x + seg0_w, leftUp.y}),
                 rotate({leftUp.x + seg0_w + seg1_screen_w, leftUp.y}),
                 rotate({leftDown.x + seg0_w, leftDown.y}),
                 rotate({leftDown.x + seg0_w + seg1_screen_w, leftDown.y}),
-                sprite.pos_to_uv({seg0_w, 0}),
-                sprite.pos_to_uv({seg0_w + seg1_uv_w, 0}),
-                sprite.pos_to_uv({seg0_w, sprite.size.y}),
-                sprite.pos_to_uv({seg0_w + seg1_uv_w, sprite.size.y}), color);
+                uv1[0], uv1[1], uv1[2], uv1[3], color);
             // Draw seg-2
-            vertex_quad_write(
-                vertBuf, rotate({rightUp.x - seg2_w, rightUp.y}),
-                rotate({rightUp.x, rightUp.y}),
-                rotate({rightDown.x - seg2_w, rightDown.y}),
-                rotate({rightDown.x, rightDown.y}),
-                sprite.pos_to_uv({sprite.size.x - seg2_w, 0}),
-                sprite.pos_to_uv({sprite.size.x, 0}),
-                sprite.pos_to_uv({sprite.size.x - seg2_w, sprite.size.y}),
-                sprite.pos_to_uv({sprite.size.x, sprite.size.y}), color);
+            const auto& uv2 = renderData.quadUvs[2];
+            vertex_quad_write(vertBuf, rotate({rightUp.x - seg2_w, rightUp.y}),
+                              rotate({rightUp.x, rightUp.y}),
+                              rotate({rightDown.x - seg2_w, rightDown.y}),
+                              rotate({rightDown.x, rightDown.y}), uv2[0],
+                              uv2[1], uv2[2], uv2[3], color);
             break;
         }
         case SPRITE_DRAW_TYPE::SEG_5: {
             const float seg0_w = setting.data[0];
             const float seg2_w = setting.data[1];
             const float seg4_w = setting.data[2];
-            const float seg13_uv_w = sprite.size.x - seg0_w - seg2_w - seg4_w;
             const float seg13_screen_w = size.x - seg0_w - seg2_w - seg4_w;
-            const float seg1_uv_w = seg13_uv_w / 2.0f;
-            const float seg3_uv_w = seg13_uv_w / 2.0f;
             const float seg1_screen_w = seg13_screen_w / 2.0f;
             const float seg3_screen_w = seg13_screen_w / 2.0f;
 
             float current_x = leftUp.x;
-            float current_uv_x = 0;
 
             // Draw seg-0
-            vertex_quad_write(
-                vertBuf, rotate({current_x, leftUp.y}),
-                rotate({current_x + seg0_w, leftUp.y}),
-                rotate({current_x, leftDown.y}),
-                rotate({current_x + seg0_w, leftDown.y}),
-                sprite.pos_to_uv({current_uv_x, 0}),
-                sprite.pos_to_uv({current_uv_x + seg0_w, 0}),
-                sprite.pos_to_uv({current_uv_x, sprite.size.y}),
-                sprite.pos_to_uv({current_uv_x + seg0_w, sprite.size.y}),
-                color);
+            const auto& uv0 = renderData.quadUvs[0];
+            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
+                              rotate({current_x + seg0_w, leftUp.y}),
+                              rotate({current_x, leftDown.y}),
+                              rotate({current_x + seg0_w, leftDown.y}), uv0[0],
+                              uv0[1], uv0[2], uv0[3], color);
             current_x += seg0_w;
-            current_uv_x += seg0_w;
 
             // Draw seg-1
-            vertex_quad_write(
-                vertBuf, rotate({current_x, leftUp.y}),
-                rotate({current_x + seg1_screen_w, leftUp.y}),
-                rotate({current_x, leftDown.y}),
-                rotate({current_x + seg1_screen_w, leftDown.y}),
-                sprite.pos_to_uv({current_uv_x, 0}),
-                sprite.pos_to_uv({current_uv_x + seg1_uv_w, 0}),
-                sprite.pos_to_uv({current_uv_x, sprite.size.y}),
-                sprite.pos_to_uv({current_uv_x + seg1_uv_w, sprite.size.y}),
-                color);
+            const auto& uv1 = renderData.quadUvs[1];
+            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
+                              rotate({current_x + seg1_screen_w, leftUp.y}),
+                              rotate({current_x, leftDown.y}),
+                              rotate({current_x + seg1_screen_w, leftDown.y}),
+                              uv1[0], uv1[1], uv1[2], uv1[3], color);
             current_x += seg1_screen_w;
-            current_uv_x += seg1_uv_w;
 
             // Draw seg-2
-            vertex_quad_write(
-                vertBuf, rotate({current_x, leftUp.y}),
-                rotate({current_x + seg2_w, leftUp.y}),
-                rotate({current_x, leftDown.y}),
-                rotate({current_x + seg2_w, leftDown.y}),
-                sprite.pos_to_uv({current_uv_x, 0}),
-                sprite.pos_to_uv({current_uv_x + seg2_w, 0}),
-                sprite.pos_to_uv({current_uv_x, sprite.size.y}),
-                sprite.pos_to_uv({current_uv_x + seg2_w, sprite.size.y}),
-                color);
+            const auto& uv2 = renderData.quadUvs[2];
+            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
+                              rotate({current_x + seg2_w, leftUp.y}),
+                              rotate({current_x, leftDown.y}),
+                              rotate({current_x + seg2_w, leftDown.y}), uv2[0],
+                              uv2[1], uv2[2], uv2[3], color);
             current_x += seg2_w;
-            current_uv_x += seg2_w;
 
             // Draw seg-3
-            vertex_quad_write(
-                vertBuf, rotate({current_x, leftUp.y}),
-                rotate({current_x + seg3_screen_w, leftUp.y}),
-                rotate({current_x, leftDown.y}),
-                rotate({current_x + seg3_screen_w, leftDown.y}),
-                sprite.pos_to_uv({current_uv_x, 0}),
-                sprite.pos_to_uv({current_uv_x + seg3_uv_w, 0}),
-                sprite.pos_to_uv({current_uv_x, sprite.size.y}),
-                sprite.pos_to_uv({current_uv_x + seg3_uv_w, sprite.size.y}),
-                color);
+            const auto& uv3 = renderData.quadUvs[3];
+            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
+                              rotate({current_x + seg3_screen_w, leftUp.y}),
+                              rotate({current_x, leftDown.y}),
+                              rotate({current_x + seg3_screen_w, leftDown.y}),
+                              uv3[0], uv3[1], uv3[2], uv3[3], color);
             current_x += seg3_screen_w;
-            current_uv_x += seg3_uv_w;
 
             // Draw seg-4
-            vertex_quad_write(
-                vertBuf, rotate({current_x, leftUp.y}),
-                rotate({current_x + seg4_w, leftUp.y}),
-                rotate({current_x, leftDown.y}),
-                rotate({current_x + seg4_w, leftDown.y}),
-                sprite.pos_to_uv({current_uv_x, 0}),
-                sprite.pos_to_uv({current_uv_x + seg4_w, 0}),
-                sprite.pos_to_uv({current_uv_x, sprite.size.y}),
-                sprite.pos_to_uv({current_uv_x + seg4_w, sprite.size.y}),
-                color);
+            const auto& uv4 = renderData.quadUvs[4];
+            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
+                              rotate({current_x + seg4_w, leftUp.y}),
+                              rotate({current_x, leftDown.y}),
+                              rotate({current_x + seg4_w, leftDown.y}), uv4[0],
+                              uv4[1], uv4[2], uv4[3], color);
             break;
         }
         case SPRITE_DRAW_TYPE::SLICE_9: {
@@ -318,27 +362,17 @@ void draw_sprite(char*& vertBuf, const SpriteData& sprite, const PIVOT pivot,
             const float y_coords[] = {leftUp.y, leftUp.y + top,
                                       leftDown.y - bottom, leftDown.y};
 
-            const float uv_x_coords[] = {0, left, sprite.size.x - right,
-                                         sprite.size.x};
-            const float uv_y_coords[] = {0, top, sprite.size.y - bottom,
-                                         sprite.size.y};
-
+            size_t quadIndex = 0;
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j)
                     if (!(i == 1 && j == 1)) {
+                        const auto& uv = renderData.quadUvs[quadIndex++];
                         vertex_quad_write(
                             vertBuf, rotate({x_coords[j], y_coords[i]}),
                             rotate({x_coords[j + 1], y_coords[i]}),
                             rotate({x_coords[j], y_coords[i + 1]}),
-                            rotate({x_coords[j + 1], y_coords[i + 1]}),
-                            sprite.pos_to_uv({uv_x_coords[j], uv_y_coords[i]}),
-                            sprite.pos_to_uv(
-                                {uv_x_coords[j + 1], uv_y_coords[i]}),
-                            sprite.pos_to_uv(
-                                {uv_x_coords[j], uv_y_coords[i + 1]}),
-                            sprite.pos_to_uv(
-                                {uv_x_coords[j + 1], uv_y_coords[i + 1]}),
-                            color);
+                            rotate({x_coords[j + 1], y_coords[i + 1]}), uv[0],
+                            uv[1], uv[2], uv[3], color);
                     }
             }
             break;
@@ -428,7 +462,7 @@ struct RenderSource {
 };
 
 struct PreparedSprite {
-    const SpriteData* sprite = nullptr;
+    const SpriteRenderData* renderData = nullptr;
     PIVOT pivot = PIVOT::CENTER;
     glm::vec2 position{};
     glm::vec2 size{};
@@ -442,6 +476,8 @@ struct alignas(64) RenderChunk {
     size_t end = 0;
     size_t byteOffset = 0;
     size_t byteSize = 0;
+    size_t itemByteSize = 0;
+    bool requiresPreparation = true;
 };
 
 size_t get_sprite_render_bytes(const SpriteData& sprite, glm::vec2 size) {
@@ -510,6 +546,11 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     const auto& holdEdgeSprite = spriteMan.get_sprite("sprHoldEdge");
     const auto& holdBarSprite = spriteMan.get_sprite("sprHold");
     const auto& holdBgSprite = spriteMan.get_sprite("sprHoldGrey");
+    const auto tapRenderData = make_sprite_render_data(tapNoteSprite);
+    const auto chainRenderData = make_sprite_render_data(chainNoteSprite);
+    const auto holdEdgeRenderData = make_sprite_render_data(holdEdgeSprite);
+    const auto holdBarRenderData = make_sprite_render_data(holdBarSprite);
+    const auto holdBgRenderData = make_sprite_render_data(holdBgSprite);
 
     auto prepare_normal = [&](const Note& note) {
         PreparedSprite prepared;
@@ -519,7 +560,8 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         prepared.pivot = PIVOT::CENTER;
         const SpriteData& spriteData =
             note.type == 0 ? tapNoteSprite : chainNoteSprite;
-        prepared.sprite = &spriteData;
+        prepared.renderData =
+            note.type == 0 ? &tapRenderData : &chainRenderData;
         prepared.size = spriteData.size;
         prepared.size.x = get_note_pixel_width(spriteData, note);
         prepared.color = {255, 255, 255, static_cast<int>(alpha * 255)};
@@ -595,23 +637,23 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                             prepared.size.y * (note.side == 1 ? 1 : -1);
                     }
                     if (kind == RenderItemKind::HOLD_BAR) {
-                        prepared.sprite = &barSprite;
+                        prepared.renderData = &holdBarRenderData;
                         prepared.color = {255, 255, 255,
                                           static_cast<int>(alpha * 255)};
                     } else {
-                        prepared.sprite = &holdBgSprite;
+                        prepared.renderData = &holdBgRenderData;
                         prepared.color = {
                             0, 255, 0,
                             static_cast<int>(alpha * 255 * HOLD_BG_LIGHTNESS)};
                     }
                     prepared.byteSize = get_sprite_render_bytes(
-                        *prepared.sprite, prepared.size);
+                        *prepared.renderData->sprite, prepared.size);
                 }
                 break;
             }
             case RenderItemKind::HOLD_EDGE: {
                 if (edgeLength > 0) {
-                    prepared.sprite = &edgeSprite;
+                    prepared.renderData = &holdEdgeRenderData;
                     prepared.size = {get_note_pixel_width(edgeSprite, note),
                                      edgeLength};
                     prepared.pivot = PIVOT::BOTTOM_CENTER;
@@ -624,7 +666,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                     prepared.color = {255, 255, 255,
                                       static_cast<int>(alpha * 255)};
                     prepared.byteSize = get_sprite_render_bytes(
-                        *prepared.sprite, prepared.size);
+                        *prepared.renderData->sprite, prepared.size);
                 }
                 break;
             }
@@ -645,8 +687,14 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     const size_t holdEdgeMaxBytes = get_sprite_max_bytes(holdEdgeSprite);
     const size_t holdBarMaxBytes = get_sprite_max_bytes(holdBarSprite);
     const size_t holdBgMaxBytes = get_sprite_max_bytes(holdBgSprite);
+    const size_t tapRenderBytes =
+        get_sprite_render_bytes(tapNoteSprite, tapNoteSprite.size);
+    const size_t chainRenderBytes =
+        get_sprite_render_bytes(chainNoteSprite, chainNoteSprite.size);
 
     size_t estimatedBytes = 0;
+    size_t state2HoldCount = 0;
+    size_t state2NormalCount = 0;
     auto add_estimated_bytes = [&](size_t maxBytes) {
         if (estimatedBytes > std::numeric_limits<size_t>::max() - maxBytes) {
             estimatedBytes = std::numeric_limits<size_t>::max();
@@ -681,6 +729,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                 continue;
             append_source(note, RenderItemKind::HOLD_EDGE, holdEdgeMaxBytes);
         }
+        state2HoldCount = sources.size();
 
         deferredSources.reserve(activeNotes.size());
         for (const auto& [time, noteID] : activeNotes) {
@@ -692,6 +741,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                 add_estimated_bytes(chainMaxBytes);
             }
         }
+        state2NormalCount = sources.size() - state2HoldCount;
         sources.insert(sources.end(), deferredSources.begin(),
                        deferredSources.end());
     }
@@ -704,11 +754,12 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     };
 
     auto draw_prepared = [&](char*& out, const PreparedSprite& prepared) {
-        if (prepared.sprite == nullptr)
+        if (prepared.renderData == nullptr)
             return;
         char* const begin = out;
-        draw_sprite(out, *prepared.sprite, prepared.pivot, prepared.position,
-                    prepared.size, prepared.rotation, prepared.color);
+        draw_sprite(out, *prepared.renderData, prepared.pivot,
+                    prepared.position, prepared.size, prepared.rotation,
+                    prepared.color);
         if (static_cast<size_t>(out - begin) != prepared.byteSize) {
             throw std::runtime_error(
                 "Prepared sprite byte count does not match rendered output");
@@ -728,17 +779,55 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     auto& prepared = workspace.prepared;
     auto& chunks = workspace.chunks;
-    prepared.resize(sources.size());
+    const bool useState2DirectPath = state != 0 && state != 1;
+    prepared.resize(useState2DirectPath ? state2HoldCount : sources.size());
 
     const size_t desiredChunkCount =
         static_cast<size_t>(workspace.workerCount) * 4;
     const size_t chunkCount = std::min(sources.size(), desiredChunkCount);
     const size_t chunkSize = (sources.size() + chunkCount - 1) / chunkCount;
+    const size_t state2ChainCount =
+        sources.size() - state2HoldCount - state2NormalCount;
+    const size_t holdEdgeRenderBytes =
+        get_sprite_render_bytes(holdEdgeSprite, holdEdgeSprite.size);
+    const size_t state2RenderBytes = state2HoldCount * holdEdgeRenderBytes +
+                                     state2NormalCount * tapRenderBytes +
+                                     state2ChainCount * chainRenderBytes;
+    const size_t targetChunkBytes =
+        useState2DirectPath
+            ? std::max<size_t>(
+                  1, (state2RenderBytes + chunkCount - 1) / chunkCount)
+            : 0;
     chunks.clear();
-    chunks.reserve(chunkCount);
-    for (size_t begin = 0; begin < sources.size(); begin += chunkSize) {
-        chunks.push_back({.begin = begin,
-                          .end = std::min(begin + chunkSize, sources.size())});
+    chunks.reserve(chunkCount + 2);
+    auto append_chunks = [&](size_t groupBegin, size_t groupEnd,
+                             bool requiresPreparation, size_t itemByteSize = 0,
+                             size_t partitionItemBytes = 0) {
+        const size_t groupChunkSize =
+            partitionItemBytes == 0
+                ? chunkSize
+                : std::max<size_t>(1, targetChunkBytes / partitionItemBytes);
+        for (size_t begin = groupBegin; begin < groupEnd;
+             begin += groupChunkSize) {
+            const size_t end = std::min(begin + groupChunkSize, groupEnd);
+            chunks.push_back({.begin = begin,
+                              .end = end,
+                              .byteSize = requiresPreparation
+                                              ? 0
+                                              : (end - begin) * itemByteSize,
+                              .itemByteSize = itemByteSize,
+                              .requiresPreparation = requiresPreparation});
+        }
+    };
+    if (useState2DirectPath) {
+        const size_t normalEnd = state2HoldCount + state2NormalCount;
+        append_chunks(0, state2HoldCount, true, 0, holdEdgeRenderBytes);
+        append_chunks(state2HoldCount, normalEnd, false, tapRenderBytes,
+                      tapRenderBytes);
+        append_chunks(normalEnd, sources.size(), false, chainRenderBytes,
+                      chainRenderBytes);
+    } else {
+        append_chunks(0, sources.size(), true);
     }
 
     size_t renderedBytes = 0;
@@ -752,6 +841,9 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     renderTasks.reserve(chunks.size());
 
     for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
+        if (!chunks[chunkIndex].requiresPreparation) {
+            continue;
+        }
         prepareTasks.push_back(taskflow.emplace([&, chunkIndex] {
             auto& chunk = chunks[chunkIndex];
             size_t byteSize = 0;
@@ -772,14 +864,26 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         renderedBytes = byteOffset;
     });
 
+    for (auto& prepareTask : prepareTasks) {
+        prepareTask.precede(prefixTask);
+    }
+
     for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
-        prepareTasks[chunkIndex].precede(prefixTask);
         renderTasks.push_back(taskflow.emplace([&, chunkIndex] {
             const auto& chunk = chunks[chunkIndex];
             char* out = vertexBuffer + chunk.byteOffset;
             char* const expectedEnd = out + chunk.byteSize;
             for (size_t index = chunk.begin; index < chunk.end; ++index) {
-                draw_prepared(out, prepared[index]);
+                if (chunk.requiresPreparation) {
+                    draw_prepared(out, prepared[index]);
+                } else {
+                    const auto item = prepare_source(sources[index]);
+                    if (item.byteSize != chunk.itemByteSize) {
+                        throw std::runtime_error(
+                            "Direct render item byte count is not constant");
+                    }
+                    draw_prepared(out, item);
+                }
             }
             if (out != expectedEnd) {
                 throw std::runtime_error(
