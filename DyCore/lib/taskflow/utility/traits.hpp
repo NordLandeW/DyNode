@@ -1,13 +1,8 @@
 #pragma once
 
-#if __has_include(<version>)
 #include <version>
-#endif
-
-#if __has_include(<latch>)
+#include <concepts>
 #include <latch>
-#endif
-
 #include <type_traits>
 #include <iterator>
 #include <iostream>
@@ -143,112 +138,41 @@ template <typename T, typename... Ts>
 constexpr auto get_index_v = get_index<T, Ts...>::value;
 
 // ----------------------------------------------------------------------------
-// unwrap_reference
-// ----------------------------------------------------------------------------
-
-template <class T>
-struct unwrap_reference { using type = T; };
-
-template <class U>
-struct unwrap_reference<std::reference_wrapper<U>> { using type = U&; };
-
-template<class T>
-using unwrap_reference_t = typename unwrap_reference<T>::type;
-
-template< class T >
-struct unwrap_ref_decay : unwrap_reference<std::decay_t<T>> {};
-
-template<class T>
-using unwrap_ref_decay_t = typename unwrap_ref_decay<T>::type;
-
-// ----------------------------------------------------------------------------
-// stateful iterators
-// ----------------------------------------------------------------------------
-
-// STL-styled iterator
-template <typename B, typename E>
-struct stateful_iterator {
-
-  using TB = std::decay_t<unwrap_ref_decay_t<B>>;
-  using TE = std::decay_t<unwrap_ref_decay_t<E>>;
-
-  static_assert(std::is_same_v<TB, TE>, "decayed iterator types must match");
-
-  using type = TB;
-};
-
-template <typename B, typename E>
-using stateful_iterator_t = typename stateful_iterator<B, E>::type;
-
-// raw integral index
-template <typename B, typename E, typename S>
-struct stateful_index {
-
-  using TB = std::decay_t<unwrap_ref_decay_t<B>>;
-  using TE = std::decay_t<unwrap_ref_decay_t<E>>;
-  using TS = std::decay_t<unwrap_ref_decay_t<S>>;
-
-  static_assert(
-    std::is_integral_v<TB>, "decayed beg index must be an integral type"
-  );
-
-  static_assert(
-    std::is_integral_v<TE>, "decayed end index must be an integral type"
-  );
-
-  static_assert(
-    std::is_integral_v<TS>, "decayed step must be an integral type"
-  );
-
-  static_assert(
-    std::is_same_v<TB, TE> && std::is_same_v<TE, TS>,
-    "decayed index and step types must match"
-  );
-
-  using type = TB;
-};
-
-template <typename B, typename E, typename S>
-using stateful_index_t = typename stateful_index<B, E, S>::type;
-
-// ----------------------------------------------------------------------------
 // visit a tuple with a functor at runtime
 // ----------------------------------------------------------------------------
 
-template <typename Func, typename Tuple, size_t N = 0>
-void visit_tuple(Func func, Tuple& tup, size_t idx) {
-  if (N == idx) {
-    std::invoke(func, std::get<N>(tup));
-    return;
-  }
-  if constexpr (N + 1 < std::tuple_size_v<Tuple>) {
-    return visit_tuple<Func, Tuple, N + 1>(func, tup, idx);
-  }
+template <typename Func, typename Tuple>
+void visit_tuple(Func&& func, Tuple& tup, size_t idx) {
+  [&]<size_t... Is>(std::index_sequence<Is...>) {
+    ([&]{ if(Is == idx) { std::invoke(func, std::get<Is>(tup)); } }(), ...);
+  }(std::make_index_sequence<std::tuple_size_v<Tuple>>{});
 }
 
 // ----------------------------------------------------------------------------
 // unroll loop
 // ----------------------------------------------------------------------------
 
-// Template unrolled looping construct.
-template<auto beg, auto end, auto step, bool valid = (beg < end)>
-struct Unroll {
-  template<typename F>
-  static void eval(F f) {
-    f(beg);
-    Unroll<beg + step, end, step>::eval(f);
-  }
-};
-
-template<auto beg, auto end, auto step>
-struct Unroll<beg, end, step, false> {
-  template<typename F>
-  static void eval(F) { }
-};
-
 template<auto beg, auto end, auto step, typename F>
-void unroll(F f) {
-  Unroll<beg, end, step>::eval(f);
+constexpr void unroll(F&& f) {
+  [&]<auto... Is>(std::index_sequence<Is...>) {
+    (f(beg + Is * step), ...);
+  }(std::make_index_sequence<(end - beg + step - 1) / step>{});
+}
+
+// stops at the first true; returns true if any f(i) was true   (||-fold)
+template<auto beg, auto end, auto step, typename F>
+constexpr auto unroll_until(F&& f) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+    return (f(beg + Is * step) || ...);
+  }(std::make_index_sequence<(end - beg + step - 1) / step>{});
+}
+
+// stops at the first false; returns true if every f(i) was true (&&-fold)
+template<auto beg, auto end, auto step, typename F>
+constexpr auto unroll_while(F&& f) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+    return (f(beg + Is * step) && ...);
+  }(std::make_index_sequence<(end - beg + step - 1) / step>{});
 }
 
 // ----------------------------------------------------------------------------
@@ -282,37 +206,111 @@ template <typename T> struct is_std_compare<std::less<T>> : std::true_type { };
 template <typename T> struct is_std_compare<std::greater<T>> : std::true_type { };
 
 template <typename T>
-constexpr static bool is_std_compare_v = is_std_compare<T>::value;
+constexpr bool is_std_compare_v = is_std_compare<T>::value;
 
 // ----------------------------------------------------------------------------
 // check if all types are the same
 // ----------------------------------------------------------------------------
 
-template<bool...> 
-struct bool_pack;
-
-template<bool... bs>
-using all_true = std::is_same<bool_pack<bs..., true>, bool_pack<true, bs...>>;
-
 template <typename T, typename... Ts>
-using all_same = all_true<std::is_same_v<T, Ts>...>;
+concept all_same = (std::same_as<T, Ts> && ...);
 
+// backward-compatible variable template
 template <typename T, typename... Ts>
-constexpr bool all_same_v = all_same<T, Ts...>::value;
+constexpr bool all_same_v = all_same<T, Ts...>;
 
 // ----------------------------------------------------------------------------
 // Iterator
 // ----------------------------------------------------------------------------
 
+// use std::iter_value_t instead of the custom deref_t
 template <typename I>
-using deref_t = std::decay_t<decltype(*std::declval<I>())>;
+using deref_t = std::iter_value_t<I>;
 
+// use std::random_access_iterator concept instead of the custom variable
 template <typename I>
-constexpr auto is_random_access_iterator = std::is_same_v<
-  typename std::iterator_traits<I>::iterator_category, std::random_access_iterator_tag
->;
+constexpr bool is_random_access_iterator = std::random_access_iterator<I>;
+
+// ----------------------------------------------------------------------------
+// Callable
+// ----------------------------------------------------------------------------
+
+struct AnyArg {
+  // Keep it simple: just one template conversion that can bind to anything.
+  // We use a pointer trick to avoid needing a static dummy object.
+  template <typename T>
+  operator T&() const;
+    
+  template <typename T>
+  operator T&&() const;
+};
+
+// Helper to provide N instances of AnyArg to a call check
+template <typename F, typename Indices>
+struct is_nary_invocable;
+
+template <typename F, std::size_t... I>
+struct is_nary_invocable<F, std::index_sequence<I...>> {
+  static constexpr bool value = requires(F&& f) {
+    std::forward<F>(f)( ((void)I, std::declval<AnyArg>())... );
+  };
+};
+
+/**
+@brief concept to check if a type is callable with `N` arguments of any types
+
+@tparam F The function-like type to be tested.
+@tparam N The required number of arguments (arity).
+
+This concept validates whether a function-like object (lambda, functor, or function pointer)
+can be invoked with a specific number of arguments. It uses an internal @ref AnyArg
+helper to simulate arguments of any type, making it useful for generic API validation.
+
+@code{.cppp}
+auto f = [](int x, int y) { return x + y; };
+static_assert(NaryOperatorLike<decltype(f), 2>); // Passes
+static_assert(!NaryOperatorLike<decltype(f), 1>); // Fails: requires 2 args
+
+auto g = [](auto... args) { return sizeof...(args); };
+static_assert(NaryOperatorLike<decltype(g), 0>); // Passes
+static_assert(NaryOperatorLike<decltype(g), 5>); // Passes
+static_assert(NaryOperatorLike<decltype(g), 100>); // Passes
+
+// When testing member functions via std::invoke, the first argument
+// must be the object instance (or pointer).
+struct Math { void add(int a) {} };
+
+// Passes because std::invoke(ptr_to_mem, instance, arg) is 2 arguments total
+static_assert(NaryOperatorLike<decltype(&Math::add), 2>);
+@endcode
+*/
+template <typename F, size_t N>
+concept NaryOperatorLike = is_nary_invocable<F, std::make_index_sequence<N>>::value;
+
+/**
+@brief concept to check if a type is callable with one argument of any type
+*/
+template <typename F>
+concept UnaryOperatorLike = NaryOperatorLike<F, 1>;
+
+/**
+@brief concept to check if a type is callable with two arguments of any type
+*/
+template <typename F>
+concept BinaryOperatorLike = NaryOperatorLike<F, 2>;
+
+/**
+@brief concept to check if a type is callable with three arguments of any type
+*/
+template <typename F>
+concept TernaryOperatorLike = NaryOperatorLike<F, 3>;
 
 }  // end of namespace tf. ----------------------------------------------------
+
+
+
+
+
 
 
 

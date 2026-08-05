@@ -594,8 +594,8 @@ auto make_sort_task(B b, E e, C cmp) {
   
   return [b, e, cmp] (Runtime& rt) mutable {
 
-    using B_t = std::decay_t<unwrap_ref_decay_t<B>>;
-    using E_t = std::decay_t<unwrap_ref_decay_t<E>>;
+    using B_t = std::decay_t<std::unwrap_ref_decay_t<B>>;
+    using E_t = std::decay_t<std::unwrap_ref_decay_t<E>>;
 
     // fetch the iterator values
     B_t beg = b;
@@ -614,13 +614,13 @@ auto make_sort_task(B b, E e, C cmp) {
       return;
     }
 
-    PreemptionGuard preemption_guard(rt);
+    //PreemptionGuard preemption_guard(rt);
 
     //detail::parallel_3wqsort(rt, beg, end-1, cmp);
     detail::parallel_pdqsort<B_t, C,
       is_std_compare_v<std::decay_t<C>> &&
       std::is_arithmetic_v<typename std::iterator_traits<B_t>::value_type>
-    >(rt, beg, end, cmp, log2(size_t(end - beg)));
+    >(rt, beg, end, cmp, static_cast<int>(log2(size_t(end - beg))));
   };
 }
   
@@ -647,4 +647,3 @@ Task FlowBuilder::sort(B beg, E end) {
 }
 
 }  // namespace tf ------------------------------------------------------------
-

@@ -155,6 +155,34 @@ class AsyncTask {
 
     */
     bool is_done() const; 
+    
+    /**
+    @brief retrieves the exception pointer of this task
+   
+    This method retrieves the exception pointer of the task, if any, that was silently caught by the executor. 
+    For example, the code below retrieves the exception pointer of a dependent-async task that does not have 
+    a shared state to propagate its exception. 
+
+    @code{.cpp}
+    tf::AsyncTask task = executor.silent_dependent_async([&](){
+      throw std::runtime_error("oops"); 
+    });
+    executor.wait_for_all();
+    
+    // propagate the exception to the outer caller
+    assert(task.exception_ptr() != nullptr);
+    std::rethrow_exception(task.exception_ptr());
+    @endcode
+
+    */
+    std::exception_ptr exception_ptr() const;
+    
+    /**
+    @brief queries if the task has an exception pointer
+
+    The method checks whether the task holds a pointer to a silently caught exception.
+    */
+    bool has_exception_ptr() const;
 
   private:
 
@@ -174,18 +202,22 @@ inline AsyncTask::AsyncTask(Node* ptr) : _node{ptr} {
 // Function: _incref
 inline void AsyncTask::_incref() {
   if(_node) {
-    std::get_if<Node::DependentAsync>(&(_node->_handle))->use_count.fetch_add(
-      1, std::memory_order_relaxed
-    );
+    // increment the refcount packed in the lower 24 bits of _estate —
+    // no std::get_if needed since we know this node is DependentAsync
+    _node->_estate.fetch_add(ESTATE::REFCOUNT_ONE, std::memory_order_relaxed);
   }
 }
 
 // Function: _decref
 inline void AsyncTask::_decref() {
-  if(_node && std::get_if<Node::DependentAsync>(&(_node->_handle))->use_count.fetch_sub(
-      1, std::memory_order_acq_rel
-    ) == 1) {
-    recycle(_node);
+  if(_node) {
+    // decrement the refcount packed in the lower 24 bits of _estate.
+    // mask out the state bits before comparing so we only check the refcount.
+    // if it reaches zero, no owners remain and we recycle the node.
+    if((_node->_estate.fetch_sub(ESTATE::REFCOUNT_ONE, std::memory_order_acq_rel)
+        & ESTATE::REFCOUNT_MASK) == ESTATE::REFCOUNT_ONE) {
+      recycle(_node);
+    }
   }
 }
 
@@ -222,6 +254,16 @@ inline AsyncTask& AsyncTask::operator = (AsyncTask&& rhs) {
   return *this;
 }
 
+// Function: exception
+inline std::exception_ptr AsyncTask::exception_ptr() const {
+  return _node ? _node->_exception_ptr : nullptr;
+}
+
+// Function: has_exception
+inline bool AsyncTask::has_exception_ptr() const {
+  return _node ? (_node->_exception_ptr != nullptr) : false;
+}
+
 // Function: empty
 inline bool AsyncTask::empty() const {
   return _node == nullptr;
@@ -240,21 +282,15 @@ inline size_t AsyncTask::hash_value() const {
 
 // Function: use_count
 inline size_t AsyncTask::use_count() const {
-  return _node == nullptr ? size_t{0} : 
-  std::get_if<Node::DependentAsync>(&(_node->_handle))->use_count.load(
-    std::memory_order_relaxed
-  );
+  return _node == nullptr ? size_t{0} :
+    static_cast<size_t>(
+      _node->_estate.load(std::memory_order_relaxed) & ESTATE::REFCOUNT_MASK
+    );
 }
 
 // Function: is_done
 inline bool AsyncTask::is_done() const {
-  return _node == nullptr ? true:
-  std::get_if<Node::DependentAsync>(&(_node->_handle))->state.load(
-    std::memory_order_acquire
-  ) == ASTATE::FINISHED;
+  return _node == nullptr ? true: (_node->_estate.load(std::memory_order_acquire) & ESTATE::FINISHED);
 }
 
 }  // end of namespace tf ----------------------------------------------------
-
-
-
