@@ -15,6 +15,9 @@
 #include "luaRunner.h"
 #include "luaext.h"
 #include "lualib.h"
+#include "utils.h"
+
+extern std::filesystem::path programPath;
 
 extern "C" double DyCore_has_async_event();
 extern "C" const char* DyCore_get_async_event();
@@ -31,6 +34,25 @@ std::filesystem::path make_lua_temp_dir() {
                ("dynode_lua_script_test_" + std::to_string(ticks));
     std::filesystem::create_directories(dir);
     return dir;
+}
+
+std::filesystem::path make_lua_unicode_temp_dir() {
+    const auto ticks =
+        std::chrono::steady_clock::now().time_since_epoch().count();
+    auto dir =
+        std::filesystem::temp_directory_path() /
+        std::filesystem::path(std::u8string{u8"dynode_lua_\u6d4b\u8bd5"}) /
+        ("script_" + std::to_string(ticks));
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+std::string path_to_utf8_for_test(const std::filesystem::path& path) {
+#ifdef _WIN32
+    return wstringToUtf8(path.wstring());
+#else
+    return path.string();
+#endif
 }
 
 }  // namespace
@@ -168,6 +190,58 @@ TEST_CASE("LuaGmDirectoryPropertiesReflectProcessDirectories") {
 
         fs::current_path(originalWorkingDirectory);
     } catch (...) {
+        std::error_code ec;
+        fs::current_path(originalWorkingDirectory, ec);
+        fs::remove_all(dir, ec);
+        throw;
+    }
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST_CASE("LuaApiLoadsUnicodePathAndReturnsUtf8Directories") {
+    namespace fs = std::filesystem;
+
+    const fs::path originalWorkingDirectory = fs::current_path();
+    const fs::path originalProgramPath = programPath;
+    const fs::path dir = make_lua_unicode_temp_dir();
+    const fs::path scriptPath =
+        dir / fs::path(std::u8string{u8"lua_\u811a\u672c.lua"});
+
+    try {
+        fs::current_path(dir);
+        programPath = dir;
+
+        {
+            std::ofstream script(scriptPath,
+                                 std::ios::binary | std::ios::trunc);
+            REQUIRE(script.is_open());
+            script << "return {\n"
+                   << "    marker = 'unicode',\n"
+                   << "    program = dynode.ProgramDirectory,\n"
+                   << "    working = dynode.WorkingDirectory\n"
+                   << "}\n";
+        }
+
+        const std::string utf8ScriptPath = path_to_utf8_for_test(scriptPath);
+        DyCore_lua_cancel();
+        const auto result =
+            nlohmann::json::parse(DyCore_lua_start(utf8ScriptPath.c_str()));
+
+        REQUIRE(result.at("state") == "dead");
+        CHECK(result.at("result").at("marker") == "unicode");
+        CHECK(result.at("result").at("program") ==
+              path_to_utf8_for_test(fs::absolute(dir)));
+        CHECK(result.at("result").at("working") ==
+              path_to_utf8_for_test(fs::current_path()));
+
+        DyCore_lua_cancel();
+        programPath = originalProgramPath;
+        fs::current_path(originalWorkingDirectory);
+    } catch (...) {
+        DyCore_lua_cancel();
+        programPath = originalProgramPath;
         std::error_code ec;
         fs::current_path(originalWorkingDirectory, ec);
         fs::remove_all(dir, ec);

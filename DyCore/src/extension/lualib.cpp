@@ -12,9 +12,18 @@
 #include "editor.h"
 #include "gm.h"
 #include "luaRunner.h"
+#include "utils.h"
 #include "version.h"
 
 namespace {
+
+std::string path_to_utf8(const std::filesystem::path& path) {
+#ifdef _WIN32
+    return wstringToUtf8(path.wstring());
+#else
+    return path.string();
+#endif
+}
 
 constexpr const char* gmNamespaceSource = R"lua(
 local exec = dynode.gm.exec
@@ -87,11 +96,11 @@ std::string ll_gm_prop_get_program_directory() {
     if (programDirectory.empty()) {
         return {};
     }
-    return std::filesystem::absolute(programDirectory).string();
+    return path_to_utf8(std::filesystem::absolute(programDirectory));
 }
 
 std::string ll_gm_prop_get_working_directory() {
-    return std::filesystem::current_path().string();
+    return path_to_utf8(std::filesystem::current_path());
 }
 
 std::string ll_prop_get_game_version() {

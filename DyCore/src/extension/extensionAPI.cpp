@@ -3,6 +3,7 @@
 
 #include "api.h"
 #include "extension.h"
+#include "utils.h"
 
 namespace {
 
@@ -22,7 +23,7 @@ DYCORE_API const char* DyCore_lua_start(const char* luaPath) {
             return store_lua_result(
                 lua_error_result("luaPath cannot be empty."));
         }
-        return store_lua_result(run_lua_script(luaPath));
+        return store_lua_result(run_lua_script(convert_char_to_path(luaPath)));
     } catch (const std::exception& e) {
         return store_lua_result(lua_error_result(e.what()));
     } catch (...) {

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <iterator>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -9,6 +11,7 @@
 #include <utility>
 
 #include "lualib.h"
+#include "utils.h"
 
 namespace {
 
@@ -307,6 +310,47 @@ std::string lua_error_message(lua_State* lua) {
     return result;
 }
 
+std::string path_to_utf8(const std::filesystem::path& path) {
+#ifdef _WIN32
+    return wstringToUtf8(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+std::string read_lua_source(const std::filesystem::path& path,
+                            const std::string& displayPath) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open Lua script '" + displayPath +
+                                 "'.");
+    }
+
+    std::string source((std::istreambuf_iterator<char>(file)),
+                       std::istreambuf_iterator<char>());
+    if (file.bad()) {
+        throw std::runtime_error("Failed to read Lua script '" + displayPath +
+                                 "'.");
+    }
+
+    // Match luaL_loadfile's handling of UTF-8 BOMs and Unix shebang lines.
+    if (source.size() >= 3 && static_cast<unsigned char>(source[0]) == 0xEF &&
+        static_cast<unsigned char>(source[1]) == 0xBB &&
+        static_cast<unsigned char>(source[2]) == 0xBF) {
+        source.erase(0, 3);
+    }
+    if (!source.empty() && source.front() == '#') {
+        const size_t newline = source.find('\n');
+        if (newline == std::string::npos) {
+            source = "\n";
+        } else {
+            source.replace(0, newline + 1, "\n");
+        }
+    }
+
+    return source;
+}
+
 }  // namespace
 
 void LuaRunner::LuaStateDeleter::operator()(lua_State* lua) const {
@@ -330,8 +374,11 @@ LuaRunner::LuaRunner(const std::filesystem::path& luaPath)
     }
     luaCoroutineRef = luaL_ref(lua.get(), LUA_REGISTRYINDEX);
 
-    const std::string luaPathString = luaPath.string();
-    if (luaL_loadfile(luaCoroutine, luaPathString.c_str()) != LUA_OK) {
+    const std::string luaPathString = path_to_utf8(luaPath);
+    const std::string luaSource = read_lua_source(luaPath, luaPathString);
+    const std::string chunkName = "@" + luaPathString;
+    if (luaL_loadbufferx(luaCoroutine, luaSource.data(), luaSource.size(),
+                         chunkName.c_str(), nullptr) != LUA_OK) {
         throw std::runtime_error("Failed to load Lua script '" + luaPathString +
                                  "': " + lua_error_message(luaCoroutine));
     }
