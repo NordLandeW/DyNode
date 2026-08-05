@@ -1,12 +1,13 @@
 #include "render.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <format>
-#include <memory_resource>
+#include <limits>
 #include <stdexcept>
 #include <string>
-#include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
+#include <vector>
 
 #include "activation.h"
 #include "layout.h"
@@ -417,6 +418,77 @@ size_t get_sprite_max_bytes(const std::string& name) {
     return get_sprite_max_bytes(get_sprite_manager().get_sprite(name));
 }
 
+namespace {
+
+enum class RenderItemKind { NORMAL, HOLD_BACKGROUND, HOLD_BAR, HOLD_EDGE };
+
+struct RenderSource {
+    const Note* note;
+    RenderItemKind kind;
+};
+
+struct PreparedSprite {
+    const SpriteData* sprite = nullptr;
+    PIVOT pivot = PIVOT::CENTER;
+    glm::vec2 position{};
+    glm::vec2 size{};
+    double rotation = 0.0;
+    glm::ivec4 color{};
+    size_t byteSize = 0;
+};
+
+struct alignas(64) RenderChunk {
+    size_t begin = 0;
+    size_t end = 0;
+    size_t byteOffset = 0;
+    size_t byteSize = 0;
+};
+
+size_t get_sprite_render_bytes(const SpriteData& sprite, glm::vec2 size) {
+    switch (sprite.drawSetting.type) {
+        case SPRITE_DRAW_TYPE::REPEAT_VERT:
+            if (size.y <= 0.0f)
+                return 0;
+            return static_cast<size_t>(std::ceil(size.y / sprite.size.y)) *
+                   BYTES_PER_QUAD;
+        case SPRITE_DRAW_TYPE::SLICE_9:
+            // draw_sprite intentionally skips the transparent center quad.
+            return 8 * BYTES_PER_QUAD;
+        case SPRITE_DRAW_TYPE::SEG_5:
+            return 5 * BYTES_PER_QUAD;
+        case SPRITE_DRAW_TYPE::SEG_3:
+            return 3 * BYTES_PER_QUAD;
+        case SPRITE_DRAW_TYPE::NORMAL:
+            return BYTES_PER_QUAD;
+    }
+    throw std::runtime_error("Unsupported sprite draw type");
+}
+
+class RenderWorkspace {
+   public:
+    RenderWorkspace()
+        : workerCount(std::max(1, hardware_concurrency())),
+          executor(static_cast<size_t>(workerCount)) {
+    }
+
+    int workerCount;
+    tf::Executor executor;
+    tf::Taskflow taskflow;
+    std::vector<RenderSource> sources;
+    std::vector<RenderSource> deferredSources;
+    std::vector<PreparedSprite> prepared;
+    std::vector<RenderChunk> chunks;
+    std::vector<tf::Task> prepareTasks;
+    std::vector<tf::Task> renderTasks;
+};
+
+RenderWorkspace& get_render_workspace() {
+    static RenderWorkspace workspace;
+    return workspace;
+}
+
+}  // namespace
+
 // For param state:
 //   0: Render addition bg
 //   1: Render hold bg
@@ -424,8 +496,6 @@ size_t get_sprite_max_bytes(const std::string& name) {
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state) {
     PROFILE_SCOPE(std::format("Render Active Notes (State {})", state));
-    const bool detailedProfiling = false;
-    char* ptr = vertexBuffer;
 
     // Get active notes list.
     const auto& actMan = get_note_activation_manager();
@@ -441,36 +511,27 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     const auto& holdBarSprite = spriteMan.get_sprite("sprHold");
     const auto& holdBgSprite = spriteMan.get_sprite("sprHoldGrey");
 
-    auto render_normal = [&](char*& vertBuf, const Note& note) {
-        glm::vec2 pos = get_note_pos(note, nowTime, noteSpeed);
-        double alpha = get_note_alpha(note.side, pos);
-        double rot = get_note_rotation(note.side);
-        PIVOT pivot = PIVOT::CENTER;
+    auto prepare_normal = [&](const Note& note) {
+        PreparedSprite prepared;
+        prepared.position = get_note_pos(note, nowTime, noteSpeed);
+        const double alpha = get_note_alpha(note.side, prepared.position);
+        prepared.rotation = get_note_rotation(note.side);
+        prepared.pivot = PIVOT::CENTER;
         const SpriteData& spriteData =
             note.type == 0 ? tapNoteSprite : chainNoteSprite;
-        glm::vec2 size = spriteData.size;
-        size.x = get_note_pixel_width(spriteData, note);
-
-        draw_sprite(vertBuf, spriteData, pivot, pos, size, rot,
-                    {255, 255, 255, static_cast<int>(alpha * 255)});
+        prepared.sprite = &spriteData;
+        prepared.size = spriteData.size;
+        prepared.size.x = get_note_pixel_width(spriteData, note);
+        prepared.color = {255, 255, 255, static_cast<int>(alpha * 255)};
+        prepared.byteSize = get_sprite_render_bytes(spriteData, prepared.size);
+        return prepared;
     };
 
-    // Render hold notes.
-    // renderType:
-    //   0: render addition bg
-    //   1: render bg
-    //   2: render edge
-    auto render_hold = [&](char*& vertBuf, const Note& note, int renderType) {
-        static auto in_between = [](double value, double limit1,
-                                    double limit2) {
-            if (limit1 > limit2)
-                std::swap(limit1, limit2);
-            return value >= limit1 && value <= limit2;
-        };
-
-        glm::vec2 position = get_note_pos(note, nowTime, noteSpeed);
-        const double alpha = get_note_alpha(note.side, position);
-        const double rotation = get_note_rotation(note.side);
+    auto prepare_hold = [&](const Note& note, RenderItemKind kind) {
+        PreparedSprite prepared;
+        prepared.position = get_note_pos(note, nowTime, noteSpeed);
+        const double alpha = get_note_alpha(note.side, prepared.position);
+        prepared.rotation = get_note_rotation(note.side);
         const auto& edgeSprite = holdEdgeSprite;
         const auto& barSprite = holdBarSprite;
         const double spriteTileHeight = barSprite.size.y;
@@ -478,7 +539,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         double edgeLength =
             get_note_pixel_height(edgeSprite, note, nowTime, noteSpeed);
         if (edgeLength < edgeSprite.size.y && note.time < nowTime)
-            return;
+            return prepared;
 
         edgeLength = std::max(edgeLength, (double)edgeSprite.size.y);
         double barLength =
@@ -507,206 +568,229 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         edgeLength = std::min(edgeLength, screenDim + 3 * spriteTileHeight);
 
         if (note.side == 0) {
-            position.y = std::min(
-                position.y, float(BASE_RES_H - JUDGE_LINE_BELOW_FROM_BOTTOM));
+            prepared.position.y =
+                std::min(prepared.position.y,
+                         float(BASE_RES_H - JUDGE_LINE_BELOW_FROM_BOTTOM));
         } else if (note.side == 1) {
-            position.x = std::max(position.x, float(JUDGE_LINE_SIDE_FROM_EDGE));
+            prepared.position.x =
+                std::max(prepared.position.x, float(JUDGE_LINE_SIDE_FROM_EDGE));
         } else {
-            position.x = std::min(
-                position.x, float(BASE_RES_W - JUDGE_LINE_SIDE_FROM_EDGE));
+            prepared.position.x =
+                std::min(prepared.position.x,
+                         float(BASE_RES_W - JUDGE_LINE_SIDE_FROM_EDGE));
         }
 
-        switch (renderType) {
-            case 0:
-            case 1: {
+        switch (kind) {
+            case RenderItemKind::HOLD_BACKGROUND:
+            case RenderItemKind::HOLD_BAR: {
                 if (barLength > 0) {
-                    glm::vec2 size = {get_note_pixel_width(edgeSprite, note) -
-                                          edgeSprite.paddingLR,
-                                      barLength};
-                    PIVOT pivot = PIVOT::TOP_CENTER;
+                    prepared.size = {get_note_pixel_width(edgeSprite, note) -
+                                         edgeSprite.paddingLR,
+                                     barLength};
+                    prepared.pivot = PIVOT::TOP_CENTER;
                     if (note.side == 0) {
-                        position.y -= size.y;
+                        prepared.position.y -= prepared.size.y;
                     } else {
-                        position.x += size.y * (note.side == 1 ? 1 : -1);
+                        prepared.position.x +=
+                            prepared.size.y * (note.side == 1 ? 1 : -1);
                     }
-                    if (renderType == 1) {
-                        draw_sprite(
-                            vertBuf, barSprite, pivot, position, size, rotation,
-                            {255, 255, 255, static_cast<int>(alpha * 255)});
+                    if (kind == RenderItemKind::HOLD_BAR) {
+                        prepared.sprite = &barSprite;
+                        prepared.color = {255, 255, 255,
+                                          static_cast<int>(alpha * 255)};
                     } else {
-                        const auto& bgSprite = holdBgSprite;
-                        draw_sprite(vertBuf, bgSprite, pivot, position, size,
-                                    rotation,
-                                    {0, 255, 0,
-                                     static_cast<int>(alpha * 255 *
-                                                      HOLD_BG_LIGHTNESS)});
+                        prepared.sprite = &holdBgSprite;
+                        prepared.color = {
+                            0, 255, 0,
+                            static_cast<int>(alpha * 255 * HOLD_BG_LIGHTNESS)};
                     }
+                    prepared.byteSize = get_sprite_render_bytes(
+                        *prepared.sprite, prepared.size);
                 }
                 break;
             }
-            case 2: {
+            case RenderItemKind::HOLD_EDGE: {
                 if (edgeLength > 0) {
-                    glm::vec2 size = {get_note_pixel_width(edgeSprite, note),
-                                      edgeLength};
-                    PIVOT pivot = PIVOT::BOTTOM_CENTER;
+                    prepared.sprite = &edgeSprite;
+                    prepared.size = {get_note_pixel_width(edgeSprite, note),
+                                     edgeLength};
+                    prepared.pivot = PIVOT::BOTTOM_CENTER;
                     if (note.side == 0) {
-                        position.y += edgeSprite.paddingBottom;
+                        prepared.position.y += edgeSprite.paddingBottom;
                     } else {
-                        position.x += edgeSprite.paddingBottom *
-                                      (note.side == 1 ? -1 : 1);
+                        prepared.position.x += edgeSprite.paddingBottom *
+                                               (note.side == 1 ? -1 : 1);
                     }
-                    draw_sprite(vertBuf, edgeSprite, pivot, position, size,
-                                rotation,
-                                {255, 255, 255, static_cast<int>(alpha * 255)});
+                    prepared.color = {255, 255, 255,
+                                      static_cast<int>(alpha * 255)};
+                    prepared.byteSize = get_sprite_render_bytes(
+                        *prepared.sprite, prepared.size);
                 }
                 break;
             }
             default:
                 break;
         }
+        return prepared;
+    };
+
+    auto& workspace = get_render_workspace();
+    auto& sources = workspace.sources;
+    auto& deferredSources = workspace.deferredSources;
+    sources.clear();
+    deferredSources.clear();
+
+    const size_t tapMaxBytes = get_sprite_max_bytes(tapNoteSprite);
+    const size_t chainMaxBytes = get_sprite_max_bytes(chainNoteSprite);
+    const size_t holdEdgeMaxBytes = get_sprite_max_bytes(holdEdgeSprite);
+    const size_t holdBarMaxBytes = get_sprite_max_bytes(holdBarSprite);
+    const size_t holdBgMaxBytes = get_sprite_max_bytes(holdBgSprite);
+
+    size_t estimatedBytes = 0;
+    auto add_estimated_bytes = [&](size_t maxBytes) {
+        if (estimatedBytes > std::numeric_limits<size_t>::max() - maxBytes) {
+            estimatedBytes = std::numeric_limits<size_t>::max();
+        } else {
+            estimatedBytes += maxBytes;
+        }
+    };
+    auto append_source = [&](const Note& note, RenderItemKind kind,
+                             size_t maxBytes) {
+        sources.push_back({&note, kind});
+        add_estimated_bytes(maxBytes);
     };
 
     if (state == 0) {
-        // Render additional background
+        sources.reserve(lastingHolds.size());
         for (const auto& [time, noteID] : lastingHolds) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            render_hold(ptr, note, 0);
+            append_source(note, RenderItemKind::HOLD_BACKGROUND,
+                          holdBgMaxBytes);
         }
-        return ptr - vertexBuffer;
-    }
-
-    if (state == 1) {
-        // Render hold bg.
+    } else if (state == 1) {
+        sources.reserve(activeHolds.size());
         for (const auto& [time, noteID] : activeHolds) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-
-            render_hold(ptr, note, 1);
+            append_source(note, RenderItemKind::HOLD_BAR, holdBarMaxBytes);
         }
-        return ptr - vertexBuffer;
-    }
-
-    int concurrency = hardware_concurrency();
-
-    static std::array<std::byte, 128 * 1024 * 1024> baseBuffer;
-    static std::pmr::monotonic_buffer_resource monoBuffer{
-        baseBuffer.data(), baseBuffer.size(), std::pmr::new_delete_resource()};
-    monoBuffer.release();
-
-    struct Task {
-        char* buffer;
-        int l, r;
-        char* ptr;
-    };
-
-    if (concurrency > 1 &&
-        activeNotes.size() > MULTITHREAD_RENDERING_THRESHOLD) {
-        static tf::Executor executor;
-
-        auto render_pass = [&](const NoteActivationManager::ActiveLists&
-                                   activeList,
-                               int type) {
-            PROFILE_SCOPE_CONDITIONAL("RenderPass#" + std::to_string(type),
-                                      detailedProfiling);
-            tf::Taskflow taskflow;
-            std::vector<Task> tasks;
-            {
-                PROFILE_SCOPE_CONDITIONAL(
-                    "RenderPassTaskGeneration#" + std::to_string(type),
-                    detailedProfiling);
-                int blockSize = std::ceil(
-                    static_cast<double>(activeList.size()) / concurrency);
-                for (int i = 0; i * blockSize < activeList.size(); i++) {
-                    int l = i * blockSize;
-                    int r = std::min((i + 1) * blockSize - 1,
-                                     static_cast<int>(activeList.size() - 1));
-
-                    if (l > r)
-                        continue;
-
-                    size_t bytes_per_item = 2040;
-                    if (type == 0)
-                        bytes_per_item = get_sprite_max_bytes(tapNoteSprite);
-                    else if (type == 1)
-                        bytes_per_item = get_sprite_max_bytes(chainNoteSprite);
-                    else if (type == 2)
-                        bytes_per_item = get_sprite_max_bytes(holdEdgeSprite);
-
-                    size_t bytes = 1ll * (r - l + 1) * bytes_per_item;
-                    char* alloc_buf = static_cast<char*>(
-                        monoBuffer.allocate(bytes, alignof(char)));
-                    tasks.push_back(Task{alloc_buf, l, r, alloc_buf});
-                }
-
-                taskflow.for_each(tasks.begin(), tasks.end(), [&](Task& task) {
-                    for (int i = task.l; i <= task.r; i++) {
-                        const auto& [time, noteID] = activeList[i];
-                        const auto& note =
-                            get_note_pool_manager().get_note_unsafe(noteID);
-                        if (note.type != type)
-                            continue;
-                        switch (note.get_note_type()) {
-                            case NOTE_TYPE::NORMAL:
-                            case NOTE_TYPE::CHAIN:
-                                render_normal(task.ptr, note);
-                                break;
-                            case NOTE_TYPE::HOLD:
-                                render_hold(task.ptr, note, 2);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                });
-            }
-            {
-                PROFILE_SCOPE_CONDITIONAL(
-                    "RenderPassTaskExecution#" + std::to_string(type),
-                    detailedProfiling);
-                executor.run(taskflow).wait();
-            }
-            {
-                PROFILE_SCOPE_CONDITIONAL(
-                    "RenderPassTaskBufferCopy#" + std::to_string(type),
-                    detailedProfiling);
-                for (auto& task : tasks) {
-                    memcpy(ptr, task.buffer, task.ptr - (char*)task.buffer);
-                    ptr += task.ptr - (char*)task.buffer;
-                }
-            }
-        };
-        render_pass(activeHolds, 2);
-        render_pass(activeNotes, 0);
-        render_pass(activeNotes, 1);
     } else {
-        // Render hold edges.
+        sources.reserve(activeHolds.size() + activeNotes.size());
         for (const auto& [time, noteID] : activeHolds) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
             if (note.get_note_type() != NOTE_TYPE::HOLD)
                 continue;
-
-            render_hold(ptr, note, 2);
+            append_source(note, RenderItemKind::HOLD_EDGE, holdEdgeMaxBytes);
         }
 
-        // Render normal notes.
+        deferredSources.reserve(activeNotes.size());
         for (const auto& [time, noteID] : activeNotes) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.get_note_type() != NOTE_TYPE::NORMAL)
-                continue;
-
-            render_normal(ptr, note);
+            if (note.get_note_type() == NOTE_TYPE::NORMAL) {
+                append_source(note, RenderItemKind::NORMAL, tapMaxBytes);
+            } else if (note.get_note_type() == NOTE_TYPE::CHAIN) {
+                deferredSources.push_back({&note, RenderItemKind::NORMAL});
+                add_estimated_bytes(chainMaxBytes);
+            }
         }
-
-        // Render chain notes.
-        for (const auto& [time, noteID] : activeNotes) {
-            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
-            if (note.get_note_type() != NOTE_TYPE::CHAIN)
-                continue;
-
-            render_normal(ptr, note);
-        }
+        sources.insert(sources.end(), deferredSources.begin(),
+                       deferredSources.end());
     }
 
-    return ptr - vertexBuffer;
+    auto prepare_source = [&](const RenderSource& source) {
+        if (source.kind == RenderItemKind::NORMAL) {
+            return prepare_normal(*source.note);
+        }
+        return prepare_hold(*source.note, source.kind);
+    };
+
+    auto draw_prepared = [&](char*& out, const PreparedSprite& prepared) {
+        if (prepared.sprite == nullptr)
+            return;
+        char* const begin = out;
+        draw_sprite(out, *prepared.sprite, prepared.pivot, prepared.position,
+                    prepared.size, prepared.rotation, prepared.color);
+        if (static_cast<size_t>(out - begin) != prepared.byteSize) {
+            throw std::runtime_error(
+                "Prepared sprite byte count does not match rendered output");
+        }
+    };
+
+    const bool useParallelRendering =
+        workspace.workerCount > 1 && sources.size() > 1 &&
+        estimatedBytes >= MULTITHREAD_RENDERING_BYTE_THRESHOLD;
+    if (!useParallelRendering) {
+        char* out = vertexBuffer;
+        for (const auto& source : sources) {
+            draw_prepared(out, prepare_source(source));
+        }
+        return static_cast<size_t>(out - vertexBuffer);
+    }
+
+    auto& prepared = workspace.prepared;
+    auto& chunks = workspace.chunks;
+    prepared.resize(sources.size());
+
+    const size_t desiredChunkCount =
+        static_cast<size_t>(workspace.workerCount) * 4;
+    const size_t chunkCount = std::min(sources.size(), desiredChunkCount);
+    const size_t chunkSize = (sources.size() + chunkCount - 1) / chunkCount;
+    chunks.clear();
+    chunks.reserve(chunkCount);
+    for (size_t begin = 0; begin < sources.size(); begin += chunkSize) {
+        chunks.push_back({.begin = begin,
+                          .end = std::min(begin + chunkSize, sources.size())});
+    }
+
+    size_t renderedBytes = 0;
+    auto& taskflow = workspace.taskflow;
+    auto& prepareTasks = workspace.prepareTasks;
+    auto& renderTasks = workspace.renderTasks;
+    taskflow.clear();
+    prepareTasks.clear();
+    renderTasks.clear();
+    prepareTasks.reserve(chunks.size());
+    renderTasks.reserve(chunks.size());
+
+    for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
+        prepareTasks.push_back(taskflow.emplace([&, chunkIndex] {
+            auto& chunk = chunks[chunkIndex];
+            size_t byteSize = 0;
+            for (size_t index = chunk.begin; index < chunk.end; ++index) {
+                prepared[index] = prepare_source(sources[index]);
+                byteSize += prepared[index].byteSize;
+            }
+            chunk.byteSize = byteSize;
+        }));
+    }
+
+    auto prefixTask = taskflow.emplace([&] {
+        size_t byteOffset = 0;
+        for (auto& chunk : chunks) {
+            chunk.byteOffset = byteOffset;
+            byteOffset += chunk.byteSize;
+        }
+        renderedBytes = byteOffset;
+    });
+
+    for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
+        prepareTasks[chunkIndex].precede(prefixTask);
+        renderTasks.push_back(taskflow.emplace([&, chunkIndex] {
+            const auto& chunk = chunks[chunkIndex];
+            char* out = vertexBuffer + chunk.byteOffset;
+            char* const expectedEnd = out + chunk.byteSize;
+            for (size_t index = chunk.begin; index < chunk.end; ++index) {
+                draw_prepared(out, prepared[index]);
+            }
+            if (out != expectedEnd) {
+                throw std::runtime_error(
+                    "Render chunk byte count does not match prefix sum");
+            }
+        }));
+        prefixTask.precede(renderTasks.back());
+    }
+
+    workspace.executor.run(taskflow).get();
+    return renderedBytes;
 }
 
 size_t get_vertex_buffer_bound() {

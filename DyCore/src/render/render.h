@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
 
 inline constexpr double HOLD_BG_LIGHTNESS = 0.3;
-inline constexpr int MULTITHREAD_RENDERING_THRESHOLD = 10000;
+inline constexpr size_t MULTITHREAD_RENDERING_BYTE_THRESHOLD = 2 * 1024 * 1024;
 
 // NORMAL: A single, non-segmented sprite
 //   data: none
