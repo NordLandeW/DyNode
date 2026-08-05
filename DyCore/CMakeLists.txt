@@ -254,3 +254,24 @@ add_custom_target(run_tests
 doctest_discover_tests(DyCore_tests
     TEST_PREFIX "DyCore."
 )
+
+option(DYCORE_BUILD_BENCHMARKS "Build DyCore benchmark executables" OFF)
+
+if(DYCORE_BUILD_BENCHMARKS)
+    add_executable(DyCore_render_benchmark
+        $<TARGET_OBJECTS:DyCore_objs>
+        benchmarks/render_benchmark.cpp
+    )
+
+    dycore_apply_common_target_settings(DyCore_render_benchmark)
+
+    add_custom_command(TARGET DyCore_render_benchmark POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SENTRY_DIR}/bin/sentry.dll"
+            "$<TARGET_FILE_DIR:DyCore_render_benchmark>/sentry.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SENTRY_DIR}/bin/crashpad_handler.exe"
+            "$<TARGET_FILE_DIR:DyCore_render_benchmark>/crashpad_handler.exe"
+        COMMENT "Copying Sentry runtime files for DyCore_render_benchmark"
+    )
+endif()
