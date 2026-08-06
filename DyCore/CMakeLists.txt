@@ -229,9 +229,11 @@ file(GLOB DYCORE_TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
 add_executable(DyCore_tests
     $<TARGET_OBJECTS:DyCore_objs>
     ${DYCORE_TEST_SOURCES}
+    benchmarks/render_benchmark_options.cpp
 )
 
 dycore_apply_common_target_settings(DyCore_tests)
+target_include_directories(DyCore_tests PRIVATE benchmarks)
 target_link_libraries(DyCore_tests PRIVATE doctest::doctest)
 
 add_custom_command(TARGET DyCore_tests POST_BUILD
@@ -261,9 +263,11 @@ if(DYCORE_BUILD_BENCHMARKS)
     add_executable(DyCore_render_benchmark
         $<TARGET_OBJECTS:DyCore_objs>
         benchmarks/render_benchmark.cpp
+        benchmarks/render_benchmark_options.cpp
     )
 
     dycore_apply_common_target_settings(DyCore_render_benchmark)
+    target_include_directories(DyCore_render_benchmark PRIVATE benchmarks)
 
     add_custom_command(TARGET DyCore_render_benchmark POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

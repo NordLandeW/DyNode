@@ -19,19 +19,13 @@
 #include "notePoolManager.h"
 #include "project.h"
 #include "render.h"
+#include "render_benchmark_options.h"
 #include "utils.h"
 
 namespace {
 
-struct BenchmarkOptions {
-    size_t noteCount = 20000;
-    size_t iterations = 100;
-    size_t warmupIterations = 10;
-    std::string scenario = "mixed";
-    std::string chartPath;
-    double noteSpeed = 0.0;
-    size_t workerCount = 0;
-};
+using render_benchmark::BenchmarkOptions;
+using render_benchmark::parse_options;
 
 struct BenchmarkContext {
     double nowTime = 100.0;
@@ -271,51 +265,6 @@ BenchmarkContext initialize_chart_notes(const BenchmarkOptions& options) {
               << " lasting_holds=" << activation.get_lasting_holds().size()
               << std::endl;
     return context;
-}
-
-BenchmarkOptions parse_options(int argc, char** argv) {
-    BenchmarkOptions options;
-    for (int index = 1; index < argc; ++index) {
-        const std::string_view argument = argv[index];
-        const auto require_value = [&]() -> std::string_view {
-            if (++index >= argc) {
-                throw std::invalid_argument(std::string(argument) +
-                                            " requires a value");
-            }
-            return argv[index];
-        };
-
-        if (argument == "--notes") {
-            options.noteCount = std::stoull(std::string(require_value()));
-        } else if (argument == "--iterations") {
-            options.iterations = std::stoull(std::string(require_value()));
-        } else if (argument == "--warmup") {
-            options.warmupIterations =
-                std::stoull(std::string(require_value()));
-        } else if (argument == "--scenario") {
-            options.scenario = require_value();
-        } else if (argument == "--chart") {
-            options.chartPath = require_value();
-        } else if (argument == "--speed") {
-            options.noteSpeed = std::stod(std::string(require_value()));
-        } else if (argument == "--workers") {
-            options.workerCount = std::stoull(std::string(require_value()));
-        } else {
-            throw std::invalid_argument("Unknown argument: " +
-                                        std::string(argument));
-        }
-    }
-
-    if (options.noteCount == 0 || options.iterations == 0) {
-        throw std::invalid_argument("notes and iterations must be positive");
-    }
-    if (options.chartPath.empty() && options.scenario != "normal" &&
-        options.scenario != "holds" && options.scenario != "mixed" &&
-        options.scenario != "clustered") {
-        throw std::invalid_argument(
-            "scenario must be normal, holds, mixed, or clustered");
-    }
-    return options;
 }
 
 }  // namespace
