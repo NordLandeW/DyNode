@@ -357,7 +357,15 @@ bool VideoDecoder::process_sample_for_output(
         return false;
     }
 
-    const size_t expectedSize = m_width * m_height * 4;
+    size_t expectedSize = 0;
+    if (!video_detail::try_calculate_frame_size(m_width, m_height,
+                                                expectedSize)) {
+        pSample->Release();
+        print_debug_message(
+            "VideoDecoder::decode_loop frame dimensions overflow buffer size.");
+        return false;
+    }
+
     SyncFrame syncFrame;
     const bool copied = isSyncMode ? make_sync_frame(pSample, timestamp,
                                                      syncFrame, expectedSize)

@@ -5,10 +5,37 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <deque>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+namespace video_detail {
+
+inline bool try_calculate_frame_size(UINT width, UINT height,
+                                     size_t& frameSize) {
+    constexpr size_t kBytesPerPixel = 4;
+    constexpr size_t kSizeMax = (std::numeric_limits<size_t>::max)();
+
+    const size_t widthSize = static_cast<size_t>(width);
+    const size_t heightSize = static_cast<size_t>(height);
+
+    if (widthSize != 0 && heightSize > kSizeMax / widthSize) {
+        return false;
+    }
+
+    const size_t pixelCount = widthSize * heightSize;
+    if (pixelCount > kSizeMax / kBytesPerPixel) {
+        return false;
+    }
+
+    frameSize = pixelCount * kBytesPerPixel;
+    return true;
+}
+
+}  // namespace video_detail
 
 struct IMFSourceReader;
 struct IMFSample;
