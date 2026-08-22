@@ -386,7 +386,13 @@ function note_build_attach(_type, _side, _width, _pos=0, _time=0, _lasttime = -1
 
 /// @returns {Id.Instance.objNote} Note instance.
 function editor_get_note_attaching_center() {
-	return objEditor.editorNoteAttaching[objEditor.editorNoteAttachingCenter];
+	try {
+		var result = objEditor.editorNoteAttaching[objEditor.editorNoteAttachingCenter];
+		return result;
+	} catch (e) {
+		show_debug_message("editor_get_note_attaching_center failed. Details: " + e);
+		return undefined;
+	}
 }
 
 /// @description Target at all selected notes, duplicate them to the next divided beat.

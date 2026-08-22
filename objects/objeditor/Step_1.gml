@@ -299,7 +299,7 @@ editorSelectMultiple = editorSelectCount > 1;
 
     // Sync or Destroy attached instance
     if(editorNoteAttaching != -1) {
-        if(!instance_exists(editorNoteAttaching[0])) {
+        if(array_length(editorNoteAttaching) == 0 || !instance_exists(editorNoteAttaching[0])) {
         	if(singlePaste) {
         		editor_set_editmode(editorModeBeforeCopy);
             }
@@ -323,7 +323,7 @@ editorSelectMultiple = editorSelectCount > 1;
             }
             else {
                 var i=0, l=array_length(editorNoteAttaching);
-                var _orig_side = editor_get_note_attaching_center().side;
+                var _orig_side = l > 0 ? editor_get_note_attaching_center().side : 0;
                 var _side_delta = editorSide - _orig_side;
                 for(; i<l; i++) {
                     var _side = editorNoteAttaching[i].side;
