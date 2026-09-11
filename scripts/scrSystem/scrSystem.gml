@@ -1031,6 +1031,7 @@ function theme_next() {
 
 /// @returns {Any} 
 function theme_get() {
+	global.themeAt %= global.themeCount;
 	return global.themes[global.themeAt];
 }
 
