@@ -6,6 +6,7 @@
 extern "C" double DyCore_insert_timing_point(const char* timingPointObject);
 extern "C" const char* DyCore_get_timing_point_at(double time);
 extern "C" double DyCore_timing_points_reset();
+extern "C" double DyCore_timing_points_change(double, const char*);
 
 namespace {
 
@@ -42,10 +43,18 @@ TEST_CASE("TimingPointAtTime") {
     check_timing_point_at(300.0, 300.0, 750.0, 3);
     check_timing_point_at(350.0, 300.0, 750.0, 3);
 
+    REQUIRE(DyCore_timing_points_change(
+                100, R"({"time":400,"beatLength":500,"meter":4})") == 0);
+    check_timing_point_at(350, 300, 750, 3);
+    check_timing_point_at(450, 400, 500, 4);
+    REQUIRE(DyCore_timing_points_change(
+                400, R"({"time":100,"beatLength":500,"meter":4})") == 0);
+    check_timing_point_at(150, 100, 500, 4);
+    check_timing_point_at(450, 300, 750, 3);
+
     DyCore_timing_points_reset();
 }
 
-extern "C" double DyCore_timing_points_change(double, const char*);
 extern "C" double DyCore_get_timing_points_last_modified_time();
 extern "C" const char* DyCore_get_timing_array_string();
 

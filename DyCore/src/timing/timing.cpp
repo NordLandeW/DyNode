@@ -92,6 +92,7 @@ void TimingManager::change_timing_point_at_time(double time,
     for (auto& point : timingPoints) {
         if (point.time == time) {
             point = tp;
+            outOfOrder = true;
             mark_modified();
             return;
         }
