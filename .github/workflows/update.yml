@@ -72,11 +72,11 @@ jobs:
       - name: Install pre-deploy dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install google-genai pydantic
+          pip install requests
       - name: Run pre-deploy script
         id: pre
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           python deploy/pre_deploy.py
       - name: Upload pre-deploy artifacts
