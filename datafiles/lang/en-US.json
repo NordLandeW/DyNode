@@ -179,6 +179,7 @@
         "tab_pitchshift": "Disable Pitch Shift",
         "timing_point_change": "You are modifying the Timing Point at $0 ms. Please enter values in the format <offset>,<BPM>,<meter>.",
         "timing_point_change_err": "Error modifying Timing Point. Please ensure the format is correct.",
+        "timing_point_values_invalid": "Invalid Timing values: offset must be finite, BPM must be finite and greater than zero, and meter must be an integer from 1 to 2147483647.",
         "timing_point_change_success": "Timing Point at $0 ms changed to:\nBPM: $1 Meter: $2/4",
         "timing_fix_question": "This change affects $2 notes between $0 ms and $1 ms. Attempt to correct their timings to the new BPM?",
         "timing_fix_cross_warning": "Some notes may fall into another Timing Point's range after correction.\nIf issues occur, use Ctrl+Z to undo.",

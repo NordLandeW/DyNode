@@ -179,6 +179,7 @@
         "tab_pitchshift": "ピッチシフト無効",
         "timing_point_change": "$0 msにあるTiming Pointを変更します。<offset>,<BPM>,<meter>形式で入力してください。",
         "timing_point_change_err": "Timing Pointの変更中にエラーが発生しました。入力形式を確認してください。",
+        "timing_point_values_invalid": "Timing の値が無効です。オフセットは有限値、BPM は 0 より大きい有限値、拍子は 1～2147483647 の整数で指定してください。",
         "timing_point_change_success": "$0 msにあるTiming Pointを変更しました：\nBPM：$1 拍子：$2/4",
         "timing_fix_question": "この変更は $0ms～$1ms にある $2 個のノートに影響します。これらのノートを新しいBPMに合わせて調整しますか？",
         "timing_fix_cross_warning": "調整後、他のTiming Point領域へノートが移動する可能性があります。\n問題があればCtrl+Zで元に戻せます。",

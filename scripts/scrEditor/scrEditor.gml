@@ -757,8 +757,20 @@ function timing_point_sort() {
     dyc_timingpoints_sort();
 }
 
+/// @description Validate Timing values before mutation or beatline arithmetic.
+function timing_point_values_valid(_time, _length, _meter) {
+    return !is_nan(_time) && !is_infinity(_time)
+        && !is_nan(_length) && !is_infinity(_length) && _length > 0
+        && !is_nan(_meter) && !is_infinity(_meter)
+        && _meter > 0 && _meter <= 2147483647 && floor(_meter) == _meter;
+}
+
 // Add a timing point to "timingPoints" array
 function timing_point_add(_t, _l, _b, record = false) {
+	if(!timing_point_values_valid(_t, _l, _b)) {
+		announcement_error("timing_point_values_invalid");
+		return false;
+	}
 	if(dyc_has_timing_point_at_time(_t)) {
 		announcement_error(i18n_get("timing_duplicate_error", [_t]));
 		return false;
@@ -766,7 +778,10 @@ function timing_point_add(_t, _l, _b, record = false) {
 
 
     var _tp = new sTimingPoint(_t, _l, _b);
-    dyc_insert_timingpoint(_tp);
+    if(dyc_insert_timingpoint(_tp) < 0) {
+        announcement_error("timing_point_values_invalid");
+        return false;
+    }
     timing_point_sort();
 
     if(record)
@@ -799,7 +814,10 @@ function timing_point_create(record = false) {
 	_time = real(_time);
 	_bpm = real(_bpm);
 	_meter = real(_meter);
-	
+	if(is_nan(_bpm) || is_infinity(_bpm) || _bpm <= 0) {
+		announcement_error("timing_point_values_invalid");
+		return;
+	}
 	_bpm = bpm_to_mspb(_bpm);
 
 	if(timing_point_add(_time, _bpm, _meter, record))
@@ -819,7 +837,16 @@ function timing_point_change(tp, record = false) {
 		var _oarr = string_split(_current_setting, ",", true);
 		var _noffset = real(_arr[0]);
 		var _nbpm = real(_arr[1]);
-		var _nmeter = int64(_arr[2]);
+		var _nmeter = real(_arr[2]);
+		if(is_nan(_nbpm) || is_infinity(_nbpm) || _nbpm <= 0) {
+			announcement_error("timing_point_values_invalid");
+			return;
+		}
+		var _nlength = bpm_to_mspb(_nbpm);
+		if(!timing_point_values_valid(_noffset, _nlength, _nmeter)) {
+			announcement_error("timing_point_values_invalid");
+			return;
+		}
 
 		if(_noffset != _origTime && dyc_has_timing_point_at_time(_noffset)) {
 			announcement_error(i18n_get("timing_duplicate_error", [_noffset]));
@@ -834,7 +861,7 @@ function timing_point_change(tp, record = false) {
 			_fixable = true;
 		}
 		if(_oarr[1] != _arr[1]) {
-			_tpAfter.beatLength = bpm_to_mspb(_nbpm);
+			_tpAfter.beatLength = _nlength;
 			_fixable = true;
 		}
 		if(_oarr[2] != _arr[2])

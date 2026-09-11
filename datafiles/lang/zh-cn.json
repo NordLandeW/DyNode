@@ -179,6 +179,7 @@
         "tab_pitchshift": "禁用变调",
         "timing_point_change": "你正在修改位于 $0 ms 上的 Timing Point。请以 <offset>,<BPM>,<meter> 的形式来输入字符串进行修改。",
         "timing_point_change_err": "Timing Point 修改出现错误。请确认你输入的字符串形式是合法的。",
+        "timing_point_values_invalid": "Timing 参数无效：偏移必须是有限数值，BPM 必须是大于 0 的有限数值，节拍必须是 1 至 2147483647 的整数。",
         "timing_point_change_success": "位于 $0 ms 上的 Timing Point 被修改为:\nBPM: $1 节拍: $2/4",
         "timing_fix_question": "检测到修改该 Timing Point 将影响 $0ms 至 $1ms 上的 $2 个音符。是否尝试修正这些音符的时间到新的 BPM 上？",
         "timing_fix_cross_warning": "检测到有音符在修正后进入了另一个 Timing Point 的区域内。\n如果修正的结果出现问题，你可以随时使用 Ctrl + Z 撤销此修正操作。",

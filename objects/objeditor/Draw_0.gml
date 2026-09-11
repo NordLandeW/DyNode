@@ -19,8 +19,14 @@
         
         var _nowat = 0, _pointscount = array_length(timingPoints);
         var _totalBeats = 0;
+        var _timingValid = true;
         
         while(_nowat + 1 != _pointscount && timingPoints[_nowat+1].time <= nowTime) {
+            var _point = timingPoints[_nowat];
+            if(!timing_point_values_valid(_point.time, _point.beatLength, _point.meter)) {
+                _timingValid = false;
+                break;
+            }
         	_totalBeats += ceil((timingPoints[_nowat+1].time - timingPoints[_nowat].time)
         		/(timingPoints[_nowat].beatLength*timingPoints[_nowat].meter))
         	_nowat ++;
@@ -28,7 +34,9 @@
             
         
         var _nowTp = timingPoints[_nowat];
-        var _nowBeats = floor((nowTime - _nowTp.time) / _nowTp.beatLength);
+        _timingValid = _timingValid && timing_point_values_valid(
+            _nowTp.time, _nowTp.beatLength, _nowTp.meter);
+        var _nowBeats = _timingValid ? floor((nowTime - _nowTp.time) / _nowTp.beatLength) : 0;
         var _nowTpTime = _nowTp.time;
         var _nextTpTime = (_nowat + 1 == _pointscount ? objMain.musicLength:timingPoints[_nowat+1].time)
         
@@ -40,13 +48,13 @@
         _shortestLengthOffset -= 10; // Extra offset for very short beatlines (e.g. 1/64)
         
             // Background Glow
-            with(objMain) {
+            if(_timingValid) with(objMain) {
                 animCurvFaintEval = animcurve_channel_evaluate(
                     animCurvFaintChan, frac(frac((nowTime - _nowTp.time) / _nowTp.beatLength / _nowTp.meter)+1));
                 animCurvFaintEval = lerp(0.5, 1.0, animCurvFaintEval);
             }
             
-        if(beatlineVisible)
+        if(beatlineVisible && _timingValid)
         while(((_nowTpTime - nowTime) * playbackSpeed <= _nh || _nowat == 0) && beatlineAlphaMul > 0.01) {
             for(var i = _nowBeats; i * _nowTp.beatLength + _nowTpTime + 1 < _nextTpTime && (i * _nowTp.beatLength + _nowTpTime - nowTime) * playbackSpeed <= _nh; i++) {
                 for(var j = beatlineMaxDiv; j >= 1; j--) if(j == get_div() || beatlineEnabled[j]) {
@@ -171,6 +179,8 @@
             if(_nowat == _pointscount) break;
             _nowTpTime = _nextTpTime;
             _nowTp = timingPoints[_nowat];
+            if(!timing_point_values_valid(_nowTp.time, _nowTp.beatLength, _nowTp.meter))
+                break;
             _nextTpTime = (_nowat + 1 == _pointscount ? objMain.musicLength:timingPoints[_nowat+1].time);
             _nowBeats = 0;
         }

@@ -44,3 +44,39 @@ TEST_CASE("TimingPointAtTime") {
 
     DyCore_timing_points_reset();
 }
+
+extern "C" double DyCore_timing_points_change(double, const char*);
+extern "C" double DyCore_get_timing_points_last_modified_time();
+extern "C" const char* DyCore_get_timing_array_string();
+
+TEST_CASE("InvalidTimingEditsLeaveDataAndRevisionUnchanged") {
+    DyCore_timing_points_reset();
+    REQUIRE(DyCore_insert_timing_point(
+                R"({"time":-100,"beatLength":500,"meter":4})") == 0);
+    const std::string before = DyCore_get_timing_array_string();
+    const double revision = DyCore_get_timing_points_last_modified_time();
+    const char* invalid[] = {
+        R"({"time":-100,"beatLength":-500,"meter":4})",
+        R"({"time":-100,"beatLength":0,"meter":4})",
+        R"({"time":-100,"beatLength":500,"meter":0})",
+        R"({"time":-100,"beatLength":500,"meter":-4})",
+        R"({"time":-100,"beatLength":500,"meter":1.5})",
+        R"({"time":-100,"beatLength":500,"meter":4294967300})",
+        R"({"time":null,"beatLength":500,"meter":4})",
+        R"({"time":-100,"beatLength":null,"meter":4})",
+        R"({"time":-100,"beatLength":1e999,"meter":4})",
+        "{",
+        nullptr};
+    for (const char* input : invalid) {
+        CAPTURE(input ? input : "null");
+        CHECK(DyCore_insert_timing_point(input) == -1);
+        CHECK(DyCore_timing_points_change(-100, input) == -1);
+        CHECK(std::string(DyCore_get_timing_array_string()) == before);
+        CHECK(DyCore_get_timing_points_last_modified_time() == revision);
+    }
+    REQUIRE(DyCore_timing_points_change(
+                -100, R"({"time":-100,"beatLength":250.5,"meter":3})") == 0);
+    check_timing_point_at(0, -100, 250.5, 3);
+    CHECK(DyCore_get_timing_points_last_modified_time() > revision);
+    DyCore_timing_points_reset();
+}
