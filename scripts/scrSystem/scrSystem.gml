@@ -128,7 +128,6 @@ function map_load(_file = "") {
 }
 
 function map_import_dym(_file, _direct = false) {
-    var _buf = buffer_load(_file);
     var _str;
 	var _dy_format = false;
 	var _import_info, _import_tp;
