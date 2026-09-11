@@ -42,7 +42,8 @@ if(editorMode == 4) {
         if(editorWidthAdjustTime < editorWidthAdjustTimeThreshold) {
             editorWidthAdjustTime = editorWidthAdjustTimeThreshold + 1;
             with(objNote) if(stateType == NOTE_STATES.SELECTED) {
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                operation_step_add(OPERATION_TYPE.MOVE, origPropWidthAdjust, get_prop());
+                origPropWidthAdjust = -1;
             }
         }
         
