@@ -80,7 +80,7 @@ struct IMFSample;
  *     immediately without copying.
  *   - If the frame is due but decode output is temporarily behind,
  *     `get_frame_sync` may block until a frame arrives, playback stops, sync
- *     mode is disabled, decoder is paused, or EOS is reached.
+ *     mode is disabled, decoder is paused, EOS is reached, or decoding fails.
  *   - This design keeps presentation cadence controlled by the external clock,
  *     while decode throughput remains asynchronous.
  *
@@ -229,7 +229,7 @@ class VideoDecoder {
      * - If the next frame is due but the decode thread has not produced it yet,
      *   meaning the queue is empty or behind, the function blocks until either
      *   a new decoded frame becomes available, playback is paused, stopped, or
-     *   ended, or sync mode is disabled.
+     *   ended, decoding fails, or sync mode is disabled.
      * - When a frame whose timestamp is less than or equal to the internal
      *   clock is available, it is copied into gm_buffer_ptr and the function
      *   returns 1.0.
@@ -297,6 +297,12 @@ class VideoDecoder {
         return m_isFinished.load(std::memory_order_acquire);
     }
 
+    // A failed worker cannot be resumed; open() starts a new decoding
+    // lifecycle.
+    bool has_failed() const {
+        return m_decodeFailed.load(std::memory_order_acquire);
+    }
+
     /**
      * @brief Sets playback speed multiplier.
      *
@@ -334,6 +340,8 @@ class VideoDecoder {
     }
 
    private:
+    friend struct VideoDecoderTestAccess;
+    void finish_decode_worker();
     /**
      * @brief Background loop that pulls samples from Media Foundation.
      *
@@ -544,6 +552,7 @@ class VideoDecoder {
     std::atomic<bool> m_isPlaying = false;
     // Signals the decode thread to exit its main loop.
     std::atomic<bool> m_stopRequested = false;
+    std::atomic<bool> m_decodeFailed = false;
 
     // Last presentation timestamp (in 100ns units) processed.
     long long m_lastPresentationTime = 0;

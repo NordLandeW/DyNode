@@ -16,6 +16,7 @@
 #include <chrono>
 #include <cmath>
 #include <format>
+#include <memory>
 #include <string>
 
 #include "utils.h"
@@ -311,7 +312,7 @@ bool VideoDecoder::read_sample_from_reader(IMFSample*& pSample, DWORD& flags,
         m_pReader->ReadSample((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0,
                               &streamIndex, &flags, &timestamp, &pSample);
 
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr) && !(flags & MF_SOURCE_READERF_ERROR)) {
         return true;
     }
 
@@ -337,8 +338,11 @@ void VideoDecoder::handle_end_of_stream_flag(DWORD flags, IMFSample*& pSample,
         pSample = nullptr;
     }
 
-    m_isFinished = true;
-    m_isPlaying = false;
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_isFinished = true;
+        m_isPlaying = false;
+    }
     skipUntilTime = -1;
 
     m_syncCvFrameAvailable.notify_all();
@@ -351,16 +355,17 @@ bool VideoDecoder::process_sample_for_output(
     IMFSample* pSample, LONGLONG timestamp, bool isSyncMode,
     long long& skipUntilTime,
     const std::chrono::high_resolution_clock::time_point& skipStartTime) {
+    const auto releaseSample = [](IMFSample* sample) { sample->Release(); };
+    std::unique_ptr<IMFSample, decltype(releaseSample)> sampleOwner(
+        pSample, releaseSample);
     if (should_drop_sample(timestamp, isSyncMode, skipUntilTime,
                            skipStartTime)) {
-        pSample->Release();
         return false;
     }
 
     size_t expectedSize = 0;
     if (!video_detail::try_calculate_frame_size(m_width, m_height,
                                                 expectedSize)) {
-        pSample->Release();
         print_debug_message(
             "VideoDecoder::decode_loop frame dimensions overflow buffer size.");
         return false;
@@ -371,7 +376,7 @@ bool VideoDecoder::process_sample_for_output(
                                                      syncFrame, expectedSize)
                                    : write_latest_frame(pSample, expectedSize);
 
-    pSample->Release();
+    sampleOwner.reset();
 
     if (!copied) {
         return false;
@@ -395,6 +400,17 @@ bool VideoDecoder::process_sample_for_output(
     return true;
 }
 
+void VideoDecoder::finish_decode_worker() {
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_decodeFailed = !m_stopRequested.load();
+        m_isPlaying = false;
+        m_syncQueue.clear();
+    }
+    m_syncCvFrameAvailable.notify_all();
+    m_syncCvQueueSpace.notify_all();
+}
+
 void VideoDecoder::decode_loop() {
     // Initialize COM on the worker thread since Media Foundation objects are
     // apartment-affine.
@@ -404,6 +420,7 @@ void VideoDecoder::decode_loop() {
         print_debug_message(std::format(
             "VideoDecoder::decode_loop CoInitializeEx failed, hr=0x{:08X}",
             static_cast<unsigned long>(hr)));
+        finish_decode_worker();
         return;
     }
 
@@ -412,36 +429,46 @@ void VideoDecoder::decode_loop() {
     long long skipUntilTime = -1;
     auto skipStartTime = std::chrono::high_resolution_clock::now();
 
-    while (!m_stopRequested) {
-        if (!ensure_reader_available_for_decode()) {
-            break;
+    try {
+        while (!m_stopRequested) {
+            if (!ensure_reader_available_for_decode()) {
+                break;
+            }
+
+            if (wait_if_paused()) {
+                continue;
+            }
+
+            const bool isSyncMode =
+                m_isSyncMode.load(std::memory_order_relaxed);
+            handle_pending_seek(isSyncMode, skipUntilTime, skipStartTime);
+
+            IMFSample* pSample = nullptr;
+            DWORD flags = 0;
+            LONGLONG llTimeStamp = 0;
+
+            if (!read_sample_from_reader(pSample, flags, llTimeStamp)) {
+                break;
+            }
+
+            handle_end_of_stream_flag(flags, pSample, skipUntilTime);
+
+            if (!pSample) {
+                continue;
+            }
+
+            process_sample_for_output(pSample, llTimeStamp, isSyncMode,
+                                      skipUntilTime, skipStartTime);
         }
 
-        if (wait_if_paused()) {
-            continue;
-        }
-
-        const bool isSyncMode = m_isSyncMode.load(std::memory_order_relaxed);
-        handle_pending_seek(isSyncMode, skipUntilTime, skipStartTime);
-
-        IMFSample* pSample = nullptr;
-        DWORD flags = 0;
-        LONGLONG llTimeStamp = 0;
-
-        if (!read_sample_from_reader(pSample, flags, llTimeStamp)) {
-            break;
-        }
-
-        handle_end_of_stream_flag(flags, pSample, skipUntilTime);
-
-        if (!pSample) {
-            continue;
-        }
-
-        process_sample_for_output(pSample, llTimeStamp, isSyncMode,
-                                  skipUntilTime, skipStartTime);
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("VideoDecoder worker failed: ") +
+                            e.what());
+    } catch (...) {
+        print_debug_message(
+            "VideoDecoder worker failed with an unknown exception.");
     }
-
+    finish_decode_worker();
     print_debug_message("VideoDecoder::decode_loop exiting.");
 
     CoUninitialize();
@@ -660,7 +687,7 @@ double query_duration_seconds(IMFSourceReader* reader) {
 }
 
 bool VideoDecoder::open(const wchar_t* filename) {
-    if (m_isLoaded) {
+    if (m_isLoaded || m_pReader || m_decodeThread.joinable()) {
         print_debug_message(
             "VideoDecoder::open called while a video is already loaded; "
             "closing existing source.");
@@ -674,6 +701,7 @@ bool VideoDecoder::open(const wchar_t* filename) {
     m_isFinished = false;
     m_isFrameReady = false;
     m_stopRequested = false;
+    m_decodeFailed = false;
     m_seekTarget = -1;
     m_lastPresentationTime = 0;
 
@@ -734,7 +762,16 @@ bool VideoDecoder::open(const wchar_t* filename) {
     m_duration = query_duration_seconds(m_pReader);
 
     m_isPlaying = false;
-    m_decodeThread = std::thread(&VideoDecoder::decode_loop, this);
+    try {
+        m_decodeThread = std::thread(&VideoDecoder::decode_loop, this);
+    } catch (const std::exception& e) {
+        finish_decode_worker();
+        m_pReader->Release();
+        m_pReader = nullptr;
+        print_debug_message(std::string("VideoDecoder worker start failed: ") +
+                            e.what());
+        return false;
+    }
 
     m_isLoaded = true;
     print_debug_message(std::format(
@@ -752,11 +789,10 @@ void VideoDecoder::close() {
 
     print_debug_message("VideoDecoder::close requested.");
 
-    m_stopRequested = true;
-    m_isPlaying = false;
-
     {
         std::lock_guard<std::mutex> lock(m_syncMutex);
+        m_stopRequested = true;
+        m_isPlaying = false;
         m_syncQueue.clear();
     }
     m_syncCvFrameAvailable.notify_all();
@@ -782,7 +818,13 @@ void VideoDecoder::close() {
 }
 
 void VideoDecoder::set_pause(bool pause) {
-    m_isPlaying = !pause;
+    {
+        std::lock_guard<std::mutex> lock(m_syncMutex);
+        if (m_decodeFailed || m_stopRequested || !m_isLoaded) {
+            return;
+        }
+        m_isPlaying = !pause;
+    }
 
     // Wake sync consumers/producers so they can re-evaluate their wait
     // predicates (pause may stop new frames from arriving).
@@ -830,6 +872,9 @@ void VideoDecoder::set_sync_mode(bool enable) {
 }
 
 void VideoDecoder::seek(double seconds) {
+    if (m_decodeFailed || m_stopRequested || !m_isLoaded) {
+        return;
+    }
     const long long targetTicks = static_cast<long long>(seconds * 10000000.0);
 
     if (m_isSyncMode.load(std::memory_order_relaxed)) {
