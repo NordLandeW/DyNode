@@ -162,6 +162,7 @@ int project_import_dyn(const char* filePath, Project& project) {
         print_debug_message("Error importing DYN file: " + string(e.what()));
         gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
                                "dyn_old_format_conversion_failed", {e.what()});
+        return -1;
     }
 
     projectJson.get_to<Project>(project);
@@ -172,10 +173,12 @@ int project_import_dyn(const char* filePath, Project& project) {
 int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
     try {
         Project project;
-        project_import_dyn(filePath, project);
+        if (project_import_dyn(filePath, project) != 0) {
+            throw std::runtime_error("Failed to import DYN project file.");
+        }
 
         // Import notes from the first chart.
-        const Chart& chart = project.charts[0];
+        const Chart& chart = project.charts.at(0);
         for (const Note& note : chart.notes) {
             create_note(note);
         }
@@ -192,6 +195,7 @@ int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
     } catch (const std::exception& e) {
         gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
                                "dyn_chart_import_failed", {e.what()});
+        return -1;
     }
 
     return 0;

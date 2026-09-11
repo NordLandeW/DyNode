@@ -107,13 +107,13 @@ function map_load(_file = "") {
 		switch filename_ext(_file) {
 			case ".xml":
 			case ".dy":
-				map_import_dym(_file, _direct);
+				if(map_import_dym(_file, _direct) != 0) return;
 				break;
 			case ".osu":
 				map_import_osu(_file);
 				break;
 			case ".dyn":
-				map_import_dyn(_file);
+				if(map_import_dyn(_file) != 0) return;
 				break;
 		}
 	} catch (e) {
@@ -141,8 +141,7 @@ function map_import_dym(_file, _direct = false) {
 	}
 
 	if(filename_ext(_file) == ".xml") {
-		dyc_chart_import_xml(_file, _import_info, _import_tp);
-		return;
+		return dyc_chart_import_xml(_file, _import_info, _import_tp);
 	}
 	else {
 		var result = dyc_chart_import_dy(_file, _import_info, _import_tp);
@@ -160,6 +159,7 @@ function map_import_dym(_file, _direct = false) {
 			if(_video != "")
 				video_load(_video);
 		}
+		return result;
 	}
     
 }
@@ -264,7 +264,7 @@ function map_import_dyn(_file) {
 	var _import_info = show_question_i18n("box_q_import_info");
     var _import_tp = show_question_i18n("box_q_import_bpm");
 
-	dyc_chart_import_dyn(_file, _import_info, _import_tp);
+	return dyc_chart_import_dyn(_file, _import_info, _import_tp);
 }
 
 function map_set_title() {

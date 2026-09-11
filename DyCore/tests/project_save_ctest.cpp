@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <future>
 #include <latch>
 #include <string>
@@ -17,6 +18,8 @@ extern "C" double DyCore_save_project(const char*, double);
 extern "C" double DyCore_save_project_request(const char*, double);
 extern "C" double DyCore_has_async_event();
 extern "C" const char* DyCore_get_async_event();
+extern "C" double DyCore_chart_import_dyn(const char*, double, double);
+extern "C" double DyCore_chart_export_xml(const char*, double, double);
 
 namespace {
 struct SaveFixture {
@@ -178,4 +181,28 @@ TEST_CASE("ProjectSaveRejectedRequestDoesNotDispatchCompletion") {
         ++count;
     }
     CHECK(count == 3);
+}
+
+TEST_CASE("ChartImportExportReportsFileFailures") {
+    SaveFixture fixture;
+    set_chart("export", 0);
+    const auto missing = fixture.dir / "missing" / "chart.xml";
+    CHECK(DyCore_chart_export_xml(missing.string().c_str(), 1, 0) == -1);
+    CHECK_FALSE(std::filesystem::exists(missing));
+    const auto output = fixture.dir / "chart.xml";
+    REQUIRE(DyCore_chart_export_xml(output.string().c_str(), 1, 0) == 0);
+    CHECK(std::filesystem::file_size(output) > 0);
+
+    CHECK(DyCore_chart_import_dyn(missing.string().c_str(), 1, 1) == -1);
+    const auto input = fixture.dir / "invalid.dyn";
+    for (const auto& content :
+         {std::string("{"), nlohmann::json(Project{}).dump()}) {
+        std::ofstream(input, std::ios::binary) << content;
+        CHECK(DyCore_chart_import_dyn(input.string().c_str(), 1, 1) == -1);
+    }
+    auto request =
+        prepare_project_save((fixture.dir / "valid.dyn").string().c_str(), 1);
+    __async_save_project(std::move(request));
+    REQUIRE(DyCore_chart_import_dyn(
+                (fixture.dir / "valid.dyn").string().c_str(), 1, 1) == 0);
 }

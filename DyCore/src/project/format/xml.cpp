@@ -477,17 +477,9 @@ void chart_export_xml(const char* filePath, bool isDym, double fixError) {
     append_timing_nodes_for_dym(root, isDym, timingPoints);
 
     // Save file
-    std::ofstream stream(convert_char_to_path(filePath));
-    if (!stream.is_open()) {
-        throw_error_event("Failed to open XML file for writing: " +
-                          string(filePath));
-    }
-    try {
-        doc.save(stream);
-    } catch (const std::exception& e) {
-        throw_error_event("Failed to save XML file to " + string(filePath) +
-                          ": " + e.what());
-    }
-
+    std::ofstream stream;
+    stream.exceptions(std::ios::failbit | std::ios::badbit);
+    stream.open(convert_char_to_path(filePath));
+    doc.save(stream);
     stream.close();
 }
