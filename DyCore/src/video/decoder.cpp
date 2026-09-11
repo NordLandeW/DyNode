@@ -460,7 +460,6 @@ void VideoDecoder::decode_loop() {
             process_sample_for_output(pSample, llTimeStamp, isSyncMode,
                                       skipUntilTime, skipStartTime);
         }
-
     } catch (const std::exception& e) {
         print_debug_message(std::string("VideoDecoder worker failed: ") +
                             e.what());
