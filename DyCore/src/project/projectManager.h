@@ -22,6 +22,7 @@ class ProjectManager {
     fs::path projectFilePath;
     fs::path projectDirPath;
     std::atomic<uint64_t> chartMusicLoadRequestId = 0;
+    std::atomic<uint64_t> projectGeneration = 0;
 
     int currentChartIndex;
     uint64_t chartMetadataLastModifiedTime = 0;
@@ -45,6 +46,12 @@ class ProjectManager {
     void set_current_chart(int index);
     // Update timing points and notes to the current chart.
     void update_current_chart();
+    uint64_t get_project_generation() const {
+        return projectGeneration.load();
+    }
+    // Call before replacing the live editor pools, including GML map_close.
+    void invalidate_pending_saves();
+    Project create_save_snapshot(uint64_t expectedGeneration);
 
     /// Getters & Setters
 

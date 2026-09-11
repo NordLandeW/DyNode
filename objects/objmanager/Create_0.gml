@@ -201,6 +201,7 @@ call_later(1, time_source_units_frames, function() {
 	projectPath = "";
 	// temporary variables before project is saved completely
 	nextProjectPath = "";
+	pendingSaveRequestId = 0;
 	backgroundPath = "";
 	musicPath = "";
 	videoPath = "";

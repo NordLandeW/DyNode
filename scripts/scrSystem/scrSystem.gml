@@ -11,6 +11,14 @@
 #region MAP FUNCTIONS
 
 function map_close() {
+	DyCore_project_save_invalidate();
+	// A late completion belongs to the closed project, not its replacement.
+	with(objManager) {
+		pendingSaveRequestId = 0;
+		nextProjectPath = "";
+		autosaving = false;
+	}
+	global.isSaving = false;
 	with(objMain) {
 		dyc_video_free();
 		kawase_destroy(kawaseArr);
@@ -43,7 +51,6 @@ function map_close() {
 		DyCore_clear_notes();
 		global.noteIDMan.clear();
 		global.activationMan.clear();
-		global.isSaving = false;
 
 		with(objManager) {
 			musicPath = "";
@@ -725,14 +732,31 @@ function project_save_as(_file = "") {
 		video: objManager.videoPath
 	}));
 
-	// Trigger an async saving project event.
-	DyCore_save_project(_file, DYCORE_COMPRESSION_LEVEL);
+	// Capture the request before another project can replace the live data.
+	var requestId = DyCore_save_project_request(_file, DYCORE_COMPRESSION_LEVEL);
+	if(requestId < 0) {
+		global.isSaving = false;
+		objManager.pendingSaveRequestId = 0;
+		objManager.nextProjectPath = "";
+		objManager.autosaving = false;
+		return 0;
+	}
+	objManager.pendingSaveRequestId = requestId;
 	objManager.nextProjectPath = _file;
 
 	return 1;
 }
 
+/// @description Match a completion to the current project's pending save.
+function project_save_event_matches(event, requestId) {
+	return requestId > 0 && variable_struct_exists(event, "requestId")
+		&& event[$ "requestId"] == requestId;
+}
+
 function project_save_callback(event) {
+	if(!project_save_event_matches(event, objManager.pendingSaveRequestId))
+		return;
+	objManager.pendingSaveRequestId = 0;
 	global.isSaving = false;
 	if(event[$ "status"] < 0) {
 		announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));

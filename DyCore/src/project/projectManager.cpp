@@ -58,6 +58,7 @@ Chart &ProjectManager::get_current_chart() {
 
 void ProjectManager::clear_project() {
     std::lock_guard<std::shared_mutex> lock(mtx);
+    ++projectGeneration;
     ++chartMusicLoadRequestId;
     project = Project();
     currentChartIndex = -1;
@@ -111,6 +112,7 @@ void ProjectManager::load_all_audio_data() {
 
 void ProjectManager::setup_default_chart() {
     std::lock_guard<std::shared_mutex> lock(mtx);
+    ++projectGeneration;
     ++chartMusicLoadRequestId;
 
     Project defaultProject;
@@ -128,6 +130,7 @@ void ProjectManager::setup_default_chart() {
 
 void ProjectManager::load_project_from_file(const char *filePath) {
     clear_project();
+    std::lock_guard<std::shared_mutex> lock(mtx);
     if (project_import_dyn(filePath, project) != 0) {
         throw std::runtime_error("Failed to import DYN project file.");
     }
@@ -161,6 +164,27 @@ void ProjectManager::update_current_chart() {
     get_timing_manager().get_timing_points(chart.timingPoints);
     // Update notes.
     get_note_pool_manager().get_notes(chart.notes, true);
+}
+
+void ProjectManager::invalidate_pending_saves() {
+    std::lock_guard<std::shared_mutex> lock(mtx);
+    ++projectGeneration;
+}
+
+Project ProjectManager::create_save_snapshot(uint64_t expectedGeneration) {
+    std::shared_lock<std::shared_mutex> lock(mtx);
+    if (expectedGeneration != projectGeneration.load()) {
+        throw std::runtime_error(
+            "Save cancelled: the project was closed before reading began.");
+    }
+    if (!check_current_chart_set()) {
+        throw std::runtime_error("Current chart is not set");
+    }
+    Project snapshot = project;
+    auto &chart = snapshot.charts[currentChartIndex];
+    get_timing_manager().get_timing_points(chart.timingPoints);
+    get_note_pool_manager().get_notes(chart.notes, true);
+    return snapshot;
 }
 
 void ProjectManager::set_chart_metadata(const ChartMetadata &meta) {

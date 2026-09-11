@@ -6,6 +6,7 @@
 // and notify GameMaker upon completion.
 
 #pragma once
+#include <cstdint>
 #include <json.hpp>
 #include <mutex>
 #include <queue>
@@ -31,9 +32,13 @@ struct AsyncEvent {
     ASYNC_EVENT_TYPE type;
     int status;
     string content;
+    uint64_t requestId = 0;
 };
 inline void to_json(json &j, const AsyncEvent &a) {
     j = json{{"type", a.type}, {"status", a.status}, {"content", a.content}};
+    if (a.requestId != 0) {
+        j["requestId"] = a.requestId;
+    }
 }
 
 extern std::queue<AsyncEvent> asyncEventQueue;

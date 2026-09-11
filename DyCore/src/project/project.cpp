@@ -13,6 +13,7 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -224,29 +225,30 @@ void __async_save_project(SaveProjectParams params) {
     string errInfo = "";
     string projectString = "";
     try {
-        // Update current chart.
-        ProjectManager::inst().update_current_chart();
-        projectString = ProjectManager::inst().dump();
+        const auto snapshot = ProjectManager::inst().create_save_snapshot(
+            params.projectGeneration);
+        projectString = nlohmann::json(snapshot).dump();
         if (projectString == "" || verify_project(projectString) != 0) {
             print_debug_message("Invalid saving project property.");
             push_async_event(
                 {PROJECT_SAVING, -1,
-                 "Invalid project format. projectString: " + projectString});
+                 "Invalid project format. projectString: " + projectString,
+                 params.requestId});
             return;
         }
     } catch (const std::exception &e) {
         print_debug_message("Encounter unknown errors. Details:" +
                             string(e.what()));
-        push_async_event({PROJECT_SAVING, -1});
+        push_async_event({PROJECT_SAVING, -1, e.what(), params.requestId});
         return;
     }
 
-    auto chartBuffer =
-        std::make_unique<char[]>(compress_bound(projectString.size()));
     fs::path finalPath, tempPath;
     bool tempFileVerified = false;
 
     try {
+        auto chartBuffer =
+            std::make_unique<char[]>(compress_bound(projectString.size()));
         const double compressedSize = get_project_buffer(
             projectString, chartBuffer.get(), params.compressionLevel);
         if (compressedSize < 0) {
@@ -287,8 +289,10 @@ void __async_save_project(SaveProjectParams params) {
         replace_file_durably(tempPath, finalPath);
         print_debug_message("Project save completed.");
     } catch (const std::exception &e) {
-        if (!tempFileVerified && fs::exists(tempPath))
-            fs::remove(tempPath);
+        if (!tempFileVerified && !tempPath.empty()) {
+            std::error_code cleanupError;
+            fs::remove(tempPath, cleanupError);
+        }
 
         print_debug_message("Encounter errors. Details:" +
                             gb2312ToUtf8(e.what()));
@@ -296,7 +300,7 @@ void __async_save_project(SaveProjectParams params) {
         errInfo = gb2312ToUtf8(e.what());
     }
 
-    push_async_event({PROJECT_SAVING, err ? -1 : 0, errInfo});
+    push_async_event({PROJECT_SAVING, err ? -1 : 0, errInfo, params.requestId});
 }
 
 void load_project(const char *filePath) {
@@ -311,14 +315,27 @@ void load_project(const char *filePath) {
     }
 }
 
-// Initiates an asynchronous save of the project.
-void save_project(const char *filePath, double compressionLevel) {
+SaveProjectParams prepare_project_save(const char *filePath,
+                                       double compressionLevel) {
+    static std::atomic<uint64_t> nextRequestId{1};
     SaveProjectParams params;
     params.filePath.assign(filePath);
     params.compressionLevel = (int)compressionLevel;
-    std::thread t([=]() { __async_save_project(params); });
+    params.projectGeneration = ProjectManager::inst().get_project_generation();
+    params.requestId = nextRequestId.fetch_add(1, std::memory_order_relaxed);
+    return params;
+}
+
+// Only request identity is captured here; all project data work is
+// asynchronous.
+uint64_t save_project(const char *filePath, double compressionLevel) {
+    auto params = prepare_project_save(filePath, compressionLevel);
+    const uint64_t requestId = params.requestId;
+    std::thread t([params = std::move(params)]() mutable {
+        __async_save_project(std::move(params));
+    });
     t.detach();
-    return;
+    return requestId;
 }
 
 // Compresses the project string into a buffer.

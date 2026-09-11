@@ -7,31 +7,37 @@
 #include "projectManager.h"
 #include "utils.h"
 
-// Saves the project to a file.
-// This is the main entry point for saving a project.
-//
-// @param filePath The path to save the project file.
-// @param compressionLevel The compression level to use.
-// @return 0 on success, -1 on error.
+// Invalidate unread saves and finish any active read before GML clears its
+// pools.
+DYCORE_API double DyCore_project_save_invalidate() {
+    ProjectManager::inst().invalidate_pending_saves();
+    return 0;
+}
+
+// Returns the accepted request ID, or -1 if no worker was dispatched.
+DYCORE_API double DyCore_save_project_request(const char* filePath,
+                                              double compressionLevel) {
+    namespace fs = std::filesystem;
+    try {
+        if (!filePath || strlen(filePath) == 0) {
+            throw std::runtime_error("File path is empty.");
+        }
+        const fs::path path = convert_char_to_path(filePath);
+        const fs::path parentDir = path.parent_path();
+        if (!parentDir.empty() && !fs::exists(parentDir)) {
+            throw std::runtime_error("Parent directory does not exist.");
+        }
+        return static_cast<double>(save_project(filePath, compressionLevel));
+    } catch (const std::exception& e) {
+        throw_error_event(e.what());
+        return -1;
+    }
+}
+
+// Preserve the legacy return convention for existing native callers.
 DYCORE_API double DyCore_save_project(const char* filePath,
                                       double compressionLevel) {
-    namespace fs = std::filesystem;
-
-    if (!filePath || strlen(filePath) == 0) {
-        throw_error_event("File path is empty.");
-        return -1;
-    }
-
-    fs::path path = fs::path((char8_t*)filePath);
-    fs::path parentDir = path.parent_path();
-    if (!parentDir.empty() && !fs::exists(parentDir)) {
-        throw_error_event("Parent directory does not exist: " +
-                          parentDir.string());
-        return -1;
-    }
-
-    save_project(filePath, compressionLevel);
-    return 0;
+    return DyCore_save_project_request(filePath, compressionLevel) < 0 ? -1 : 0;
 }
 
 DYCORE_API const char* DyCore_get_notes_array_string() {

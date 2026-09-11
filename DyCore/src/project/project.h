@@ -2,6 +2,7 @@
 #include <zstd.h>
 
 #include <array>
+#include <cstdint>
 #include <filesystem>
 #include <json.hpp>
 #include <string>
@@ -9,11 +10,6 @@
 #include "audio.h"
 #include "note.h"
 #include "timing.h"
-
-struct SaveProjectParams {
-    std::string filePath;
-    int compressionLevel;
-};
 
 struct Project;
 struct Chart;
@@ -57,10 +53,20 @@ struct Project {
 void to_json(nlohmann::json &j, const Project &project);
 void from_json(const nlohmann::json &j, Project &project);
 
+struct SaveProjectParams {
+    std::string filePath;
+    int compressionLevel;
+    uint64_t projectGeneration;
+    uint64_t requestId;
+};
+
+// Bind identity on the editor thread; capture project data in the worker.
+SaveProjectParams prepare_project_save(const char *filePath,
+                                       double compressionLevel);
 void __async_save_project(SaveProjectParams params);
 
 void load_project(const char *filePath);
-void save_project(const char *filePath, double compressionLevel);
+uint64_t save_project(const char *filePath, double compressionLevel);
 void backup_existing_project_file(const std::filesystem::path &finalPath);
 
 double get_project_buffer(const std::string &projectString, char *targetBuffer,
