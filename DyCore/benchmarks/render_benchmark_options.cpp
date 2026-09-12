@@ -39,6 +39,10 @@ void set_scenario(BenchmarkOptions& options, std::string_view value) {
     options.scenario = value;
 }
 
+void set_mode(BenchmarkOptions& options, std::string_view value) {
+    options.mode = value;
+}
+
 void set_chart_path(BenchmarkOptions& options, std::string_view value) {
     options.chartPath = value;
 }
@@ -51,11 +55,12 @@ void set_worker_count(BenchmarkOptions& options, std::string_view value) {
     options.workerCount = parse_size_value(value);
 }
 
-constexpr std::array<OptionSpec, 7> OPTION_SPECS{{
+constexpr std::array<OptionSpec, 8> OPTION_SPECS{{
     {"--notes", set_note_count},
     {"--iterations", set_iterations},
     {"--warmup", set_warmup_iterations},
     {"--scenario", set_scenario},
+    {"--mode", set_mode},
     {"--chart", set_chart_path},
     {"--speed", set_note_speed},
     {"--workers", set_worker_count},
@@ -82,6 +87,11 @@ void validate_options(const BenchmarkOptions& options) {
     if (options.chartPath.empty() && !is_supported_scenario(options.scenario)) {
         throw std::invalid_argument(
             "scenario must be normal, holds, mixed, or clustered");
+    }
+    if (options.mode != "steady" && options.mode != "timeline" &&
+        options.mode != "seek" && options.mode != "reorder") {
+        throw std::invalid_argument(
+            "mode must be steady, timeline, seek, or reorder");
     }
 }
 

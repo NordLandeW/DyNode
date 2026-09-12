@@ -159,6 +159,18 @@ function RecordManager() constructor {
         return recording || prepareRecording;
     }
 
+    /// @description Release recording resources without restoring a closing UI.
+    static cleanup = function() {
+        prepareRecording = false;
+        recording = false;
+        try {
+            DyCore_ffmpeg_finish_recording();
+        } finally {
+            if(buffer_exists(frameBuffer)) buffer_delete(frameBuffer);
+            frameBuffer = -1;
+        }
+    }
+
 }
 
 function recording_default_filename() {

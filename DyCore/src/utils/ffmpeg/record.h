@@ -99,3 +99,4 @@ class Recorder {
 };
 
 Recorder& get_recorder();
+void shutdown_recorder();

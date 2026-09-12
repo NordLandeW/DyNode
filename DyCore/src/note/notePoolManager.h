@@ -1,5 +1,8 @@
 #pragma once
+#include <atomic>
+#include <condition_variable>
 #include <memory_resource>
+#include <mutex>
 #include <shared_mutex>
 #include <string>
 
@@ -8,14 +11,25 @@
 
 inline constexpr int NOTES_ARRAY_PARALLEL_SORT_THRESHOLD = 10000;
 
+namespace tf {
+class Executor;
+class Taskflow;
+}  // namespace tf
+
 class NotePoolManager {
     friend NoteActivationManager;
 
    public:
     using nptr = std::shared_ptr<Note>;
 
-    NotePoolManager();
+    explicit NotePoolManager(size_t workerCount = 0);
     ~NotePoolManager();
+
+    // Shutdown rejects external submissions and drains submitted task graphs.
+    // It must not be called from a note worker or while holding a note lock.
+    void initialize_executor();
+    void shutdown_executor();
+    size_t executor_creation_count() const;
 
     NotePoolManager operator=(const NotePoolManager &other) = delete;
 
@@ -71,6 +85,16 @@ class NotePoolManager {
     void reclaim_memory();
     nptr get_note_pointer(const std::string &noteID);
 
+    void execute_tasks(tf::Taskflow &taskflow);
+    tf::Executor &initialize_executor_locked();
+    std::unique_ptr<tf::Executor> noteExecutor;
+    mutable std::mutex executorLifecycleMutex;
+    std::condition_variable executorIdle;
+    bool executorStopped = false;
+    size_t activeExecutorCalls = 0;
+    size_t executorCreationCount = 0;
+    size_t executorWorkerCount = 0;  // 0 keeps hardware concurrency.
+
     std::array<std::byte, 64 * 1024 * 1024> initial_buffer;
     std::pmr::monotonic_buffer_resource monotonic_res;
     std::pmr::unsynchronized_pool_resource pool_res;
@@ -78,7 +102,7 @@ class NotePoolManager {
 
     std::unordered_map<std::string, NoteMemoryInfo> noteInfoMap;
     mutable std::shared_mutex mtxNoteOps;
-    bool arrayOutOfOrder = false;
+    std::atomic<bool> arrayOutOfOrder = false;
     int noteCount = 0;
 
    public:

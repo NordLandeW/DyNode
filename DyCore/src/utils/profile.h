@@ -8,6 +8,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -15,12 +16,16 @@ struct ProfileData {
     std::string name;
     double total_duration = 0.0;
     long long call_count = 0;
-    double min_duration = std::numeric_limits<double>::max();
+    double min_duration = (std::numeric_limits<double>::max)();
     double max_duration = 0.0;
     double last_duration = 0.0;
     std::vector<double> all_durations;
     size_t next_duration_index = 0;
     static constexpr size_t MAX_DURATIONS = 10000;
+
+    ProfileData() {
+        all_durations.reserve(MAX_DURATIONS);
+    }
 
     void record(double duration) {
         total_duration += duration;
@@ -46,25 +51,60 @@ struct ProfileData {
 
 class Profiler;
 
+// Explicit borrowing is reserved for names that outlive the entire scope.
+struct StaticProfileName {
+    const char* value;
+};
+
 class ScopedTimer {
    private:
     Profiler& profiler;
-    std::string name;
+    std::string ownedName;
+    std::string_view name;
     std::chrono::high_resolution_clock::time_point start_time;
     bool enabled;
 
    public:
-    ScopedTimer(const std::string& name, Profiler& profiler_instance,
+    ScopedTimer(StaticProfileName name, Profiler& profiler_instance,
                 bool is_enabled = true);
+    ScopedTimer(std::string name, Profiler& profiler_instance,
+                bool is_enabled = true);
+    ScopedTimer(const ScopedTimer&) = delete;
+    ScopedTimer& operator=(const ScopedTimer&) = delete;
     ~ScopedTimer();
 };
 
 class Profiler {
    private:
-    std::unordered_map<std::string, ProfileData> records;
+    struct NameHash {
+        using is_transparent = void;
+        size_t operator()(std::string_view name) const noexcept {
+            return std::hash<std::string_view>{}(name);
+        }
+    };
+    std::unordered_map<std::string, ProfileData, NameHash, std::equal_to<>>
+        records;
     mutable std::mutex mtx;
 
-    Profiler() = default;
+    ProfileData& find_or_create(std::string_view name) {
+        auto it = records.find(name);
+        if (it == records.end()) {
+            it = records.try_emplace(std::string(name)).first;
+            it->second.name = name;
+        }
+        return it->second;
+    }
+
+    Profiler() {
+        for (const char* name :
+             {"Note Activation Manager Recalculate",
+              "Note Pool Manager Array Sort", "DyCore_note_count",
+              "DyCore_kps_count", "Render Active Notes (State 0)",
+              "Render Active Notes (State 1)",
+              "Render Active Notes (State 2)"}) {
+            (void)find_or_create(name);
+        }
+    }
 
    public:
     Profiler(const Profiler&) = delete;
@@ -75,10 +115,9 @@ class Profiler {
         return instance;
     }
 
-    void record(const std::string& name, double duration) {
+    void record(std::string_view name, double duration) {
         std::lock_guard<std::mutex> lock(mtx);
-        records[name].name = name;
-        records[name].record(duration);
+        find_or_create(name).record(duration);
     }
 
     void reset() {
@@ -86,10 +125,10 @@ class Profiler {
         records.clear();
     }
 
-    std::optional<double> get_last_duration_ms(const std::string& name) const {
+    std::optional<double> get_last_duration_ms(std::string_view name) const {
         std::lock_guard<std::mutex> lock(mtx);
         auto it = records.find(name);
-        if (it == records.end()) {
+        if (it == records.end() || it->second.call_count == 0) {
             return std::nullopt;
         }
         return it->second.last_duration * 1000.0;
@@ -119,7 +158,9 @@ class Profiler {
         std::vector<ProfileData> sorted_records;
         sorted_records.reserve(records.size());
         for (const auto& pair : records) {
-            sorted_records.push_back(pair.second);
+            if (pair.second.call_count != 0) {
+                sorted_records.push_back(pair.second);
+            }
         }
 
         std::sort(sorted_records.begin(), sorted_records.end(),
@@ -180,9 +221,20 @@ class Profiler {
     }
 };
 
-inline ScopedTimer::ScopedTimer(const std::string& name,
+inline ScopedTimer::ScopedTimer(StaticProfileName name,
                                 Profiler& profiler_instance, bool is_enabled)
-    : profiler(profiler_instance), name(name), enabled(is_enabled) {
+    : profiler(profiler_instance), name(name.value), enabled(is_enabled) {
+    if (enabled) {
+        start_time = std::chrono::high_resolution_clock::now();
+    }
+}
+
+inline ScopedTimer::ScopedTimer(std::string name, Profiler& profiler_instance,
+                                bool is_enabled)
+    : profiler(profiler_instance),
+      ownedName(std::move(name)),
+      name(ownedName),
+      enabled(is_enabled) {
     if (enabled) {
         start_time = std::chrono::high_resolution_clock::now();
     }
@@ -200,8 +252,13 @@ inline ScopedTimer::~ScopedTimer() {
 #define PROFILE_SCOPE_CONDITIONAL(name, enabled) \
     ScopedTimer timer##__LINE__(name, Profiler::get(), enabled)
 
+#define PROFILE_STATIC_SCOPE_CONDITIONAL(name, enabled)                   \
+    ScopedTimer timer##__LINE__(StaticProfileName{name}, Profiler::get(), \
+                                enabled)
+#define PROFILE_STATIC_SCOPE(name) PROFILE_STATIC_SCOPE_CONDITIONAL(name, true)
+
 #define PROFILE_FUNCTION_CONDITIONAL(enabled) \
-    PROFILE_SCOPE_CONDITIONAL(__FUNCTION__, enabled)
+    PROFILE_STATIC_SCOPE_CONDITIONAL(__FUNCTION__, enabled)
 
 #define PROFILE_SCOPE(name) PROFILE_SCOPE_CONDITIONAL(name, true)
 #define PROFILE_FUNCTION() PROFILE_FUNCTION_CONDITIONAL(true)

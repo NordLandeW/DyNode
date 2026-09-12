@@ -70,3 +70,14 @@ TEST_CASE("RenderBenchmarkOptionsRejectUnknownAndMissingValues") {
     CHECK_THROWS_WITH_AS(missingValue(), "--workers requires a value",
                          std::invalid_argument);
 }
+
+TEST_CASE("RenderBenchmarkModesSelectWorkloadAndRejectInvalidValues") {
+    CHECK(parse({"render_benchmark"}).mode == "steady");
+    for (const auto& mode : {"timeline", "seek", "reorder"}) {
+        CHECK(parse({"render_benchmark", "--mode", mode}).mode == mode);
+    }
+    CHECK_THROWS_AS(parse({"render_benchmark", "--mode", "unknown"}),
+                    std::invalid_argument);
+    CHECK_THROWS_AS(parse({"render_benchmark", "--mode"}),
+                    std::invalid_argument);
+}

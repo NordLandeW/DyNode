@@ -67,6 +67,9 @@ void __async_save_project(SaveProjectParams params);
 
 void load_project(const char *filePath);
 uint64_t save_project(const char *filePath, double compressionLevel);
+// Stop accepting saves and wait for every accepted worker before teardown.
+void initialize_project_saves();
+void shutdown_project_saves();
 void backup_existing_project_file(const std::filesystem::path &finalPath);
 
 double get_project_buffer(const std::string &projectString, char *targetBuffer,

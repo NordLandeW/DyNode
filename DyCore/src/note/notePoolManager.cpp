@@ -16,14 +16,85 @@
 #include "taskflow/core/executor.hpp"
 #include "utils.h"
 
-NotePoolManager::NotePoolManager()
-    : monotonic_res(initial_buffer.data(), initial_buffer.size(),
+NotePoolManager::NotePoolManager(size_t workerCount)
+    : executorWorkerCount(workerCount),
+      monotonic_res(initial_buffer.data(), initial_buffer.size(),
                     std::pmr::new_delete_resource()),
       pool_res(&monotonic_res),
       arrayOutOfOrder(false) {
 }
 
 NotePoolManager::~NotePoolManager() {
+    shutdown_executor();
+}
+
+// Requires executorLifecycleMutex.
+tf::Executor& NotePoolManager::initialize_executor_locked() {
+    if (!noteExecutor) {
+        const size_t workers =
+            executorWorkerCount == 0
+                ? static_cast<size_t>(std::max(1, hardware_concurrency()))
+                : executorWorkerCount;
+        noteExecutor = std::make_unique<tf::Executor>(workers);
+        ++executorCreationCount;
+    }
+    return *noteExecutor;
+}
+
+void NotePoolManager::initialize_executor() {
+    std::lock_guard lock(executorLifecycleMutex);
+    if (executorStopped && activeExecutorCalls != 0) {
+        throw std::logic_error("Note executor is still shutting down");
+    }
+    (void)initialize_executor_locked();
+    executorStopped = false;
+}
+
+size_t NotePoolManager::executor_creation_count() const {
+    std::lock_guard lock(executorLifecycleMutex);
+    return executorCreationCount;
+}
+
+void NotePoolManager::shutdown_executor() {
+    std::unique_lock lock(executorLifecycleMutex);
+    if (noteExecutor && noteExecutor->this_worker() != nullptr) {
+        throw std::logic_error(
+            "Cannot shut down note executor from its worker");
+    }
+    executorStopped = true;
+    executorIdle.wait(lock, [&] { return activeExecutorCalls == 0; });
+    noteExecutor.reset();
+}
+
+void NotePoolManager::execute_tasks(tf::Taskflow& taskflow) {
+    tf::Executor* executor;
+    {
+        std::lock_guard lock(executorLifecycleMutex);
+        // A running worker may still finish a legal nested operation while
+        // shutdown waits for its outer call. External submissions are rejected.
+        if (executorStopped &&
+            (!noteExecutor || noteExecutor->this_worker() == nullptr)) {
+            throw std::logic_error("Note executor has been shut down");
+        }
+        executor = &initialize_executor_locked();
+        ++activeExecutorCalls;
+    }
+    auto release = [&] {
+        std::lock_guard lock(executorLifecycleMutex);
+        --activeExecutorCalls;
+        executorIdle.notify_all();
+    };
+    try {
+        if (executor->this_worker() != nullptr) {
+            executor->corun(taskflow);
+        } else {
+            executor->run(taskflow).get();
+        }
+    } catch (...) {
+        release();
+        throw;
+    }
+    release();
 }
 
 const Note& NotePoolManager::operator[](int index) {
@@ -197,7 +268,6 @@ void NotePoolManager::access_all_notes_safe(
 void NotePoolManager::access_all_notes_parallel(
     std::function<void(Note&)> executor) {
     std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-    tf::Executor tfexecutor;
     tf::Taskflow taskflow;
     taskflow.for_each(noteArray.begin(), noteArray.end(), [&](nptr note_ptr) {
         if (note_ptr) {
@@ -209,7 +279,7 @@ void NotePoolManager::access_all_notes_parallel(
             sync_hold_note_length(*note_ptr);
         }
     });
-    tfexecutor.run(taskflow).wait();
+    execute_tasks(taskflow);
 }
 
 void NotePoolManager::access_all_notes_parallel_safe(
@@ -224,7 +294,6 @@ void NotePoolManager::access_all_notes_parallel_safe(
             }
         }
     }
-    tf::Executor tfexecutor;
     tf::Taskflow taskflow;
     taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
         double origTime = note_ptr->time;
@@ -234,7 +303,7 @@ void NotePoolManager::access_all_notes_parallel_safe(
         sync_head_note_to_sub(*note_ptr);
         sync_hold_note_length(*note_ptr);
     });
-    tfexecutor.run(taskflow).wait();
+    execute_tasks(taskflow);
 }
 
 void NotePoolManager::sync_head_note_to_sub(const Note& note) {
@@ -344,7 +413,7 @@ void NotePoolManager::array_markdel_index(const NoteMemoryInfo& info) {
 
 // Should only be called when mtxNoteOps is locked
 void NotePoolManager::array_sort() {
-    PROFILE_SCOPE("Note Pool Manager Array Sort");
+    PROFILE_STATIC_SCOPE("Note Pool Manager Array Sort");
     static auto noteArray_cmp = [](const nptr& a, const nptr& b) {
         if (a == nullptr)
             return false;
@@ -374,10 +443,9 @@ void NotePoolManager::array_sort() {
     if (enableParallelSort) {
         // Use parallel sort
         tf::Taskflow taskflow;
-        tf::Executor tfexecutor;
         taskflow.sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
         taskflow.sort(holdArray.begin(), holdArray.end(), holdArray_cmp);
-        tfexecutor.run(taskflow).wait();
+        execute_tasks(taskflow);
     } else {
         std::sort(noteArray.begin(), noteArray.end(), noteArray_cmp);
         std::sort(holdArray.begin(), holdArray.end(), holdArray_cmp);

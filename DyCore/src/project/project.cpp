@@ -17,6 +17,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -36,6 +37,9 @@ namespace {
 constexpr int EMERGENCY_PROJECT_BACKUP_SLOT_COUNT = 3;
 
 std::mutex projectSaveMutex;
+std::mutex saveJobsMutex;
+std::vector<std::future<void>> saveJobs;
+bool savesStopped = false;
 
 #ifdef _WIN32
 void throw_last_windows_error(const char *message) {
@@ -329,13 +333,58 @@ SaveProjectParams prepare_project_save(const char *filePath,
 // Only request identity is captured here; all project data work is
 // asynchronous.
 uint64_t save_project(const char *filePath, double compressionLevel) {
+    std::lock_guard lock(saveJobsMutex);
+    if (savesStopped) {
+        throw std::runtime_error("Project saves have been shut down");
+    }
+    std::erase_if(saveJobs, [](auto &job) {
+        if (job.wait_for(std::chrono::seconds(0)) !=
+            std::future_status::ready) {
+            return false;
+        }
+        try {
+            job.get();
+        } catch (const std::exception &error) {
+            print_debug_message(std::string("Project save worker failed: ") +
+                                error.what());
+        } catch (...) {
+            print_debug_message(
+                "Project save worker failed with an unknown exception.");
+        }
+        return true;
+    });
     auto params = prepare_project_save(filePath, compressionLevel);
     const uint64_t requestId = params.requestId;
-    std::thread t([params = std::move(params)]() mutable {
-        __async_save_project(std::move(params));
-    });
-    t.detach();
+    // The full snapshot remains worker-side, under the original locks.
+    saveJobs.push_back(
+        std::async(std::launch::async, [params = std::move(params)]() mutable {
+            __async_save_project(std::move(params));
+        }));
     return requestId;
+}
+
+void initialize_project_saves() {
+    std::lock_guard lock(saveJobsMutex);
+    savesStopped = false;
+}
+
+void shutdown_project_saves() {
+    // Workers never acquire this mutex. Keep initializers/submissions out
+    // until every accepted save has completed, including failure paths.
+    std::lock_guard lock(saveJobsMutex);
+    savesStopped = true;
+    std::exception_ptr failure;
+    for (auto &job : saveJobs) {
+        try {
+            job.get();
+        } catch (...) {
+            if (!failure)
+                failure = std::current_exception();
+        }
+    }
+    saveJobs.clear();
+    if (failure)
+        std::rethrow_exception(failure);
 }
 
 // Compresses the project string into a buffer.

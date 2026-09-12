@@ -23,3 +23,9 @@ function aptabase_track(eventName, props = undefined) {
 function aptabase_flush() {
     global.__aptabaseClient.flush();
 }
+
+/// @description Stop automatic flushes and optionally upload the unsent exit queue.
+function aptabase_shutdown(sendEvents = true) {
+    if(!variable_global_exists("__aptabaseClient")) return undefined;
+    return global.__aptabaseClient.shutdown(sendEvents);
+}

@@ -262,3 +262,19 @@ TEST_CASE("VideoCloseReleasesSyncConsumerWithoutFailure") {
     CHECK_FALSE(fixture.decoder.is_loaded());
     CHECK_FALSE(fixture.decoder.has_failed());
 }
+
+TEST_CASE("VideoRuntimeShutdownReleasesConsumerAndPreservesSingletonLifetime") {
+    auto& decoder = VideoDecoder::get_instance();
+    VideoDecoderTestAccess::prepare(decoder);
+    std::array<BYTE, 4> pixels{};
+    std::promise<void> entered;
+    auto ready = entered.get_future();
+    auto consumer = VideoDecoderTestAccess::consumer(decoder, pixels, entered);
+    ready.get();
+    VideoDecoder::shutdown_instance();
+    CHECK(consumer.get() == 0.0);
+    CHECK_FALSE(decoder.is_loaded());
+    CHECK_FALSE(decoder.has_failed());
+    CHECK(&VideoDecoder::get_instance() == &decoder);
+    CHECK_NOTHROW(VideoDecoder::shutdown_instance());
+}

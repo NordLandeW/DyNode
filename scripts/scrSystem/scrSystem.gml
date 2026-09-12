@@ -10,7 +10,7 @@
 
 #region MAP FUNCTIONS
 
-function map_close() {
+function map_close(shuttingDown = false) {
 	DyCore_project_save_invalidate();
 	// A late completion belongs to the closed project, not its replacement.
 	with(objManager) {
@@ -62,9 +62,11 @@ function map_close() {
 	
 	instance_destroy(objMain);
 
-	call_later(1, time_source_units_seconds, function() { gc_collect(); });
-	call_later(2, time_source_units_seconds, function() { gc_collect(); });
-	call_later(3, time_source_units_seconds, function() { gc_collect(); });
+	if(!shuttingDown) {
+		call_later(1, time_source_units_seconds, function() { gc_collect(); });
+		call_later(2, time_source_units_seconds, function() { gc_collect(); });
+		call_later(3, time_source_units_seconds, function() { gc_collect(); });
+	}
 }
 
 function map_reset() {
@@ -1045,6 +1047,18 @@ function theme_get_color_hsv() {
 
 #region SYSTEM FUNCTIONS
 
+/// @description Isolate an application shutdown stage so other systems still clean up.
+function app_cleanup_step(label, cleanup) {
+	try {
+		cleanup();
+		return true;
+	} catch(error) {
+		show_debug_message("Cleanup failed: " + label);
+		show_debug_message(error);
+		return false;
+	}
+}
+
 /// @description Check if a parameter string is a valid filename.
 /// @param {String} str The string to check.
 /// @returns {Bool} If the string is a valid filename.
@@ -1412,7 +1426,7 @@ function analytics_track_event(event_name, event_data = {}) {
 function game_end_confirm() {
 	var _confirm_exit = instance_exists(objMain) ? show_question_i18n("confirm_close") : true;
 	if(_confirm_exit) {
-		map_close();
+		// Game End drains pending saves before closing the chart.
 		game_end();
 		return true;
 	}

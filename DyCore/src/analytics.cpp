@@ -7,9 +7,16 @@
 #include <string>
 
 #include "config.h"
+#include "utils.h"
 #include "version.h"
 
+namespace {
+bool analyticsInitialized = false;
+}
+
 void init_analytics() {
+    if (analyticsInitialized)
+        return;
     std::string version = "DyNode@" + std::string(DYNODE_VERSION);
 
     if (version.find("dirty") != std::string::npos) {
@@ -26,7 +33,20 @@ void init_analytics() {
     sentry_options_set_environment(
         options, DYNODE_BUILD_TYPE == "RELEASE" ? "production" : "development");
 
-    sentry_init(options);
+    sentry_options_set_shutdown_timeout(options, 2000);
+    analyticsInitialized = sentry_init(options) == 0;
+}
+
+int shutdown_analytics() {
+    if (!analyticsInitialized)
+        return 0;
+    analyticsInitialized = false;
+    const int pending = sentry_close();
+    if (pending != 0) {
+        print_debug_message("Sentry shutdown retained envelopes: " +
+                            std::to_string(pending));
+    }
+    return pending;
 }
 
 void report_exception_error(const std::string exceptionType,

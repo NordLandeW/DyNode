@@ -81,4 +81,17 @@ void set_render_worker_count_override(size_t workerCount);
 
 size_t get_vertex_buffer_bound();
 
+// Main-thread lifecycle. Shutdown must follow the last synchronous render.
+void initialize_note_rendering();
+void shutdown_note_rendering();
+size_t prepare_note_rendering();
+
+struct NoteRenderingStats {
+    size_t capacityGrowths = 0;
+    size_t executorCreations = 0;
+    size_t taskSubmissions = 0;
+    size_t workspaceCapacityBytes = 0;
+};
+NoteRenderingStats get_note_rendering_stats();
+
 SpriteManager& get_sprite_manager();

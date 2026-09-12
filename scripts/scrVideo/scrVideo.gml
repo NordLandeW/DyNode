@@ -2,9 +2,25 @@
 // Prevent flickering when seek the video to beginning.
 global.__DyCore_Video_Preparing_Flag = false;
 
+function dyc_video_frame_cache() {
+    static cache = { buffer: -1, surface: -999 };
+    return cache;
+}
+
+/// @description Release caller-owned video pixels and the last displayed frame.
+function dyc_video_clear_frame() {
+    var cache = dyc_video_frame_cache();
+    if(buffer_exists(cache.buffer)) buffer_delete(cache.buffer);
+    if(surface_exists(cache.surface)) surface_free(cache.surface);
+    cache.buffer = -1;
+    cache.surface = -999;
+    global.__DyCore_Video_Preparing_Flag = false;
+}
+
 function dyc_video_get_frame() {
-    static frameBuffer = -1;
-    static frameSurface = -999;
+    var cache = dyc_video_frame_cache();
+    var frameBuffer = cache.buffer;
+    var frameSurface = cache.surface;
     var buffSize = DyCore_video_get_buffer_size();
     var syncMode = dyc_video_get_sync_mode();
 
@@ -16,6 +32,7 @@ function dyc_video_get_frame() {
             buffer_resize(frameBuffer, buffSize);
         else {
             frameBuffer = buffer_create(buffSize, buffer_fixed, 1);
+            cache.buffer = frameBuffer;
         }
     }
 
@@ -37,6 +54,7 @@ function dyc_video_get_frame() {
             if(surface_exists(frameSurface))
                 surface_free(frameSurface);
             frameSurface = surface_create(vw, vh);
+            cache.surface = frameSurface;
         }
 
         buffer_set_surface(frameBuffer, frameSurface, 0);
@@ -83,7 +101,11 @@ function dyc_video_draw(x, y, alp) {
 }
 
 function dyc_video_free() {
-    DyCore_video_close();
+    try {
+        DyCore_video_close();
+    } finally {
+        dyc_video_clear_frame();
+    }
 }
 
 function dyc_video_seek_to(time) {

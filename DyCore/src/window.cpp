@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include "DyCore.h"
 #include "gm.h"
@@ -12,10 +12,13 @@
 WNDPROC g_fnOldWndProc = NULL;
 HWND g_hMenuBar = NULL;
 bool g_isMenuExpanded = true;
+HWND g_hookedWindow = NULL;
+bool g_hookEventsEnabled = false;
+bool g_acceptedDropsBeforeHook = false;
 
 LRESULT CALLBACK SubclassWndProc(HWND hWnd, UINT uMsg, WPARAM wParam,
                                  LPARAM lParam);
-void SetupWindowHooks(HWND targetHwnd);
+bool SetupWindowHooks(HWND targetHwnd);
 
 void OnFilesDropped(const std::vector<std::wstring>& files) {
     if (files.empty())
@@ -36,6 +39,13 @@ void OnFilesDropped(const std::vector<std::wstring>& files) {
 
 LRESULT CALLBACK SubclassWndProc(HWND hWnd, UINT uMsg, WPARAM wParam,
                                  LPARAM lParam) {
+    const WNDPROC oldProc = g_fnOldWndProc;
+    auto forward = [&] {
+        return oldProc ? CallWindowProc(oldProc, hWnd, uMsg, wParam, lParam)
+                       : DefWindowProc(hWnd, uMsg, wParam, lParam);
+    };
+    if (!g_hookEventsEnabled && uMsg != WM_NCDESTROY)
+        return forward();
     switch (uMsg) {
         case WM_DROPFILES: {
             HDROP hDrop = (HDROP)wParam;
@@ -56,40 +66,70 @@ LRESULT CALLBACK SubclassWndProc(HWND hWnd, UINT uMsg, WPARAM wParam,
             return 0;
         }
 
-        case WM_SIZE: {
-            LRESULT result =
-                CallWindowProc(g_fnOldWndProc, hWnd, uMsg, wParam, lParam);
-
-            return result;
-        }
-        case WM_DESTROY:
         case WM_NCDESTROY: {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)g_fnOldWndProc);
+            window_shutdown();
             g_fnOldWndProc = NULL;
+            g_hookedWindow = NULL;
             break;
         }
     }
 
-    return CallWindowProc(g_fnOldWndProc, hWnd, uMsg, wParam, lParam);
+    return forward();
 }
 
-void SetupWindowHooks(HWND targetHwnd) {
+bool SetupWindowHooks(HWND targetHwnd) {
     if (!IsWindow(targetHwnd))
-        return;
-
-    auto hModule = get_hmodule();
-
-    DragAcceptFiles(targetHwnd, TRUE);
-    if (GetWindowLongPtr(targetHwnd, GWLP_WNDPROC) !=
-        (LONG_PTR)SubclassWndProc) {
-        g_fnOldWndProc = (WNDPROC)SetWindowLongPtr(targetHwnd, GWLP_WNDPROC,
-                                                   (LONG_PTR)SubclassWndProc);
-        print_debug_message("Window subclassed successfully.");
+        return false;
+    if (g_hookedWindow && g_hookedWindow != targetHwnd &&
+        window_shutdown() != 0) {
+        return false;
     }
+    if (g_hookedWindow == targetHwnd && g_fnOldWndProc) {
+        g_hookEventsEnabled = true;
+        DragAcceptFiles(targetHwnd, TRUE);
+        return true;
+    }
+    SetLastError(0);
+    const auto oldProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(
+        targetHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(SubclassWndProc)));
+    if (!oldProc)
+        return false;
+    g_fnOldWndProc = oldProc;
+    g_hookedWindow = targetHwnd;
+    g_hookEventsEnabled = true;
+    g_acceptedDropsBeforeHook =
+        (GetWindowLongPtr(targetHwnd, GWL_EXSTYLE) & WS_EX_ACCEPTFILES) != 0;
+    DragAcceptFiles(targetHwnd, TRUE);
+    print_debug_message("Window subclassed successfully.");
+    return true;
 }
 
 int window_init() {
-    SetupWindowHooks(get_hwnd_handle());
+    return SetupWindowHooks(get_hwnd_handle()) ? 0 : -1;
+}
+
+int window_shutdown() {
+    g_hookEventsEnabled = false;
+    if (!g_hookedWindow || !IsWindow(g_hookedWindow)) {
+        g_hookedWindow = NULL;
+        g_fnOldWndProc = NULL;
+        return 0;
+    }
+    DragAcceptFiles(g_hookedWindow, g_acceptedDropsBeforeHook);
+    const auto current = reinterpret_cast<WNDPROC>(
+        GetWindowLongPtr(g_hookedWindow, GWLP_WNDPROC));
+    if (current != SubclassWndProc) {
+        // Do not overwrite a later subclass. Stay as a pass-through until
+        // WM_NCDESTROY, which still forwards through the saved procedure.
+        return 1;
+    }
+    if (g_fnOldWndProc &&
+        !SetWindowLongPtr(g_hookedWindow, GWLP_WNDPROC,
+                          reinterpret_cast<LONG_PTR>(g_fnOldWndProc))) {
+        return -1;
+    }
+    g_fnOldWndProc = NULL;
+    g_hookedWindow = NULL;
     return 0;
 }
 
@@ -109,6 +149,10 @@ void enable_ime() {
 
 int window_init() {
     print_debug_message("Window initialization skipped: not on Windows.");
+    return 0;
+}
+
+int window_shutdown() {
     return 0;
 }
 

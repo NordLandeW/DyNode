@@ -10,6 +10,7 @@ struct BenchmarkOptions {
     std::size_t iterations = 100;
     std::size_t warmupIterations = 10;
     std::string scenario = "mixed";
+    std::string mode = "steady";
     std::string chartPath;
     double noteSpeed = 0.0;
     std::size_t workerCount = 0;

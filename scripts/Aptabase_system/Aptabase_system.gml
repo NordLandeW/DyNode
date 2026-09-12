@@ -196,6 +196,8 @@ function __AptabaseClient() constructor {
 
     // Event management.
     eventQueue = [];
+    shutdownStarted = false;
+    shutdownResult = undefined;
 
     // Map of flush ID to event for events that have been sent but not yet acknowledged.
     sendingEvents = {};
@@ -242,7 +244,7 @@ function __AptabaseClient() constructor {
         return APTABASE_US_HOST;
     }
 
-    static send_request = function(payload) {
+    static get_endpoint = function() {
         var resolvedBaseURL = baseURL;
         if(string_length(resolvedBaseURL) <= 0) {
             resolvedBaseURL = get_host_from_app_key(appKey);
@@ -257,6 +259,11 @@ function __AptabaseClient() constructor {
             }
         }
 
+        return endpoint;
+    }
+
+    static send_request = function(payload) {
+        var endpoint = get_endpoint();
         var headers = ds_map_create();
         headers[? "Content-Type"] = "application/json";
         headers[? "App-Key"] = appKey;
@@ -361,6 +368,35 @@ function __AptabaseClient() constructor {
             call_cancel(flushEventHandle);
             flushEventHandle = undefined;
         }
+    }
+
+    /// @description Best-effort exit upload of unsent events, never pending requests.
+    static shutdown = function(sendEvents) {
+        if(shutdownStarted) return shutdownResult;
+        stop();
+        shutdownStarted = true;
+        shutdownResult = {
+            accepted: 0,
+            remaining: array_length(eventQueue),
+            inFlightRequests: array_length(variable_struct_get_names(sendingEvents)),
+            status: 0
+        };
+        var deadline = get_timer() + 2000000;
+        while(sendEvents && array_length(eventQueue) > 0) {
+            var remainingMs = floor((deadline - get_timer()) / 1000);
+            if(remainingMs < 1) break;
+            var count = min(array_length(eventQueue), min(maxBatchSize, __APTABASE_MAX_BATCH_SIZE_LIMIT));
+            if(count <= 0) break;
+            var batch = [];
+            array_copy(batch, 0, eventQueue, 0, count);
+            shutdownResult.status = DyCore_aptabase_post(get_endpoint(), appKey, json_stringify(batch), remainingMs);
+            if(shutdownResult.status < 200 || shutdownResult.status >= 300) break;
+            array_delete(eventQueue, 0, count);
+            shutdownResult.accepted += count;
+            shutdownResult.remaining = array_length(eventQueue);
+        }
+        show_debug_message("Aptabase shutdown: " + json_stringify(shutdownResult));
+        return shutdownResult;
     }
 }
 

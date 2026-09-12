@@ -128,15 +128,15 @@ struct IMFSample;
  */
 class VideoDecoder {
    public:
-    static VideoDecoder& get_instance() {
-        static VideoDecoder instance;
-        return instance;
-    }
+    // Owner-thread shutdown releases the runtime, not singleton storage.
+    // It does not instantiate an unused decoder.
+    static VideoDecoder& get_instance();
+    static void shutdown_instance();
 
     VideoDecoder();
 
-    // Call close() before destruction to ensure the decode thread is stopped
-    // and joined, and COM objects are released on the correct thread.
+    // Destruction closes the worker before releasing Media Foundation.
+    // Destroy on the owner thread, never from DllMain.
     ~VideoDecoder();
 
     /**
@@ -341,6 +341,10 @@ class VideoDecoder {
 
    private:
     friend struct VideoDecoderTestAccess;
+    static std::atomic<VideoDecoder*> existingInstance;
+    bool mediaFoundationInitialized = false;
+    bool initialize_runtime();
+    void shutdown_runtime();
     void finish_decode_worker();
     /**
      * @brief Background loop that pulls samples from Media Foundation.

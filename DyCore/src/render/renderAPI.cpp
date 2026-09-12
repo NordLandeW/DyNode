@@ -30,6 +30,16 @@ DYCORE_API double DyCore_get_note_rendering_vertex_buffer_bound() {
     return get_vertex_buffer_bound();
 }
 
+DYCORE_API double DyCore_prepare_note_rendering() {
+    try {
+        return static_cast<double>(prepare_note_rendering());
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error preparing note rendering: ") +
+                            e.what());
+        return -1;
+    }
+}
+
 DYCORE_API double DyCore_render_active_notes(char* vertexBuffer, double nowTime,
                                              double noteSpeed, double state) {
     try {

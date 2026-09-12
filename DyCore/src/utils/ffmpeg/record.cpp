@@ -26,6 +26,7 @@ std::mutex Recorder::cache_mutex;
 
 // FFmpeg Encoders Availability Detection and process helpers
 namespace {
+Recorder* existingRecorder = nullptr;
 
 #ifdef _WIN32
 bool run_command_capture_output_utf8(const std::string& cmd,
@@ -341,10 +342,12 @@ static bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 }
 
 void Recorder::writer_worker() {
-    while (recording_active || !frame_queue.empty()) {
+    for (;;) {
         std::unique_lock<std::mutex> lock(queue_mutex);
         queue_cond.wait(
             lock, [this] { return !frame_queue.empty() || !recording_active; });
+        if (frame_queue.empty())
+            return;
 
         if (!frame_queue.empty()) {
             std::vector<char> frame_data = std::move(frame_queue.front());
@@ -422,8 +425,7 @@ int Recorder::start_recording(const std::wstring& filename,
 int Recorder::push_frame(const void* frameData, int frameSize) {
 #ifdef _WIN32
     auto fail = [&](int code, const std::string& msg) -> int {
-        print_debug_message("Error: " + msg + " Code: " +
-                            std::to_string(code));
+        print_debug_message("Error: " + msg + " Code: " + std::to_string(code));
         finish_recording();
         return code;
     };
@@ -467,9 +469,9 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
         queue_cond.notify_one();
         return FFMPEG_PUSH_FRAME_OK;
     } catch (const std::exception& e) {
-        return fail(FFMPEG_PUSH_FRAME_ENQUEUE_FAILED,
-                    std::string("Exception while enqueuing frame: ") +
-                        e.what());
+        return fail(
+            FFMPEG_PUSH_FRAME_ENQUEUE_FAILED,
+            std::string("Exception while enqueuing frame: ") + e.what());
     }
 #else
     (void)frameData;
@@ -483,19 +485,17 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
 }
 
 void Recorder::finish_recording() {
-#ifdef _WIN32
-    if (recording_active) {
+    {
+        std::lock_guard lock(queue_mutex);
         recording_active = false;
-        queue_cond.notify_one();
-        if (writer_thread.joinable()) {
-            writer_thread.join();
-        }
     }
+    queue_cond.notify_one();
+    if (writer_thread.joinable())
+        writer_thread.join();
+#ifdef _WIN32
 
     if (!ffmpeg_pipe) {
         // Even if ffmpeg_pipe is null, ensure process handles are cleaned up.
-        print_debug_message(
-            "Warning: finish_recording called without active recording.");
         if (g_ffmpeg_pi.hProcess) {
             WaitForSingleObject(g_ffmpeg_pi.hProcess, INFINITE);
             CloseHandle(g_ffmpeg_pi.hThread);
@@ -518,14 +518,6 @@ void Recorder::finish_recording() {
         g_ffmpeg_pi.hProcess = NULL;
     }
 #else
-    // Gracefully stop writer thread if running; no external process management.
-    if (recording_active) {
-        recording_active = false;
-        queue_cond.notify_one();
-        if (writer_thread.joinable()) {
-            writer_thread.join();
-        }
-    }
     if (ffmpeg_pipe) {
         fflush(ffmpeg_pipe);
         fclose(ffmpeg_pipe);
@@ -623,5 +615,12 @@ std::string Recorder::get_default_encoder() {
 
 Recorder& get_recorder() {
     static Recorder recorder;
+    static const bool registered = (existingRecorder = &recorder, true);
+    (void)registered;
     return recorder;
+}
+
+void shutdown_recorder() {
+    if (existingRecorder)
+        existingRecorder->finish_recording();
 }

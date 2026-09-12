@@ -23,7 +23,7 @@ void NoteActivationManager::set_range(double curTime, double curSpeed) {
 }
 
 void NoteActivationManager::recalculate() {
-    PROFILE_SCOPE("Note Activation Manager Recalculate");
+    PROFILE_STATIC_SCOPE("Note Activation Manager Recalculate");
 
     activeNotes.clear();
     activeHolds.clear();

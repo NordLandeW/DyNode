@@ -10,9 +10,16 @@
 #include "analytics.h"
 #include "api.h"
 #include "config.h"
+#include "extension.h"
 #include "ffmpeg/base.h"
+#include "ffmpeg/record.h"
+#include "notePoolManager.h"
+#include "profile.h"
+#include "project.h"
+#include "render.h"
 #include "utils.h"
 #include "version.h"
+#include "video/decoder.h"
 #include "window.h"
 
 #ifdef WIN32
@@ -54,13 +61,16 @@ std::filesystem::path get_program_path() {
     return programPath;
 }
 
+namespace {
+bool noteSubsystemInitialized = false;
+}
+
+DYCORE_API double DyCore_shutdown();
+
 // Initializes the DyCore library.
 //
 // @return "success" on successful initialization.
 DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
-    // Initialize analytics
-    init_analytics();
-
     std::ios::sync_with_stdio(false);
     HWND hwndHandle = reinterpret_cast<HWND>(const_cast<char*>(hwnd));
     ::programPath = convert_char_to_path(programPath);
@@ -80,15 +90,80 @@ DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
         print_debug_message("FFmpeg is available.");
     }
 
-    print_debug_message("-- DyCore Initialization finished. No errors.");
     print_debug_message("-- Program path: " + ::programPath.string());
     print_debug_message("-- Working directory: " +
                         std::filesystem::current_path().string());
 
-    // Initialize window functions
-    window_init();
+    try {
+        (void)Profiler::get();
+        initialize_project_saves();
+        noteSubsystemInitialized = true;
+        get_note_pool_manager().initialize_executor();
+        initialize_note_rendering();
+        if (window_init() != 0) {
+            throw std::runtime_error("Failed to install window hook");
+        }
+        init_analytics();
+        print_debug_message("-- DyCore Initialization finished. No errors.");
+        return "success";
+    } catch (const std::exception& error) {
+        print_debug_message(std::string("DyCore initialization failed: ") +
+                            error.what());
+        DyCore_shutdown();
+        return "initfailed";
+    }
+}
 
-    return "success";
+// Drain before GML map_close invalidates identity and clears live note data.
+DYCORE_API double DyCore_shutdown_project_saves() {
+    try {
+        shutdown_project_saves();
+        return 0.0;
+    } catch (const std::exception& error) {
+        print_debug_message(std::string("Project save shutdown failed: ") +
+                            error.what());
+        return -1.0;
+    }
+}
+
+// Called from Game End on the owner thread, before DLL unloading.
+DYCORE_API double DyCore_shutdown() {
+    bool succeeded = true;
+    auto cleanup = [&](const char* name, auto action) {
+        try {
+            action();
+        } catch (const std::exception& error) {
+            succeeded = false;
+            print_debug_message(std::string("DyCore shutdown: ") + name + ": " +
+                                error.what());
+        } catch (...) {
+            succeeded = false;
+            print_debug_message(std::string("DyCore shutdown failed: ") + name);
+        }
+    };
+    cleanup("project saves", [] { shutdown_project_saves(); });
+    cleanup("Lua", [] { cancel_lua_script(); });
+    cleanup("recorder", [] { shutdown_recorder(); });
+    cleanup("video", [] { VideoDecoder::shutdown_instance(); });
+    cleanup("render executor", [] { shutdown_note_rendering(); });
+    cleanup("note executor", [] {
+        if (noteSubsystemInitialized) {
+            get_note_pool_manager().shutdown_executor();
+            noteSubsystemInitialized = false;
+        }
+    });
+    cleanup("window hook", [] {
+        const int result = window_shutdown();
+        if (result < 0)
+            throw std::runtime_error("Failed to restore window procedure");
+        if (result > 0) {
+            print_debug_message(
+                "Window hook is inactive; retained in a foreign chain until "
+                "WM_NCDESTROY.");
+        }
+    });
+    cleanup("Sentry", [] { shutdown_analytics(); });
+    return succeeded ? 0.0 : -1.0;
 }
 
 DYCORE_API const char* DyCore_get_version() {

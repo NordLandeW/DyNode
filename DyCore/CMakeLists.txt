@@ -168,6 +168,7 @@ function(dycore_apply_common_target_settings target)
     target_link_libraries(${target} PRIVATE 
         zstd lua pugixml delaunator glm::glm xxhash sentry
         $<$<PLATFORM_ID:Windows>:imm32>
+        $<$<PLATFORM_ID:Windows>:winhttp>
     )
 endfunction()
 
@@ -234,7 +235,9 @@ add_executable(DyCore_tests
 
 dycore_apply_common_target_settings(DyCore_tests)
 target_include_directories(DyCore_tests PRIVATE benchmarks)
-target_link_libraries(DyCore_tests PRIVATE doctest::doctest)
+target_link_libraries(DyCore_tests PRIVATE doctest::doctest
+    $<$<PLATFORM_ID:Windows>:ws2_32>
+)
 
 add_custom_command(TARGET DyCore_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

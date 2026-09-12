@@ -473,25 +473,55 @@ void VideoDecoder::decode_loop() {
     CoUninitialize();
 }
 
+std::atomic<VideoDecoder*> VideoDecoder::existingInstance{nullptr};
+
+VideoDecoder& VideoDecoder::get_instance() {
+    static VideoDecoder instance;
+    static const bool registered = (existingInstance.store(&instance), true);
+    (void)registered;
+    return instance;
+}
+
+void VideoDecoder::shutdown_instance() {
+    if (auto* instance = existingInstance.load())
+        instance->shutdown_runtime();
+}
+
 VideoDecoder::VideoDecoder() {
+    initialize_runtime();
+}
+
+bool VideoDecoder::initialize_runtime() {
+    if (mediaFoundationInitialized)
+        return true;
     HRESULT hr = MFStartup(MF_VERSION);
     if (FAILED(hr)) {
-        print_debug_message(std::format(
-            "VideoDecoder constructor MFStartup failed, hr=0x{:08X}",
-            static_cast<unsigned long>(hr)));
-    } else {
-        print_debug_message("VideoDecoder constructor MFStartup succeeded.");
+        print_debug_message(
+            std::format("VideoDecoder MFStartup failed, hr=0x{:08X}",
+                        static_cast<unsigned long>(hr)));
+        return false;
     }
+    mediaFoundationInitialized = true;
+    print_debug_message("VideoDecoder MFStartup succeeded.");
+    return true;
 }
 
 VideoDecoder::~VideoDecoder() {
+    shutdown_runtime();
+}
+
+void VideoDecoder::shutdown_runtime() {
+    close();
+    if (!mediaFoundationInitialized)
+        return;
+    mediaFoundationInitialized = false;
     HRESULT hr = MFShutdown();
     if (FAILED(hr)) {
-        print_debug_message(std::format(
-            "VideoDecoder destructor MFShutdown failed, hr=0x{:08X}",
-            static_cast<unsigned long>(hr)));
+        print_debug_message(
+            std::format("VideoDecoder MFShutdown failed, hr=0x{:08X}",
+                        static_cast<unsigned long>(hr)));
     } else {
-        print_debug_message("VideoDecoder destructor MFShutdown succeeded.");
+        print_debug_message("VideoDecoder MFShutdown succeeded.");
     }
 }
 
@@ -686,6 +716,8 @@ double query_duration_seconds(IMFSourceReader* reader) {
 }
 
 bool VideoDecoder::open(const wchar_t* filename) {
+    if (!initialize_runtime())
+        return false;
     if (m_isLoaded || m_pReader || m_decodeThread.joinable()) {
         print_debug_message(
             "VideoDecoder::open called while a video is already loaded; "

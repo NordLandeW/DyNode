@@ -5,6 +5,7 @@
 #include <fstream>
 #include <future>
 #include <latch>
+#include <set>
 #include <string>
 
 #include "gm.h"
@@ -29,6 +30,7 @@ struct SaveFixture {
          std::to_string(
              std::chrono::steady_clock::now().time_since_epoch().count()));
     SaveFixture() {
+        initialize_project_saves();
         std::filesystem::create_directory(dir);
         while (DyCore_has_async_event() > 0) {
             DyCore_get_async_event();
@@ -36,6 +38,7 @@ struct SaveFixture {
         ProjectManager::inst().setup_default_chart();
     }
     ~SaveFixture() {
+        shutdown_project_saves();
         ProjectManager::inst().setup_default_chart();
         while (DyCore_has_async_event() > 0) {
             DyCore_get_async_event();
@@ -205,4 +208,35 @@ TEST_CASE("ChartImportExportReportsFileFailures") {
     __async_save_project(std::move(request));
     REQUIRE(DyCore_chart_import_dyn(
                 (fixture.dir / "valid.dyn").string().c_str(), 1, 1) == 0);
+}
+
+TEST_CASE("ProjectSaveShutdownDrainsAcceptedWorkersBeforeReleasingData") {
+    SaveFixture fixture;
+    set_chart("shutdown", 0);
+    const auto first = fixture.dir / "first.dyn";
+    const auto second = fixture.dir / "second.dyn";
+    const auto firstId = save_project(first.string().c_str(), 1);
+    const auto secondId = save_project(second.string().c_str(), 1);
+    shutdown_project_saves();
+    CHECK_NOTHROW(shutdown_project_saves());
+    std::set<uint64_t> completed;
+    while (DyCore_has_async_event() > 0) {
+        const auto event = nlohmann::json::parse(DyCore_get_async_event());
+        REQUIRE(event.at("type") == PROJECT_SAVING);
+        CHECK(event.at("status").get<int>() >= 0);
+        completed.insert(event.at("requestId").get<uint64_t>());
+    }
+    CHECK(completed == std::set<uint64_t>{firstId, secondId});
+    for (const auto& path : {first, second}) {
+        Project saved;
+        REQUIRE(project_import_dyn(path.string().c_str(), saved) == 0);
+        CHECK(saved.metadata.at("marker") == "shutdown");
+        REQUIRE(saved.charts.size() == 1);
+        REQUIRE(saved.charts[0].notes.size() == 1);
+        CHECK(saved.charts[0].notes[0].time == 100);
+    }
+    CHECK_THROWS_AS(
+        save_project((fixture.dir / "late.dyn").string().c_str(), 1),
+        std::runtime_error);
+    CHECK_FALSE(std::filesystem::exists(fixture.dir / "late.dyn"));
 }

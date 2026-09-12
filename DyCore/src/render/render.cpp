@@ -4,12 +4,14 @@
 #include <cstddef>
 #include <format>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <taskflow/taskflow.hpp>
 #include <vector>
 
 #include "activation.h"
+#include "capacity.h"
 #include "layout.h"
 #include "note.h"
 #include "notePoolManager.h"
@@ -502,6 +504,8 @@ size_t get_sprite_render_bytes(const SpriteData& sprite, glm::vec2 size) {
 
 size_t renderWorkerCountOverride = 0;
 bool renderWorkspaceInitialized = false;
+bool renderWorkspaceStopped = false;
+NoteRenderingStats renderStats;
 
 int configured_render_worker_count() {
     const int availableWorkerCount = std::max(1, hardware_concurrency());
@@ -519,6 +523,7 @@ class RenderWorkspace {
         : workerCount(configured_render_worker_count()),
           executor(static_cast<size_t>(workerCount)) {
         renderWorkspaceInitialized = true;
+        ++renderStats.executorCreations;
     }
 
     int workerCount;
@@ -533,9 +538,41 @@ class RenderWorkspace {
     std::vector<tf::Task> renderTasks;
 };
 
+std::unique_ptr<RenderWorkspace> renderWorkspace;
+
 RenderWorkspace& get_render_workspace() {
-    static RenderWorkspace workspace;
-    return workspace;
+    if (renderWorkspaceStopped) {
+        throw std::logic_error("Note renderer has been shut down");
+    }
+    if (!renderWorkspace) {
+        renderWorkspace = std::make_unique<RenderWorkspace>();
+    }
+    return *renderWorkspace;
+}
+
+void prepare_workspace_capacity(RenderWorkspace& workspace) {
+    const auto& activation = get_note_activation_manager();
+    const size_t notes = activation.get_active_notes().size();
+    const size_t holds = activation.get_active_holds().size();
+    const size_t lasting = activation.get_lasting_holds().size();
+    const size_t sources = std::max({notes, holds, lasting});
+    const size_t desiredChunks = static_cast<size_t>(workspace.workerCount) * 4;
+    // Byte-weighted groups can split into at most twice the target count,
+    // plus one rounding fragment for each of HOLD/NORMAL/CHAIN.
+    const size_t chunks = std::min(sources, desiredChunks * 2 + 3);
+    auto reserve = [](auto& values, size_t count) {
+        if (reserve_with_headroom(values, count)) {
+            ++renderStats.capacityGrowths;
+        }
+    };
+    reserve(workspace.sources, sources);
+    reserve(workspace.deferredSources, notes);
+    reserve(workspace.resolvedNotes, std::max(notes, holds));
+    reserve(workspace.prepared, std::max(holds, lasting));
+    reserve(workspace.chunks, chunks);
+    reserve(workspace.prepareTasks,
+            std::max(chunks, std::min(notes, desiredChunks)));
+    reserve(workspace.renderTasks, chunks);
 }
 
 }  // namespace
@@ -548,13 +585,47 @@ void set_render_worker_count_override(size_t workerCount) {
     renderWorkerCountOverride = workerCount;
 }
 
+void initialize_note_rendering() {
+    renderWorkspaceStopped = false;
+    (void)get_render_workspace();
+}
+
+void shutdown_note_rendering() {
+    renderWorkspaceStopped = true;
+    renderWorkspace.reset();
+}
+
+size_t prepare_note_rendering() {
+    prepare_workspace_capacity(get_render_workspace());
+    return get_vertex_buffer_bound();
+}
+
+NoteRenderingStats get_note_rendering_stats() {
+    auto stats = renderStats;
+    if (renderWorkspace) {
+        const auto& w = *renderWorkspace;
+        stats.workspaceCapacityBytes =
+            (w.sources.capacity() + w.deferredSources.capacity()) *
+                sizeof(RenderSource) +
+            w.resolvedNotes.capacity() * sizeof(const Note*) +
+            w.prepared.capacity() * sizeof(PreparedSprite) +
+            w.chunks.capacity() * sizeof(RenderChunk) +
+            (w.prepareTasks.capacity() + w.renderTasks.capacity()) *
+                sizeof(tf::Task);
+    }
+    return stats;
+}
+
 // For param state:
 //   0: Render addition bg
 //   1: Render hold bg
 //   2: Render other parts
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state) {
-    PROFILE_SCOPE(std::format("Render Active Notes (State {})", state));
+    const char* scopeName = state == 0   ? "Render Active Notes (State 0)"
+                            : state == 1 ? "Render Active Notes (State 1)"
+                                         : "Render Active Notes (State 2)";
+    PROFILE_STATIC_SCOPE(scopeName);
 
     // Get active notes list.
     const auto& actMan = get_note_activation_manager();
@@ -700,6 +771,9 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     };
 
     auto& workspace = get_render_workspace();
+    // Legacy native callers need not call prepare_note_rendering explicitly.
+    // Every pass reserves for the entire frame, so later passes cannot grow it.
+    prepare_workspace_capacity(workspace);
     auto& sources = workspace.sources;
     auto& deferredSources = workspace.deferredSources;
     sources.clear();
@@ -760,7 +834,6 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
             list.size(), static_cast<size_t>(workspace.workerCount) * 4);
         const size_t resolveChunkSize =
             (list.size() + resolveChunkCount - 1) / resolveChunkCount;
-        resolveTasks.reserve(resolveChunkCount);
         // Activation and note mutation finish before rendering. These tasks
         // only read the stable note map and write disjoint output slots.
         for (size_t begin = 0; begin < list.size(); begin += resolveChunkSize) {
@@ -773,19 +846,18 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                 }
             }));
         }
+        ++renderStats.taskSubmissions;
         workspace.executor.run(taskflow).get();
         return resolvedNotes;
     };
 
     if (state == 0) {
-        sources.reserve(lastingHolds.size());
         for (const auto& [time, noteID] : lastingHolds) {
             const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
             append_source(note, RenderItemKind::HOLD_BACKGROUND,
                           holdBgMaxBytes);
         }
     } else if (state == 1) {
-        sources.reserve(activeHolds.size());
         for (const Note* note : resolve_notes(activeHolds, holdBarMaxBytes)) {
             append_source(*note, RenderItemKind::HOLD_BAR, holdBarMaxBytes);
         }
@@ -794,7 +866,6 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
         // activeHolds is the ordered HOLD subset of activeNotes, so filtering
         // here preserves the original HOLD -> NORMAL -> CHAIN draw order.
-        sources.reserve(activeNotes.size());
         for (const Note* note : resolvedNotes) {
             if (note->get_note_type() == NOTE_TYPE::HOLD) {
                 append_source(*note, RenderItemKind::HOLD_EDGE,
@@ -803,7 +874,6 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         }
         state2HoldCount = sources.size();
 
-        deferredSources.reserve(activeNotes.size());
         for (const Note* note : resolvedNotes) {
             if (note->get_note_type() == NOTE_TYPE::NORMAL) {
                 append_source(*note, RenderItemKind::NORMAL, tapMaxBytes);
@@ -870,7 +940,6 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
                   1, (state2RenderBytes + chunkCount - 1) / chunkCount)
             : 0;
     chunks.clear();
-    chunks.reserve(chunkCount + 2);
     auto append_chunks = [&](size_t groupBegin, size_t groupEnd,
                              bool requiresPreparation, size_t itemByteSize = 0,
                              size_t partitionItemBytes = 0) {
@@ -908,8 +977,6 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     taskflow.clear();
     prepareTasks.clear();
     renderTasks.clear();
-    prepareTasks.reserve(chunks.size());
-    renderTasks.reserve(chunks.size());
 
     for (size_t chunkIndex = 0; chunkIndex < chunks.size(); ++chunkIndex) {
         if (!chunks[chunkIndex].requiresPreparation) {
@@ -964,6 +1031,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
         prefixTask.precede(renderTasks.back());
     }
 
+    ++renderStats.taskSubmissions;
     workspace.executor.run(taskflow).get();
     return renderedBytes;
 }
