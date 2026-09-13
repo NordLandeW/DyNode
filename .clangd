@@ -1,3 +1,11 @@
+# Match the Windows development preset; read the generated database directly
+# instead of stale compile_commands.json copies in the source tree.
+If:
+  PathMatch: DyCore/.*
+CompileFlags:
+  CompilationDatabase: DyCore/out/build/x64-release
+
+---
 If:
   PathMatch: DyCore/lib/LuaBridge/LuaBridge\.h
 

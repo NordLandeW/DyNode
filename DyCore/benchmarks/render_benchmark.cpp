@@ -198,22 +198,7 @@ BenchmarkContext initialize_synthetic_notes(const BenchmarkOptions& options) {
     return context;
 }
 
-BenchmarkContext initialize_chart_notes(const BenchmarkOptions& options) {
-    Project project;
-    if (project_import_dyn(options.chartPath.c_str(), project) != 0 ||
-        project.charts.empty()) {
-        throw std::runtime_error("Failed to load benchmark chart");
-    }
-
-    auto chartNotes = project.charts.front().notes;
-    if (chartNotes.empty()) {
-        throw std::runtime_error("Benchmark chart does not contain notes");
-    }
-    std::sort(chartNotes.begin(), chartNotes.end(),
-              [](const Note& left, const Note& right) {
-                  return left.time < right.time;
-              });
-
+void validate_chart_notes(std::span<const Note> chartNotes) {
     std::array<size_t, 4> typeCounts{};
     for (const auto& note : chartNotes) {
         if (note.type < 0 || note.type >= static_cast<int>(typeCounts.size())) {
@@ -231,16 +216,11 @@ BenchmarkContext initialize_chart_notes(const BenchmarkOptions& options) {
         throw std::runtime_error(
             "Benchmark chart unexpectedly contains serialized sub notes");
     }
+}
 
-    BenchmarkContext context{
-        .noteSpeed = options.noteSpeed > 0.0 ? options.noteSpeed : 1.6,
-        .sourceNoteCount = chartNotes.size(),
-    };
-
-    const double guaranteedActiveWindow =
-        std::min(BASE_RES_H - JUDGE_LINE_BELOW_FROM_BOTTOM,
-                 BASE_RES_W / 2 - JUDGE_LINE_SIDE_FROM_EDGE) /
-        context.noteSpeed;
+// Notes are sorted by time; equal-sized windows keep the earliest candidate.
+double densest_window_time(std::span<const Note> chartNotes,
+                           double guaranteedActiveWindow) {
     size_t bestBegin = 0;
     size_t bestEnd = 0;
     for (size_t begin = 0, end = 0; begin < chartNotes.size(); ++begin) {
@@ -255,7 +235,37 @@ BenchmarkContext initialize_chart_notes(const BenchmarkOptions& options) {
             bestEnd = end;
         }
     }
-    context.nowTime = chartNotes[bestBegin].time;
+    return chartNotes[bestBegin].time;
+}
+
+BenchmarkContext initialize_chart_notes(const BenchmarkOptions& options) {
+    Project project;
+    if (project_import_dyn(options.chartPath.c_str(), project) != 0 ||
+        project.charts.empty()) {
+        throw std::runtime_error("Failed to load benchmark chart");
+    }
+
+    auto chartNotes = project.charts.front().notes;
+    if (chartNotes.empty()) {
+        throw std::runtime_error("Benchmark chart does not contain notes");
+    }
+    std::sort(chartNotes.begin(), chartNotes.end(),
+              [](const Note& left, const Note& right) {
+                  return left.time < right.time;
+              });
+
+    validate_chart_notes(chartNotes);
+
+    BenchmarkContext context{
+        .noteSpeed = options.noteSpeed > 0.0 ? options.noteSpeed : 1.6,
+        .sourceNoteCount = chartNotes.size(),
+    };
+
+    const double guaranteedActiveWindow =
+        std::min(BASE_RES_H - JUDGE_LINE_BELOW_FROM_BOTTOM,
+                 BASE_RES_W / 2 - JUDGE_LINE_SIDE_FROM_EDGE) /
+        context.noteSpeed;
+    context.nowTime = densest_window_time(chartNotes, guaranteedActiveWindow);
     context.firstTime = chartNotes.front().time;
     context.lastTime = context.firstTime;
     for (const auto& note : chartNotes) {
@@ -384,6 +394,56 @@ FrameSample render_frame(const BenchmarkContext& context, double time,
     return sample;
 }
 
+struct ReorderTarget {
+    std::string noteId;
+    double time = 0.0;
+};
+
+ReorderTarget select_reorder_target(const BenchmarkOptions& options) {
+    if (options.mode != "reorder")
+        return {};
+    auto& notes = get_note_pool_manager();
+    for (int i = 0; i < notes.get_note_count(); ++i) {
+        const auto& note = notes.get_note_direct(i);
+        if (note.get_note_type() == NOTE_TYPE::NORMAL ||
+            note.get_note_type() == NOTE_TYPE::CHAIN) {
+            return {note.noteID, note.time};
+        }
+    }
+    throw std::invalid_argument("reorder mode requires a NORMAL or CHAIN note");
+}
+
+struct BenchmarkMeasurements {
+    std::array<std::vector<double>, 3> samples;
+    std::vector<double> totalSamples, activationSamples, capacitySamples,
+        frameSamples, growingFrameSamples;
+    size_t minActive = (std::numeric_limits<size_t>::max)(), maxActive = 0;
+
+    explicit BenchmarkMeasurements(size_t iterations) {
+        for (auto& stateSamples : samples)
+            stateSamples.reserve(iterations);
+        for (auto* values :
+             {&totalSamples, &activationSamples, &capacitySamples,
+              &frameSamples, &growingFrameSamples}) {
+            values->reserve(iterations);
+        }
+    }
+
+    void record(const FrameSample& sample, bool grew) {
+        for (const int state : {0, 1, 2})
+            samples[state].push_back(sample.renderMs[state]);
+        totalSamples.push_back(sample.render_ms());
+        activationSamples.push_back(sample.activationMs);
+        capacitySamples.push_back(sample.capacityMs);
+        frameSamples.push_back(sample.frame_ms());
+        if (grew) {
+            growingFrameSamples.push_back(sample.frame_ms());
+        }
+        minActive = std::min(minActive, sample.activeNotes);
+        maxActive = std::max(maxActive, sample.activeNotes);
+    }
+};
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -406,24 +466,7 @@ int main(int argc, char** argv) {
         const auto outputSizes = cold.outputSizes;
         const auto outputHashes = cold.outputHashes;
 
-        std::string reorderId;
-        double reorderTime = 0.0;
-        if (options.mode == "reorder") {
-            auto& notes = get_note_pool_manager();
-            for (int i = 0; i < notes.get_note_count(); ++i) {
-                const auto& note = notes.get_note_direct(i);
-                if (note.get_note_type() == NOTE_TYPE::NORMAL ||
-                    note.get_note_type() == NOTE_TYPE::CHAIN) {
-                    reorderId = note.noteID;
-                    reorderTime = note.time;
-                    break;
-                }
-            }
-            if (reorderId.empty()) {
-                throw std::invalid_argument(
-                    "reorder mode requires a NORMAL or CHAIN note");
-            }
-        }
+        const auto reorder = select_reorder_target(options);
         // Dynamic modes warm only their sparse starting point. Pre-warming
         // the dense interval would hide the high-water growth being measured.
         for (size_t iteration = 0; iteration < options.warmupIterations;
@@ -435,45 +478,26 @@ int main(int argc, char** argv) {
         const size_t bufferGrowthsBefore = vertexBuffer.growths;
         const size_t noteExecutorsBefore =
             get_note_pool_manager().executor_creation_count();
-        std::array<std::vector<double>, 3> samples;
-        std::vector<double> totalSamples, activationSamples, capacitySamples,
-            frameSamples, growingFrameSamples;
-        for (auto& stateSamples : samples)
-            stateSamples.reserve(options.iterations);
-        for (auto* values :
-             {&totalSamples, &activationSamples, &capacitySamples,
-              &frameSamples, &growingFrameSamples}) {
-            values->reserve(options.iterations);
-        }
-        size_t minActive = (std::numeric_limits<size_t>::max)(), maxActive = 0;
+        BenchmarkMeasurements measurements(options.iterations);
         for (size_t iteration = 0; iteration < options.iterations;
              ++iteration) {
             const auto growths = get_note_rendering_stats().capacityGrowths +
                                  vertexBuffer.growths;
             const double mutationTime =
-                reorderTime +
+                reorder.time +
                 (iteration % 2 == 0 ? 1.0 : -1.0) / context.noteSpeed;
             const auto sample = render_frame(
                 context, time_for_frame(options, context, iteration),
-                vertexBuffer, options.mode != "steady", false, reorderId,
+                vertexBuffer, options.mode != "steady", false, reorder.noteId,
                 mutationTime);
             if (options.mode == "steady" && sample.outputSizes != outputSizes) {
                 throw std::runtime_error(
                     "Rendering output size changed during steady benchmark");
             }
-            for (const int state : {0, 1, 2})
-                samples[state].push_back(sample.renderMs[state]);
-            totalSamples.push_back(sample.render_ms());
-            activationSamples.push_back(sample.activationMs);
-            capacitySamples.push_back(sample.capacityMs);
-            frameSamples.push_back(sample.frame_ms());
-            if (get_note_rendering_stats().capacityGrowths +
-                    vertexBuffer.growths !=
-                growths) {
-                growingFrameSamples.push_back(sample.frame_ms());
-            }
-            minActive = std::min(minActive, sample.activeNotes);
-            maxActive = std::max(maxActive, sample.activeNotes);
+            measurements.record(sample,
+                                get_note_rendering_stats().capacityGrowths +
+                                        vertexBuffer.growths !=
+                                    growths);
         }
 
         const auto& activation = get_note_activation_manager();
@@ -503,8 +527,8 @@ int main(int argc, char** argv) {
                   << " cold.capacity_ms=" << cold.capacityMs
                   << " cold.render_ms=" << cold.render_ms()
                   << " cold.frame_cpu_ms=" << cold.frame_ms() << '\n'
-                  << "active_notes.min=" << minActive << " max=" << maxActive
-                  << '\n'
+                  << "active_notes.min=" << measurements.minActive
+                  << " max=" << measurements.maxActive << '\n'
                   << "workspace.growths.measured="
                   << after.capacityGrowths - before.capacityGrowths
                   << " capacity_bytes=" << after.workspaceCapacityBytes << '\n'
@@ -521,27 +545,29 @@ int main(int argc, char** argv) {
                   << get_note_pool_manager().executor_creation_count() << '\n'
                   << "task_submissions.measured="
                   << after.taskSubmissions - before.taskSubmissions << '\n'
-                  << "growth_frames=" << growingFrameSamples.size()
+                  << "growth_frames=" << measurements.growingFrameSamples.size()
                   << " peak_frame="
-                  << std::distance(frameSamples.begin(),
-                                   std::max_element(frameSamples.begin(),
-                                                    frameSamples.end()))
+                  << std::distance(
+                         measurements.frameSamples.begin(),
+                         std::max_element(measurements.frameSamples.begin(),
+                                          measurements.frameSamples.end()))
                   << '\n';
         for (const int state : {0, 1, 2}) {
             std::cout << "state" << state << ".bytes=" << outputSizes[state]
                       << " hash=0x" << std::hex << outputHashes[state]
                       << std::dec << '\n';
         }
-        print_stats("state0", calculate_stats(samples[0]));
-        print_stats("state1", calculate_stats(samples[1]));
-        print_stats("state2", calculate_stats(samples[2]));
-        print_stats("total", calculate_stats(totalSamples));
-        print_stats("activation", calculate_stats(activationSamples));
-        print_stats("capacity", calculate_stats(capacitySamples));
-        print_stats("frame_cpu", calculate_stats(frameSamples));
-        if (!growingFrameSamples.empty())
+        print_stats("state0", calculate_stats(measurements.samples[0]));
+        print_stats("state1", calculate_stats(measurements.samples[1]));
+        print_stats("state2", calculate_stats(measurements.samples[2]));
+        print_stats("total", calculate_stats(measurements.totalSamples));
+        print_stats("activation",
+                    calculate_stats(measurements.activationSamples));
+        print_stats("capacity", calculate_stats(measurements.capacitySamples));
+        print_stats("frame_cpu", calculate_stats(measurements.frameSamples));
+        if (!measurements.growingFrameSamples.empty())
             print_stats("growing_frame_cpu",
-                        calculate_stats(growingFrameSamples));
+                        calculate_stats(measurements.growingFrameSamples));
         return 0;
     } catch (const std::exception& exception) {
         std::cerr << "render benchmark failed: " << exception.what() << '\n';
