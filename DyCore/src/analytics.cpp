@@ -1,12 +1,15 @@
 #include "analytics.h"
 
 #include <sentry.h>
+#include <windows.h>
 
 #include <exception>
 #include <map>
 #include <string>
+#include <system_error>
 
 #include "config.h"
+#include "telemetry.h"
 #include "utils.h"
 #include "version.h"
 
@@ -33,20 +36,23 @@ void init_analytics() {
     sentry_options_set_environment(
         options, DYNODE_BUILD_TYPE == "RELEASE" ? "production" : "development");
 
-    sentry_options_set_shutdown_timeout(options, 2000);
+    sentry_options_set_shutdown_timeout(options,
+                                        telemetry::EXIT_BUDGET.count());
     analyticsInitialized = sentry_init(options) == 0;
 }
 
-int shutdown_analytics() {
+std::function<int()> take_analytics_shutdown() {
     if (!analyticsInitialized)
-        return 0;
-    analyticsInitialized = false;
-    const int pending = sentry_close();
-    if (pending != 0) {
-        print_debug_message("Sentry shutdown retained envelopes: " +
-                            std::to_string(pending));
+        return {};
+    HMODULE module = nullptr;
+    if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                GET_MODULE_HANDLE_EX_FLAG_PIN,
+                            reinterpret_cast<LPCWSTR>(&sentry_close),
+                            &module)) {
+        throw std::system_error(GetLastError(), std::system_category());
     }
-    return pending;
+    analyticsInitialized = false;
+    return [] { return sentry_close(); };
 }
 
 void report_exception_error(const std::string exceptionType,

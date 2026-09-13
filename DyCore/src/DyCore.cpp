@@ -17,6 +17,7 @@
 #include "profile.h"
 #include "project.h"
 #include "render.h"
+#include "telemetry.h"
 #include "utils.h"
 #include "version.h"
 #include "video/decoder.h"
@@ -110,6 +111,11 @@ DYCORE_API const char* DyCore_init(const char* hwnd, const char* programPath) {
         print_debug_message(std::string("DyCore initialization failed: ") +
                             error.what());
         DyCore_shutdown();
+        try {
+            (void)shutdown_telemetry("", "", "[]", 0);
+        } catch (...) {
+            // Initialization failure must not add an unbounded SDK close.
+        }
         return "initfailed";
     }
 }
@@ -162,7 +168,6 @@ DYCORE_API double DyCore_shutdown() {
                 "WM_NCDESTROY.");
         }
     });
-    cleanup("Sentry", [] { shutdown_analytics(); });
     return succeeded ? 0.0 : -1.0;
 }
 

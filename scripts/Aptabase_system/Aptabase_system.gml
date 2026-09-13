@@ -197,6 +197,7 @@ function __AptabaseClient() constructor {
     // Event management.
     eventQueue = [];
     shutdownStarted = false;
+    shutdownRequest = undefined;
     shutdownResult = undefined;
 
     // Map of flush ID to event for events that have been sent but not yet acknowledged.
@@ -370,32 +371,28 @@ function __AptabaseClient() constructor {
         }
     }
 
-    /// @description Best-effort exit upload of unsent events, never pending requests.
+    /// @description Stop flushes and hand off only unsent events for application exit.
     static shutdown = function(sendEvents) {
-        if(shutdownStarted) return shutdownResult;
+        if(shutdownStarted) return shutdownRequest;
         stop();
         shutdownStarted = true;
-        shutdownResult = {
-            accepted: 0,
-            remaining: array_length(eventQueue),
-            inFlightRequests: array_length(variable_struct_get_names(sendingEvents)),
-            status: 0
+        shutdownRequest = {
+            endpoint: get_endpoint(),
+            appKey: appKey,
+            events: sendEvents ? json_stringify(eventQueue) : "[]",
+            batchSize: min(maxBatchSize, __APTABASE_MAX_BATCH_SIZE_LIMIT)
         };
-        var deadline = get_timer() + 2000000;
-        while(sendEvents && array_length(eventQueue) > 0) {
-            var remainingMs = floor((deadline - get_timer()) / 1000);
-            if(remainingMs < 1) break;
-            var count = min(array_length(eventQueue), min(maxBatchSize, __APTABASE_MAX_BATCH_SIZE_LIMIT));
-            if(count <= 0) break;
-            var batch = [];
-            array_copy(batch, 0, eventQueue, 0, count);
-            shutdownResult.status = DyCore_aptabase_post(get_endpoint(), appKey, json_stringify(batch), remainingMs);
-            if(shutdownResult.status < 200 || shutdownResult.status >= 300) break;
-            array_delete(eventQueue, 0, count);
-            shutdownResult.accepted += count;
-            shutdownResult.remaining = array_length(eventQueue);
-        }
-        show_debug_message("Aptabase shutdown: " + json_stringify(shutdownResult));
+        return shutdownRequest;
+    }
+
+    /// @description Apply the confirmed prefix without replaying in-flight requests.
+    static apply_shutdown_result = function(result) {
+        if(!is_undefined(shutdownResult)) return shutdownResult;
+        shutdownResult = result;
+        var accepted = min(array_length(eventQueue), max(0, result.accepted));
+        if(accepted > 0) array_delete(eventQueue, 0, accepted);
+        shutdownResult.remaining = array_length(eventQueue);
+        shutdownResult.inFlightRequests = array_length(variable_struct_get_names(sendingEvents));
         return shutdownResult;
     }
 }

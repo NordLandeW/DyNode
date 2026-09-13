@@ -1,11 +1,14 @@
 #pragma once
 
 #include <exception>
+#include <functional>
 #include <map>
 #include <string>
 
 void init_analytics();
-int shutdown_analytics();
+// Owner-thread handoff for process exit. The returned job owns SDK closing;
+// the Sentry module is kept mapped until process termination.
+std::function<int()> take_analytics_shutdown();
 
 void report_exception_error(const std::string exceptionType,
                             const std::exception& ex);
