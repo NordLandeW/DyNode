@@ -1050,7 +1050,9 @@ function theme_get_color_hsv() {
 /// @description Isolate an application shutdown stage so other systems still clean up.
 function app_cleanup_step(label, cleanup) {
 	try {
+		show_debug_message("Cleanup stage: " + label);
 		cleanup();
+		show_debug_message($"Cleanup stage {label} done.")
 		return true;
 	} catch(error) {
 		show_debug_message("Cleanup failed: " + label);
