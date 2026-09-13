@@ -25,6 +25,7 @@ function aptabase_flush() {
 }
 
 /// @description Stop automatic flushes and prepare the unsent queue for application exit.
+/// @returns {Any} 
 function aptabase_shutdown(sendEvents = true) {
     if(!variable_global_exists("__aptabaseClient")) {
         return { endpoint: "", appKey: "", events: "[]", batchSize: 0 };

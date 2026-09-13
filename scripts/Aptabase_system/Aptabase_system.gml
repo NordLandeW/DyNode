@@ -372,6 +372,7 @@ function __AptabaseClient() constructor {
     }
 
     /// @description Stop flushes and hand off only unsent events for application exit.
+    /// @returns {Any} 
     static shutdown = function(sendEvents) {
         if(shutdownStarted) return shutdownRequest;
         stop();
