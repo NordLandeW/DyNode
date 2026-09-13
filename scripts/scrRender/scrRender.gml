@@ -11,9 +11,7 @@ function NoteRenderer() constructor {
     
     // Create vertex buffer.
     cacheBuff = buffer_create(20 * 1024, buffer_fast, 1);
-    vertBuff = vertex_create_buffer_ext(buffer_get_size(cacheBuff));
-    vertex_begin(vertBuff, vertFormat);
-    vertex_end(vertBuff);
+    vertBuff = vertex_create_buffer_from_buffer(cacheBuff, vertFormat);
 
     // Hold Particles timer.
     holdParticlesTimer = 0;
@@ -46,11 +44,6 @@ function NoteRenderer() constructor {
         if(buffer_get_size(cacheBuff) < bound) {
             var capacity = ceil(bound * 1.5 / 4096) * 4096;
             buffer_resize(cacheBuff, capacity);
-            var nextVertBuff = vertex_create_buffer_ext(capacity);
-            vertex_begin(nextVertBuff, vertFormat);
-            vertex_end(nextVertBuff);
-            vertex_delete_buffer(vertBuff);
-            vertBuff = nextVertBuff;
         }
 
         // Render hold's bg
