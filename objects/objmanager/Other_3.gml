@@ -1,4 +1,5 @@
 
+app_cleanup_step("window", function() { window_set_visible_w(false); });
 app_cleanup_step("config", function() { save_config(); });
 app_cleanup_step("AppClose", function() {
     if(global.analytics) aptabase_track("AppClose");

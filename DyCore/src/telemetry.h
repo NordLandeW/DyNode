@@ -8,7 +8,7 @@
 
 namespace telemetry {
 using Clock = std::chrono::steady_clock;
-inline constexpr auto EXIT_BUDGET = std::chrono::milliseconds(1000);
+inline constexpr auto EXIT_BUDGET = std::chrono::milliseconds(5000);
 
 enum class ExitTaskStatus { pending, succeeded, failed };
 
