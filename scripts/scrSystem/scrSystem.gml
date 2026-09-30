@@ -482,12 +482,16 @@ function map_get_title() {
 
 function map_get_alt_title() {
 	if(!instance_exists(objMain)) return "example";
-	var _forbidden_chars = "?*:\"<>\\/|\n"
+	var _forbidden_chars = "?*:\"<>\\/|";
 	var _title = map_get_title();
-	for(var i=1, l=string_length(_forbidden_chars); i<l; i++)
-		_title = string_replace_all(_title, string_char_at(_forbidden_chars, i), "_");
+	var _safe_title = "";
+	for(var i=1, l=string_length(_title); i<=l; i++) {
+		var _char = string_char_at(_title, i);
+		// Windows forbids all ASCII control characters, including CR, LF and TAB.
+		_safe_title += (ord(_char) < 32 || string_pos(_char, _forbidden_chars) != 0) ? "_" : _char;
+	}
 	
-	return _title;
+	return _safe_title == "" ? "example" : _safe_title;
 }
 
 function map_add_offset(_offset = "", record = false) {

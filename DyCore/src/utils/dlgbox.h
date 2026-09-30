@@ -1,6 +1,12 @@
 #pragma once
 #include <filesystem>
 #include <optional>
+#include <string>
+#include <string_view>
+
+// Sanitizes a suggested leaf filename, preserving Unicode and the extension.
+// Does not accept paths or modify a path chosen by the user.
+std::wstring sanitize_save_filename(std::wstring_view filename);
 
 std::optional<std::filesystem::path> get_save_filename(
     std::string_view filter, std::string_view default_filename,

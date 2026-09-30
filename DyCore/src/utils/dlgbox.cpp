@@ -16,6 +16,85 @@
 #include "DyCore.h"
 #include "utils.h"
 
+namespace {
+
+void trim_filename_suffix(std::wstring& filename) {
+    const auto end = filename.find_last_not_of(L" .");
+    filename.erase(end == std::wstring::npos ? 0 : end + 1);
+}
+
+bool is_reserved_filename(std::wstring_view filename) {
+    // Device names remain reserved with any extension, including .tar.gz.
+    auto stem = filename.substr(0, filename.find(L'.'));
+    while (!stem.empty() && stem.back() == L' ') {
+        stem.remove_suffix(1);
+    }
+    std::wstring upper(stem);
+    for (auto& ch : upper) {
+        if (ch >= L'a' && ch <= L'z') {
+            ch -= L'a' - L'A';
+        }
+    }
+    if (upper == L"CON" || upper == L"PRN" || upper == L"AUX" ||
+        upper == L"NUL" || upper == L"CONIN$" || upper == L"CONOUT$") {
+        return true;
+    }
+    if (upper.size() != 4 ||
+        (upper.substr(0, 3) != L"COM" && upper.substr(0, 3) != L"LPT")) {
+        return false;
+    }
+    const auto digit = upper.back();
+    return (digit >= L'1' && digit <= L'9') || digit == L'\u00b9' ||
+           digit == L'\u00b2' || digit == L'\u00b3';
+}
+
+void truncate_filename(std::wstring& filename) {
+    // NTFS limits one component to 255 UTF-16 code units. Keep the final
+    // extension and avoid cutting a supplementary Unicode character in half.
+    constexpr size_t max_length = 255;
+    if (filename.size() <= max_length) {
+        return;
+    }
+    const auto dot = filename.find_last_of(L'.');
+    std::wstring extension;
+    if (dot != std::wstring::npos && dot > 0 &&
+        filename.size() - dot < max_length) {
+        extension = filename.substr(dot);
+    }
+    filename.resize(max_length - extension.size());
+    if (!filename.empty() && filename.back() >= 0xd800 &&
+        filename.back() <= 0xdbff) {
+        filename.pop_back();
+    }
+    filename += extension;
+}
+
+}  // namespace
+
+std::wstring sanitize_save_filename(std::wstring_view filename) {
+    std::wstring result(filename);
+    for (auto& ch : result) {
+        if (ch < 32 || std::wstring_view(L"<>:\"/\\|?*").find(ch) !=
+                           std::wstring_view::npos) {
+            ch = L'_';
+        }
+    }
+    // Win32 also strips leading ASCII spaces, which can hide a device name.
+    const auto begin = result.find_first_not_of(L' ');
+    result.erase(0, begin == std::wstring::npos ? result.size() : begin);
+    trim_filename_suffix(result);
+    truncate_filename(result);
+    trim_filename_suffix(result);
+    if (result.empty()) {
+        return L"example";
+    }
+    if (is_reserved_filename(result)) {
+        result.insert(result.begin(), L'_');
+        truncate_filename(result);
+    }
+    return result;
+}
+
 // Helper class for RAII-based COM initialization
 class ComInitializer {
    public:
@@ -87,7 +166,12 @@ std::optional<std::filesystem::path> get_save_filename(
         pFileSave->SetTitle(to_wstring(caption).c_str());
     }
     if (!default_filename.empty()) {
-        pFileSave->SetFileName(to_wstring(default_filename).c_str());
+        const auto safe_filename =
+            sanitize_save_filename(to_wstring(default_filename));
+        hr = pFileSave->SetFileName(safe_filename.c_str());
+        if (FAILED(hr)) {
+            throw std::runtime_error("Failed to set the suggested filename.");
+        }
     }
     if (!initial_directory.empty()) {
         CComPtr<IShellItem> pFolderItem;
