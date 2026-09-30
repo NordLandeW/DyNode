@@ -6,11 +6,13 @@
 #include <shobjidl.h>
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include "DyCore.h"
@@ -330,10 +332,18 @@ bool show_question(std::string_view question_text) {
 
 #include "resource.h"
 
+struct IconDeleter {
+    void operator()(HICON icon) const {
+        DestroyIcon(icon);
+    }
+};
+
 struct InputDialogData {
     std::wstring prompt;
     std::wstring default_text;
     std::wstring result;
+    // The static control borrows the icon until DialogBoxParamW returns.
+    std::unique_ptr<std::remove_pointer_t<HICON>, IconDeleter> icon;
 };
 
 INT_PTR CALLBACK InputDialogProc(HWND hDlg, UINT message, WPARAM wParam,
@@ -352,8 +362,9 @@ INT_PTR CALLBACK InputDialogProc(HWND hDlg, UINT message, WPARAM wParam,
             HRESULT hr = SHGetStockIconInfo(SIID_INFO, SHGSI_ICON, &sii);
 
             if (SUCCEEDED(hr)) {
+                pData->icon.reset(sii.hIcon);
                 SendDlgItemMessage(hDlg, IDC_INFO_ICON, STM_SETICON,
-                                   (WPARAM)sii.hIcon, 0);
+                                   (WPARAM)pData->icon.get(), 0);
             }
 
             return (INT_PTR)TRUE;
