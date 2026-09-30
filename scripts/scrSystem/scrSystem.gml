@@ -491,7 +491,7 @@ function map_get_alt_title() {
 		_safe_title += (ord(_char) < 32 || string_pos(_char, _forbidden_chars) != 0) ? "_" : _char;
 	}
 	
-	return _safe_title == "" ? "example" : _safe_title;
+	return _safe_title;
 }
 
 function map_add_offset(_offset = "", record = false) {
