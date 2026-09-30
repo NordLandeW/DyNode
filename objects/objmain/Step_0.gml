@@ -112,11 +112,6 @@ projectTime += round(delta_time / 1000);
     	global_add_delay(_global_offset_d * latencyAdjustStep);
     
     
-    if(keycheck_down(ord("N"))) {
-    	global.simplify = !global.simplify;
-    	announcement_adjust("anno_simplify", global.simplify);
-    }
-    
     if(keycheck_down_ctrl(vk_f6)) {
     	chart_randomize();
     	scribble_anim_wheel(dyc_random_range(15,20), dyc_random_range(9, 20), dyc_random_range(0.5, 5)*global.timeManager.get_fps_scale());

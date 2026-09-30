@@ -104,7 +104,6 @@
         "export_fix_error_question": "エクスポート時に誤差修正を行いますか？\n指定した誤差 $0 ms 内のノートを揃えます。",
         "export_to_dym_question": "Dynamaker-modified用の情報をエクスポートしますか？\nこのオプションを有効にするとエクスポートされた譜面は編集ツールでのみ利用可能となり、設定済みのBar情報はDyNodeデフォルト値で上書きされます。",
         "export_timing_error": "Timingが未設定のため、譜面をエクスポートできません。",
-        "anno_simplify": "簡易表示モード",
         "default_width_mode_name_1": "幅統一",
         "default_width_mode_name_2": "視覚的統一",
         "default_width_mode_name_3": "正面・側面分離",

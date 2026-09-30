@@ -104,7 +104,6 @@
         "export_fix_error_question": "Apply timing error correction during export?\nThis will align notes within a $0 ms error tolerance.",
         "export_to_dym_question": "Export Dynamaker-modified data?\nCharts exported with this option are only suitable for further editor editing.\nIf “Yes,” all configured Bar information will be overwritten with DyNode defaults.",
         "export_timing_error": "No Timing has been configured. Cannot export the chart.",
-        "anno_simplify": "Simplify Mode",
         "default_width_mode_name_1": "Uniform Width",
         "default_width_mode_name_2": "Visual Consistency",
         "default_width_mode_name_3": "Front/Side Separation",

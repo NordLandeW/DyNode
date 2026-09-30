@@ -31,7 +31,6 @@ global.fps = display_get_frequency();
 global.autosave = false;
 global.autoupdate = true;
 global.fullscreen = false;
-global.simplify = false;
 global.updatechannel = "STABLE";		// STABLE / BETA (not working for now)
 global.beatlineStyle = BeatlineStyles.BS_DEFAULT;
 global.musicDelay = 0;

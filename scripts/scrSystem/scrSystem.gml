@@ -1170,7 +1170,6 @@ function load_config() {
 	_check_set(_con, "fullscreen");
 	if(variable_struct_exists(_con, "language"))
 		i18n_set_lang(variable_struct_get(_con, "language"));
-	_check_set(_con, "simplify");
 	_check_set(_con, "updatechannel");
 	_check_set(_con, "graphics");
 	_check_set(_con, "beatlineStyle");
@@ -1220,7 +1219,6 @@ function save_config() {
 		ANNOUNCEMENT_MAX_LIMIT: global.ANNOUNCEMENT_MAX_LIMIT,
 		fullscreen: global.fullscreen,
 		language: i18n_get_lang(),
-		simplify: global.simplify,
 		updatechannel: global.updatechannel,
 		graphics: global.graphics,
 		beatlineStyle: global.beatlineStyle,

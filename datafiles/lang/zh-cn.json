@@ -104,7 +104,6 @@
         "export_fix_error_question": "是否对导出的谱面进行误差修正？\n该功能将误差在 $0 毫秒内的音符对齐。",
         "export_to_dym_question": "是否导出用于 Dynamaker-modified 的相关信息？使用该选项导出的谱面仅能用于编辑器编辑。\n若选择“是”，所有已经设置的 Bar 信息将由 DyNode 以默认方式覆写。",
         "export_timing_error": "你还没有配置 Timing ，因此无法导出谱面。",
-        "anno_simplify": "简化模式",
         "default_width_mode_name_1": "宽度一致",
         "default_width_mode_name_2": "视觉一致",
         "default_width_mode_name_3": "正侧面分离",
