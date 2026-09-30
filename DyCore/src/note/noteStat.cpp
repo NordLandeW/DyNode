@@ -15,7 +15,7 @@ DYCORE_API const char *DyCore_note_count() {
     auto &noteMan = get_note_pool_manager();
     // 3 Types + Total, 3 Sides + Total
     std::array<std::array<int, 4>, 4> counts = {};
-    noteMan.access_all_notes([&](Note &note) {
+    noteMan.read_all_notes([&](const Note &note) {
         if (note.get_note_type() == NOTE_TYPE::SUB)
             return;
         counts[note.side][note.type]++;

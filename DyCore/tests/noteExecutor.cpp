@@ -36,37 +36,32 @@ TEST_CASE("NoteExecutorReusePreservesSortingAndSurvivesClear") {
     CHECK(pool.executor_creation_count() == 1);
     pool.clear_notes();
     add_note(pool, 0, 100);
-    pool.access_all_notes_parallel_safe(
-        [](Note& note) { note.position = 3.0; });
+    pool.access_all_notes_parallel([](Note& note) { note.position = 3.0; });
     CHECK(pool.get_note("000000000").position == 3.0);
     CHECK(pool.executor_creation_count() == 1);
     pool.shutdown_executor();
     CHECK_NOTHROW(pool.shutdown_executor());
-    CHECK_THROWS_AS(pool.access_all_notes_parallel_safe([](Note&) {}),
+    CHECK_THROWS_AS(pool.access_all_notes_parallel([](Note&) {}),
                     std::logic_error);
 }
 
-TEST_CASE(
-    "NoteExecutorSingleWorkerSupportsNestedSafeCallsAndRecoversFromException"
-    "s") {
+TEST_CASE("NoteExecutorRejectsReentryAndRecoversFromCallbackExceptions") {
     auto owner = std::make_unique<NotePoolManager>(1);
     auto& pool = *owner;
     add_note(pool, 0, 100);
-    std::atomic<int> visited = 0;
-    pool.access_all_notes_parallel_safe([&](Note&) {
-        pool.access_all_notes_parallel_safe([&](Note& note) {
-            note.position = 4.0;
-            ++visited;
-        });
-    });
-    CHECK(visited == 1);
-    CHECK(pool.get_note("000000000").position == 4.0);
-    CHECK_THROWS_AS(pool.access_all_notes_parallel_safe([](Note&) {
+    CHECK_THROWS_AS(pool.access_all_notes_parallel([&](Note&) {
+        pool.access_all_notes_parallel([](Note&) {});
+    }),
+                    std::logic_error);
+    CHECK_THROWS_AS(pool.access_all_notes_parallel(
+                        [&](Note&) { (void)pool.get_note_count(); }),
+                    std::logic_error);
+    CHECK_THROWS_AS(pool.access_all_notes_parallel([](Note&) {
         throw std::runtime_error("callback failure");
     }),
                     std::runtime_error);
-    pool.access_all_notes_parallel_safe([&](Note&) { ++visited; });
-    CHECK(visited == 2);
+    pool.access_all_notes_parallel([](Note& note) { note.position = 4.0; });
+    CHECK(pool.get_note("000000000").position == 4.0);
     CHECK(pool.executor_creation_count() == 1);
     CHECK_NOTHROW(pool.shutdown_executor());
 }
@@ -79,7 +74,7 @@ TEST_CASE("NoteExecutorShutdownDrainsAnActiveCallback") {
     std::latch release(1);
     std::atomic<bool> finished = false;
     auto run = std::async(std::launch::async, [&] {
-        pool.access_all_notes_parallel_safe([&](Note&) {
+        pool.access_all_notes_parallel([&](Note&) {
             entered.set_value();
             release.wait();
             finished = true;
@@ -93,6 +88,6 @@ TEST_CASE("NoteExecutorShutdownDrainsAnActiveCallback") {
     release.count_down();
     CHECK(shutdown.get());
     run.get();
-    CHECK_THROWS_AS(pool.access_all_notes_parallel_safe([](Note&) {}),
+    CHECK_THROWS_AS(pool.access_all_notes_parallel([](Note&) {}),
                     std::logic_error);
 }

@@ -33,30 +33,36 @@ class NotePoolManager {
 
     NotePoolManager operator=(const NotePoolManager &other) = delete;
 
-    bool note_exists(const std::string &noteID);
+    bool note_exists(const std::string &noteID) const;
     bool create_note(const Note &note);
-    const Note &get_note(const std::string &noteID);
-    const Note &get_note(int index) {
+    // Copy the note while holding a shared lock.
+    Note get_note(const std::string &noteID) const;
+    Note get_note(int index) const {
         return operator[](index);
     }
+    // The caller must exclude concurrent modification and keep the note alive.
     const Note &get_note_unsafe(const std::string &noteID) {
         return *get_note_pointer(noteID);
     }
     void get_notes(std::vector<Note> &outNotes, bool excludeSub) const;
-    /// Returns a direct reference to the note at the given index.
-    /// This is unsafe and should only be used when you are sure the index is
-    /// valid.
-    const Note &get_note_direct(int index);
+    // Read by physical index without requiring the array to be sorted.
+    Note get_note_direct(int index) const;
     void set_note(const Note &note);
     void set_note_bitwise(const char *prop);
+
+    // Callbacks must not retain references or reenter locking APIs on this
+    // manager. Such reentry throws std::logic_error before acquiring the lock.
+    void read_all_notes(std::function<void(const Note &)> reader) const;
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
+    // Synchronize linked HOLD/SUB fields after each callback, before visiting
+    // the next note. Partial edits are also synchronized if a callback throws.
     void access_all_notes(std::function<void(Note &)> executor);
-    void access_all_notes_safe(std::function<void(Note &)> executor);
+    // The caller owns HOLD/SUB synchronization and must prevent different
+    // workers from processing both ends of the same pair concurrently.
+    // This traversal performs no automatic linked-note synchronization.
+    // Callbacks must also synchronize their own shared captures.
     void access_all_notes_parallel(std::function<void(Note &)> executor);
-    void access_all_notes_parallel_safe(std::function<void(Note &)> executor);
-    void sync_head_note_to_sub(const Note &note);
-    void sync_hold_note_length(const Note &note);
 
     int get_index(const std::string &noteID);
     bool release_note(std::string noteID);
@@ -66,7 +72,7 @@ class NotePoolManager {
     int get_index_upperbound(double time);
     int get_index_lowerbound(double time);
 
-    const Note &operator[](int index);
+    Note operator[](int index) const;
 
    protected:
     std::vector<nptr> noteArray, holdArray;
@@ -83,10 +89,17 @@ class NotePoolManager {
     void array_markdel_index(const NoteMemoryInfo &info);
     void array_sort();
     void reclaim_memory();
-    nptr get_note_pointer(const std::string &noteID);
+    nptr get_note_pointer(const std::string &noteID) const;
+    std::shared_lock<std::shared_mutex> lock_shared() const;
+    std::unique_lock<std::shared_mutex> lock_exclusive() const;
+    void execute_note_callback(Note &note,
+                               const std::function<void(Note &)> &executor);
+    void edit_note(Note &note, const std::function<void(Note &)> &executor);
+    void sync_head_note_to_sub(const Note &note);
+    void sync_hold_note_length(const Note &note);
 
     void execute_tasks(tf::Taskflow &taskflow);
-    tf::Executor &initialize_executor_locked();
+    tf::Executor &ensure_executor();
     std::unique_ptr<tf::Executor> noteExecutor;
     mutable std::mutex executorLifecycleMutex;
     std::condition_variable executorIdle;
@@ -112,9 +125,7 @@ class NotePoolManager {
     bool clear_ooo() {
         return array_sort_request();
     }
-    int get_note_count() {
-        return noteCount;
-    }
+    int get_note_count() const;
 };
 
 NotePoolManager &get_note_pool_manager();

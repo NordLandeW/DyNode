@@ -1,7 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <json.hpp>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "utils.h"
@@ -55,9 +58,27 @@ inline void from_json(const nlohmann::json& j, TimingPointImportView& view) {
 
 class TimingManager {
    private:
+    mutable std::shared_mutex mutex;
     std::vector<TimingPoint> timingPoints;
     bool outOfOrder = false;
     uint64_t lastModifiedTime = 0;
+
+    void sort_points();
+
+    template <typename Reader>
+    auto read_sorted(Reader&& reader) {
+        {
+            std::shared_lock lock(mutex);
+            if (!outOfOrder) {
+                return reader(std::as_const(timingPoints));
+            }
+        }
+
+        std::unique_lock lock(mutex);
+        // A writer or another sorting reader may have run between locks.
+        sort_points();
+        return reader(std::as_const(timingPoints));
+    }
 
     void mark_modified() {
         lastModifiedTime++;
@@ -65,6 +86,7 @@ class TimingManager {
 
    public:
     uint64_t get_last_modified_time() const {
+        std::shared_lock lock(mutex);
         return lastModifiedTime;
     }
 
@@ -89,13 +111,14 @@ class TimingManager {
     bool get_timing_point_at(double time, TimingPoint& outPoint);
 
     int count() {
+        std::shared_lock lock(mutex);
         return timingPoints.size();
     }
 
     // Dump the timing points array to JSON.
     nlohmann::json dump_json() {
-        sort();
-        return timingPoints;
+        return read_sorted(
+            [](const auto& points) { return nlohmann::json(points); });
     }
     // Dump the timing points array to a string.
     std::string dump() {
@@ -103,12 +126,12 @@ class TimingManager {
     }
 
     int size() {
-        return timingPoints.size();
+        return count();
     }
 
     TimingPoint operator[](int index) {
-        sort();
-        return timingPoints[index];
+        return read_sorted(
+            [index](const auto& points) { return points[index]; });
     }
     TimingPoint operator=(const TimingPoint& other) = delete;
 

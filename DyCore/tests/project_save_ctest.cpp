@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <barrier>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +11,7 @@
 
 #include "gm.h"
 #include "note.h"
+#include "notePoolManager.h"
 #include "project.h"
 #include "project/format/dyn.h"
 #include "projectManager.h"
@@ -239,4 +241,63 @@ TEST_CASE("ProjectSaveShutdownDrainsAcceptedWorkersBeforeReleasingData") {
         save_project((fixture.dir / "late.dyn").string().c_str(), 1),
         std::runtime_error);
     CHECK_FALSE(std::filesystem::exists(fixture.dir / "late.dyn"));
+}
+
+TEST_CASE("ProjectSaveSnapshotsStayCoherentDuringNoteAndTimingEdits") {
+    SaveFixture fixture;
+    set_chart("concurrent", 0);
+    const auto generation = ProjectManager::inst().get_project_generation();
+    auto& pool = get_note_pool_manager();
+    pool.access_note("concurrent", [](Note& note) {
+        note.time = 0;
+        note.width = 1;
+        note.subNoteID = std::string(32, 'a');
+    });
+    std::barrier phase(2);
+    auto edits = std::async(std::launch::async, [&] {
+        for (int i = 1; i <= 128; ++i) {
+            phase.arrive_and_wait();
+            pool.access_note("concurrent", [i](Note& note) {
+                note.time = i;
+                note.width = i + 1;
+                note.subNoteID = std::string(32 + i % 64, 'a' + i % 26);
+            });
+            get_timing_manager().add_offset(1);
+            phase.arrive_and_wait();
+        }
+    });
+    for (int i = 0; i < 128; ++i) {
+        phase.arrive_and_wait();
+        const auto snapshot =
+            ProjectManager::inst().create_save_snapshot(generation);
+        CHECK(snapshot.charts.size() == 1);
+        if (snapshot.charts.size() == 1) {
+            const auto& chart = snapshot.charts[0];
+            CHECK(chart.notes.size() == 1);
+            CHECK(chart.timingPoints.size() == 1);
+            if (chart.notes.size() == 1 && chart.timingPoints.size() == 1) {
+                const auto& note = chart.notes[0];
+                const int revision = static_cast<int>(note.time);
+                CHECK(note.width == revision + 1);
+                CHECK(note.subNoteID ==
+                      std::string(32 + revision % 64, 'a' + revision % 26));
+                CHECK(chart.timingPoints[0].beatLength == 500);
+            }
+        }
+        phase.arrive_and_wait();
+    }
+    edits.get();
+    const auto path = fixture.dir / "concurrent.dyn";
+    auto request = prepare_project_save(path.string().c_str(), 1);
+    const auto requestId = request.requestId;
+    __async_save_project(std::move(request));
+    check_completion(requestId, true);
+    Project saved;
+    REQUIRE(project_import_dyn(path.string().c_str(), saved) == 0);
+    REQUIRE(saved.charts.size() == 1);
+    REQUIRE(saved.charts[0].notes.size() == 1);
+    REQUIRE(saved.charts[0].timingPoints.size() == 1);
+    CHECK(saved.charts[0].notes[0].time == 128);
+    CHECK(saved.charts[0].notes[0].width == 129);
+    CHECK(saved.charts[0].timingPoints[0].time == 128);
 }

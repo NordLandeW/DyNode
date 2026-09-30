@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <exception>
 #include <mutex>
 #include <shared_mutex>
 #include <stdexcept>
@@ -16,6 +17,51 @@
 #include "taskflow/core/executor.hpp"
 #include "utils.h"
 
+namespace {
+class NoteCallbackScope {
+   public:
+    explicit NoteCallbackScope(const NotePoolManager* manager,
+                               const NoteCallbackScope* parent = current)
+        : manager(manager), parent(parent), previous(current) {
+        current = this;
+    }
+    ~NoteCallbackScope() {
+        current = previous;
+    }
+    NoteCallbackScope(const NoteCallbackScope&) = delete;
+    NoteCallbackScope& operator=(const NoteCallbackScope&) = delete;
+
+    static const NoteCallbackScope* context() {
+        return current;
+    }
+
+    static void check_reentry(const NotePoolManager* manager) {
+        for (auto scope = current; scope; scope = scope->parent) {
+            if (scope->manager == manager) {
+                throw std::logic_error(
+                    "Cannot reenter a locking note API from its callback");
+            }
+        }
+    }
+
+   private:
+    const NotePoolManager* manager;
+    const NoteCallbackScope* parent;
+    const NoteCallbackScope* previous;
+    static inline thread_local const NoteCallbackScope* current = nullptr;
+};
+}  // namespace
+
+std::shared_lock<std::shared_mutex> NotePoolManager::lock_shared() const {
+    NoteCallbackScope::check_reentry(this);
+    return std::shared_lock(mtxNoteOps);
+}
+
+std::unique_lock<std::shared_mutex> NotePoolManager::lock_exclusive() const {
+    NoteCallbackScope::check_reentry(this);
+    return std::unique_lock(mtxNoteOps);
+}
+
 NotePoolManager::NotePoolManager(size_t workerCount)
     : executorWorkerCount(workerCount),
       monotonic_res(initial_buffer.data(), initial_buffer.size(),
@@ -29,7 +75,7 @@ NotePoolManager::~NotePoolManager() {
 }
 
 // Requires executorLifecycleMutex.
-tf::Executor& NotePoolManager::initialize_executor_locked() {
+tf::Executor& NotePoolManager::ensure_executor() {
     if (!noteExecutor) {
         const size_t workers =
             executorWorkerCount == 0
@@ -46,7 +92,7 @@ void NotePoolManager::initialize_executor() {
     if (executorStopped && activeExecutorCalls != 0) {
         throw std::logic_error("Note executor is still shutting down");
     }
-    (void)initialize_executor_locked();
+    (void)ensure_executor();
     executorStopped = false;
 }
 
@@ -70,13 +116,10 @@ void NotePoolManager::execute_tasks(tf::Taskflow& taskflow) {
     tf::Executor* executor;
     {
         std::lock_guard lock(executorLifecycleMutex);
-        // A running worker may still finish a legal nested operation while
-        // shutdown waits for its outer call. External submissions are rejected.
-        if (executorStopped &&
-            (!noteExecutor || noteExecutor->this_worker() == nullptr)) {
+        if (executorStopped) {
             throw std::logic_error("Note executor has been shut down");
         }
-        executor = &initialize_executor_locked();
+        executor = &ensure_executor();
         ++activeExecutorCalls;
     }
     auto release = [&] {
@@ -85,11 +128,7 @@ void NotePoolManager::execute_tasks(tf::Taskflow& taskflow) {
         executorIdle.notify_all();
     };
     try {
-        if (executor->this_worker() != nullptr) {
-            executor->corun(taskflow);
-        } else {
-            executor->run(taskflow).get();
-        }
+        executor->run(taskflow).get();
     } catch (...) {
         release();
         throw;
@@ -97,8 +136,8 @@ void NotePoolManager::execute_tasks(tf::Taskflow& taskflow) {
     release();
 }
 
-const Note& NotePoolManager::operator[](int index) {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+Note NotePoolManager::operator[](int index) const {
+    auto lock = lock_shared();
     if (index < 0 || index >= noteArray.size())
         throw std::out_of_range(
             "Index out of range in NotePoolManager. Range: " +
@@ -111,13 +150,19 @@ const Note& NotePoolManager::operator[](int index) {
     return *noteArray[index];
 }
 
-bool NotePoolManager::note_exists(const std::string& noteID) {
+bool NotePoolManager::note_exists(const std::string& noteID) const {
+    auto lock = lock_shared();
     return noteInfoMap.find(noteID) != noteInfoMap.end();
 }
 
+int NotePoolManager::get_note_count() const {
+    auto lock = lock_shared();
+    return noteCount;
+}
+
 bool NotePoolManager::create_note(const Note& note) {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-    if (note_exists(note.noteID)) {
+    auto lock = lock_exclusive();
+    if (noteInfoMap.find(note.noteID) != noteInfoMap.end()) {
         return false;
     }
     try {
@@ -147,22 +192,14 @@ bool NotePoolManager::create_note(const Note& note) {
     }
 }
 
-const Note& NotePoolManager::get_note(const std::string& noteID) {
-    nptr note_ptr;
-    {
-        std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
-        if (noteInfoMap.find(noteID) == noteInfoMap.end()) {
-            throw std::runtime_error("Note not found: " + noteID);
-        }
-        note_ptr = get_note_pointer(noteID);
-    }  // Release the manager lock
-
-    return *note_ptr;
+Note NotePoolManager::get_note(const std::string& noteID) const {
+    auto lock = lock_shared();
+    return *get_note_pointer(noteID);
 }
 
 void NotePoolManager::get_notes(std::vector<Note>& outNotes,
                                 bool excludeSub) const {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_shared();
     outNotes.clear();
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
@@ -174,23 +211,20 @@ void NotePoolManager::get_notes(std::vector<Note>& outNotes,
     }
 }
 
-const Note& NotePoolManager::get_note_direct(int index) {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+Note NotePoolManager::get_note_direct(int index) const {
+    auto lock = lock_shared();
     if (index < 0 || index >= static_cast<int>(noteArray.size())) {
         throw std::out_of_range("Index out of range in NotePoolManager");
+    }
+    if (!noteArray[index]) {
+        throw std::out_of_range("Note index refers to a deleted note");
     }
     return *noteArray[index];
 }
 
 void NotePoolManager::set_note(const Note& note) {
-    nptr note_ptr;
-    {
-        std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-        if (noteInfoMap.find(note.noteID) == noteInfoMap.end()) {
-            throw std::runtime_error("Note not found: " + note.noteID);
-        }
-        note_ptr = get_note_pointer(note.noteID);
-    }  // Release the manager lock
+    auto lock = lock_exclusive();
+    auto note_ptr = get_note_pointer(note.noteID);
     if (note_ptr->time != note.time)
         set_ooo();
     *note_ptr = note;
@@ -205,104 +239,76 @@ void NotePoolManager::set_note_bitwise(const char* prop) {
     set_note(note);
 }
 
-void NotePoolManager::access_note(const std::string& noteID,
-                                  std::function<void(Note&)> executor) {
-    nptr note_ptr;
-    {
-        std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-        if (noteInfoMap.find(noteID) == noteInfoMap.end()) {
-            throw std::runtime_error("Note not found: " + noteID);
-        }
-        note_ptr = get_note_pointer(noteID);
-    }  // Release the manager lock
-
-    double origTime = note_ptr->time;
-    executor(*note_ptr);
-    if (origTime != note_ptr->time)
-        set_ooo();
-    sync_head_note_to_sub(*note_ptr);
-    sync_hold_note_length(*note_ptr);
-}
-
-// This function is unsafe (DEADLOCK RISK). Do not access notePoolManager in
-// your executor.
-void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
+void NotePoolManager::read_all_notes(
+    std::function<void(const Note&)> reader) const {
+    auto lock = lock_shared();
+    NoteCallbackScope scope(this);
     for (const auto& note_ptr : noteArray) {
         if (note_ptr) {
-            double origTime = note_ptr->time;
-            executor(*note_ptr);
-            if (origTime != note_ptr->time)
-                set_ooo();
-            sync_head_note_to_sub(*note_ptr);
-            sync_hold_note_length(*note_ptr);
+            reader(*note_ptr);
         }
     }
 }
 
-// This function is slower (but safer)
-void NotePoolManager::access_all_notes_safe(
-    std::function<void(Note&)> executor) {
-    std::vector<nptr> notes;
-    {
-        std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-        notes.reserve(get_note_count());
-        for (const auto& note_ptr : noteArray) {
-            if (note_ptr) {
-                notes.push_back(note_ptr);
-            }
-        }
-    }
-    for (const auto& note_ptr : notes) {
-        double origTime = note_ptr->time;
-        executor(*note_ptr);
-        if (origTime != note_ptr->time)
+void NotePoolManager::execute_note_callback(
+    Note& note, const std::function<void(Note&)>& executor) {
+    const double origTime = note.time;
+    try {
+        executor(note);
+    } catch (...) {
+        if (origTime != note.time)
             set_ooo();
-        sync_head_note_to_sub(*note_ptr);
-        sync_hold_note_length(*note_ptr);
+        throw;
+    }
+    if (origTime != note.time)
+        set_ooo();
+}
+
+void NotePoolManager::edit_note(Note& note,
+                                const std::function<void(Note&)>& executor) {
+    std::exception_ptr failure;
+    try {
+        execute_note_callback(note, executor);
+    } catch (...) {
+        failure = std::current_exception();
+    }
+    sync_head_note_to_sub(note);
+    sync_hold_note_length(note);
+    if (failure)
+        std::rethrow_exception(failure);
+}
+
+void NotePoolManager::access_note(const std::string& noteID,
+                                  std::function<void(Note&)> executor) {
+    auto lock = lock_exclusive();
+    NoteCallbackScope scope(this);
+    edit_note(*get_note_pointer(noteID), executor);
+}
+
+void NotePoolManager::access_all_notes(std::function<void(Note&)> executor) {
+    auto lock = lock_exclusive();
+    NoteCallbackScope scope(this);
+    for (const auto& note_ptr : noteArray) {
+        if (note_ptr) {
+            edit_note(*note_ptr, executor);
+        }
     }
 }
 
-// This function is unsafe (DEADLOCK RISK). Do not access notePoolManager in
-// your executor.
 void NotePoolManager::access_all_notes_parallel(
     std::function<void(Note&)> executor) {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_exclusive();
     tf::Taskflow taskflow;
-    taskflow.for_each(noteArray.begin(), noteArray.end(), [&](nptr note_ptr) {
-        if (note_ptr) {
-            double origTime = note_ptr->time;
-            executor(*note_ptr);
-            if (origTime != note_ptr->time)
-                set_ooo();
-            sync_head_note_to_sub(*note_ptr);
-            sync_hold_note_length(*note_ptr);
-        }
-    });
-    execute_tasks(taskflow);
-}
-
-void NotePoolManager::access_all_notes_parallel_safe(
-    std::function<void(Note&)> executor) {
-    std::vector<nptr> notes;
-    {
-        std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
-        notes.reserve(get_note_count());
-        for (const auto& note_ptr : noteArray) {
-            if (note_ptr) {
-                notes.push_back(note_ptr);
-            }
-        }
-    }
-    tf::Taskflow taskflow;
-    taskflow.for_each(notes.begin(), notes.end(), [&](nptr note_ptr) {
-        double origTime = note_ptr->time;
-        executor(*note_ptr);
-        if (origTime != note_ptr->time)
-            set_ooo();
-        sync_head_note_to_sub(*note_ptr);
-        sync_hold_note_length(*note_ptr);
-    });
+    // Submission is synchronous, so inherited callback scopes remain alive
+    // until every worker finishes, including when another manager calls us.
+    const auto parent = NoteCallbackScope::context();
+    taskflow.for_each(noteArray.begin(), noteArray.end(),
+                      [&, parent](nptr note_ptr) {
+                          if (note_ptr) {
+                              NoteCallbackScope scope(this, parent);
+                              execute_note_callback(*note_ptr, executor);
+                          }
+                      });
     execute_tasks(taskflow);
 }
 
@@ -330,7 +336,7 @@ void NotePoolManager::sync_hold_note_length(const Note& note) {
 }
 
 void NotePoolManager::clear_notes() {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_exclusive();
     noteArray.clear();
     noteArray.shrink_to_fit();
     holdArray.clear();
@@ -348,7 +354,7 @@ void NotePoolManager::clear_notes() {
 }
 
 int NotePoolManager::get_index(const std::string& noteID) {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_shared();
 
     if (arrayOutOfOrder) {
         throw std::runtime_error(
@@ -363,7 +369,7 @@ int NotePoolManager::get_index(const std::string& noteID) {
 }
 
 bool NotePoolManager::release_note(std::string noteID) {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_exclusive();
     auto it = noteInfoMap.find(noteID);
     if (it == noteInfoMap.end()) {
         return false;
@@ -385,7 +391,7 @@ bool NotePoolManager::release_note(const Note& note) {
 }
 
 bool NotePoolManager::array_sort_request() {
-    std::lock_guard<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_exclusive();
     if (!arrayOutOfOrder) {
         return false;
     }
@@ -467,13 +473,17 @@ void NotePoolManager::array_sort() {
 }
 
 NotePoolManager::nptr NotePoolManager::get_note_pointer(
-    const std::string& noteID) {
-    // Should only be called when mtxNoteOps is locked
-    return noteInfoMap.find(noteID)->second.pointer;
+    const std::string& noteID) const {
+    // Requires mtxNoteOps or an externally guaranteed stable read phase.
+    auto it = noteInfoMap.find(noteID);
+    if (it == noteInfoMap.end()) {
+        throw std::runtime_error("Note not found: " + noteID);
+    }
+    return it->second.pointer;
 }
 
 int NotePoolManager::get_index_upperbound(double time) {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_shared();
     if (arrayOutOfOrder)
         throw std::runtime_error(
             "Note array is out of order, cannot get index directly.");
@@ -488,7 +498,7 @@ int NotePoolManager::get_index_upperbound(double time) {
 }
 
 int NotePoolManager::get_index_lowerbound(double time) {
-    std::shared_lock<std::shared_mutex> lock(mtxNoteOps);
+    auto lock = lock_shared();
     if (arrayOutOfOrder)
         throw std::runtime_error(
             "Note array is out of order, cannot get index directly.");
