@@ -1188,6 +1188,9 @@ function note_cover_warning() {
 
 #region Curve Sampling Functions
 
+// Time tolerance in milliseconds for excluding existing curve control points.
+#macro CURVE_SAMPLING_TIME_EPS_MS (0.001)
+
 /// @description Linear sampling on selected notes.
 function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSepOverwrite = 1) {
 	var selectedNotes = editor_get_selected_notes();
@@ -1216,7 +1219,7 @@ function editor_linear_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatS
 		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
-		while(currentTime < nextNote.time) {
+		while(currentTime < nextNote.time - CURVE_SAMPLING_TIME_EPS_MS) {
 			if(currentCount % beatSepOverwrite == 0) {
 				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
 				var newNote = note.copy();
@@ -1283,7 +1286,7 @@ function editor_cosine_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatS
 		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
-		while(currentTime < nextNote.time) {
+		while(currentTime < nextNote.time - CURVE_SAMPLING_TIME_EPS_MS) {
 			if(currentCount % beatSepOverwrite == 0) {
 				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
 				var newNote = note.copy();
@@ -1430,7 +1433,7 @@ function editor_catmull_rom_sampling(typeOverwrite = -1, beatDivOverwrite = -1, 
 		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
-		while(currentTime < nextNote.time) {
+		while(currentTime < nextNote.time - CURVE_SAMPLING_TIME_EPS_MS) {
 			if(currentCount % beatSepOverwrite == 0) {
 				var newNote = note.copy();
 				newNote.time = currentTime;
@@ -1518,7 +1521,7 @@ function editor_cubic_sampling(typeOverwrite = -1, beatDivOverwrite = -1, beatSe
 		var currentCount = 1;
 		currentTime += currentTP.beatLength / beatDiv;
 		currentTime = editor_snap_to_grid_time(currentTime, note.side, true, true, SNAP_MODE.SNAP_AROUND, beatDiv).time;
-		while(currentTime < nextNote.time) {
+		while(currentTime < nextNote.time - CURVE_SAMPLING_TIME_EPS_MS) {
 			if(currentCount % beatSepOverwrite == 0) {
 				var ratio = (currentTime - note.time) / (nextNote.time - note.time);
 				var newNote = note.copy();
