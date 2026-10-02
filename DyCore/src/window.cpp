@@ -1,4 +1,7 @@
+#include "window.h"
+
 #include <string>
+#include <utility>
 
 #include "utils.h"
 
@@ -7,7 +10,6 @@
 #include "DyCore.h"
 #include "gm.h"
 #include "imm.h"
-#include "window.h"
 
 WNDPROC g_fnOldWndProc = NULL;
 HWND g_hMenuBar = NULL;
@@ -15,6 +17,11 @@ bool g_isMenuExpanded = true;
 HWND g_hookedWindow = NULL;
 bool g_hookEventsEnabled = false;
 bool g_acceptedDropsBeforeHook = false;
+
+namespace {
+bool closeInterceptEnabled = false;
+bool closeRequested = false;
+}  // namespace
 
 LRESULT CALLBACK SubclassWndProc(HWND hWnd, UINT uMsg, WPARAM wParam,
                                  LPARAM lParam);
@@ -46,6 +53,12 @@ LRESULT CALLBACK SubclassWndProc(HWND hWnd, UINT uMsg, WPARAM wParam,
     };
     if (!g_hookEventsEnabled && uMsg != WM_NCDESTROY)
         return forward();
+    if (closeInterceptEnabled &&
+        (uMsg == WM_CLOSE ||
+         (uMsg == WM_SYSCOMMAND && (wParam & 0xFFF0) == SC_CLOSE))) {
+        closeRequested = true;
+        return 0;
+    }
     switch (uMsg) {
         case WM_DROPFILES: {
             HDROP hDrop = (HDROP)wParam;
@@ -109,6 +122,8 @@ int window_init() {
 }
 
 int window_shutdown() {
+    closeInterceptEnabled = false;
+    closeRequested = false;
     g_hookEventsEnabled = false;
     if (!g_hookedWindow || !IsWindow(g_hookedWindow)) {
         g_hookedWindow = NULL;
@@ -133,6 +148,35 @@ int window_shutdown() {
     return 0;
 }
 
+int window_set_close_intercept(bool enabled) noexcept {
+    if (!g_hookEventsEnabled || !IsWindow(g_hookedWindow)) {
+        return -1;
+    }
+    closeInterceptEnabled = enabled;
+    if (!enabled) {
+        closeRequested = false;
+    }
+    return 0;
+}
+
+int window_take_close_request() noexcept {
+    if (!g_hookEventsEnabled || !IsWindow(g_hookedWindow)) {
+        return -1;
+    }
+    return std::exchange(closeRequested, false) ? 1 : 0;
+}
+
+int window_set_visible(bool visible) noexcept {
+    if (!IsWindow(g_hookedWindow)) {
+        return -1;
+    }
+    // ShowWindow returns the previous visibility, not a success flag.
+    ShowWindow(g_hookedWindow, visible ? SW_SHOW : SW_HIDE);
+    const bool hasVisibleStyle =
+        (GetWindowLongPtr(g_hookedWindow, GWL_STYLE) & WS_VISIBLE) != 0;
+    return IsWindow(g_hookedWindow) && hasVisibleStyle == visible ? 0 : -1;
+}
+
 void disable_ime() {
     HWND hwnd = get_hwnd_handle();
     ImmAssociateContext(hwnd, NULL);
@@ -154,6 +198,18 @@ int window_init() {
 
 int window_shutdown() {
     return 0;
+}
+
+int window_set_close_intercept(bool enabled) noexcept {
+    return WINDOW_NOT_IMPLEMENTED;
+}
+
+int window_take_close_request() noexcept {
+    return WINDOW_NOT_IMPLEMENTED;
+}
+
+int window_set_visible(bool visible) noexcept {
+    return WINDOW_NOT_IMPLEMENTED;
 }
 
 void disable_ime() {

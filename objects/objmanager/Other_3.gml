@@ -1,5 +1,9 @@
 
-app_cleanup_step("window", function() { window_set_visible_w(false); });
+app_cleanup_step("window", function() {
+    dyc_window_set_close_intercept(false);
+    var result = dyc_window_set_visible(false);
+    if(result < 0) show_debug_message("Window hide failed or not implemented. Result: " + string(result));
+});
 app_cleanup_step("config", function() { save_config(); });
 app_cleanup_step("AppClose", function() {
     if(global.analytics) aptabase_track("AppClose");

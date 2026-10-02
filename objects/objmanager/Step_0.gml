@@ -7,11 +7,6 @@ if(os_type == os_windows) {
 		window_toggle_fullscreen();
 	}
 	window_check_fullscreen();
-	
-	if(window_command_check(window_command_close)) {
-		if(game_end_confirm())
-			return;
-	}
 }
 else {
 	if(keycheck_down(vk_f7)) {
@@ -19,6 +14,11 @@ else {
 			global.fullscreen = !global.fullscreen;
 		window_set_fullscreen(global.fullscreen);
 	}
+}
+
+if(windowCloseInterceptEnabled && dyc_window_take_close_request() == 1) {
+	if(game_end_confirm())
+		return;
 }
 
 #endregion

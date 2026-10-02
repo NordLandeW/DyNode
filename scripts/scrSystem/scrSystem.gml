@@ -1430,6 +1430,7 @@ function analytics_track_event(event_name, event_data = {}) {
 function game_end_confirm() {
 	var _confirm_exit = instance_exists(objMain) ? show_question_i18n("confirm_close") : true;
 	if(_confirm_exit) {
+		dyc_window_set_close_intercept(false);
 		// Game End drains pending saves before closing the chart.
 		game_end();
 		return true;

@@ -724,6 +724,26 @@ function dyc_disable_ime() {
     return DyCore_disable_ime();
 }
 
+/// @description Enable or disable close interception. Disabling clears pending requests.
+/// @param {Bool} enabled Whether to intercept native close requests.
+/// @returns {Real} 0 on success, -1 on failure, -2 if not implemented.
+function dyc_window_set_close_intercept(enabled) {
+    return DyCore_window_set_close_intercept(enabled);
+}
+
+/// @description Consume a pending native close request.
+/// @returns {Real} 1 for a request, 0 for none, -1 on failure, -2 if not implemented.
+function dyc_window_take_close_request() {
+    return DyCore_window_take_close_request();
+}
+
+/// @description Show or hide the game window.
+/// @param {Bool} visible Whether the window should be visible.
+/// @returns {Real} 0 on success, -1 on failure, -2 if not implemented.
+function dyc_window_set_visible(visible) {
+    return DyCore_window_set_visible(visible);
+}
+
 function dyc_random_range(min, max) {
     return DyCore_random_range(min, max);
 }

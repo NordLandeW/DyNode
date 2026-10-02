@@ -152,8 +152,13 @@ window_reset();
 window_enable_borderless_fullscreen(true);
 
 window_set_fullscreen(global.fullscreen);
-if(os_type == os_windows)
-	window_command_hook(window_command_close);
+var _windowHookResult = dyc_window_set_close_intercept(true);
+windowCloseInterceptEnabled = _windowHookResult == 0;
+if(_windowHookResult == -2)
+	show_debug_message("Window close interception: not implemented on this platform.");
+else if(_windowHookResult < 0) {
+	announcement_error("Failed to enable window close interception.");
+}
 
 dyc_disable_ime();
 
