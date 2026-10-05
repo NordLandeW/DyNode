@@ -72,26 +72,28 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 
 // Draw Note Particles
 
-    partSurf = surface_checkate(partSurf, _nw, _nh);
-    gpu_push_state();
-    // gpu_set_colorwriteenable(1, 1, 1, 0);
-    surface_set_target(partSurf);
-    draw_clear_alpha(c_black, 1);
-        // gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
-        // gpu_set_blendmode(bm_max);      // maybe not valid but looks ok :(
+    if(part_particles_count(partSysNote) > 0) {
+        partSurf = surface_checkate(partSurf, _nw, _nh);
+        gpu_push_state();
+        // gpu_set_colorwriteenable(1, 1, 1, 0);
+        surface_set_target(partSurf);
+        draw_clear_alpha(c_black, 1);
+            // gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+            // gpu_set_blendmode(bm_max);      // maybe not valid but looks ok :(
+            gpu_set_blendmode(bm_add);
+            shader_set(shd_prealpha);
+            part_system_drawit(partSysNote);
+            shader_reset();
+        surface_reset_target();
+        gpu_pop_state();
+        
+        gpu_push_state();
         gpu_set_blendmode(bm_add);
-        shader_set(shd_prealpha);
-        part_system_drawit(partSysNote);
+        shader_set(shd_unprealpha);
+        draw_surface(partSurf, 0, 0);
         shader_reset();
-    surface_reset_target();
-    gpu_pop_state();
-    
-    gpu_push_state();
-    gpu_set_blendmode(bm_add);
-    shader_set(shd_unprealpha);
-    draw_surface(partSurf, 0, 0);
-    shader_reset();
-    gpu_pop_state();
+        gpu_pop_state();
+    }
 
 // Draw Mixer & Shadow's Position
 
