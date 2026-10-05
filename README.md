@@ -6,7 +6,6 @@
 <br>
 <p align="center">
 <a href="https://github.com/NordLandeW/DyNode/blob/main/LICENSE"><img src="https://img.shields.io/github/license/NordLandeW/DyNode?style=flat"></a> 
-<a href="https://deepwiki.com/NordLandeW/DyNode"><img src=".github/assets/deepwiki.svg" alt="Ask DeepWiki"></a>
 <a href="https://www.codefactor.io/repository/github/nordlandew/dynode"><img src="https://www.codefactor.io/repository/github/nordlandew/dynode/badge" alt="CodeFactor" /></a>
   
 <br>
