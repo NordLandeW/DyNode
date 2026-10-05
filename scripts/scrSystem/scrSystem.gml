@@ -24,6 +24,7 @@ function map_close(shuttingDown = false) {
 		kawase_destroy(kawaseArr);
 		surface_free_f(shadowPingSurf);
 		surface_free_f(shadowPongSurf);
+		surface_free_f(partSurf);
 		
 		note_delete_all();
 		instance_destroy(objScoreBoard);

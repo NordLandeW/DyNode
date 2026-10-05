@@ -249,6 +249,7 @@ depth = 0;
 
     shadowPingSurf = -999;
     shadowPongSurf = -999;
+    partSurf = -999;
 
 #endregion
 
