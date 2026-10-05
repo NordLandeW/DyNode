@@ -36,7 +36,8 @@ special_thanks = [
     ["Algax", ""],
     ["AXIS5", ""],
     ["iam6668", ""],
-    ["Jmakxd", ""]
+    ["Jmakxd", ""],
+    ["Keternal", ""]
 ]
 
 licenseText = "";
