@@ -27,6 +27,7 @@ if(_editMode == 5) {
     set_state(NOTE_STATES.OUT);
 }
 
+var _wasOut = stateType == NOTE_STATES.OUT;
 state();
 
 selectUnlock = false;
@@ -44,8 +45,13 @@ if(drawVisible || nodeAlpha>EPS || infoAlpha>EPS || image_alpha>EPS) {
             if(nodeAlpha < 0.01)
                 nodeAlpha = animTargetNodeA;
         }
-        image_alpha = lerp_a(image_alpha, animTargetA * _factor,
-            animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
+        if(_wasOut || stateType == NOTE_STATES.OUT) {
+            image_alpha = animTargetA * _factor;
+        }
+        else {
+            image_alpha = lerp_a(image_alpha, animTargetA * _factor,
+                animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
+        }
 
         lastAlpha = lerp_a(lastAlpha, animTargetLstA * _factor,
             animSpeed * (objMain.nowPlaying ? objMain.musicSpeed * animPlaySpeedMul : 1));
