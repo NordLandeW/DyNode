@@ -6,12 +6,10 @@
 #macro BASE_RES_W 1920
 #macro BASE_RES_H 1080
 #macro BASE_FPS 60
-#macro MAXIMUM_DELAY_OF_SOUND 20        	// in ms
 #macro MAXIMUM_UNDO_STEPS 3000
 #macro EPS 0.01
 #macro MIXER_REACTION_RANGE 0.35			// Mixer's reaction pixel range's ratio of resolutionW
 #macro SYSFIX "\\\\?\\"						// Old system prefix workaround for win's file path
-#macro EXPORT_XML_EPS 6
 #macro LERP_EPS 0.001
 #macro INF 0x7fffffff
 #macro MAX_SELECTION_LIMIT 1500
@@ -78,7 +76,6 @@ global.difficultySprite = [sprCasual, sprNormal, sprHard, sprMega, sprGiga, sprT
 global.difficultyString = "CNHMGT";
 global.difficultyCount = string_length(global.difficultyString);
 
-global.noteTypeName = ["NORMAL", "CHAIN", "HOLD", "SUB"];
 global.__GUIManager = undefined;
 
 global.shadowCount = 0;

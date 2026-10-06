@@ -126,48 +126,11 @@ function generate_pause_shadow(height, indent = 30) {
 
 #region TIME & BAR & BPM
 
-function time_to_bar(time, barpm) {
-    return time * barpm / 60000;
-}
-
-function bar_to_time(offset, barpm) {
-    return offset * 60000 / barpm;
-}
-
-function mtime_to_time(mtime, offset) {
-	return mtime + offset;
-}
-function time_to_mtime(time, offset) {
-	return time - offset;
-}
-
 function bpm_to_mspb(bpm) {
 	return 60 * 1000 / bpm;
 }
 function mspb_to_bpm(mspb) {
 	return 60 * 1000 / mspb;
-}
-
-// Especially for dym
-function time_to_bar_for_dym(time) {
-	var timingPoints = dyc_get_timingpoints();
-	var _rbar = 0;
-	var l = array_length(timingPoints);
-	for(var i=0; i<l; i++) {
-		if(i>0)
-			_rbar += time_to_bar(timingPoints[i].time - timingPoints[i-1].time,
-				mspb_to_bpm(timingPoints[i-1].beatLength)/4);
-		if(time < timingPoints[0].time || 
-			i == l-1 ||
-			in_between(time, timingPoints[i].time, timingPoints[i+1].time)) 
-			{
-				return _rbar +
-					time_to_bar(time - timingPoints[i].time,
-						mspb_to_bpm(timingPoints[i].beatLength)/4);
-			}
-	}
-	
-	show_error("CONVERSION FATAL ERROR", true);
 }
 
 /// @description Convert an absolute time in milliseconds to DyNode's 1-based bar position.
@@ -367,10 +330,6 @@ function difficulty_num_to_name(_number) {
 	return global.difficultyName[_number];
 }
 
-function note_type_num_to_string(_number) {
-	return global.noteTypeName[_number];
-}
-
 #endregion
 
 function has_cjk(str) {
@@ -459,7 +418,6 @@ function fast_file_save_buffer_async(file, buffer) {
 function fast_file_save_buffer(file, buffer) {
 	file = file_path_fix(file);
 	buffer_seek(buffer, buffer_seek_start, 0);
-	print_buffer_hex(buffer);
 	buffer_save(buffer, file);
 	return;
 }
@@ -865,30 +823,6 @@ function surface_clear(surface) {
 	surface_reset_target();
 
 	if(orig_target > 0) surface_set_target(surface);
-}
-
-function print_buffer_hex(buffer) {
-    var output = "";
-    var byte;
-    
-    var length = buffer_get_size(buffer);
-    var bytes_to_read = min(length, 100);
-    
-    for (var i = 0; i < bytes_to_read; i++) {
-        byte = buffer_peek(buffer, i, buffer_u8);
-        output += string(int64(byte));
-        if ((i + 1) % 16 == 0) {
-            output += "\n";
-        } else {
-            output += " "; 
-        }
-    }
-    
-    if (bytes_to_read % 16 != 0) {
-        output += "\n";
-    }
-    
-    show_debug_message(output);
 }
 
 /// @description Convert rgb color to normalized hsv color arrays.
