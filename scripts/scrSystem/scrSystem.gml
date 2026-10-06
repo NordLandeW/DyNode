@@ -1177,9 +1177,10 @@ function load_config() {
 	// Version check.
 	if(_con[$ "version"] != VERSION) {
 		var _oldVersion = _con[$ "version"];
-		if(version_cmp(VERSION, _oldVersion) > 0)
+		var _versionChange = version_cmp(VERSION, _oldVersion);
+		if(_versionChange > 0)
 			announcement_play(i18n_get("version_higher", VERSION));
-		else
+		else if(_versionChange < 0)
 			announcement_warning(i18n_get("version_lower", VERSION));
 		
 		// Old version workarounds.
