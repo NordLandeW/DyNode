@@ -76,12 +76,11 @@ function map_reset() {
 }
 
 function map_load(_file = "") {
-
-	if(is_struct(_file)) {
-		map_load_struct(_file);
-		
+	if(!is_string(_file)){
+		announcement_error("map_load: File path is not a string.");
 		return;
 	}
+
 	var _direct = _file != "";
 	if(_file == "")
 	    _file = dyc_get_open_filename(i18n_get("fileformat_chart") + " (*.xml;*.dyn;*dy;*.osu)|*.xml;*.dyn;*dy;*.osu", "", 
@@ -120,7 +119,7 @@ function map_load(_file = "") {
 				break;
 		}
 	} catch (e) {
-		announcement_error("谱面解析错误。请确认谱面的格式受 DyNode 支持。\n错误信息：[scale,0.7]"+string(e));
+		announcement_error(i18n_get("anno_chart_parse_error", [string(e)]));
 		return;
 	}
     
@@ -441,22 +440,6 @@ function map_export_xml(_export_to_dym) {
 
 	show_debug_message("Export done.");
 	analytics_track_event("ChartExportXML", { result: _result });
-}
-
-function map_load_struct(_str, _import_info = true, _import_tp = true) {
-	with(objMain) {
-		if(_import_info) {
-			chartTitle = _str.title;
-			chartDifficulty = _str.difficulty;
-			chartSideType = _str.sidetype;
-		}
-	}
-	
-	var _arr = _str.notes;
-	for(var i=0, l=array_length(_arr); i<l; i++) 
-		build_note(_arr[i]);
-	
-	show_debug_message_safe("Load map from struct sucessfully.");
 }
 
 function map_get_title() {
