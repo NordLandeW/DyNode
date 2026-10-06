@@ -86,6 +86,7 @@
         "box_q_clear_objects": "元の譜面オブジェクトを全て消去しますか？この操作は取り消せません！",
         "box_q_import_dymm_bpm": "Dynamaker Modified譜面ファイルの変BPMデータをインポートしますか？",
         "anno_chart_not_exists": "譜面ファイルが存在しません。インポートを中止します。",
+        "anno_chart_parse_error": "譜面の解析に失敗しました。DyNode が対応している譜面形式であることを確認してください。\nエラー情報：[scale,0.7]$0",
         "box_q_import_confirm": "譜面をインポートしますか？この操作は元に戻せません。",
         "box_q_import_clear": "元の譜面オブジェクトを全て消去しますか？",
         "box_q_import_timing_reset": "元の譜面Timing情報を全て消去しますか？",

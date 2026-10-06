@@ -86,6 +86,7 @@
         "box_q_clear_objects": "Clear all original chart objects? This cannot be undone!",
         "box_q_import_dymm_bpm": "Import variable BPM data from the Dynamaker Modified chart file?",
         "anno_chart_not_exists": "Chart file does not exist. Import aborted.",
+        "anno_chart_parse_error": "Failed to parse chart. Please check that the chart format is supported by DyNode.\nError message: [scale,0.7]$0",
         "box_q_import_confirm": "Confirm chart import? All actions are irreversible.",
         "box_q_import_clear": "Clear all original chart objects?",
         "box_q_import_timing_reset": "Clear all original Timing information?",

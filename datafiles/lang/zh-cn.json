@@ -86,6 +86,7 @@
         "box_q_clear_objects": "是否清除所有原谱面物件？此操作不可撤销！",
         "box_q_import_dymm_bpm": "是否导入 Dynamaker Modified 谱面文件中的变 BPM 数据？",
         "anno_chart_not_exists": "谱面文件不存在。导入中止。",
+        "anno_chart_parse_error": "谱面解析错误。请确认谱面的格式受 DyNode 支持。\n错误信息：[scale,0.7]$0",
         "box_q_import_confirm": "确认导入谱面？所有操作将不可撤销。",
         "box_q_import_clear": "是否清除所有原谱面物件？",
         "box_q_import_timing_reset": "是否清除所有原谱面 Timing 信息？",
