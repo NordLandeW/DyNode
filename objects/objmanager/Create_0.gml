@@ -184,9 +184,8 @@ analytics_init();
 
 // Init finished.
 
-if(DEBUG_MODE) test_at_start();
-
 if(DEBUG_MODE) {
+	test_at_start();
 	room_goto(rMain);
 }
 else
@@ -224,21 +223,7 @@ call_later(1, time_source_units_frames, function() {
 		global.autosave = false;
 		switch_autosave();
 	}
-	
-	// For config.json update
-	
-	tsConfigLiveChange = time_source_create(time_source_game, 1, time_source_units_seconds, 
-		function() {
-			with(objManager)
-				if(_lastConfig_md5 != md5_config()) {
-					_lastConfig_md5 = load_config();
-					show_debug_message_safe("MD5: "+_lastConfig_md5);
-					announcement_play("检测到配置被更改，改变后的一部分配置已经生效。");
-				}
-		}
-		, [], -1);
-	// time_source_start(tsConfigLiveChange);
-	
+		
 	debugLayer = false;
 
 #endregion
