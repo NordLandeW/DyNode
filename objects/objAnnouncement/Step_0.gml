@@ -12,4 +12,10 @@ else {
     image_alpha = lerp_a(image_alpha, animTargetAlpha, 0.3);
 }
 
+// Background color update
+update_color();
+bgColor = lerp_timedep_any(bgColor, targetBgColor, 0.1,
+    function(a, b, t) { return a.lerp(a, b, t); },
+    function(a, b) { return a.eqls(b); }, 60);
+
 nowShiftY = lerp_a(nowShiftY, targetY, 0.3);

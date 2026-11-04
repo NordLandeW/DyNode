@@ -1,7 +1,8 @@
 
 var _nx = x + shiftInX * animcurve_channel_evaluate(shiftCurv, min(anniTimer/shiftTime, 1));
 var _ny = y - nowShiftY;
-var _col = theme_get().color;
+var _col = bgColor.get_color();
+
 var _borderthick = sin(anniTimer * 2 * pi / ANNO_BORDER_ANIMATION_TIME) * 2 + 2;
 var _borderalp = sin(anniTimer * 2 * pi / ANNO_BORDER_ANIMATION_TIME) * 0.5 + 0.5;
 var _bordercol = merge_color(_col, c_white, 0.5);
@@ -10,17 +11,6 @@ var _bbox = element.get_bbox(_nx, _ny);
 
 if(mouse_inbound(_bbox.left, _bbox.top, _bbox.right, _bbox.bottom))
 	image_alpha = 1;
-
-switch(annoState) {
-	case ANNO_STATE.ERROR:
-		_col = merge_color(c_red, c_white, 0.5);
-		break;
-	case ANNO_STATE.COMPLETE:
-		_col = merge_color(c_green, c_white, 0.5);
-		break;
-	default:
-		break;
-}
 
 switch (annoType) {
 	case ANNO_TYPE.NORMAL:

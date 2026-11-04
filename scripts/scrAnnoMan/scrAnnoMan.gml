@@ -50,6 +50,7 @@ function AnnouncementManager() constructor {
         var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
         _inst.init(msg, duration, annoID, type);
         _inst.set_state(state);
+        _inst.init_color();
         
         array_push(announcements, _inst);
     }

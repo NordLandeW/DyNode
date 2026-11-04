@@ -126,12 +126,11 @@ if(DEBUG_MODE) {
 		_debug_stop_record();
 	}
 	if(keycheck_down_ctrl(vk_numpad5)) {
-		var result = lua_run();
-		if(result.state == "error") {
-			announcement_error(
-				$"Lua run failed.\nDetails:\n[scale,0.6]{result.error}"
-			);
-		}
+		var _annoID = random_id(8);
+		announcement_task("[DEBUG] Color transition", 5000, _annoID);
+		call_later(2, time_source_units_seconds, method({ annoID: _annoID }, function() {
+			announcement_task("[DEBUG] Color transition", 5000, annoID, ANNO_STATE.COMPLETE);
+		}));
 	}
 }
 

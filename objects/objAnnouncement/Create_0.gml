@@ -27,6 +27,26 @@ _generate_element = function () {
 		.transform(0.8, 0.8);
 }
 
+init_color = function() {
+	update_color();
+	bgColor = targetBgColor.copy();
+}
+
+update_color = function() {
+	var _col = theme_get().color;
+	switch(annoState) {
+		case ANNO_STATE.ERROR:
+			_col = merge_color(c_red, c_white, 0.5);
+			break;
+		case ANNO_STATE.COMPLETE:
+			_col = merge_color(c_green, c_white, 0.5);
+			break;
+		default:
+			break;
+	}
+	targetBgColor.set_color(_col);
+}
+
 init = function(str, lastTime, uniqueID, type = ANNO_TYPE.NORMAL) {
 	self.str = str;
 	self.lastTime = lastTime;
@@ -52,3 +72,6 @@ timer = 0;
 anniTimer = 0;
 targetY = 0;
 nowShiftY = 0;
+
+bgColor = new HPColor(255, 255, 255);
+targetBgColor = bgColor.copy();

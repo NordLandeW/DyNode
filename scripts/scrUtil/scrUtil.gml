@@ -500,9 +500,19 @@ function lerp_a(from, to, amount) {
 	return lerp_safe(from, to, 1 - power(1 - amount * fix_parameter, global.timeManager.get_delta() / 1000000 * 165));
 }
 
-function lerp_timedep(from, to, amount) {
+/// @param {Real} dtk Reference steps per second. Use 1 for a per-second amount.
+function lerp_timedep(from, to, amount, dtk = 1) {
 	if(from == to) return from;
-	return lerp_safe(from, to, 1 - power(1 - amount, global.timeManager.get_delta() / 1000000));
+	return lerp_safe(from, to, 1 - power(1 - amount, global.timeManager.get_delta() * dtk / 1000000));
+}
+
+/// @description Lerp time-independently using any functions.
+/// @param {Real} dtk Reference steps per second. Use 1 for a per-second amount.
+function lerp_timedep_any(from, to, amount, lfunc = undefined, cfunc = undefined, dtk = 1) {
+	if(lfunc == undefined) lfunc = lerp_safe;
+	if(cfunc == undefined) cfunc = function(a, b) { return a == b; };
+	if(cfunc(from, to)) return from;
+	return lfunc(from, to, 1 - power(1 - amount, global.timeManager.get_delta() * dtk / 1000000));
 }
 
 function lerp_safe(from, to, amount) {
@@ -1059,3 +1069,44 @@ function AnimcurveTween(_start, _end, _curve, _t)
     var _value = lerp(_start, _end, _w);
     return _value;
 }
+
+#region High Precision Color
+
+function HPColor(r, g, b) constructor {
+	self.col = new Vector3(r, g, b);
+
+	// Keep fractional channels until the drawing boundary.
+	static get_color = function() {
+		return make_color_rgb(round(col.x), round(col.y), round(col.z));
+	}
+
+	/// @param {Struct.HPColor} from
+	/// @param {Struct.HPColor} to
+	/// @param {Real} amount
+	/// @returns {Struct.HPColor}
+	static lerp = function(from, to, amount) {
+		return new HPColor(
+			lerp_safe(from.col.x, to.col.x, amount),
+			lerp_safe(from.col.y, to.col.y, amount),
+			lerp_safe(from.col.z, to.col.z, amount)
+		);
+	}
+
+	/// @param {Struct.HPColor} otherColor
+	static eqls = function(otherColor) {
+		return col.eqls(otherColor.col);
+	}
+
+	static copy = function() {
+		return new HPColor(col.x, col.y, col.z);
+	}
+
+	/// @param {Constant.Color} newColor
+	static set_color = function(newColor) {
+		col.x = color_get_red(newColor);
+		col.y = color_get_green(newColor);
+		col.z = color_get_blue(newColor);
+	}
+}
+
+#endregion
