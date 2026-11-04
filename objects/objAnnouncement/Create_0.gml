@@ -75,3 +75,5 @@ nowShiftY = 0;
 
 bgColor = new HPColor(255, 255, 255);
 targetBgColor = bgColor.copy();
+borderThick = 0;
+borderAlpha = 0;
