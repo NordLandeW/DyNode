@@ -358,6 +358,7 @@ function dyc_chart_import_dy(filePath, importInfo, importTiming) {
     return 0;
 }
 
+/// @returns {Any} 
 function dyc_chart_import_dy_get_remix() {
     try {
         return json_parse(DyCore_chart_import_dy_get_remix());

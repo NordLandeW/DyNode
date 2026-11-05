@@ -76,6 +76,7 @@ global.difficultySprite = [sprCasual, sprNormal, sprHard, sprMega, sprGiga, sprT
 global.difficultyString = "CNHMGT";
 global.difficultyCount = string_length(global.difficultyString);
 
+/// @type {Struct.GUIManager} 
 global.__GUIManager = undefined;
 
 global.shadowCount = 0;
