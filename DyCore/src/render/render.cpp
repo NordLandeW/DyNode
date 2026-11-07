@@ -123,7 +123,7 @@ namespace {
 
 struct SpriteRenderData {
     const SpriteData* sprite;
-    std::array<std::array<glm::vec2, 4>, 8> quadUvs{};
+    std::array<std::array<glm::vec2, 4>, 4> quadUvs{};
 };
 
 SpriteRenderData make_sprite_render_data(const SpriteData& sprite) {
@@ -143,56 +143,22 @@ SpriteRenderData make_sprite_render_data(const SpriteData& sprite) {
                 sprite.map_uv({0.0f, 0.0f}), sprite.map_uv({1.0f, 0.0f}),
                 sprite.map_uv({0.0f, 1.0f}), sprite.map_uv({1.0f, 1.0f})};
             break;
-        case SPRITE_DRAW_TYPE::SEG_3: {
-            const float seg0Width = setting.data[0];
-            const float seg2Width = setting.data[1];
-            const float seg1UvWidth = sprite.size.x - seg0Width - seg2Width;
-            set_pos_uv_quad(0, 0.0f, seg0Width, 0.0f, sprite.size.y);
-            set_pos_uv_quad(1, seg0Width, seg0Width + seg1UvWidth, 0.0f,
-                            sprite.size.y);
-            set_pos_uv_quad(2, sprite.size.x - seg2Width, sprite.size.x, 0.0f,
-                            sprite.size.y);
-            break;
-        }
-        case SPRITE_DRAW_TYPE::SEG_5: {
-            const float seg0Width = setting.data[0];
-            const float seg2Width = setting.data[1];
-            const float seg4Width = setting.data[2];
-            const float seg13UvWidth =
-                sprite.size.x - seg0Width - seg2Width - seg4Width;
-            const std::array<float, 5> widths = {seg0Width, seg13UvWidth / 2.0f,
-                                                 seg2Width, seg13UvWidth / 2.0f,
-                                                 seg4Width};
-            float current = 0.0f;
-            for (size_t index = 0; index < widths.size(); ++index) {
-                set_pos_uv_quad(index, current, current + widths[index], 0.0f,
-                                sprite.size.y);
-                current += widths[index];
-            }
-            break;
-        }
-        case SPRITE_DRAW_TYPE::SLICE_9: {
-            const float xCoordinates[] = {
-                0.0f, static_cast<float>(setting.data[0]),
-                sprite.size.x - setting.data[1], sprite.size.x};
-            const float yCoordinates[] = {
-                0.0f, static_cast<float>(setting.data[2]),
-                sprite.size.y - setting.data[3], sprite.size.y};
-            size_t quadIndex = 0;
-            for (int row = 0; row < 3; ++row) {
-                for (int column = 0; column < 3; ++column) {
-                    if (row == 1 && column == 1) {
-                        continue;
-                    }
-                    set_pos_uv_quad(quadIndex++, xCoordinates[column],
-                                    xCoordinates[column + 1], yCoordinates[row],
-                                    yCoordinates[row + 1]);
-                }
-            }
-            break;
-        }
+        case SPRITE_DRAW_TYPE::SEG_3:
+        case SPRITE_DRAW_TYPE::SEG_5:
         case SPRITE_DRAW_TYPE::REPEAT_VERT:
+            // Local coordinates are mapped into the atlas by shd_notes.
             break;
+        case SPRITE_DRAW_TYPE::SLICE_9: {
+            const float left = setting.data[0];
+            const float right = sprite.size.x - setting.data[1];
+            const float top = setting.data[2];
+            const float bottom = sprite.size.y - setting.data[3];
+            set_pos_uv_quad(0, 0.0f, sprite.size.x, 0.0f, top);
+            set_pos_uv_quad(1, 0.0f, left, top, bottom);
+            set_pos_uv_quad(2, right, sprite.size.x, top, bottom);
+            set_pos_uv_quad(3, 0.0f, sprite.size.x, bottom, sprite.size.y);
+            break;
+        }
     }
     return data;
 }
@@ -232,34 +198,17 @@ void draw_sprite(char*& vertBuf, const SpriteRenderData& renderData,
     // Draw the sprite using the calculated quad range.
     auto setting = sprite.drawSetting;
     switch (setting.type) {
-        // Should enable tex_repeat setting.
         case SPRITE_DRAW_TYPE::REPEAT_VERT: {
-            float current_y = 0.0f;
-            while (current_y < size.y) {
-                const float remaining_h = size.y - current_y;
-                const float quad_h =
-                    std::min(remaining_h, (float)sprite.size.y);
-
-                const glm::vec2 quad_tl = leftUp + glm::vec2(0.0f, current_y);
-                const glm::vec2 quad_tr = rightUp + glm::vec2(0.0f, current_y);
-                const glm::vec2 quad_bl =
-                    leftUp + glm::vec2(0.0f, current_y + quad_h);
-                const glm::vec2 quad_br =
-                    rightUp + glm::vec2(0.0f, current_y + quad_h);
-
-                const glm::vec2 uv_tl = sprite.map_uv({0.0f, 0.0f});
-                const glm::vec2 uv_tr = sprite.map_uv({1.0f, 0.0f});
-                const glm::vec2 uv_bl =
-                    sprite.map_uv({0.0f, quad_h / sprite.size.y});
-                const glm::vec2 uv_br =
-                    sprite.map_uv({1.0f, quad_h / sprite.size.y});
-
-                vertex_quad_write(vertBuf, rotate(quad_tl), rotate(quad_tr),
-                                  rotate(quad_bl), rotate(quad_br), uv_tl,
-                                  uv_tr, uv_bl, uv_br, color);
-
-                current_y += quad_h;
-            }
+            if (size.y <= 0.0f)
+                break;
+            const float repeats = size.y / sprite.size.y;
+            // Preserve the tiled top-left fill rule at exact left-lane joins.
+            vertex_quad_write(vertBuf, rotate(leftUp), rotate(rightUp),
+                              rotate(leftDown), rotate(rightDown), {0.0f, 0.0f},
+                              {1.0f, 0.0f}, {0.0f, repeats}, {1.0f, repeats},
+                              color,
+                              {rotation == 270.0 ? 1.0f : 0.0f,
+                               static_cast<float>(setting.type)});
             break;
         }
         case SPRITE_DRAW_TYPE::NORMAL: {
@@ -269,114 +218,44 @@ void draw_sprite(char*& vertBuf, const SpriteRenderData& renderData,
                               uv[2], uv[3], color);
             break;
         }
-        case SPRITE_DRAW_TYPE::SEG_3: {
-            const float seg0_w = setting.data[0];
-            const float seg2_w = setting.data[1];
-            const float seg1_screen_w = size.x - seg0_w - seg2_w;
-
-            // Draw seg-0
-            const auto& uv0 = renderData.quadUvs[0];
-            vertex_quad_write(vertBuf, rotate({leftUp.x, leftUp.y}),
-                              rotate({leftUp.x + seg0_w, leftUp.y}),
-                              rotate({leftDown.x, leftDown.y}),
-                              rotate({leftDown.x + seg0_w, leftDown.y}), uv0[0],
-                              uv0[1], uv0[2], uv0[3], color);
-            // Draw seg-1
-            const auto& uv1 = renderData.quadUvs[1];
-            vertex_quad_write(
-                vertBuf, rotate({leftUp.x + seg0_w, leftUp.y}),
-                rotate({leftUp.x + seg0_w + seg1_screen_w, leftUp.y}),
-                rotate({leftDown.x + seg0_w, leftDown.y}),
-                rotate({leftDown.x + seg0_w + seg1_screen_w, leftDown.y}),
-                uv1[0], uv1[1], uv1[2], uv1[3], color);
-            // Draw seg-2
-            const auto& uv2 = renderData.quadUvs[2];
-            vertex_quad_write(vertBuf, rotate({rightUp.x - seg2_w, rightUp.y}),
-                              rotate({rightUp.x, rightUp.y}),
-                              rotate({rightDown.x - seg2_w, rightDown.y}),
-                              rotate({rightDown.x, rightDown.y}), uv2[0],
-                              uv2[1], uv2[2], uv2[3], color);
+        case SPRITE_DRAW_TYPE::SEG_3:
+        case SPRITE_DRAW_TYPE::SEG_5:
+            // Interpolate local X in pixels rather than rescaling normalized
+            // UVs.
+            vertex_quad_write(vertBuf, rotate(leftUp), rotate(rightUp),
+                              rotate(leftDown), rotate(rightDown), {0.0f, 0.0f},
+                              {size.x, 0.0f}, {0.0f, 1.0f}, {size.x, 1.0f},
+                              color,
+                              {size.x, static_cast<float>(setting.type)});
             break;
-        }
-        case SPRITE_DRAW_TYPE::SEG_5: {
-            const float seg0_w = setting.data[0];
-            const float seg2_w = setting.data[1];
-            const float seg4_w = setting.data[2];
-            const float seg13_screen_w = size.x - seg0_w - seg2_w - seg4_w;
-            const float seg1_screen_w = seg13_screen_w / 2.0f;
-            const float seg3_screen_w = seg13_screen_w / 2.0f;
-
-            float current_x = leftUp.x;
-
-            // Draw seg-0
-            const auto& uv0 = renderData.quadUvs[0];
-            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
-                              rotate({current_x + seg0_w, leftUp.y}),
-                              rotate({current_x, leftDown.y}),
-                              rotate({current_x + seg0_w, leftDown.y}), uv0[0],
-                              uv0[1], uv0[2], uv0[3], color);
-            current_x += seg0_w;
-
-            // Draw seg-1
-            const auto& uv1 = renderData.quadUvs[1];
-            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
-                              rotate({current_x + seg1_screen_w, leftUp.y}),
-                              rotate({current_x, leftDown.y}),
-                              rotate({current_x + seg1_screen_w, leftDown.y}),
-                              uv1[0], uv1[1], uv1[2], uv1[3], color);
-            current_x += seg1_screen_w;
-
-            // Draw seg-2
-            const auto& uv2 = renderData.quadUvs[2];
-            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
-                              rotate({current_x + seg2_w, leftUp.y}),
-                              rotate({current_x, leftDown.y}),
-                              rotate({current_x + seg2_w, leftDown.y}), uv2[0],
-                              uv2[1], uv2[2], uv2[3], color);
-            current_x += seg2_w;
-
-            // Draw seg-3
-            const auto& uv3 = renderData.quadUvs[3];
-            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
-                              rotate({current_x + seg3_screen_w, leftUp.y}),
-                              rotate({current_x, leftDown.y}),
-                              rotate({current_x + seg3_screen_w, leftDown.y}),
-                              uv3[0], uv3[1], uv3[2], uv3[3], color);
-            current_x += seg3_screen_w;
-
-            // Draw seg-4
-            const auto& uv4 = renderData.quadUvs[4];
-            vertex_quad_write(vertBuf, rotate({current_x, leftUp.y}),
-                              rotate({current_x + seg4_w, leftUp.y}),
-                              rotate({current_x, leftDown.y}),
-                              rotate({current_x + seg4_w, leftDown.y}), uv4[0],
-                              uv4[1], uv4[2], uv4[3], color);
-            break;
-        }
         case SPRITE_DRAW_TYPE::SLICE_9: {
             const float left = setting.data[0];
             const float right = setting.data[1];
             const float top = setting.data[2];
             const float bottom = setting.data[3];
 
-            const float x_coords[] = {leftUp.x, leftUp.x + left,
-                                      rightUp.x - right, rightUp.x};
-            const float y_coords[] = {leftUp.y, leftUp.y + top,
-                                      leftDown.y - bottom, leftDown.y};
-
-            size_t quadIndex = 0;
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j)
-                    if (!(i == 1 && j == 1)) {
-                        const auto& uv = renderData.quadUvs[quadIndex++];
-                        vertex_quad_write(
-                            vertBuf, rotate({x_coords[j], y_coords[i]}),
-                            rotate({x_coords[j + 1], y_coords[i]}),
-                            rotate({x_coords[j], y_coords[i + 1]}),
-                            rotate({x_coords[j + 1], y_coords[i + 1]}), uv[0],
-                            uv[1], uv[2], uv[3], color);
-                    }
-            }
+            auto write_edge_quad = [&](size_t index, float x0, float x1,
+                                       float y0, float y1, bool mapX) {
+                auto uv = renderData.quadUvs[index];
+                glm::vec2 mapping{};
+                if (mapX) {
+                    // The shader keeps both corners fixed within one strip.
+                    uv[0].x = uv[2].x = 0.0f;
+                    uv[1].x = uv[3].x = size.x;
+                    mapping = {size.x, static_cast<float>(setting.type)};
+                }
+                vertex_quad_write(vertBuf, rotate({x0, y0}), rotate({x1, y0}),
+                                  rotate({x0, y1}), rotate({x1, y1}), uv[0],
+                                  uv[1], uv[2], uv[3], color, mapping);
+            };
+            write_edge_quad(0, leftUp.x, rightUp.x, leftUp.y, leftUp.y + top,
+                            true);
+            write_edge_quad(1, leftUp.x, leftUp.x + left, leftUp.y + top,
+                            leftDown.y - bottom, false);
+            write_edge_quad(2, rightUp.x - right, rightUp.x, leftUp.y + top,
+                            leftDown.y - bottom, false);
+            write_edge_quad(3, leftUp.x, rightUp.x, leftDown.y - bottom,
+                            leftDown.y, true);
             break;
         }
     }
@@ -425,30 +304,11 @@ void draw_sprite_part(char*& vertBuf, const SpriteData& sprite,
                       uv_rd, color);
 }
 
-// 1 Quad = 6 Vertices = 120 Bytes
-constexpr size_t BYTES_PER_QUAD = 120;
+constexpr size_t BYTES_PER_QUAD = 6 * VERTEX_BYTES;
 
 size_t get_sprite_max_bytes(const SpriteData& sprite) {
-    try {
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::REPEAT_VERT) {
-            // The maximum render length is approximately the maximum screen
-            // dimension plus some padding.
-            float tile_y = std::max(1.0f, (float)sprite.size.y);
-            float max_len = std::max(BASE_RES_W, BASE_RES_H) + 3.0f * tile_y;
-            return static_cast<size_t>(std::ceil(max_len / tile_y)) *
-                   BYTES_PER_QUAD;
-        }
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SLICE_9)
-            return 9 * BYTES_PER_QUAD;
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_5)
-            return 5 * BYTES_PER_QUAD;
-        if (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SEG_3)
-            return 3 * BYTES_PER_QUAD;
-        return 1 * BYTES_PER_QUAD;
-    } catch (...) {
-        // Safe fallback value when the sprite atlas is not yet ready.
-        return 256 * BYTES_PER_QUAD;
-    }
+    return (sprite.drawSetting.type == SPRITE_DRAW_TYPE::SLICE_9 ? 4 : 1) *
+           BYTES_PER_QUAD;
 }
 size_t get_sprite_max_bytes(const std::string& name) {
     return get_sprite_max_bytes(get_sprite_manager().get_sprite(name));
@@ -487,15 +347,12 @@ size_t get_sprite_render_bytes(const SpriteData& sprite, glm::vec2 size) {
         case SPRITE_DRAW_TYPE::REPEAT_VERT:
             if (size.y <= 0.0f)
                 return 0;
-            return static_cast<size_t>(std::ceil(size.y / sprite.size.y)) *
-                   BYTES_PER_QUAD;
+            return BYTES_PER_QUAD;
         case SPRITE_DRAW_TYPE::SLICE_9:
-            // draw_sprite intentionally skips the transparent center quad.
-            return 8 * BYTES_PER_QUAD;
+            // Four strips leave the center empty without fragment shading.
+            return 4 * BYTES_PER_QUAD;
         case SPRITE_DRAW_TYPE::SEG_5:
-            return 5 * BYTES_PER_QUAD;
         case SPRITE_DRAW_TYPE::SEG_3:
-            return 3 * BYTES_PER_QUAD;
         case SPRITE_DRAW_TYPE::NORMAL:
             return BYTES_PER_QUAD;
     }

@@ -7,15 +7,52 @@ function NoteRenderer() constructor {
     vertex_format_add_position();
     vertex_format_add_texcoord();
     vertex_format_add_color();
+    // Position, UV/local coordinates, color, and mapping parameters: 28 bytes.
+    vertex_format_add_custom(vertex_type_float2, vertex_usage_texcoord);
     vertFormat = vertex_format_end();
     
     // Create vertex buffer.
-    cacheBuff = buffer_create(20 * 1024, buffer_fast, 1);
+    vertexSize = 28;
+    cacheBuff = buffer_create(vertexSize * 1024, buffer_fast, 1);
     vertBuff = vertex_create_buffer_from_buffer(cacheBuff, vertFormat);
 
     // Hold Particles timer.
     holdParticlesTimer = 0;
     tempAdditionSurface = -1;
+
+    noteUv = []; chainUv = []; holdUv = []; edgeUv = [];
+    noteSegments = []; chainSegments = []; edgeSegments = [];
+    uniformNoteUv = shader_get_uniform(shd_notes, "u_note_uv");
+    uniformChainUv = shader_get_uniform(shd_notes, "u_chain_uv");
+    uniformHoldUv = shader_get_uniform(shd_notes, "u_hold_uv");
+    uniformNoteSegments = shader_get_uniform(shd_notes, "u_note_segments");
+    uniformChainSegments = shader_get_uniform(shd_notes, "u_chain_segments");
+    uniformEdgeUv = shader_get_uniform(shd_notes, "u_edge_uv");
+    uniformEdgeSegments = shader_get_uniform(shd_notes, "u_edge_segments");
+    uniformMono = shader_get_uniform(shd_notes, "u_mono");
+
+    /// @description Share the sprite mapping registered with DyCore.
+    /// @param {Any} data Sprite metadata.
+    static set_sprite_data = function(data) {
+        var uv = [data.uv00, data.uv01, data.uv10, data.uv11];
+        switch(data.name) {
+            case "sprNote":
+                noteUv = uv;
+                noteSegments = [data.data[0], data.data[1], data.width];
+                break;
+            case "sprChain":
+                chainUv = uv;
+                chainSegments = [data.data[0], data.data[1], data.data[2], data.width];
+                break;
+            case "sprHold":
+                holdUv = uv;
+                break;
+            case "sprHoldEdge":
+                edgeUv = uv;
+                edgeSegments = [data.data[0], data.data[1], data.width];
+                break;
+        }
+    }
 
     static render_state = function(state) {
         /// @type {Real} 
@@ -28,7 +65,7 @@ function NoteRenderer() constructor {
         vertex_update_buffer_from_buffer(vertBuff, 0, cacheBuff, 0, size);
 
         var texture = texturegroup_get_textures("texNotes")[0];
-        vertex_submit_ext(vertBuff, pr_trianglelist, texture, 0, size / 20);
+        vertex_submit_ext(vertBuff, pr_trianglelist, texture, 0, size / vertexSize);
     }
 
     static render = function() {
@@ -46,6 +83,17 @@ function NoteRenderer() constructor {
             buffer_resize(cacheBuff, capacity);
         }
 
+        var previousShader = shader_current();
+        shader_set(shd_notes);
+        shader_set_uniform_f_array(uniformNoteUv, noteUv);
+        shader_set_uniform_f_array(uniformChainUv, chainUv);
+        shader_set_uniform_f_array(uniformHoldUv, holdUv);
+        shader_set_uniform_f_array(uniformNoteSegments, noteSegments);
+        shader_set_uniform_f_array(uniformChainSegments, chainSegments);
+        shader_set_uniform_f_array(uniformEdgeUv, edgeUv);
+        shader_set_uniform_f_array(uniformEdgeSegments, edgeSegments);
+        shader_set_uniform_f(uniformMono, previousShader == shd_mono);
+
         // Render hold's bg
         render_state(1);
 
@@ -56,13 +104,19 @@ function NoteRenderer() constructor {
         gpu_set_blendmode_ext(bm_one, bm_zero);
         render_state(0);
         surface_reset_target();
+        // Surface compositing keeps the caller's shader and its theme behavior.
+        if(previousShader == -1) shader_reset();
+        else shader_set(previousShader);
 
         gpu_set_blendmode(bm_add);
         draw_surface(tempAdditionSurface, 0, 0);
         gpu_set_blendmode(bm_normal);
 
         // Render other parts.
+        shader_set(shd_notes);
         render_state(2);
+        if(previousShader == -1) shader_reset();
+        else shader_set(previousShader);
 
         gpu_pop_state();
 

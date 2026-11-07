@@ -654,7 +654,9 @@ function dyc_get_lasting_holds() {
 
 function dyc_add_sprite_data(data) {
     try {
-        return DyCore_add_sprite_data(json_stringify(data));
+        var result = DyCore_add_sprite_data(json_stringify(data));
+        if(result == 0) global.noteRenderer.set_sprite_data(data);
+        return result;
     } catch (e) {
         show_debug_message("Error adding sprite data: " + string(e));
         return -1;
