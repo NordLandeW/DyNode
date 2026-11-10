@@ -18,9 +18,8 @@ LANG_DIR = REPO_ROOT / "datafiles" / "lang"
 OUTPUT_CHANGELOG = REPO_ROOT / "changelog.json"
 OUTPUT_RELEASELOG = REPO_ROOT / "releaselog.txt"
 SOURCE_LANG = "zh-cn"
-MODEL_NAME = "google/gemini-3.8-flash"
-PROVIDER = "google-vertex/global"
-RESPONSES_URL = "https://openrouter.ai/api/v1/responses"
+MODEL_NAME = "gemini-3.8-flash"
+GENERATE_CONTENT_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent"
 
 def run_git(args: List[str]) -> str:
     res = subprocess.run(args, cwd=str(REPO_ROOT), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
@@ -94,14 +93,14 @@ def read_changelog_text() -> str:
         sys.exit(1)
     return text
 
-def translate_with_openrouter(source_text: str, target_langs: List[str]) -> Dict[str, str]:
+def translate_with_gemini(source_text: str, target_langs: List[str]) -> Dict[str, str]:
     # Remove source lang from targets if present
     targets = [lang for lang in target_langs if lang != SOURCE_LANG]
     if not targets:
         return {}
     try:
         import requests
-        api_key = os.environ["OPENROUTER_API_KEY"]
+        api_key = os.environ["GEMINI_API_KEY"]
         languages_csv = ", ".join(targets)
         system_instruction = (
             "Translate the provided changelog (original in zh-cn) into the specified languages. "
@@ -117,31 +116,30 @@ def translate_with_openrouter(source_text: str, target_langs: List[str]) -> Dict
             "-----END-CHANGELOG-----\n"
         )
         response = requests.post(
-            RESPONSES_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
+            GENERATE_CONTENT_URL,
+            headers={"x-goog-api-key": api_key},
             json={
-                "model": MODEL_NAME,
-                "provider": {"only": [PROVIDER], "allow_fallbacks": False},
-                "instructions": system_instruction,
-                "input": contents,
-                "text": {"format": {"type": "json_object"}},
-                "store": False,
-                "stream": False,
+                "systemInstruction": {"parts": [{"text": system_instruction}]},
+                "contents": [{"role": "user", "parts": [{"text": contents}]}],
+                "generationConfig": {"responseMimeType": "application/json"},
             },
             timeout=(15, 120),
         )
         response.raise_for_status()
         result = response.json()
-        if result.get("status") != "completed":
-            raise ValueError("OpenRouter response did not complete.")
+        candidates = result.get("candidates", [])
+        if not candidates or candidates[0].get("finishReason") != "STOP":
+            raise ValueError("Gemini response did not complete.")
         raw = "".join(
             part.get("text", "")
-            for item in result.get("output", []) if item.get("type") == "message"
-            for part in item.get("content", []) if part.get("type") == "output_text"
+            for part in candidates[0].get("content", {}).get("parts", [])
+            if not part.get("thought", False)
         )
         if not raw:
-            raise ValueError("OpenRouter returned no output text.")
+            raise ValueError("Gemini returned no output text.")
         data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError("Gemini did not return a JSON object.")
         # sanitize and ensure all targets exist
         out: Dict[str, str] = {}
         for lang in targets:
@@ -153,7 +151,7 @@ def translate_with_openrouter(source_text: str, target_langs: List[str]) -> Dict
                 out[lang] = source_text
         return out
     except Exception as e:
-        logger.warning("OpenRouter translation failed: %s; using zh-cn content for all targets.", e)
+        logger.warning("Gemini translation failed: %s; using zh-cn content for all targets.", e)
         return {lang: source_text for lang in targets}
 
 def write_outputs(version: str, has_tag: bool, translations: Dict[str, str], zh_cn_text: str) -> None:
@@ -209,7 +207,7 @@ def main():
     version, has_tag = compute_version()
     langs = detect_languages()
     zh_text = read_changelog_text()
-    translations = translate_with_openrouter(zh_text, langs)
+    translations = translate_with_gemini(zh_text, langs)
     write_outputs(version, has_tag, translations, zh_text)
 
 if __name__ == "__main__":
