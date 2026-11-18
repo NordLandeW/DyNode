@@ -1233,11 +1233,16 @@ function md5_config() {
 function vars_init() {
 	// Some variables that will take changes immediately
 	
-	if(DEBUG_MODE) global.fps = display_get_frequency();
-	game_set_speed(global.fps, gamespeed_fps);
+	if(DEBUG_MODE) fps_set(display_get_frequency());
+	else fps_set(global.fps);
 	
 	if(instance_exists(objMain))
 		with(objMain) _partsys_init();
+}
+
+function fps_set(target_fps) {
+	global.fps = target_fps;
+	game_set_speed(target_fps, gamespeed_fps);
 }
 
 function switch_debug_info() {
