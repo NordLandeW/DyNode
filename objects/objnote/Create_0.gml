@@ -91,7 +91,7 @@ image_yscale = 1;
     
     // Particles Varaiables
 #macro PARTICLE_HOLD_DELAY (33)     // in ms
-#macro PARTICLE_NOTE_NUMBER (12)
+#macro PARTICLE_NOTE_NUMBER (6)
 #macro PARTICLE_NOTE_LAST (1)
     partHoldTimer = 0;
     
