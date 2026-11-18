@@ -1233,7 +1233,7 @@ function md5_config() {
 function vars_init() {
 	// Some variables that will take changes immediately
 	
-	if(DEBUG_MODE) global.fps = 165;
+	if(DEBUG_MODE) global.fps = display_get_frequency();
 	game_set_speed(global.fps, gamespeed_fps);
 	
 	if(instance_exists(objMain))
