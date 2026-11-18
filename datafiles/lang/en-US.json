@@ -45,6 +45,8 @@
         "anno_project_sideload_complete": "A default project has been created for the imported chart.",
         "anno_project_sideload_failed": "Failed to import chart.\nError message: $0",
         "anno_project_sideload_warning": "This is a new temporary project created for the imported chart,\nbut other .dyn project files were found in the chart folder.\nPlease make sure you are opening the correct project file.",
+        "anno_project_save_processing": "Saving project…",
+        "autosave_processing": "Auto-saving project…",
         "anno_project_save_complete": "Project saved successfully.",
         "anno_project_save_failed": "Failed to save project. Error message: $0",
         "anno_prefix_warn": "Warning",

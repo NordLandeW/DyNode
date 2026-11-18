@@ -45,6 +45,8 @@
         "anno_project_sideload_complete": "インポートされた譜面用にデフォルトプロジェクトが作成されました。",
         "anno_project_sideload_failed": "譜面のインポートに失敗しました。\nエラーメッセージ: $0",
         "anno_project_sideload_warning": "これはインポートされた譜面のために一時的に作成された新しいプロジェクトです。\nしかし、譜面フォルダ内に他の.dynプロジェクトファイルが見つかりました。\n正しいプロジェクトファイルを開いているか確認してください。",
+        "anno_project_save_processing": "プロジェクトを保存中…",
+        "autosave_processing": "プロジェクトを自動保存中…",
         "anno_project_save_complete": "プロジェクトの保存が完了しました。",
         "anno_project_save_failed": "プロジェクトの保存に失敗しました。エラーメッセージ: $0",
         "anno_prefix_warn": "警告",

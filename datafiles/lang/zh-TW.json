@@ -45,6 +45,8 @@
         "anno_project_sideload_complete": "已為匯入的譜面建立了一個預設專案。",
         "anno_project_sideload_failed": "匯入譜面失敗。\n錯誤資訊: $0",
         "anno_project_sideload_warning": "這是一個為匯入譜面臨時建立的新專案，\n但是在譜面資料夾中發現了其他的 .dyn 專案檔案。\n請確認你開啟的是正確的專案檔案。",
+        "anno_project_save_processing": "正在儲存專案…",
+        "autosave_processing": "正在自動儲存專案…",
         "anno_project_save_complete": "專案保存完成。",
         "anno_project_save_failed": "專案儲存失敗。錯誤資訊: $0",
         "anno_prefix_warn": "警告",

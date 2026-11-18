@@ -14,6 +14,8 @@ function map_close(shuttingDown = false) {
 	DyCore_project_save_invalidate();
 	// A late completion belongs to the closed project, not its replacement.
 	with(objManager) {
+		announcement_clear(pendingSaveAnnouncement);
+		pendingSaveAnnouncement = noone;
 		pendingSaveRequestId = 0;
 		nextProjectPath = "";
 		autosaving = false;
@@ -732,8 +734,16 @@ function project_save_as(_file = "") {
 	}
 	objManager.pendingSaveRequestId = requestId;
 	objManager.nextProjectPath = _file;
+	if(project_save_announcement_visible()) {
+		objManager.pendingSaveAnnouncement = announcement_task(
+			objManager.autosaving ? "autosave_processing" : "anno_project_save_processing");
+	}
 
 	return 1;
+}
+
+function project_save_announcement_visible() {
+	return !objManager.autosaving || editor_get_editmode() != 5;
 }
 
 /// @description Match a completion to the current project's pending save.
@@ -745,22 +755,27 @@ function project_save_event_matches(event, requestId) {
 function project_save_callback(event) {
 	if(!project_save_event_matches(event, objManager.pendingSaveRequestId))
 		return;
+	var _anno = objManager.pendingSaveAnnouncement;
+	var _uid = instance_exists(_anno) ? _anno.uniqueID : "null";
+	objManager.pendingSaveAnnouncement = noone;
 	objManager.pendingSaveRequestId = 0;
 	global.isSaving = false;
 	if(event[$ "status"] < 0) {
-		announcement_error(i18n_get("anno_project_save_failed", event[$ "content"]));
+		var _message = i18n_get("anno_project_save_failed", event[$ "content"]);
+		announcement_task(_message, 8000, _uid, ANNO_STATE.ERROR);
+		show_debug_message_safe(_message);
 		objManager.nextProjectPath = "";
 		objManager.autosaving = false;
 		return;
 	}
 
-	if(objManager.autosaving) {
-		if(editor_get_editmode() != 5)  // Ignore announcement when edit mode is playback.
-			announcement_play("autosave_complete");
-		objManager.autosaving = false;
+	if(project_save_announcement_visible()) {
+		announcement_task(objManager.autosaving ? "autosave_complete" : "anno_project_save_complete",
+			3000, _uid, ANNO_STATE.COMPLETE);
+	} else {
+		announcement_clear(_anno);
 	}
-	else
-		announcement_play("anno_project_save_complete");
+	objManager.autosaving = false;
 
 	objManager.projectPath = objManager.nextProjectPath;
 	objManager.nextProjectPath = "";

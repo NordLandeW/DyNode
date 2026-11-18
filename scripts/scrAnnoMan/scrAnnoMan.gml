@@ -27,7 +27,16 @@ function AnnouncementManager() constructor {
                     set_state(state);
                     _generate_element();
                 }
+                return arr[i];
             }
+        return noone;
+    }
+
+    static clear_announcement = function(_handle) {
+        var _index = array_get_index(announcements, _handle);
+        if(_index < 0) return;
+        array_delete(announcements, _index, 1);
+        if(instance_exists(_handle)) instance_destroy(_handle);
     }
 
     static create_announcement = function(msg, duration, annoID, type, state) {
@@ -41,10 +50,8 @@ function AnnouncementManager() constructor {
         if(annoID == "null")
             annoID = random_id(8);
 
-        if(is_existed(annoID)) {
-            update_announcement(annoID, msg, duration, type, state);
-            return;
-        }
+        if(is_existed(annoID))
+            return update_announcement(annoID, msg, duration, type, state);
         
         /// @type {Id.Instance.objAnnouncement}
         var _inst = instance_create_depth(_nx, _ny, 0, objAnnouncement);
@@ -53,6 +60,7 @@ function AnnouncementManager() constructor {
         _inst.init_color();
         
         array_push(announcements, _inst);
+        return _inst;
     }
 
     static step = function() {
@@ -84,32 +92,37 @@ function AnnouncementManager() constructor {
 
 
 function announcement_play(_str, time = 3000, _uniqueID = "null") {
-	global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.NORMAL, ANNO_STATE.IDLE);
+	return global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.NORMAL, ANNO_STATE.IDLE);
 }
 
 function announcement_task(_str, time = 3000, _uniqueID = "null", state = ANNO_STATE.PROCESSING) {
-    global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.TASK, state);
+    return global.announcementMan.create_announcement(_str, time, _uniqueID, ANNO_TYPE.TASK, state);
+}
+
+/// @description Remove the announcement returned by a notification helper, if it still exists.
+function announcement_clear(_handle) {
+    global.announcementMan.clear_announcement(_handle);
 }
 
 function announcement_warning(str, time = 5000, uid = "null") {
 	str = i18n_get(str);
-	announcement_play("[c_warning][[" + i18n_get("anno_prefix_warn") + "] [/c]" + str, time, uid);
+	return announcement_play("[c_warning][[" + i18n_get("anno_prefix_warn") + "] [/c]" + str, time, uid);
 }
 
 function announcement_error(str, time = 8000, uid = "null") {
 	str = i18n_get(str);
-	announcement_play("[#f44336][[" + i18n_get("anno_prefix_err") + "] " + str, time, uid);
 	show_debug_message_safe(str);
+	return announcement_play("[#f44336][[" + i18n_get("anno_prefix_err") + "] " + str, time, uid);
 }
 
 function announcement_adjust(str, val) {
 	str = i18n_get(str);
-	announcement_play(str + ": " + i18n_get(val?"anno_adjust_enabled":"anno_adjust_disabled"), 3000, md5_string_unicode(str));
+	return announcement_play(str + ": " + i18n_get(val?"anno_adjust_enabled":"anno_adjust_disabled"), 3000, md5_string_unicode(str));
 }
 
 function announcement_set(str, val) {
 	str = i18n_get(str);
 	if(is_real(val))
 		val = string_format(val, 1, 2);
-	announcement_play(str + ": " + i18n_get(string(val)), 3000, md5_string_unicode(str));
+	return announcement_play(str + ": " + i18n_get(string(val)), 3000, md5_string_unicode(str));
 }
