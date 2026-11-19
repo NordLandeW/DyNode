@@ -73,11 +73,29 @@ function style_dynamite_title_fallback(_char) {
     return global._notoFont;
 }
 
-/// @description Lay out contiguous runs in the theme font or its dynamic fallbacks.
-/// @param {String} _text Chart title, as literal text.
+/// @description Create a title element using the style's alignment, scale and shadow.
+/// @param {String} _text Text or markup to lay out.
+/// @param {String} _primary Theme font name.
+/// @param {Bool} _dynamite Use Dynamite title metrics.
+/// @param {Bool} _literal Keep bracketed text visible instead of processing command tags.
+function style_title_element(_text, _primary, _dynamite, _literal) {
+    var _element = scribble(_text, "chart_title:" + _primary + string(_literal))
+        .starting_format(_primary, c_white).ignore_command_tags(_literal)
+        .align(fa_left, _dynamite ? fa_top : fa_middle);
+    if(!_dynamite) _element.scale(1.5).msdf_shadow(c_black, 0.4, 0, 3);
+    return _element;
+}
+
+/// @description Lay out a stored title, preserving explicit Scribble formatting.
+/// @param {String} _text Chart title in its stored form.
 /// @param {Bool} _dynamite Use the Dynamite font chain and metrics.
 function style_layout_chart_title(_text, _dynamite) {
     var _primary = _dynamite ? "mDynamiteTitle" : "mOrbitron";
+    if(string_pos("[_scribble]", _text) != 0) {
+        // A single element keeps inline formatting active across the entire title.
+        return [{ x: 0, element: style_title_element(_text, _primary, _dynamite, false) }];
+    }
+    _text = string_replace_all(_text, "[[", "[");
     var _runs = [], _last = undefined;
     var _oldFont = draw_get_font();
     for(var i = 1, n = string_length(_text); i <= n; ++i) {
@@ -96,9 +114,7 @@ function style_layout_chart_title(_text, _dynamite) {
         var _r = _runs[i];
         _r.x = _x;
         if(_r.font == -1) {
-            _r.element = scribble(_r.text, "chart_title:" + _primary).starting_format(_primary, c_white)
-                .ignore_command_tags(true).align(fa_left, _dynamite ? fa_top : fa_middle);
-            if(!_dynamite) _r.element.scale(1.5).msdf_shadow(c_black, 0.4, 0, 3);
+            _r.element = style_title_element(_r.text, _primary, _dynamite, true);
             _x += _r.element.get_width() - 1; // Scribble includes both edges in its bounding box.
         } else {
             draw_set_font(_r.font);
