@@ -137,7 +137,7 @@ function NoteRenderer() constructor {
         gpu_pop_state();
     }
 
-    static render_dynamix = function(previousShader) {
+    static render_dynamix = function(previousShader, shadowLayer) {
         var texture = sprite_get_texture(sprNote2, 0);
         shader_set(shd_notes);
         shader_set_uniform_f_array(uniformNoteUv, noteUv);
@@ -166,6 +166,7 @@ function NoteRenderer() constructor {
         gpu_set_blendmode(bm_add);
         draw_surface(tempAdditionSurface, 0, 0);
         gpu_set_blendmode(bm_normal);
+        if(shadowLayer != -1) objMain.shadow_layer_draw(shadowLayer);
 
         // Render other parts.
         shader_set(shd_notes);
@@ -196,16 +197,19 @@ function NoteRenderer() constructor {
         if(vertices > fill) draw_dynamite_note_range(previousShader, fill, vertices - fill);
     }
 
-    static render = function(bound = undefined, drawFragments = false) {
+    static render = function(bound = undefined, drawFragments = false, shadowLayer = -1) {
         var _dynamite = global.style == STYLE.DYNAMITE;
         if(is_undefined(bound)) bound = prepare_notes();
-        if(bound < 0) return;
+        if(bound < 0) {
+            if(shadowLayer != -1) objMain.shadow_layer_draw(shadowLayer);
+            return;
+        }
 
         gpu_push_state();
         gpu_set_tex_repeat(true);
         var previousShader = shader_current();
         if(_dynamite) render_dynamite(previousShader, drawFragments);
-        else render_dynamix(previousShader);
+        else render_dynamix(previousShader, shadowLayer);
         if(previousShader == -1) shader_reset();
         else shader_set(previousShader);
 

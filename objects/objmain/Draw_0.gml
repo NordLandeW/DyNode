@@ -110,9 +110,10 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 		dynamite_draw_judgment_hud();
 	}
 
-// Draw Shadows
+// Prepare the Dynamix shadow layer for compositing between Hold fills and edges.
 
 #macro SHADOW_LAYER_ALPHA (0.9)
+    var _shadowLayer = -1;
 
     if(global.style == STYLE.DYNAMIX && global.shadowCount > 0) {
         var piano = global.themeAt == 2;
@@ -141,7 +142,7 @@ var _dynamite = global.style == STYLE.DYNAMITE;
         surface_reset_target();
         gpu_pop_state();
 
-        shadow_layer_draw(shadowPongSurf);
+        _shadowLayer = shadowPongSurf;
     }
 
     var _trayMask = false;
@@ -159,12 +160,13 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 	}
 
 	if(_playback) {
-		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined, _dynamite && dynamiteFxReady);
+		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined, _dynamite && dynamiteFxReady, _shadowLayer);
 	}
 	else {
 		// Draw Holds
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
 			chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
+		if(_shadowLayer != -1) shadow_layer_draw(_shadowLayer);
 		if(_dynamite && dynamiteFxReady) global.noteRenderer.draw_fx(DYNAMITE_FX_PASS.FRAGMENTS);
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
 			chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
