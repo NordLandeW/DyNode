@@ -162,6 +162,7 @@
         "beatline_style_long": "等長",
         "beatline_style_monolong": "クラシック",
         "beatline_style": "拍線スタイル",
+        "style": "スタイル",
         "expr_catch_error": "式の実行中にエラーが発生しました。\nエラー情報：$0\nエラー式：$1",
         "expr_local_scope": "選択したノートに対して高度な操作を実行しています。",
         "expr_global_scope": "譜面のすべてのノートに対して高度な操作を実行しています。",

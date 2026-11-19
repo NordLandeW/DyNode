@@ -16,7 +16,7 @@ function style_next() {
     if(global.style == STYLE.DYNAMITE) DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false);
     global.style = (global.style + 1) % STYLE_COUNT;
 
-    announcement_set("Style", global.STYLE_NAMES[global.style]);
+    announcement_set("style", global.STYLE_NAMES[global.style]);
 }
 
 /// @description Target travel speed of the side lanes relative to the front lane.

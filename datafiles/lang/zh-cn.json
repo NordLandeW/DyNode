@@ -162,6 +162,7 @@
         "beatline_style_long": "等长",
         "beatline_style_monolong": "经典",
         "beatline_style": "拍线样式",
+        "style": "风格",
         "expr_catch_error": "表达式执行错误。\n错误信息：$0\n错误表达式：$1",
         "expr_local_scope": "你正在对选定的音符进行高级操作。",
         "expr_global_scope": "你正在对谱面的所有音符进行高级操作。",
