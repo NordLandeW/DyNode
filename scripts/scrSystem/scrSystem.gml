@@ -1048,6 +1048,9 @@ function load_config() {
 	}
 	
 	_check_set(_con, "theme", "themeAt");
+	var _style = _con[$ "style"];
+	if(is_real(_style) && _style >= 0 && _style < STYLE_COUNT && floor(_style) == ceil(_style))
+		global.style = _style;
 	_check_set(_con, "FPS", "fps");
 	_check_set(_con, "autosave");
 	_check_set(_con, "autoupdate");
@@ -1098,6 +1101,7 @@ function save_config() {
 	
 	fast_file_save(get_config_path(), SnapToJSON({
 		theme: global.themeAt,
+		style: global.style,
 		FPS: global.fps,
 		version: VERSION,
 		autosave: global.autosave,
