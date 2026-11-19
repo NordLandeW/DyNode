@@ -31,10 +31,22 @@ function NoteRenderer() constructor {
     uniformEdgeSegments = shader_get_uniform(shd_notes, "u_edge_segments");
     uniformMono = shader_get_uniform(shd_notes, "u_mono");
 
+    dynamiteSlice = array_create(4);
+    dynamiteWidths = array_create(4);
+    dynamiteSliceUniforms = [
+        shader_get_uniform(shd_dynamite_notes, "u_tap_slice"),
+        shader_get_uniform(shd_dynamite_notes, "u_slide_slice"),
+        shader_get_uniform(shd_dynamite_notes, "u_up_slice"),
+        shader_get_uniform(shd_dynamite_notes, "u_down_slice")
+    ];
+    uniformDynamiteWidths = shader_get_uniform(shd_dynamite_notes, "u_slice_widths");
+    uniformDynamiteMono = shader_get_uniform(shd_dynamite_notes, "u_mono");
+
     /// @description Share the sprite mapping registered with DyCore.
     /// @param {Any} data Sprite metadata.
     static set_sprite_data = function(data) {
         var uv = [data.uv00, data.uv01, data.uv10, data.uv11];
+        var _slice = -1;
         switch(data.name) {
             case "sprNote":
                 noteUv = uv;
@@ -51,39 +63,29 @@ function NoteRenderer() constructor {
                 edgeUv = uv;
                 edgeSegments = [data.data[0], data.data[1], data.width];
                 break;
+            case "sprDynamiteTap":       _slice = 0; break;
+            case "sprDynamiteSlideHalf": _slice = 1; break;
+            case "sprDynamiteHoldUp":    _slice = 2; break;
+            case "sprDynamiteHoldDown":  _slice = 3; break;
+        }
+        if(_slice >= 0) {
+            dynamiteWidths[_slice] = data.width;
+            dynamiteSlice[_slice] = [data.uv00, (data.uv10 - data.uv00) / data.width, data.data[0], data.data[1]];
         }
     }
 
-    static render_state = function(state) {
-        /// @type {Real} 
-        var size = DyCore_render_active_notes(
-            buffer_get_address(cacheBuff), objMain.nowTime, objMain.playbackSpeed, state);
-
-		if(size < 0) return;
+    static render_state = function(state, texture) {
+        var size = DyCore_render_playback_notes(buffer_get_address(cacheBuff), state);
+        if(size <= 0) return;
 
         buffer_set_used_size(cacheBuff, size);
         vertex_update_buffer_from_buffer(vertBuff, 0, cacheBuff, 0, size);
 
-        var texture = texturegroup_get_textures("texNotes")[0];
         vertex_submit_ext(vertBuff, pr_trianglelist, texture, 0, size / vertexSize);
     }
 
-    static render = function() {
-        gpu_push_state();
-        gpu_set_tex_repeat(true);
-        dyc_update_active_notes();
-
-        var bound = DyCore_prepare_note_rendering();
-        if(bound < 0) {
-            gpu_pop_state();
-            return;
-        }
-        if(buffer_get_size(cacheBuff) < bound) {
-            var capacity = ceil(bound * 1.5 / 4096) * 4096;
-            buffer_resize(cacheBuff, capacity);
-        }
-
-        var previousShader = shader_current();
+    static render_dynamix = function(previousShader) {
+        var texture = sprite_get_texture(sprNote2, 0);
         shader_set(shd_notes);
         shader_set_uniform_f_array(uniformNoteUv, noteUv);
         shader_set_uniform_f_array(uniformChainUv, chainUv);
@@ -95,14 +97,14 @@ function NoteRenderer() constructor {
         shader_set_uniform_f(uniformMono, previousShader == shd_mono);
 
         // Render hold's bg
-        render_state(1);
+        render_state(1, texture);
 
         // Render addition bg
         tempAdditionSurface = surface_checkate(tempAdditionSurface, 1920, 1080);
         surface_set_target(tempAdditionSurface);
         draw_clear_alpha(c_black, 0);
         gpu_set_blendmode_ext(bm_one, bm_zero);
-        render_state(0);
+        render_state(0, texture);
         surface_reset_target();
         // Surface compositing keeps the caller's shader and its theme behavior.
         if(previousShader == -1) shader_reset();
@@ -114,7 +116,33 @@ function NoteRenderer() constructor {
 
         // Render other parts.
         shader_set(shd_notes);
-        render_state(2);
+        render_state(2, texture);
+    }
+
+    static render_dynamite = function(previousShader) {
+        shader_set(shd_dynamite_notes);
+        for(var i = 0; i < array_length(dynamiteSliceUniforms); i++)
+            shader_set_uniform_f_array(dynamiteSliceUniforms[i], dynamiteSlice[i]);
+        shader_set_uniform_f_array(uniformDynamiteWidths, dynamiteWidths);
+        shader_set_uniform_f(uniformDynamiteMono, previousShader == shd_mono);
+        render_state(2, sprite_get_texture(sprDynamiteTap, 0));
+    }
+
+    static render = function() {
+        var _dynamite = global.style == STYLE.DYNAMITE;
+        var bound = DyCore_prepare_playback_notes(objMain.nowTime, objMain.playbackSpeed,
+            note_lane_speed(NOTE_SIDE.LEFT), _dynamite);
+        if(bound < 0) return;
+        if(buffer_get_size(cacheBuff) < bound) {
+            var capacity = ceil(bound * 1.5 / 4096) * 4096;
+            buffer_resize(cacheBuff, capacity);
+        }
+
+        gpu_push_state();
+        gpu_set_tex_repeat(true);
+        var previousShader = shader_current();
+        if(_dynamite) render_dynamite(previousShader);
+        else render_dynamix(previousShader);
         if(previousShader == -1) shader_reset();
         else shader_set(previousShader);
 

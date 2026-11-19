@@ -69,6 +69,60 @@ std::vector<RenderVertex> render_vertices(double time, int state) {
     return result;
 }
 
+void install_dynamite_sprites() {
+    auto add = [](const char* name, glm::vec2 size, float top, int left = 0,
+                  int right = 0) {
+        SpriteData sprite{};
+        sprite.name = name;
+        sprite.size = size;
+        sprite.uv0 = {0.125f, top};
+        sprite.uv1 = sprite.uv0 + size / 2048.0f;
+        sprite.drawSetting.data[0] = left;
+        sprite.drawSetting.data[1] = right;
+        sprite.caculate_uv_values();
+        get_sprite_manager().add_sprite(sprite);
+    };
+    add("sprDynamiteTap", {288, 36}, 0.0f, 30, 30);
+    add("sprDynamiteSlideHalf", {155, 84}, 0.125f, 30, 57);
+    add("sprDynamiteHoldInner", {254, 125}, 0.25f);
+    add("sprDynamiteHoldLit", {254, 125}, 0.375f);
+    add("sprDynamiteHoldSide", {24, 46}, 0.5f);
+    add("sprDynamiteHoldUp", {288, 43}, 0.625f, 19, 19);
+    add("sprDynamiteHoldDown", {292, 43}, 0.75f, 21, 21);
+}
+
+void add_playback_note(const std::string& id, int type, int side, double time,
+                       double width, double duration = 0) {
+    Note note{};
+    note.noteID = id;
+    note.type = type;
+    note.side = side;
+    note.position = 2.5;
+    note.time = time;
+    note.width = width;
+    note.lastTime = duration;
+    note.subNoteID = id + "s";
+    REQUIRE(create_note(note, false) == 0);
+}
+
+std::vector<RenderVertex> playback_vertices(PlaybackFrame frame, int pass = 2) {
+    const size_t bound = prepare_playback_notes(frame);
+    const auto prepared = get_note_rendering_stats();
+    constexpr char canary = '\x5a';
+    std::vector<char> buffer(bound + 64, canary);
+    const size_t bytes = render_playback_notes(buffer.data(), pass);
+    REQUIRE(bytes <= bound);
+    REQUIRE(bytes % sizeof(RenderVertex) == 0);
+    CHECK(std::all_of(buffer.begin() + bytes, buffer.end(),
+                      [](char c) { return c == canary; }));
+    CHECK(get_note_rendering_stats().capacityGrowths ==
+          prepared.capacityGrowths);
+    std::vector<RenderVertex> vertices(bytes / sizeof(RenderVertex));
+    if (bytes)
+        std::memcpy(vertices.data(), buffer.data(), bytes);
+    return vertices;
+}
+
 }  // namespace
 
 TEST_CASE("CapacityGrowthAddsHeadroomWithoutOverflow") {
@@ -281,5 +335,177 @@ TEST_CASE("HoldRepeatsUseOneQuadAndFourQuadHollowFrame") {
                 }
             }
         }
+    }
+}
+
+TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    install_dynamite_sprites();
+    auto& pool = get_note_pool_manager();
+    const PlaybackFrame frame{100, 1.6, 1.44, true};
+    for (int side : {0, 1, 2}) {
+        CAPTURE(side);
+        pool.clear_notes();
+        add_playback_note("first", 2, side, 200, 1.0, 40);
+        add_playback_note("second", 2, side, 201, 1.0, 40);
+        add_playback_note("tap", 0, side, 200, 1.0);
+        add_playback_note("slide", 1, side, 200, 1.0);
+        const auto v = playback_vertices(frame);
+        REQUIRE(v.size() == 13 * 6);
+        const auto strip_width = [&](size_t q) {
+            return glm::distance(v[6 * q].position, v[6 * q + 1].position);
+        };
+        CHECK(v[0].mapping.y < 0);
+        CHECK(v[6].mapping.y < 0);
+        for (int q : {2, 6}) {
+            CHECK(v[q * 6].uv == glm::vec2(0.125f, 0.5f));
+            CHECK(v[(q + 1) * 6].uv == v[q * 6].uv);
+            CHECK(glm::dot(v[q * 6 + 1].position - v[q * 6].position,
+                           v[(q + 1) * 6 + 1].position -
+                               v[(q + 1) * 6].position) < 0);
+            CHECK(v[(q + 2) * 6].uv.y == 0.625f);
+            CHECK(v[(q + 3) * 6].uv.y == 0.75f);
+        }
+        CHECK(v[60].uv.y == 0.125f);
+        CHECK(v[66].uv.y == 0.125f);
+        CHECK(v[72].uv.y == 0.0f);
+        CHECK(v[61].position == v[67].position);
+        CHECK(v[60].mapping.x == -v[66].mapping.x);
+        CHECK(strip_width(0) == doctest::Approx(side == 0 ? 258.6 : 102.6));
+        CHECK(strip_width(2) == doctest::Approx(21.6));
+        CHECK(strip_width(4) == doctest::Approx(side == 0 ? 292.8 : 136.8));
+        CHECK(strip_width(5) == doctest::Approx(side == 0 ? 296.4 : 140.4));
+        CHECK(strip_width(10) + strip_width(11) ==
+              doctest::Approx(side == 0 ? 306.9 : 150.9));
+        CHECK(strip_width(12) == doctest::Approx(side == 0 ? 288.0 : 132.0));
+        const auto center = (v[72].position + v[77].position) * 0.5f;
+        const glm::vec2 expected = side == 0
+                                       ? glm::vec2(960, 783)
+                                       : glm::vec2(side == 1 ? 256 : 1664, 540);
+        CHECK(glm::distance(center, expected) <= 0.001f);
+        CHECK(v[0].color == glm::u8vec4(255));
+        CHECK(playback_vertices(frame, 0).empty());
+        CHECK(playback_vertices(frame, 1).empty());
+    }
+}
+
+TEST_CASE("DynamiteHoldVisualTailSurvivesSeeksWithoutExtendingParticles") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    install_dynamite_sprites();
+    auto& pool = get_note_pool_manager();
+    for (int side : {0, 1, 2}) {
+        CAPTURE(side);
+        pool.clear_notes();
+        add_playback_note("short", 2, side, 100, 1, 2);
+        for (double time : {106.0, 101.0, 102.0, 115.0, 116.0, 99.0}) {
+            CAPTURE(time);
+            const auto v = playback_vertices({time, 1.6, 1.44, true});
+            const auto& lasting =
+                get_note_activation_manager().get_lasting_holds();
+            CHECK(lasting.size() == (time > 100 && time < 102 ? 1 : 0));
+            if (time >= 116) {
+                CHECK(v.empty());
+                continue;
+            }
+            REQUIRE(v.size() == 30);
+            const float uvTop = time < 100 ? 0.25f : 0.375f;
+            CHECK(v[0].mapping.x == (side == 1 ? -1.0f - uvTop : uvTop));
+            const double pixels =
+                (116.0 - std::max(100.0, time)) * (side == 0 ? 1.6 : 1.44);
+            CHECK(glm::distance(v[0].position, v[2].position) ==
+                  doctest::Approx(pixels).epsilon(0.0001));
+            CHECK(v[5].uv.y == doctest::Approx(pixels / 225.0));
+        }
+        pool.clear_notes();
+        add_playback_note("long", 2, side, 0, 1, 20000);
+        const auto clipped = playback_vertices({100, 1.6, 1.44, true});
+        REQUIRE(clipped.size() == 4 * 6);
+        const double visible = side == 0 ? 943.0 : 1808.0;
+        CHECK(glm::distance(clipped[0].position, clipped[2].position) ==
+              doctest::Approx(visible));
+        CHECK(clipped[0].uv.y ==
+              doctest::Approx(
+                  std::fmod(19900 * (side == 0 ? 1.6 : 1.44) - visible, 225.0) /
+                  225.0));
+        CHECK(clipped[5].uv.y - clipped[0].uv.y ==
+              doctest::Approx(visible / 225.0));
+        CHECK(clipped[18].uv.y ==
+              0.75f);  // Remote tail cap culled; clamped head still drawn.
+    }
+}
+
+TEST_CASE("PlaybackActivationAndProjectionShareTransitionSpeedAcrossStyles") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    install_render_sprites();
+    install_dynamite_sprites();
+    auto& pool = get_note_pool_manager();
+    pool.clear_notes();
+    add_playback_note("left", 0, 1, 640, 1);
+    add_playback_note("right", 0, 2, 640, 1);
+    add_playback_note("pastfront", 0, 0, 740, 1);
+    for (bool dynamite : {true, false}) {
+        const auto v = playback_vertices({100, 1.6, 1.52, dynamite});
+        REQUIRE(v.size() == 12);
+        for (int i : {0, 1}) {
+            const auto center =
+                (v[6 * i].position + v[6 * i + 5].position) * 0.5f;
+            CHECK(center.x == doctest::Approx(i == 0 ? 932.8 : 987.2));
+            CHECK(center.y == doctest::Approx(540.0f));
+            CHECK(v[6 * i].color.a == 72);
+        }
+        CHECK(playback_vertices({100, 1.6, 1.6, dynamite}).empty());
+    }
+    // At the settled Dynamix speed, all three passes are byte-for-byte the
+    // legacy path.
+    add_playback_note("hold", 2, 0, 80, 1, 240);
+    add_playback_note("chain", 1, 1, 150, 1);
+    for (int pass : {1, 0, 2}) {
+        const auto v = playback_vertices({100, 1.6, 1.6, false}, pass);
+        auto& a = get_note_activation_manager();
+        a.set_range(100, 1.6);
+        a.recalculate();
+        std::vector<char> legacy(prepare_note_rendering());
+        const size_t bytes = render_active_notes(legacy.data(), 100, 1.6, pass);
+        REQUIRE(bytes == v.size() * sizeof(RenderVertex));
+        REQUIRE(bytes > 0);
+        CHECK(std::memcmp(legacy.data(), v.data(), bytes) == 0);
+    }
+}
+
+TEST_CASE("DynamiteBatchBoundsStayIndependentOfChartWidthAndCoverDenseOutput") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    install_dynamite_sprites();
+    auto& pool = get_note_pool_manager();
+    const PlaybackFrame frame{100, 1.6, 1.44, true};
+    for (double width : {0.25, 1.0, 8192.0}) {
+        pool.clear_notes();
+        add_playback_note("slide", 1, 2, 150, width);
+        const auto v = playback_vertices(frame);
+        REQUIRE(v.size() == 12);
+        if (width == 0.25) {
+            CHECK(glm::distance(v[0].position, v[6].position) ==
+                  doctest::Approx(86.4));
+        }
+        CHECK(v[1].position == v[7].position);
+    }
+    pool.clear_notes();
+    add_playback_note("a", 2, 0, 150, 1, 200);
+    const auto single = playback_vertices(frame);
+    REQUIRE(single.size() == 30);
+    constexpr size_t count = 3000;
+    for (size_t i = 1; i < count; ++i) {
+        add_playback_note(std::to_string(i), 2, 0, 150, 1, 200);
+    }
+    const auto dense = playback_vertices(frame);
+    REQUIRE(dense.size() == count * 30);
+    for (size_t i = 0; i < count; ++i) {
+        REQUIRE(std::memcmp(dense.data() + 6 * i, single.data(),
+                            6 * sizeof(RenderVertex)) == 0);
+        REQUIRE(std::memcmp(dense.data() + 6 * count + 24 * i,
+                            single.data() + 6, 24 * sizeof(RenderVertex)) == 0);
     }
 }

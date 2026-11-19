@@ -12,6 +12,7 @@
 
 #include "activation.h"
 #include "capacity.h"
+#include "dynamite.h"
 #include "layout.h"
 #include "note.h"
 #include "notePoolManager.h"
@@ -393,6 +394,10 @@ class RenderWorkspace {
     std::vector<RenderChunk> chunks;
     std::vector<tf::Task> prepareTasks;
     std::vector<tf::Task> renderTasks;
+    DynamiteBatch dynamite;
+    PlaybackFrame frame{};
+    size_t activationRevision = 0;
+    bool frameReady = false;
 };
 
 std::unique_ptr<RenderWorkspace> renderWorkspace;
@@ -468,7 +473,8 @@ NoteRenderingStats get_note_rendering_stats() {
             w.prepared.capacity() * sizeof(PreparedSprite) +
             w.chunks.capacity() * sizeof(RenderChunk) +
             (w.prepareTasks.capacity() + w.renderTasks.capacity()) *
-                sizeof(tf::Task);
+                sizeof(tf::Task) +
+            w.dynamite.capacity_bytes();
     }
     return stats;
 }
@@ -477,8 +483,9 @@ NoteRenderingStats get_note_rendering_stats() {
 //   0: Render addition bg
 //   1: Render hold bg
 //   2: Render other parts
-size_t render_active_notes(char* const vertexBuffer, double nowTime,
-                           double noteSpeed, int state) {
+static size_t render_dynamix_notes(char* const vertexBuffer,
+                                   const PlaybackFrame& frame, int state) {
+    const double nowTime = frame.time;
     const char* scopeName = state == 0   ? "Render Active Notes (State 0)"
                             : state == 1 ? "Render Active Notes (State 1)"
                                          : "Render Active Notes (State 2)";
@@ -505,6 +512,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     auto prepare_normal = [&](const Note& note) {
         PreparedSprite prepared;
+        const double noteSpeed = frame.speed(note.side);
         prepared.position = get_note_pos(note, nowTime, noteSpeed);
         const double alpha = get_note_alpha(note.side, prepared.position);
         prepared.rotation = get_note_rotation(note.side);
@@ -522,6 +530,7 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
 
     auto prepare_hold = [&](const Note& note, RenderItemKind kind) {
         PreparedSprite prepared;
+        const double noteSpeed = frame.speed(note.side);
         prepared.position = get_note_pos(note, nowTime, noteSpeed);
         const double alpha = get_note_alpha(note.side, prepared.position);
         prepared.rotation = get_note_rotation(note.side);
@@ -891,6 +900,49 @@ size_t render_active_notes(char* const vertexBuffer, double nowTime,
     ++renderStats.taskSubmissions;
     workspace.executor.run(taskflow).get();
     return renderedBytes;
+}
+
+size_t render_active_notes(char* vertexBuffer, double nowTime, double noteSpeed,
+                           int state) {
+    return render_dynamix_notes(vertexBuffer,
+                                {nowTime, noteSpeed, noteSpeed, false}, state);
+}
+
+size_t prepare_playback_notes(PlaybackFrame frame) {
+    auto& workspace = get_render_workspace();
+    workspace.frameReady = false;
+    auto& activation = get_note_activation_manager();
+    activation.set_range(frame);
+    activation.recalculate();
+    size_t bound;
+    if (frame.dynamite) {
+        const size_t notes = activation.get_active_notes().size();
+        bound = DynamiteBatch::vertex_buffer_bound(
+            notes, activation.get_active_holds().size());
+        if (workspace.dynamite.reserve(notes))
+            ++renderStats.capacityGrowths;
+    } else {
+        bound = prepare_note_rendering();
+    }
+    workspace.frame = frame;
+    workspace.activationRevision = activation.get_revision();
+    workspace.frameReady = true;
+    return bound;
+}
+
+size_t render_playback_notes(char* vertexBuffer, int state) {
+    auto& w = get_render_workspace();
+    if (!w.frameReady)
+        throw std::logic_error("Playback frame not prepared");
+    if (get_note_activation_manager().get_revision() != w.activationRevision)
+        throw std::logic_error("Activation changed after frame preparation");
+    if (w.frame.dynamite) {
+        if (state != 2)
+            return 0;
+        return w.dynamite.render(vertexBuffer, w.frame, w.executor, w.taskflow,
+                                 w.workerCount, renderStats.taskSubmissions);
+    }
+    return render_dynamix_notes(vertexBuffer, w.frame, state);
 }
 
 size_t get_vertex_buffer_bound() {

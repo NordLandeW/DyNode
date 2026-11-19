@@ -15,7 +15,7 @@ DYCORE_API double DyCore_add_sprite_data(const char* spriteData) {
                        .paddingBottom = j["paddingBottom"]};
     data.caculate_uv_values();
 
-    SpriteDrawSetting setting;
+    SpriteDrawSetting setting{};
     setting.type = static_cast<SPRITE_DRAW_TYPE>(j["type"].get<int>());
     std::vector<int> dataVec = j["data"].get<std::vector<int>>();
     for (size_t i = 0; i < dataVec.size(); i++) {
@@ -48,6 +48,32 @@ DYCORE_API double DyCore_render_active_notes(char* vertexBuffer, double nowTime,
         return static_cast<double>(result);
     } catch (const std::exception& e) {
         print_debug_message(std::string("Error rendering active notes: ") +
+                            e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_prepare_playback_notes(double nowTime,
+                                                double frontSpeed,
+                                                double sideSpeed,
+                                                double dynamite) {
+    try {
+        return static_cast<double>(prepare_playback_notes(
+            {nowTime, frontSpeed, sideSpeed, dynamite != 0}));
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error preparing playback notes: ") +
+                            e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_render_playback_notes(char* vertexBuffer,
+                                               double state) {
+    try {
+        return static_cast<double>(
+            render_playback_notes(vertexBuffer, static_cast<int>(state)));
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error rendering playback notes: ") +
                             e.what());
         return -1;
     }

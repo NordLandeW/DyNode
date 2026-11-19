@@ -3,20 +3,25 @@
 #include <utility>
 #include <vector>
 
+#include "layout.h"
 #include "note.h"
 
 class NoteActivationManager {
    private:
-    double currentTime;
-    double noteSpeed;
-    std::pair<double, double> timeRange, timeRangeMin;
+    PlaybackFrame frame{};
+    size_t revision = 0;
 
     std::vector<std::pair<double, std::string>> activeNotes, activeHolds,
         lastingHolds;
 
    public:
     // Set the range settings.
-    void set_range(double curTime, double curSpeed);
+    void set_range(double curTime, double curSpeed) {
+        set_range({curTime, curSpeed, curSpeed, false});
+    }
+    void set_range(PlaybackFrame settings) {
+        frame = settings;
+    }
 
     // Recalculate the active notes based on current range setting.
     void recalculate();
@@ -25,6 +30,9 @@ class NoteActivationManager {
     void clear();
 
     using ActiveLists = std::vector<std::pair<double, std::string>>;
+    size_t get_revision() const {
+        return revision;
+    }
     // Get the currently active notes.
     const ActiveLists& get_active_notes() const {
         return activeNotes;

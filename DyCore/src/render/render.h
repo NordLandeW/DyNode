@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "layout.h"
+
 inline constexpr double HOLD_BG_LIGHTNESS = 0.3;
 inline constexpr size_t MULTITHREAD_RENDERING_BYTE_THRESHOLD = 2 * 1024 * 1024;
 
@@ -72,6 +74,10 @@ class SpriteManager {
 size_t get_sprite_max_bytes(const SpriteData& sprite);
 size_t get_sprite_max_bytes(const std::string& name);
 
+struct Note;
+glm::vec2 get_note_pos(const Note& note, double nowTime, double speed);
+double get_note_alpha(int side, glm::vec2 position);
+
 size_t render_active_notes(char* const vertexBuffer, double nowTime,
                            double noteSpeed, int state);
 
@@ -85,6 +91,8 @@ size_t get_vertex_buffer_bound();
 void initialize_note_rendering();
 void shutdown_note_rendering();
 size_t prepare_note_rendering();
+size_t prepare_playback_notes(PlaybackFrame frame);
+size_t render_playback_notes(char* vertexBuffer, int state);
 
 struct NoteRenderingStats {
     size_t capacityGrowths = 0;

@@ -73,90 +73,30 @@ function dyc_init() {
     if(result != "success") {
         show_error($"DyCore Initialized Failed. Result: {result}", true);
     }
-    /// Add sprites data.
-    // Add sprNote2.
-    var uv = sprite_get_uvs(sprNote2, 0);
-    dyc_add_sprite_data({
-        name: "sprNote",
-        uv00: uv[0],
-        uv01: uv[1],
-        uv10: uv[2],
-        uv11: uv[3],
-        width: sprite_get_width(sprNote2),
-        height: sprite_get_height(sprNote2),
-        type: 1, // SEG-3
-        data: [22, 22],
-        paddingLR: _note_get_lrpadding_total(0),
-        paddingTop: 0,
-        paddingBottom: 0
-    });
+    dyc_register_note_sprite(sprNote2, "sprNote", 1, [22, 22], _note_get_lrpadding_total(NOTE_TYPE.NORMAL));
+    dyc_register_note_sprite(sprChain, "sprChain", 2, [21, 78, 19], _note_get_lrpadding_total(NOTE_TYPE.CHAIN));
+    dyc_register_note_sprite(sprHoldEdge, "sprHoldEdge", 3, [32, 33, 53, 52], _note_get_lrpadding_total(NOTE_TYPE.HOLD), 13, 26);
+    dyc_register_note_sprite(sprHold, "sprHold", 4, []);
+    dyc_register_note_sprite(sprHoldGrey, "sprHoldGrey", 0, []);
 
-    // Add sprChain.
-    var uv = sprite_get_uvs(sprChain, 0);
-    dyc_add_sprite_data({
-        name: "sprChain",
-        uv00: uv[0],
-        uv01: uv[1],
-        uv10: uv[2],
-        uv11: uv[3],
-        width: sprite_get_width(sprChain),
-        height: sprite_get_height(sprChain),
-        type: 2, // SEG-5
-        data: [21, 78, 19],
-        paddingLR: _note_get_lrpadding_total(1),
-        paddingTop: 0,
-        paddingBottom: 0
-    });
+    dyc_register_note_sprite(sprDynamiteTap, "sprDynamiteTap", 1, [30, 30]);
+    dyc_register_note_sprite(sprDynamiteSlideHalf, "sprDynamiteSlideHalf", 1, [30, 57]);
+    dyc_register_note_sprite(sprDynamiteHoldUp, "sprDynamiteHoldUp", 1, [19, 19]);
+    dyc_register_note_sprite(sprDynamiteHoldDown, "sprDynamiteHoldDown", 1, [21, 21]);
+    dyc_register_note_sprite(sprDynamiteHoldSide, "sprDynamiteHoldSide", 0, []);
+    dyc_register_note_sprite(sprDynamiteHoldInner, "sprDynamiteHoldInner", 0, []);
+    dyc_register_note_sprite(sprDynamiteHoldLit, "sprDynamiteHoldLit", 0, []);
+}
 
-    // Add sprHoldEdge
-    var uv = sprite_get_uvs(sprHoldEdge, 0);
+/// @description Share the same texture rectangle and slice metadata with the native renderer and its shader.
+function dyc_register_note_sprite(_spr, _name, _type, _cuts, _padding_lr = 0, _top = 0, _bottom = 0) {
+    var _uv = sprite_get_uvs(_spr, 0);
     dyc_add_sprite_data({
-        name: "sprHoldEdge",
-        uv00: uv[0],
-        uv01: uv[1],
-        uv10: uv[2],
-        uv11: uv[3],
-        width: sprite_get_width(sprHoldEdge),
-        height: sprite_get_height(sprHoldEdge),
-        type: 3, // Slice-9
-        data: [32, 33, 53, 52],
-        paddingLR: _note_get_lrpadding_total(2),
-        paddingTop: 13,
-        paddingBottom: 26,
-    });
-
-    // Add sprHold
-    var uv = sprite_get_uvs(sprHold, 0);
-    dyc_add_sprite_data({
-        name: "sprHold",
-        uv00: uv[0],
-        uv01: uv[1],
-        uv10: uv[2],
-        uv11: uv[3],
-        width: sprite_get_width(sprHold),
-        height: sprite_get_height(sprHold),
-        type: 4, // Repeat-vert
-        data: [],
-        paddingLR: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
-    });
-
-    // Add sprHoldGrey
-    var uv = sprite_get_uvs(sprHoldGrey, 0);
-    dyc_add_sprite_data({
-        name: "sprHoldGrey",
-        uv00: uv[0],
-        uv01: uv[1],
-        uv10: uv[2],
-        uv11: uv[3],
-        width: sprite_get_width(sprHoldGrey),
-        height: sprite_get_height(sprHoldGrey),
-        type: 0, // Normal
-        data: [],
-        paddingLR: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
+        name: _name,
+        uv00: _uv[0], uv01: _uv[1], uv10: _uv[2], uv11: _uv[3],
+        width: sprite_get_width(_spr), height: sprite_get_height(_spr),
+        type: _type, data: _cuts,
+        paddingLR: _padding_lr, paddingTop: _top, paddingBottom: _bottom,
     });
 }
 
@@ -615,10 +555,6 @@ function dyc_get_active_notes(nowTime, noteSpeed) {
     }
 
     return _activeNotes;
-}
-
-function dyc_update_active_notes() {
-    DyCore_cac_active_notes(objMain.nowTime, objMain.playbackSpeed);
 }
 
 /// @description This function will not update active notes.
