@@ -14,7 +14,12 @@ xxHash (under BSD 2-Clause License) Copyright (c) 2012-2021 Yann Collet
 miniaudio (under MIT-0 License) Copyright 2025 David Reid
 Dynamaker-modifed (under MIT License) Copyright (c) 2021 jmakxd
 Dynamaker (under MIT License) Copyright (c) 2019 omegaPi
+Source Han Sans CN Normal (Apache License 2.0, see fonts/Apache-2.0.txt) Copyright © 2014 Adobe Systems Incorporated.
+Source Han Sans CN Heavy and Light: Adobe typefaces, bitmap glyphs from Dynamite.
+BPG Banner ExtraSquare Caps (CC BY-NC-ND 4.0) Copyright (c) 2009 BPG-InfoTech.
+Title and score glyph atlas generated from the font. https://creativecommons.org/licenses/by-nc-nd/4.0/
 
 FMOD by Firelight Technologies Pty Ltd.
 Dynamix produced by C4Cat Entertainment Limited
+Dynamite produced by TunerGames
 Arcaea produced by lowiro limited
