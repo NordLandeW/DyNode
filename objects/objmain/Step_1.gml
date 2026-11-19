@@ -1,5 +1,7 @@
 /// @description Reset Tags & Time Update & Activate notes
 
+fxClock += global.timeManager.get_delta() / 1000;
+
 // Pull metadata from DyCore.
 
 var _metadata = dyc_chart_get_metadata();
@@ -34,8 +36,7 @@ chartSideType = _metadata.sideType;
     }
     
     playbackSpeed = lerp_a(playbackSpeed, animTargetPlaybackSpeed, animSpeed);
-    var _targetSideScale = global.style == STYLE.DYNAMITE ? DYNAMITE_SIDE_SPEED_SCALE : 1;
-    sideSpeedScale = lerp_a(sideSpeedScale, _targetSideScale, animSpeed);
+    sideSpeedScale = lerp_a(sideSpeedScale, style_side_speed_scale(), animSpeed);
     
     var _timchange = keycheck(ord("D")) - keycheck(ord("A"));
     var _timscr = wheelcheck_up() - wheelcheck_down();

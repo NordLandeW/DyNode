@@ -23,10 +23,13 @@ function map_close(shuttingDown = false) {
 	global.isSaving = false;
 	with(objMain) {
 		dyc_video_free();
+		surface_free_f(judgmentHudSurf);
+		surface_free_f(dynamiteShadowSurf);
 		surface_free_f(shadowPingSurf);
 		surface_free_f(shadowPongSurf);
 		surface_free_f(partSurf);
 		
+		DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false);
 		note_delete_all();
 		instance_destroy(objScoreBoard);
 		instance_destroy(objPerfectIndc);

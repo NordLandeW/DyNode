@@ -430,7 +430,7 @@ image_yscale = 1;
                 state();
             }
         }
-        else if(time + lastTime > _limTime && (objMain.nowPlaying || editor_get_editmode() == 5)) {
+        else if(global.style == STYLE.DYNAMIX && time + lastTime > _limTime && (objMain.nowPlaying || editor_get_editmode() == 5)) {
             partHoldTimer += global.timeManager.get_delta() / 1000;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {

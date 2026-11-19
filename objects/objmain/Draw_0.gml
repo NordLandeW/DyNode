@@ -104,13 +104,19 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 				draw_rectangle(0, _nh - targetLineBelow - targetLineBelowH/2, 
 								_nw, _nh - targetLineBelow + targetLineBelowH/2, false);
 
+		dynamix_draw_mixer_lights();
+	}
+	else if(global.style == STYLE.DYNAMITE) {
+		dynamite_draw_footer();
+
+		dynamite_draw_judgment_hud();
 	}
 
 // Draw Shadows
 
 #macro SHADOW_LAYER_ALPHA (0.9)
 
-    if(global.shadowCount > 0) {
+    if(global.style == STYLE.DYNAMIX && global.shadowCount > 0) {
         var piano = global.themeAt == 2;
         shadowPingSurf = surface_check(shadowPingSurf, view_wport[0], view_hport[0]);
         surface_set_target(shadowPingSurf);
@@ -137,40 +143,20 @@ var _dynamite = global.style == STYLE.DYNAMITE;
         surface_reset_target();
         gpu_pop_state();
 
-        gpu_push_state();
-        if(global.themeAt == 2) {
-            shader_set(shd_mono);
-            gpu_set_blendmode(bm_add);
-            piano = true;
-        }
-        else if(global.themeAt >= 0) {
-            gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
-            if(global.themeAt > 0) {
-                // Else if a customized theme
-                shader_set(shd_hsv_trans);
-                var hsv = theme_get_color_hsv();
-                shader_set_uniform_q("u_hue", hsv[0]);
-                shader_set_uniform_q("u_saturation", hsv[1]);
-            }
-        }
-
-        draw_surface_stretched_ext(shadowPongSurf, 0, 0, BASE_RES_W, BASE_RES_H, c_white, 1);
-        if(global.themeAt > 0) {
-            shader_reset();
-        }
-        gpu_pop_state();
+        shadow_layer_draw(shadowPongSurf);
     }
 
 // Draw Notes
 
+    var _trayMask = _dynamite && dynamite_begin_note_mask();
 	var _piano = global.themeAt == 2 && editor_get_editmode() == 5;
     if(_piano) {
 		gpu_set_blendmode(bm_add);
         shader_set(shd_mono);
 	}
 
-	if(editor_get_editmode() == 5) {
-		global.noteRenderer.render();
+	if(_playback) {
+		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined);
 	}
 	else {
 		// Draw Holds
@@ -205,4 +191,10 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 						draw_event(true);
 					}
 				}
+
+    if(_dynamite && dynamiteFxReady) {
+        global.noteRenderer.draw_fx(DYNAMITE_FX_PASS.HIT_FRAME);
+        global.noteRenderer.draw_fx(DYNAMITE_FX_PASS.HOLDING_FRAME);
+    }
+    if(_trayMask) gpu_pop_state();
 	

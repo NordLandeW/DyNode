@@ -379,6 +379,15 @@ function note_hit(note, displayEffects) {
 	if(!displayEffects)
 		return false;
 	
+	if(global.style == STYLE.DYNAMITE) {
+		if(editor_get_editmode() != 5 && global.particleEffects != 0) {
+			var _mix = note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER";
+			DyCore_trigger_dynamite_hit(note.side, note.position, note.width, objMain.fxClock,
+				note.time, _mix, global.particleEffects == 1);
+		}
+		return true;
+	}
+
 	var shadowFun = dyc_random_range(0, 100) <= 90;
 	var shadowGo = global.shadowCount < MAX_SHADOW_COUNT || shadowFun;
 	shadowGo = shadowGo && (global.shadowCount < MAX_SHADOW_COUNT_HARD);

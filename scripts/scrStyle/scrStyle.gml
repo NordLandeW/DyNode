@@ -13,9 +13,15 @@ function style_init() {
 }
 
 function style_next() {
+    if(global.style == STYLE.DYNAMITE) DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false);
     global.style = (global.style + 1) % STYLE_COUNT;
 
     announcement_set("Style", global.STYLE_NAMES[global.style]);
+}
+
+/// @description Target travel speed of the side lanes relative to the front lane.
+function style_side_speed_scale() {
+    return global.style == STYLE.DYNAMITE ? DYNAMITE_SIDE_SPEED_SCALE : 1;
 }
 
 /// @description Inline Tap, Chain and Hold artwork at the chart stats' text size.
@@ -23,6 +29,35 @@ function style_note_stat_icons() {
     static _dynamix = ["[sprNote]", "[scale,0.4][sprChain][/s]", "[scale,0.4][sprHoldEdge][/s]"];
     static _dynamite = ["[scale,0.17][sprDynamiteTap][/s]", "[scale,0.16][sprDynamiteChainIcon][/s]", "[scale,0.17][sprDynamiteHoldIcon][/s]"];
     return global.style == STYLE.DYNAMITE ? _dynamite : _dynamix;
+}
+
+/// Tile the playfield artwork from the lower left, clipping the last row and column to the band.
+function style_draw_stripe_band(_sprite, _top, _bottom, _tile_height, _alpha) {
+    if(_alpha <= 0 || _top >= _bottom) return;
+    var _uv = sprite_get_uvs(_sprite, 0);
+    var _tile_width = sprite_get_width(_sprite) * (100 / 75); // Canvas reference PPU / sprite PPU.
+    var _trim_top = _uv[5] * _tile_height / sprite_get_height(_sprite);
+    var _saved_height = _uv[7] * _tile_height;
+    var _tex = sprite_get_texture(_sprite, 0);
+    draw_primitive_begin_texture(pr_trianglelist, _tex);
+    for(var _row = _bottom - _tile_height; _row + _tile_height > _top; _row -= _tile_height) {
+        var _row_top = _row + _trim_top;
+        var _y1 = max(_top, _row_top), _y2 = _row_top + _saved_height;
+        if(_y1 >= _y2) continue;
+        // Immediate-mode texture coordinates are relative to the packed sprite, not the atlas.
+        var _v1 = (_y1 - _row_top) / _saved_height;
+        for(var _x1 = 0; _x1 < BASE_RES_W; _x1 += _tile_width) {
+            var _x2 = min(BASE_RES_W, _x1 + _tile_width);
+            var _u2 = (_x2 - _x1) / _tile_width;
+            draw_vertex_texture_color(_x1, _y1, 0, _v1, c_white, _alpha);
+            draw_vertex_texture_color(_x2, _y1, _u2, _v1, c_white, _alpha);
+            draw_vertex_texture_color(_x1, _y2, 0, 1, c_white, _alpha);
+            draw_vertex_texture_color(_x2, _y1, _u2, _v1, c_white, _alpha);
+            draw_vertex_texture_color(_x2, _y2, _u2, 1, c_white, _alpha);
+            draw_vertex_texture_color(_x1, _y2, 0, 1, c_white, _alpha);
+        }
+    }
+    draw_primitive_end();
 }
 
 /// @description Resolve a glyph missing from the Dynamite title atlas.

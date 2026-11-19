@@ -12,10 +12,7 @@
     "name":"Objects",
     "path":"folders/Objects.yy",
   },
-  "parentObjectId":{
-    "name":"objShadow",
-    "path":"objects/objShadow/objShadow.yy",
-  },
+  "parentObjectId":null,
   "persistent":false,
   "physicsAngularDamping":0.1,
   "physicsDensity":0.5,
@@ -38,5 +35,5 @@
     "path":"sprites/sprMIXshadow/sprMIXshadow.yy",
   },
   "spriteMaskId":null,
-  "visible":true,
+  "visible":false,
 }

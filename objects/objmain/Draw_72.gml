@@ -79,3 +79,26 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
                 1, 1, 0, c_white, standardAlpha);
         }
     }
+    else if(global.style == STYLE.DYNAMITE) {
+        // Illuminate the dimmed playfield before any HUD artwork is composited.
+        var _playback = editor_get_editmode() == 5;
+        dynamiteNoteBound = _playback ? global.noteRenderer.prepare_notes() : 0;
+        dynamiteFxReady = global.noteRenderer.prepare_fx(_playback) > 0;
+        if(global.particleEffects == 1) dynamite_draw_shadows();
+
+        // The original footer has a black backing 66 units tall on its 540-high canvas.
+        draw_set_color_alpha(c_black, 127 / 255);
+        draw_rectangle(0, _nh - 132, _nw, _nh, false);
+        draw_set_alpha(1);
+        style_draw_stripe_band(sprDynamiteBottomStripe, _nh - targetLineBelow, _nh,
+            sprite_get_height(sprDynamiteBottomStripe) * (100 / 75), 1);
+        var _bar_center = 124, _bar_height = 84;
+        style_draw_stripe_band(sprDynamitePauseStripe, _bar_center - _bar_height / 2,
+            _bar_center + _bar_height / 2, sprite_get_height(sprDynamitePauseStripe) * (100 / 75),
+            standardAlpha * (70 / 255));
+        if(!showDebugInfo || global.recordManager.is_recording()) {
+            var _scale = 93.24 / sprite_get_height(sprDynamitePause);
+            draw_sprite_ext(sprDynamitePause, 0, _nw / 2, _bar_center - 4,
+                _scale, _scale, 0, c_white, standardAlpha);
+        }
+    }

@@ -79,6 +79,7 @@ function dyc_init() {
     dyc_register_note_sprite(sprHold, "sprHold", 4, []);
     dyc_register_note_sprite(sprHoldGrey, "sprHoldGrey", 0, []);
 
+    dyc_register_note_sprite(sprDynamiteHitAtlas, "sprDynamiteHitAtlas", 0, []);
     dyc_register_note_sprite(sprDynamiteTap, "sprDynamiteTap", 1, [30, 30]);
     dyc_register_note_sprite(sprDynamiteSlideHalf, "sprDynamiteSlideHalf", 1, [30, 57]);
     dyc_register_note_sprite(sprDynamiteHoldUp, "sprDynamiteHoldUp", 1, [19, 19]);

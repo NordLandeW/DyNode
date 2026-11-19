@@ -168,6 +168,7 @@ projectTime += round(delta_time / 1000);
 #region Bg Animation
 
 	standardAlpha = lerp_a(standardAlpha, editor_get_editmode()==5?1:0, animSpeed);
+	autoBadgeClearAlpha = lerp_a(autoBadgeClearAlpha, instance_exists(objAnnouncement) ? 0 : 1, animSpeed);
 	animTargetBgFaintAlpha = editor_get_editmode() == 5? 0.5: 0;
     bgFaintAlpha = lerp_a(bgFaintAlpha, animTargetBgFaintAlpha, animSpeedFaint);
     

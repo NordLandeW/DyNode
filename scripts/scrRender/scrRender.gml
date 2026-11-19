@@ -1,4 +1,7 @@
 
+// DyCore batch selectors; independent of composition order.
+enum DYNAMITE_FX_PASS { HIT_FRAME, HOLDING_FRAME, SHADOW }
+
 /// @description This singleton handles note rendering under playback mode.
 function NoteRenderer() constructor {
 
@@ -74,14 +77,61 @@ function NoteRenderer() constructor {
         }
     }
 
-    static render_state = function(state, texture) {
-        var size = DyCore_render_playback_notes(buffer_get_address(cacheBuff), state);
+    static submit = function(size, texture) {
         if(size <= 0) return;
 
         buffer_set_used_size(cacheBuff, size);
         vertex_update_buffer_from_buffer(vertBuff, 0, cacheBuff, 0, size);
 
         vertex_submit_ext(vertBuff, pr_trianglelist, texture, 0, size / vertexSize);
+    }
+
+    static render_state = function(state, texture) {
+        submit(DyCore_render_playback_notes(buffer_get_address(cacheBuff), state), texture);
+    }
+
+    static ensure_capacity = function(bound) {
+        if(buffer_get_size(cacheBuff) < bound)
+            buffer_resize(cacheBuff, ceil(bound * 1.5 / 4096) * 4096);
+    }
+
+    /// @description Prepare the visible playback notes once, before drawing any layers.
+    /// @returns {Real} Required buffer size in bytes.
+    static prepare_notes = function() {
+        var bound = DyCore_prepare_playback_notes(objMain.nowTime, objMain.playbackSpeed,
+            note_lane_speed(NOTE_SIDE.LEFT), global.style == STYLE.DYNAMITE);
+        ensure_capacity(bound);
+        return bound;
+    }
+
+    /// @description Sample hit frames and lights for the current playfield.
+    /// @param {Bool} playback Reconstruct judgments from the chart instead of consuming editor hit events.
+    /// @returns {Real} Maximum buffer size across the effect layers, in bytes.
+    static prepare_fx = function(playback) {
+        var mixers = (objMain.chartSideType[0] == "MIXER") | ((objMain.chartSideType[1] == "MIXER") << 1);
+        var bound = DyCore_prepare_dynamite_fx(objMain.nowTime, objMain.fxClock, global.particleEffects, mixers, playback, objMain.nowPlaying);
+        ensure_capacity(bound);
+        return bound;
+    }
+
+    /// @description Write one batch to the shared buffer; consume before writing another batch.
+    static buffer_fx = function(pass) {
+        return DyCore_render_dynamite_fx(buffer_get_address(cacheBuff), pass);
+    }
+
+    /// @description Draw one prepared Dynamite effect layer.
+    /// @param {Real} pass DYNAMITE_FX_PASS selector.
+    /// @param {Real} [size] Bytes already written by buffer_fx.
+    static draw_fx = function(pass, size = undefined) {
+        if(is_undefined(size)) size = buffer_fx(pass);
+        if(size <= 0) return;
+        gpu_push_state();
+        gpu_set_alphatestenable(false);
+        // The ordinary hit sheet and light add RGB without changing coverage.
+        gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_one, bm_zero, bm_one);
+        gpu_set_texfilter_ext(0, pass == DYNAMITE_FX_PASS.HIT_FRAME);
+        submit(size, sprite_get_texture(sprDynamiteHitAtlas, 0));
+        gpu_pop_state();
     }
 
     static render_dynamix = function(previousShader) {
@@ -128,15 +178,10 @@ function NoteRenderer() constructor {
         render_state(2, sprite_get_texture(sprDynamiteTap, 0));
     }
 
-    static render = function() {
+    static render = function(bound = undefined) {
         var _dynamite = global.style == STYLE.DYNAMITE;
-        var bound = DyCore_prepare_playback_notes(objMain.nowTime, objMain.playbackSpeed,
-            note_lane_speed(NOTE_SIDE.LEFT), _dynamite);
+        if(is_undefined(bound)) bound = prepare_notes();
         if(bound < 0) return;
-        if(buffer_get_size(cacheBuff) < bound) {
-            var capacity = ceil(bound * 1.5 / 4096) * 4096;
-            buffer_resize(cacheBuff, capacity);
-        }
 
         gpu_push_state();
         gpu_set_tex_repeat(true);
@@ -148,7 +193,8 @@ function NoteRenderer() constructor {
 
         gpu_pop_state();
 
-        // Emit holds particles.
+        if(_dynamite) return;
+        // Emit Dynamix hold particles.
         holdParticlesTimer += global.timeManager.get_delta() / 1000;
         holdParticlesTimer = min(holdParticlesTimer, 5 * PARTICLE_HOLD_DELAY);
 

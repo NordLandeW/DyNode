@@ -1,9 +1,7 @@
-/// @description 
-
-// Inherit the parent event
-event_inherited();
-
-visible = true;
+/// @description Track mixer hits for the judgment HUD.
+animCurvChan = animcurve_get_channel(curvShadowFade, "curve1");
+animTargetX = 0.8;
+animTargetY = 0.9;
 
 animTime = 250;
 animLast = 9999;

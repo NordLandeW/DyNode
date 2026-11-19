@@ -72,6 +72,7 @@ depth = 0;
     mixerNextX = array_create(2, note_pos_to_x(2.5, 1));
     mixerSpeed = 0.5;
     mixerMaxSpeed = 250; // px per frame
+    fxClock = 0; // Independent one-shot clock in editor mode (milliseconds).
     mixerShadow = [];
     mixerShadow[0] = instance_create(0, 0, objShadowMIX);
     mixerShadow[1] = instance_create(0, 0, objShadowMIX);
@@ -162,6 +163,9 @@ depth = 0;
     /// @type {Array<Array<Id.Instance.objNote>>} Activated notes' inst in a step.
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
+    // Prepared in Draw Begin, shared by the shadow and foreground layers.
+    dynamiteNoteBound = 0;
+    dynamiteFxReady = false;
 
 #endregion
 
@@ -176,7 +180,7 @@ depth = 0;
     nowScore = 0;
     nowCombo = 0;
     playbackSpeed = 1.6;
-    sideSpeedScale = 1;
+    sideSpeedScale = style_side_speed_scale();
     adtimeSpeed = 50.0; // Use AD to Adjust Time ms per frame
     scrolltimeSpeed = 120.0; // Use mouse scroll to Adjust Time ms per frame
     
@@ -212,6 +216,7 @@ depth = 0;
     animTargetTitleAlpha = titleAlphaL;
     
     standardAlpha = 0; // For editmode switch usage
+    autoBadgeClearAlpha = 1;
 
     // Stat vars
     statKPS = 0;
@@ -243,6 +248,8 @@ depth = 0;
 
 #region Surfaces
 
+    judgmentHudSurf = -1;
+    dynamiteShadowSurf = -1;
     shadowPingSurf = -999;
     shadowPongSurf = -999;
     partSurf = -999;
@@ -499,6 +506,220 @@ function _reset_all_particles() {
 
 function pitchshift_effect_enabled() {
     return usingPitchShift && musicSpeed != 1;
+}
+
+/// @description Begin an isolated, premultiplied HUD layer in playfield coordinates.
+function judgment_hud_begin() {
+    judgmentHudSurf = surface_check(judgmentHudSurf, view_wport[0], view_hport[0]);
+    if(!surface_exists(judgmentHudSurf)) return false;
+    surface_set_target(judgmentHudSurf);
+    manually_set_view_size(BASE_RES_W, BASE_RES_H);
+    gpu_push_state();
+    gpu_set_alphatestenable(false);
+    draw_clear_alpha(c_black, 0);
+    return true;
+}
+
+/// @description Composite a premultiplied layer with the existing shadow theme treatment.
+function shadow_layer_draw(_surface) {
+    gpu_push_state();
+    if(global.themeAt == 2) {
+        shader_set(shd_mono);
+        gpu_set_blendmode(bm_add);
+    }
+    else {
+        gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+        if(global.themeAt > 0) {
+            shader_set(shd_hsv_trans);
+            var _hsv = theme_get_color_hsv();
+            shader_set_uniform_q("u_hue", _hsv[0]);
+            shader_set_uniform_q("u_saturation", _hsv[1]);
+        }
+    }
+    draw_surface_stretched_ext(_surface, 0, 0, BASE_RES_W, BASE_RES_H, c_white, 1);
+    if(global.themeAt > 0) shader_reset();
+    gpu_pop_state();
+}
+
+/// @description Restore the playfield target and composite the judgment HUD once.
+function judgment_hud_end(_shadowTheme) {
+    manually_reset_view_size();
+    surface_reset_target();
+    if(_shadowTheme) {
+        shadow_layer_draw(judgmentHudSurf);
+    }
+    else {
+        gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+        draw_surface_stretched_ext(judgmentHudSurf, 0, 0, BASE_RES_W, BASE_RES_H, c_white, 1);
+    }
+    gpu_pop_state();
+}
+
+/// @description Keep Dynamix mixer lights below the notes, independent of normal note shadows.
+function dynamix_draw_mixer_lights() {
+    var _active = false;
+    for(var i = 0; i < 2; i++) {
+        var _light = mixerShadow[i];
+        if(chartSideType[i] != "MIXER" || _light.image_alpha <= 0) continue;
+        if(!_active) {
+            if(!judgment_hud_begin()) return;
+            gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_inv_src_alpha);
+            _active = true;
+        }
+        draw_sprite_ext(_light.sprite_index, 0, _light.x, _light.y, _light.image_xscale, _light.image_yscale,
+                        _light.image_angle, _light.image_blend, _light.image_alpha * (global.themeAt == 2 ? 1 : SHADOW_LAYER_ALPHA));
+    }
+    if(_active) judgment_hud_end(true);
+}
+
+#macro DYNAMITE_TRAY_DX (0.32 * BASE_RES_H / 16)
+#macro DYNAMITE_TRAY_DY (1.6 * BASE_RES_H / 16)
+#macro DYNAMITE_TRAY_HALF_STROKE (0.06 * BASE_RES_H / 16)
+#macro DYNAMITE_TRAY_OUTER_DX (DYNAMITE_TRAY_DX + DYNAMITE_TRAY_HALF_STROKE)
+#macro DYNAMITE_TRAY_OUTER_DY (DYNAMITE_TRAY_DY + DYNAMITE_TRAY_HALF_STROKE)
+
+/// @description Exclude both the hollow tray and its stroke from subsequent note draws.
+function dynamite_begin_note_mask() {
+    if(chartSideType[0] != "MIXER" && chartSideType[1] != "MIXER") return false;
+
+    gpu_push_state();
+    gpu_set_stencil_enable(true);
+    draw_clear_stencil(0);
+    gpu_push_state();
+    gpu_set_colorwriteenable(false, false, false, false);
+    gpu_set_zwriteenable(false);
+    gpu_set_ztestenable(false);
+    gpu_set_alphatestenable(false);
+    gpu_set_stencil_ref(1);
+    gpu_set_stencil_func(cmpfunc_always);
+    gpu_set_stencil_pass(stencilop_replace);
+    var _dx = DYNAMITE_TRAY_OUTER_DX, _dy = DYNAMITE_TRAY_OUTER_DY;
+    for(var i = 0; i < 2; i++) {
+        if(chartSideType[i] == "MIXER") {
+            var _x = i == 0 ? targetLineBeside : BASE_RES_W - targetLineBeside;
+            draw_rectangle(_x - _dx, mixerX[i] - _dy, _x + _dx, mixerX[i] + _dy, false);
+        }
+    }
+    gpu_pop_state();
+    gpu_set_stencil_ref(0);
+    gpu_set_stencil_func(cmpfunc_equal);
+    gpu_set_stencil_pass(stencilop_keep);
+    return true;
+}
+
+/// @description Add the emitted light to the dimmed playfield without changing its coverage.
+function dynamite_draw_shadows() {
+    var _renderer = global.noteRenderer;
+    var _size = dynamiteFxReady ? _renderer.buffer_fx(DYNAMITE_FX_PASS.SHADOW) : 0;
+    var _leftAge = chartSideType[0] == "MIXER" ? DyCore_dynamite_mixer_age(NOTE_SIDE.LEFT) : -1;
+    var _rightAge = chartSideType[1] == "MIXER" ? DyCore_dynamite_mixer_age(NOTE_SIDE.RIGHT) : -1;
+    // The original mixer lamp loses .04 alpha per update at its reference 120 Hz.
+    var _left = _leftAge < 0 ? 0 : max(0, 1 - _leftAge * 0.0048);
+    var _right = _rightAge < 0 ? 0 : max(0, 1 - _rightAge * 0.0048);
+    if(_size <= 0 && _left <= 0 && _right <= 0) return;
+
+    dynamiteShadowSurf = surface_check(dynamiteShadowSurf, view_wport[0], view_hport[0]);
+    if(!surface_exists(dynamiteShadowSurf)) return;
+    surface_set_target(dynamiteShadowSurf);
+    manually_set_view_size(BASE_RES_W, BASE_RES_H);
+    gpu_push_state();
+    gpu_set_alphatestenable(false);
+    draw_clear_alpha(c_black, 0);
+
+    for(var i = 0; i < 2; i++) {
+        var _alpha = i == 0 ? _left : _right;
+        if(_alpha <= 0) continue;
+        var _x = i == 0 ? targetLineBeside : BASE_RES_W - targetLineBeside;
+        var _y = mixerX[i], _scale = DYNAMITE_TRAY_DY / 100;
+        gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_one, bm_zero, bm_one);
+        draw_sprite_ext(sprDynamiteMixerLight, 0, _x, _y, _scale, _scale, i == 0 ? 180 : 0, c_white, _alpha);
+        // Remove this lamp through the outer edge of the tray, including its translucent stroke.
+        gpu_set_blendmode_ext(bm_zero, bm_zero);
+        draw_rectangle(_x - DYNAMITE_TRAY_OUTER_DX, _y - DYNAMITE_TRAY_OUTER_DY,
+                       _x + DYNAMITE_TRAY_OUTER_DX, _y + DYNAMITE_TRAY_OUTER_DY, false);
+    }
+    if(_size > 0) _renderer.draw_fx(DYNAMITE_FX_PASS.SHADOW, _size);
+    manually_reset_view_size();
+    surface_reset_target();
+    // RGB already includes source alpha. Add it exactly once, keeping destination alpha.
+    gpu_set_blendmode_ext_sepalpha(bm_one, bm_one, bm_zero, bm_one);
+    draw_surface_stretched_ext(dynamiteShadowSurf, 0, 0, BASE_RES_W, BASE_RES_H, c_white, 1);
+    gpu_pop_state();
+}
+
+/// @description Draw the lane lines and hollow mixer trays without masking the playfield.
+function dynamite_draw_judgment_hud() {
+    var _halfLine = DYNAMITE_TRAY_HALF_STROKE, _frontY = BASE_RES_H - targetLineBelow;
+    var _playback = editor_get_editmode() == 5;
+    var _mask = chartSideType[0] == "MIXER" || chartSideType[1] == "MIXER";
+    if(_mask) {
+        if(!judgment_hud_begin()) return;
+        // Replace the masked line pixels, including their alpha.
+        gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_zero, bm_one, bm_zero);
+    }
+
+    for(var _side = NOTE_SIDE.FRONT; _side <= NOTE_SIDE.RIGHT; _side++) {
+        var _alpha = _playback ? 1 : lerp(0.5, 1, lazerAlpha[_side]);
+        if(_playback && nowPlaying && _side != NOTE_SIDE.FRONT) {
+            var _hint = sideHinterState[_side - 1];
+            if(_hint >= 0 && _hint % 2 == 0) _alpha = 0.3;
+        }
+        draw_set_color_alpha(c_white, _alpha);
+        if(_side == NOTE_SIDE.FRONT) {
+            draw_rectangle(0, _frontY - _halfLine, BASE_RES_W, _frontY + _halfLine, false);
+        }
+        else {
+            var _x = _side == NOTE_SIDE.LEFT ? targetLineBeside : BASE_RES_W - targetLineBeside;
+            draw_rectangle(_x - _halfLine, 0, _x + _halfLine, _frontY - _halfLine, false);
+            if(chartSideType[_side - 1] == "MIXER") {
+                var _y = mixerX[_side - 1];
+                var _dx = DYNAMITE_TRAY_DX, _dy = DYNAMITE_TRAY_DY;
+                var _l = _x - _dx, _r = _x + _dx, _t = _y - _dy, _b = _y + _dy;
+                // End the cut beneath the frame stroke so fractional positions cannot open a seam.
+                draw_set_alpha(0);
+                draw_rectangle(_l, _t, _r, _b, false);
+                draw_set_alpha(_alpha);
+                draw_rectangle(_l - _halfLine, _t - _halfLine, _r + _halfLine, _t + _halfLine, false);
+                draw_rectangle(_l - _halfLine, _b - _halfLine, _r + _halfLine, _b + _halfLine, false);
+                draw_rectangle(_l - _halfLine, _t + _halfLine, _l + _halfLine, _b - _halfLine, false);
+                draw_rectangle(_r - _halfLine, _t + _halfLine, _r + _halfLine, _b - _halfLine, false);
+            }
+        }
+    }
+    draw_set_alpha(1);
+    if(_mask) judgment_hud_end(false);
+}
+
+/// @description Draw the Dynamite chart title and mode badges below the front judgment line.
+function dynamite_draw_footer() {
+    var _lineY = BASE_RES_H - targetLineBelow;
+    var _oldFont = draw_get_font();
+    var _oldHAlign = draw_get_halign(), _oldVAlign = draw_get_valign();
+    var _oldColor = draw_get_color(), _oldAlpha = draw_get_alpha();
+
+    draw_set_color_alpha(c_white, 1);
+    draw_set_valign(fa_top);
+    style_draw_chart_title(chartTitle, 45, _lineY + 11, 1);
+
+    // Frames 0..5 follow the chart difficulty order; frame 6 is the AUTO badge.
+    draw_sprite_ext(sprDynamiteBadges, chartDifficulty, 42, _lineY + 72, 1, 1, 0, c_white, 1);
+    draw_set_halign(fa_center);
+    draw_set_font(fDynamiteHeavy);
+    draw_text(142, _lineY + 73, difficulty_num_to_name(chartDifficulty));
+    var _autoAlpha = standardAlpha * autoBadgeClearAlpha;
+    if(_autoAlpha > 0) {
+        var _autoX = BASE_RES_W - 228;
+        draw_sprite_ext(sprDynamiteBadges, 6, _autoX, _lineY + 68, 1, 1, 0, c_white, _autoAlpha);
+        draw_set_alpha(_autoAlpha);
+        draw_set_font(fDynamiteLight);
+        // The original Light atlas uses 48px glyphs; this label is 32px on the design canvas.
+        draw_text_transformed(_autoX + 100, _lineY + 69, "AUTO", 2 / 3, 2 / 3, 0);
+    }
+
+    draw_set_font(_oldFont);
+    draw_set_halign(_oldHAlign);
+    draw_set_valign(_oldVAlign);
+    draw_set_color_alpha(_oldColor, _oldAlpha);
 }
 
 #endregion
