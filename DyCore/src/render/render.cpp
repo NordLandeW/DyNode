@@ -693,7 +693,7 @@ static size_t render_dynamix_notes(char* const vertexBuffer,
         if (!parallelResolve) {
             for (size_t index = 0; index < list.size(); ++index) {
                 resolvedNotes[index] = &get_note_pool_manager().get_note_unsafe(
-                    list[index].second);
+                    list[index].id, list[index].index);
             }
             return resolvedNotes;
         }
@@ -714,7 +714,7 @@ static size_t render_dynamix_notes(char* const vertexBuffer,
                 for (size_t index = begin; index < end; ++index) {
                     resolvedNotes[index] =
                         &get_note_pool_manager().get_note_unsafe(
-                            list[index].second);
+                            list[index].id, list[index].index);
                 }
             }));
         }
@@ -724,8 +724,9 @@ static size_t render_dynamix_notes(char* const vertexBuffer,
     };
 
     if (state == 0) {
-        for (const auto& [time, noteID] : lastingHolds) {
-            const auto& note = get_note_pool_manager().get_note_unsafe(noteID);
+        for (const auto& h : lastingHolds) {
+            const auto& note =
+                get_note_pool_manager().get_note_unsafe(h.id, h.index);
             append_source(note, RenderItemKind::HOLD_BACKGROUND,
                           holdBgMaxBytes);
         }

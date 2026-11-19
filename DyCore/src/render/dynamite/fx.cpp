@@ -183,17 +183,17 @@ size_t DynamiteFx::prepare(double time, double clock, int setting, int mixers,
     const auto& active = get_note_activation_manager();
     const auto& holds =
         playback ? active.get_lasting_holds() : active.get_active_holds();
-    const auto byStart = [](const auto& h, double t) { return h.first < t; };
+    const auto byStart = [](const auto& h, double t) { return h.time < t; };
     auto hold = playback ? std::lower_bound(holds.begin(), holds.end(),
                                             time - LIGHT_MS, byStart)
                          : std::upper_bound(holds.begin(), holds.end(), time,
                                             [](double t, const auto& h) {
-                                                return t < h.first;
+                                                return t < h.time;
                                             });
     auto draw_holds_after = [&](double oldest) {
         while (frame_room() && hold != holds.begin() &&
-               std::prev(hold)->first > oldest) {
-            const auto& id = (--hold)->second;
+               std::prev(hold)->time > oldest) {
+            const auto& id = (--hold)->id;
             if (!pool.note_exists(id))
                 continue;
             const auto& n = pool.get_note_unsafe(id);

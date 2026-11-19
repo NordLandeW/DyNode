@@ -339,6 +339,37 @@ TEST_CASE("HoldRepeatsUseOneQuadAndFourQuadHollowFrame") {
     }
 }
 
+TEST_CASE(
+    "Active note buffer covers its count and ordered variable-length IDs") {
+    RenderCleanup cleanup;
+    auto& activation = get_note_activation_manager();
+    get_note_pool_manager().clear_notes();
+    auto check = [&](const std::vector<std::string>& ids) {
+        activation.set_range(0, 1.6);
+        activation.recalculate();
+        size_t bytes = sizeof(int);
+        for (const auto& id : ids)
+            bytes += id.size() + 1;
+        REQUIRE(activation.get_bitwrite_bound() >= bytes);
+        std::vector<char> out(activation.get_bitwrite_bound(), '\0');
+        activation.bitwrite_active_notes(out.data());
+        const char* it = out.data();
+        int count;
+        bitread(it, count);
+        REQUIRE(count == ids.size());
+        for (const auto& expected : ids) {
+            std::string id;
+            bitread(it, id);
+            CHECK(id == expected);
+        }
+    };
+    check({});
+    const std::string longId(40, 'z');
+    add_playback_note(longId, 0, 0, 1, 1);
+    add_playback_note("a", 2, 1, 1, 1, 15);
+    check({"a", longId});
+}
+
 TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
     RenderCleanup cleanup;
     initialize_note_rendering();

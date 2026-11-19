@@ -114,7 +114,7 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
     const double minimum[] = {dynamite_min_duration(frame.frontSpeed, 0),
                               dynamite_min_duration(frame.sideSpeed, 1)};
     for (const auto& entry : active) {
-        const Note& note = pool.get_note_unsafe(entry.second);
+        const Note& note = pool.get_note_unsafe(entry.id, entry.index);
         const double speed = frame.speed(note.side);
         const double travel = (note.time - frame.time) * speed;
         if (note.get_note_type() == NOTE_TYPE::HOLD) {

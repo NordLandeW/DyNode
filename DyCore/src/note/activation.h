@@ -1,18 +1,35 @@
 #pragma once
 #include <string>
-#include <utility>
+#include <string_view>
 #include <vector>
 
 #include "layout.h"
 #include "note.h"
 
 class NoteActivationManager {
+   public:
+    // Own the ID. A physical index is only a lookup hint, never a note
+    // lifetime.
+    struct Entry {
+        double time;
+        std::string id;
+        int index;
+    };
+    using ActiveLists = std::vector<Entry>;
+
    private:
+    struct Candidate {
+        double time;
+        std::string_view id;
+        int index;
+        bool hold, lasting;
+    };
+    std::vector<Candidate> heads, extra;
     PlaybackFrame frame{};
     size_t revision = 0;
+    size_t activeBytes = sizeof(int);
 
-    std::vector<std::pair<double, std::string>> activeNotes, activeHolds,
-        lastingHolds;
+    ActiveLists activeNotes, activeHolds, lastingHolds;
 
    public:
     // Set the range settings.
@@ -29,7 +46,6 @@ class NoteActivationManager {
     // Clear all active notes and release memory.
     void clear();
 
-    using ActiveLists = std::vector<std::pair<double, std::string>>;
     size_t get_revision() const {
         return revision;
     }
@@ -46,7 +62,7 @@ class NoteActivationManager {
     void bitwrite_active_notes(char* buffer) const;
     void bitwrite_lasting_holds(char* buffer) const;
     size_t get_bitwrite_bound() const {
-        return (NOTE_ID_LENGTH + 1) * activeNotes.size();
+        return activeBytes;
     }
 
     NoteActivationManager operator=(const NoteActivationManager& other) =

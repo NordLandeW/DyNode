@@ -1,5 +1,8 @@
 #include "activation.h"
 
+#include <algorithm>
+#include <tuple>
+
 #include "bitio.h"
 #include "layout.h"
 #include "notePoolManager.h"
@@ -9,6 +12,8 @@ void NoteActivationManager::recalculate() {
     PROFILE_STATIC_SCOPE("Note Activation Manager Recalculate");
     ++revision;
 
+    heads.clear();
+    extra.clear();
     activeNotes.clear();
     activeHolds.clear();
     lastingHolds.clear();
@@ -38,21 +43,14 @@ void NoteActivationManager::recalculate() {
              noteArray[i]->get_note_type() != NOTE_TYPE::SUB))
             continue;
         if (noteArray[i]->get_note_type() <= NOTE_TYPE::HOLD) {
-            activeNotes.push_back({noteArray[i]->time, noteArray[i]->noteID});
-            if (noteArray[i]->get_note_type() == NOTE_TYPE::HOLD) {
-                activeHolds.push_back(
-                    {noteArray[i]->time, noteArray[i]->noteID});
-            }
+            const auto& n = *noteArray[i];
+            heads.push_back({n.time, n.noteID, i,
+                             n.get_note_type() == NOTE_TYPE::HOLD, false});
         } else {
-            activeNotes.push_back(
-                {noteArray[i]->beginTime, noteArray[i]->subNoteID});
-            activeHolds.push_back(
-                {noteArray[i]->beginTime, noteArray[i]->subNoteID});
-            if (noteArray[i]->beginTime < currentTime &&
-                (!frame.dynamite || noteArray[i]->time > currentTime)) {
-                lastingHolds.push_back(
-                    {noteArray[i]->beginTime, noteArray[i]->subNoteID});
-            }
+            const auto& n = *noteArray[i];
+            extra.push_back({n.beginTime, n.subNoteID, -1, true,
+                             n.beginTime < currentTime &&
+                                 (!frame.dynamite || n.time > currentTime)});
         }
     }
 
@@ -62,9 +60,7 @@ void NoteActivationManager::recalculate() {
         if (note.lastTime < minEnd - currentTime)
             break;
         if (note.time <= currentTime && note.time + note.lastTime > minEnd) {
-            activeNotes.push_back({note.time, note.noteID});
-            lastingHolds.push_back({note.time, note.noteID});
-            activeHolds.push_back({note.time, note.noteID});
+            extra.push_back({note.time, note.noteID, note.index, true, true});
         }
     }
 
@@ -80,25 +76,60 @@ void NoteActivationManager::recalculate() {
             if (note.get_note_type() == NOTE_TYPE::HOLD &&
                 note.time + note.lastTime <= currentTime &&
                 note.time + minimum[note.side != 0] > currentTime) {
-                activeNotes.emplace_back(note.time, note.noteID);
-                activeHolds.emplace_back(note.time, note.noteID);
+                extra.push_back({note.time, note.noteID, i, true, false});
             }
         }
     }
 
-    // Remove duplicates
-    static auto unique_and_sort = [](auto& vec) {
-        std::sort(vec.begin(), vec.end());
-        vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+    // Heads already arrive in chronological order. Only ties and supplementary
+    // HOLD sources need sorting; merge once for all three public lists.
+    auto less = [](const Candidate& a, const Candidate& b) {
+        return std::tie(a.time, a.id) < std::tie(b.time, b.id);
     };
-
-    unique_and_sort(activeNotes);
-    unique_and_sort(activeHolds);
-    unique_and_sort(lastingHolds);
+    for (auto it = heads.begin(); it != heads.end();) {
+        auto end = it + 1;
+        while (end != heads.end() && it->time == end->time)
+            ++end;
+        if (end - it > 1)
+            std::sort(it, end, less);
+        it = end;
+    }
+    std::sort(extra.begin(), extra.end(), less);
+    auto emit = [](ActiveLists& list, const Candidate& c) {
+        if (list.empty() || list.back().time != c.time ||
+            list.back().id != c.id)
+            list.push_back({c.time, std::string(c.id), c.index});
+        else if (c.index >= 0)
+            list.back().index = c.index;
+    };
+    activeBytes = sizeof(int);
+    auto head = heads.begin();
+    auto other = extra.begin();
+    while (head != heads.end() || other != extra.end()) {
+        const Candidate& c = other == extra.end() || (head != heads.end() &&
+                                                      !less(*other, *head))
+                                 ? *head++
+                                 : *other++;
+        const auto count = activeNotes.size();
+        emit(activeNotes, c);
+        if (activeNotes.size() != count)
+            activeBytes += c.id.size() + 1;
+        if (c.hold)
+            emit(activeHolds, c);
+        if (c.lasting)
+            emit(lastingHolds, c);
+    }
+    heads.clear();
+    extra.clear();
 }
 
 void NoteActivationManager::clear() {
     ++revision;
+    activeBytes = sizeof(int);
+    heads.clear();
+    extra.clear();
+    heads.shrink_to_fit();
+    extra.shrink_to_fit();
     activeNotes.clear();
     activeNotes.shrink_to_fit();
     activeHolds.clear();
@@ -111,7 +142,7 @@ void NoteActivationManager::bitwrite_active_notes(char* buffer) const {
     char* ptr = buffer;
     bitwrite<int>(ptr, activeNotes.size());
     for (const auto& note : activeNotes) {
-        bitwrite<string>(ptr, note.second);
+        bitwrite<string>(ptr, note.id);
     }
 }
 
@@ -119,7 +150,7 @@ void NoteActivationManager::bitwrite_lasting_holds(char* buffer) const {
     char* ptr = buffer;
     bitwrite<int>(ptr, lastingHolds.size());
     for (const auto& note : lastingHolds) {
-        bitwrite<string>(ptr, note.second);
+        bitwrite<string>(ptr, note.id);
     }
 }
 
