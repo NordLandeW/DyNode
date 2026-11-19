@@ -80,9 +80,23 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         }
     }
     else if(global.style == STYLE.DYNAMITE) {
-        // Hold interiors sit on the dimmed background, below both the hit lights and HUD.
         var _playback = editor_get_editmode() == 5;
         var _trayMask = dynamite_begin_tray_mask();
+        var _bar_center = 124, _bar_height = 84;
+        style_draw_stripe_band(sprDynamitePauseStripe, _bar_center - _bar_height / 2,
+            _bar_center + _bar_height / 2, sprite_get_height(sprDynamitePauseStripe) * (100 / 75),
+            standardAlpha * (70 / 255));
+        if(!showDebugInfo || global.recordManager.is_recording()) {
+            var _scale = 93.24 / sprite_get_height(sprDynamitePause);
+            draw_sprite_ext(sprDynamitePause, 0, _nw / 2, _bar_center - 4,
+                _scale, _scale, 0, c_white, standardAlpha);
+        }
+        if(_playback || !hideScoreboard) {
+            with(objScoreBoard) {
+                if(visible) draw_dynamite_counter(floor(animTargetScore), id == other.scbLeft);
+            }
+        }
+
         global.noteRenderer.begin_dynamite_notes(_playback);
         if(!_playback) {
             var _holds = chartNotesArrayActivated[NOTE_TYPE.HOLD];
@@ -107,14 +121,5 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         draw_set_alpha(1);
         style_draw_stripe_band(sprDynamiteBottomStripe, _nh - targetLineBelow, _nh,
             sprite_get_height(sprDynamiteBottomStripe) * (100 / 75), 1);
-        var _bar_center = 124, _bar_height = 84;
-        style_draw_stripe_band(sprDynamitePauseStripe, _bar_center - _bar_height / 2,
-            _bar_center + _bar_height / 2, sprite_get_height(sprDynamitePauseStripe) * (100 / 75),
-            standardAlpha * (70 / 255));
-        if(!showDebugInfo || global.recordManager.is_recording()) {
-            var _scale = 93.24 / sprite_get_height(sprDynamitePause);
-            draw_sprite_ext(sprDynamitePause, 0, _nw / 2, _bar_center - 4,
-                _scale, _scale, 0, c_white, standardAlpha);
-        }
         if(_trayMask) gpu_pop_state();
     }

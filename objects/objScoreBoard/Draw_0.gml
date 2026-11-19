@@ -1,10 +1,6 @@
 /// @description Draw scoreboard
 
-if(global.style == STYLE.DYNAMITE) {
-    if(editor_get_editmode() == 5 || !objMain.hideScoreboard) {
-        draw_dynamite_counter(floor(animTargetScore), id == objMain.scbLeft);
-    }
-} else {
+if(global.style == STYLE.DYNAMIX) {
     var _len = string_length(nowString);
     var _x = x + (align == fa_right ? 0 : 1) * SCOREBOARD_WIDTH / 2;
     var _y = y + SCOREBOARD_NUMBER_HEIGHT / 2;
