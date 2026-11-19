@@ -107,13 +107,15 @@ function dynamite_draw_hold(_edges) {
             var _ys = 2 * DYNAMITE_TEXEL, _period = _sh * _ys;
             // Inner is flipped vertically about the tail. Clipping must preserve that tile phase.
             var _phase = (_tail - _far) mod _period;
-            _x -= _ax * _inner_w / 2;
-            _y -= _ay * _inner_w / 2;
+            // Extend the fill beneath the bright rail cores without moving the outline.
+            var _fill_w = _inner_w + 6 * DYNAMITE_TEXEL;
+            _x -= _ax * _fill_w / 2;
+            _y -= _ay * _fill_w / 2;
             for (var _d = 0; _d < _visible; _phase = 0) {
                 var _step = min(_period - _phase, _visible - _d);
                 _d += _step;
                 dynamite_draw_patch(_spr, 0, max(0, _sh - (_phase + _step) / _ys), _sw, _step / _ys,
-                    _x - _ay * _d, _y + _ax * _d, _inner_w / _sw, -_ys);
+                    _x - _ay * _d, _y + _ax * _d, _fill_w / _sw, -_ys);
             }
         }
     }

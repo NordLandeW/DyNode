@@ -372,7 +372,9 @@ TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
         CHECK(v[72].uv.y == 0.0f);
         CHECK(v[61].position == v[67].position);
         CHECK(v[60].mapping.x == -v[66].mapping.x);
-        CHECK(strip_width(0) == doctest::Approx(side == 0 ? 258.6 : 102.6));
+        // Body extends to the opaque ridge on both rails; outer cap sizes stay
+        // fixed.
+        CHECK(strip_width(0) == doctest::Approx(side == 0 ? 264.0 : 108.0));
         CHECK(strip_width(2) == doctest::Approx(21.6));
         CHECK(strip_width(4) == doctest::Approx(side == 0 ? 292.8 : 136.8));
         CHECK(strip_width(5) == doctest::Approx(side == 0 ? 296.4 : 140.4));

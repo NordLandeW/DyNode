@@ -185,7 +185,10 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
                         note.side == 1 ? -1.0f - sprite.uv0.y : sprite.uv0.y,
                         -sprite.uvSize.y};
                     char* body = buffer + item.offset * QUAD_BYTES;
-                    lane.quad(body, -width / 2, width / 2, farTravel, item.head,
+                    // Fill under the opaque core of each rail; keep rails and
+                    // caps fixed.
+                    const double fillHalf = width * .5 + 3 * DYNAMITE_TEXEL;
+                    lane.quad(body, -fillHalf, fillHalf, farTravel, item.head,
                               {sprite.uv0.x, static_cast<float>(phase)},
                               {sprite.uv1.x,
                                static_cast<float>(
