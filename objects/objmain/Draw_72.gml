@@ -29,51 +29,53 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
 	    draw_rectangle(0, 0, _nw, _nh, false);
 	    draw_set_alpha(1.0);
         
+        
+    if(global.style == STYLE.DYNAMIX) {
+        // Dim Bottom
         draw_set_color(c_black);
         draw_set_alpha(bottomDim);
         draw_rectangle(0, _nh - targetLineBelow, _nw, _nh, false);
         draw_set_alpha(1.0);
+        
+        // Draw Bottom Right
+        var _nxx = resor_to_x((1920 - 80 - 30) / 1920), _nww = 180;
+        for(var i = 0; i < 8; i++) {
+            draw_sprite_ext(
+                i==0?sprBottomSignBlue:sprBottomSignBlack,
+                0,
+                _nxx - i * _nww / 2,
+                (i & 1) == 0? _nh : _nh - targetLineBelow,
+                1,
+                1,
+                (i & 1) == 0? 180 : 0,
+                c_white,
+                1
+                );
+        }
 
-	// Draw Bottom Right
-    
-    var _nxx = resor_to_x((1920 - 80 - 30) / 1920), _nww = 180;
-    for(var i = 0; i < 8; i++) {
-        draw_sprite_ext(
-            i==0?sprBottomSignBlue:sprBottomSignBlack,
-            0,
-            _nxx - i * _nww / 2,
-            (i & 1) == 0? _nh : _nh - targetLineBelow,
-            1,
-            1,
-            (i & 1) == 0? 180 : 0,
-            c_white,
-            1
-            );
+        // Draw Faint Color
+
+        draw_sprite_stretched_exxt(
+            global.sprLazer, 0,
+            0, _nh - targetLineBelow, _nw, BASE_RES_H*0.75,
+            0, themeColor, bgFaintAlpha * animCurvFaintEval * 0.65);
+
+        // Draw Pause Shadow
+
+        var _sw = sprite_get_width(global.sprPauseShadow);
+        var _sh = sprite_get_height(global.sprPauseShadow);
+        draw_sprite_ext(global.sprPauseShadow, 0, 
+            0, blackBarFromTop - blackBarHeight/2, 
+            resor_to_x(1)/_sw, blackBarHeight/_sh, 0, c_black, standardAlpha);
+        
+        // Draw Pause Icon
+        
+        if(!showDebugInfo || global.recordManager.is_recording()) {
+            draw_sprite_ext(sprPauseBar, 0,
+                resor_to_x(0.5) - pauseBarIndent / 2, blackBarFromTop,
+                1, 1, 0, c_white, standardAlpha);
+            draw_sprite_ext(sprPauseBar, 0,
+                resor_to_x(0.5) + pauseBarIndent / 2, blackBarFromTop,
+                1, 1, 0, c_white, standardAlpha);
+        }
     }
-
-// Draw Faint Color
-
-    draw_sprite_stretched_exxt(
-        global.sprLazer, 0,
-        0, _nh - targetLineBelow, _nw, BASE_RES_H*0.75,
-        0, themeColor, bgFaintAlpha * animCurvFaintEval * 0.65);
-
-// Draw Pause Shadow
-
-	// Draw Shadow
-	var _sw = sprite_get_width(global.sprPauseShadow);
-	var _sh = sprite_get_height(global.sprPauseShadow);
-	draw_sprite_ext(global.sprPauseShadow, 0, 
-		0, blackBarFromTop - blackBarHeight/2, 
-		resor_to_x(1)/_sw, blackBarHeight/_sh, 0, c_black, standardAlpha);
-	
-	// Draw Pause Icon
-	
-	if(!showDebugInfo || global.recordManager.is_recording()) {
-		draw_sprite_ext(sprPauseBar, 0,
-			resor_to_x(0.5) - pauseBarIndent / 2, blackBarFromTop,
-			1, 1, 0, c_white, standardAlpha);
-		draw_sprite_ext(sprPauseBar, 0,
-			resor_to_x(0.5) + pauseBarIndent / 2, blackBarFromTop,
-			1, 1, 0, c_white, standardAlpha);
-	}

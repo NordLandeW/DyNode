@@ -118,7 +118,7 @@ image_yscale = 1;
             // Properties Limitation
             width = max(width, 0.01);
             
-            pWidth = width * 300 / (side == 0 ? 1:2) - 30 + _note_get_lrpadding_total(noteType);
+            pWidth = note_biased_width(width, side) + _note_get_lrpadding_total(noteType);
             pWidth = max(pWidth, originalWidth);
             image_xscale = pWidth / originalWidth;
             image_angle = (side == 0 ? 0 : (side == 1 ? 270 : 90));
@@ -413,19 +413,24 @@ image_yscale = 1;
         }
     }
     
+    // A theme may extend the visible end without moving the chart endpoint.
+    function visual_duration() {
+        return lastTime;
+    }
+
     // State Last
     function stateLast() {
         animTargetLstA = lastAlphaR;
         
         var _limTime = min(objMain.nowTime, objMain.animTargetTime);
-        if(time + lastTime <= _limTime) {
+        if(time + visual_duration() <= _limTime) {
             if(!note_exists(sinst) || sinst.stateType != NOTE_STATES.SELECTED) {
                 set_state(NOTE_STATES.OUT);
                 image_alpha = lastTime == 0 ? 0 : image_alpha;
                 state();
             }
         }
-        else if(objMain.nowPlaying || editor_get_editmode() == 5) {
+        else if(time + lastTime > _limTime && (objMain.nowPlaying || editor_get_editmode() == 5)) {
             partHoldTimer += global.timeManager.get_delta() / 1000;
             partHoldTimer = min(partHoldTimer, 5 * PARTICLE_HOLD_DELAY);
             while(partHoldTimer >= PARTICLE_HOLD_DELAY) {
@@ -446,9 +451,16 @@ image_yscale = 1;
         animTargetLstA = lastAlphaL;
         
         if(editor_get_editmode() == 5) return;
-        if(time + lastTime> objMain.nowTime && !_outbound_check(x, y, side)) {
-	        drawVisible = true;
-            set_state(NOTE_STATES.NORMAL);
+        if(time + visual_duration() > objMain.nowTime && !_outbound_check(x, y, side)) {
+            drawVisible = true;
+            if(time + lastTime <= objMain.nowTime) {
+                // Scrubbing into the visual-only tail must not replay the note hit.
+                animTargetA = 1;
+                set_state(NOTE_STATES.LAST);
+            }
+            else {
+                set_state(NOTE_STATES.NORMAL);
+            }
 	        state();
 	    }
     }
@@ -775,9 +787,69 @@ image_yscale = 1;
             }
         }
         
+#macro DYNAMITE_WORLD_PX (BASE_RES_H / 16)
+#macro DYNAMITE_TEXEL (DYNAMITE_WORLD_PX / 75)
+
+// ReadNotes sizes the Tap and Slide from the raw chart width.
+function dynamite_note_width() {
+    var _lane_scale = side == NOTE_SIDE.FRONT ? 40 / 9 : 32 / 15;
+    return max(1, width * _lane_scale - 8 / 45) * DYNAMITE_WORLD_PX;
+}
+
+/// Draw a horizontal Unity slice about its centre. A negative span mirrors the entire slice.
+function dynamite_draw_strip(_spr, _cx, _cy, _span, _left, _right, _tile_middle = false) {
+    var _ax = real(side == 0), _ay = (side == 1) - (side == 2);
+    var _w = sprite_get_width(_spr), _h = sprite_get_height(_spr);
+    var _size = abs(_span), _sign = sign(_span);
+    var _border = min(DYNAMITE_TEXEL, _size / (_left + _right));
+    var _middle = max(0, _size - (_left + _right) * _border);
+    // Tiled borders keep their texel scale. If they cannot fit, use only the start of each source strip.
+    var _edge_texel = _tile_middle ? DYNAMITE_TEXEL : _border;
+    var _fraction = _tile_middle ? _border / DYNAMITE_TEXEL : 1;
+    var _x = _cx - _ax * _span / 2 + _ay * _h * DYNAMITE_TEXEL / 2;
+    var _y = _cy - _ay * _span / 2 - _ax * _h * DYNAMITE_TEXEL / 2;
+    _ax *= _sign;
+    _ay *= _sign;
+    dynamite_draw_patch(_spr, 0, 0, _left * _fraction, _h, _x, _y, _sign * _edge_texel, DYNAMITE_TEXEL);
+    _x += _ax * _left * _border;
+    _y += _ay * _left * _border;
+
+    var _src = _w - _left - _right;
+    if (_middle > 0) {
+        if (_tile_middle) {
+            // Skip offscreen repeats while keeping the texture anchored to the source border.
+            var _along = _ax * _x + _ay * _y;
+            var _extent = side == 0 ? BASE_RES_W : BASE_RES_H;
+            var _limit = max(0, (_ax + _ay) * _extent);
+            var _period = _src * DYNAMITE_TEXEL;
+            var _first = max(0, floor((_limit - _extent - _along) / _period));
+            var _end = min(_middle, _limit - _along);
+            for (var _d = _first * _period; _d < _end; _d += _period) {
+                var _sw = min(_src, (_middle - _d) / DYNAMITE_TEXEL);
+                dynamite_draw_patch(_spr, _left, 0, _sw, _h, _x + _ax * _d, _y + _ay * _d,
+                    _sign * DYNAMITE_TEXEL, DYNAMITE_TEXEL);
+            }
+        } else {
+            // Tap has a uniform centre column. The two Hold caps use sliced (stretch) mode.
+            dynamite_draw_patch(_spr, _left, 0, _src, _h, _x, _y,
+                _sign * _middle / _src, DYNAMITE_TEXEL);
+        }
+    }
+    dynamite_draw_patch(_spr, _w - _right, 0, _right * _fraction, _h, _x + _ax * _middle, _y + _ay * _middle,
+        _sign * _edge_texel, DYNAMITE_TEXEL);
+}
+
+function dynamite_draw_patch(_spr, _sx, _sy, _sw, _sh, _x, _y, _xs, _ys) {
+    draw_sprite_general(_spr, 0, _sx, _sy, _sw, _sh, _x, _y, _xs, _ys, image_angle,
+        image_blend, image_blend, image_blend, image_blend, image_alpha);
+}
+
 function draw_event() {
     if(!drawVisible) return;
-    if(side == 0) {
+    if(global.style == STYLE.DYNAMITE) {
+        dynamite_draw_strip(sprDynamiteTap, x, y, dynamite_note_width(), 30, 30);
+    }
+    else if(side == 0) {
         draw_sprite_ext(sprNote2, image_number, x - pWidth / 2, y, 
             image_xscale, image_yscale, image_angle, image_blend, image_alpha);
     }

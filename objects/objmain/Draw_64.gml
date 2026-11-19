@@ -29,11 +29,13 @@ if(showStats > 0) {
 	if(timing_point_count() > 0)
 		_stat_str += "BPM " + string_format(mspb_to_bpm(timing_point_get_at(objMain.nowTime).beatLength), 0, 2) + "\n";
 	// Note's stats
-	if(showStats < 3)
-		_stat_str += "[sprNote] "+stat_note_string(showStats, 0)
-		+" [scale,0.4][sprChain][/s] "+stat_note_string(showStats, 1)
-		+" [scale,0.4][sprHoldEdge][/s] "+stat_note_string(showStats, 2)
-		+ " Total " + stat_note_string(showStats, 3);
+	if(showStats < 3) {
+		var _icons = style_note_stat_icons();
+		_stat_str += _icons[NOTE_TYPE.NORMAL] + " " + stat_note_string(showStats, NOTE_TYPE.NORMAL)
+			+ " " + _icons[NOTE_TYPE.CHAIN] + " " + stat_note_string(showStats, NOTE_TYPE.CHAIN)
+			+ " " + _icons[NOTE_TYPE.HOLD] + " " + stat_note_string(showStats, NOTE_TYPE.HOLD)
+			+ " Total " + stat_note_string(showStats, 3);
+	}
 	else if(showStats < 4) {
 		_stat_str += "Project Time " + format_time_string_hhmmss(objManager.projectTime);
 	}

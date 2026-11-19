@@ -290,9 +290,14 @@ function note_generate_id() {
 	return DyCore_generate_note_id();
 }
 
+/// @description Project chart width with the legacy bias, before sprite padding or a minimum clamp.
+function note_biased_width(_width, _side) {
+	return _width * 300 / (_side == 0 ? 1:2) - 30;
+}
+
 /// @param {Struct.sNoteProp} note
 function note_get_pixel_width(note) {
-	return note.width * 300 / (note.side == 0 ? 1:2) - 30
+	return note_biased_width(note.width, note.side)
 		 + _note_get_lrpadding_total(note.noteType);
 }
 

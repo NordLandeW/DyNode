@@ -55,6 +55,10 @@ global.activationMan = new Activationmanager();
 global.recordManager = new RecordManager();
 global.announcementMan = new AnnouncementManager();
 
+// Style init
+
+style_init();
+
 // Themes Init
 
 theme_init();

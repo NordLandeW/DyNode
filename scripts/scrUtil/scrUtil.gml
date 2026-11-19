@@ -235,6 +235,12 @@ function time_add_bar_delta_dyn(time, deltaBars) {
 #endregion
 
 #region POSITION TRANSFORM
+/// @description Current scroll speed in pixels per millisecond for a note lane.
+function note_lane_speed(_side) {
+	if(_side == NOTE_SIDE.FRONT) return objMain.playbackSpeed;
+	return objMain.playbackSpeed * objMain.sideSpeedScale;
+}
+
 function note_time_to_pix(_time) {
 	return _time * objMain.playbackSpeed;
 }
@@ -264,7 +270,7 @@ function y_to_note_time(_y, _side) {
 	}
 	else {
 		_y = _side == 1? _y: BASE_RES_W - _y;
-		return (_y - objMain.targetLineBeside) / objMain.playbackSpeed + objMain.nowTime;
+		return (_y - objMain.targetLineBeside) / note_lane_speed(_side) + objMain.nowTime;
 	}
 }
 function note_time_to_y(_time, _side) {
@@ -273,7 +279,7 @@ function note_time_to_y(_time, _side) {
 	}
 	else {
 		return BASE_RES_W / 2 + (_side == 1?-1:1) *  (BASE_RES_W / 2 - 
-			(objMain.playbackSpeed * (_time - objMain.nowTime)) - objMain.targetLineBeside);
+			(note_lane_speed(_side) * (_time - objMain.nowTime)) - objMain.targetLineBeside);
 	}
 }
 function noteprop_to_xy(_pos, _time, _side) {

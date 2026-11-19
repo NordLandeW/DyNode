@@ -45,7 +45,7 @@ _prop_init(true);
 			sinst.update_prop();
 		sinst._prop_init(true);
 
-		pHeight = max(0, objMain.playbackSpeed * 
+		pHeight = max(0, note_lane_speed(side) *
 			(sinst.time - max(time, selectTolerance?-9999999:objMain.nowTime)))
 			+ dFromBottom + uFromTop;
 		subFading = pHeight < originalHeight && stateType == NOTE_STATES.LAST;
@@ -58,10 +58,78 @@ _prop_init(true);
     
     _prop_hold_update();
     
-    function draw_event (_draw_edge) {
-		if(!drawVisible) return;
+function visual_duration() {
+    var _duration = lastTime;
+    if(global.style == STYLE.DYNAMITE) {
+        _duration = note_exists(sinst) ? sinst.time - time : lastTime;
+        var _lane_speed = note_lane_speed(side);
+        if(_lane_speed > 0) {
+            // Original 1x travel in px/ms on this lane. DyNode already stores px/ms.
+            var _unit_travel = (BASE_RES_H / 16) * 0.025 * (side == NOTE_SIDE.FRONT ? 1 : DYNAMITE_SIDE_SPEED_SCALE);
+            _duration = max(_duration, floor(16 * _unit_travel / _lane_speed));
+        }
+    }
+    return _duration;
+}
 
-		if(subFading && objMain.nowPlaying) return;
+function dynamite_draw_hold(_edges) {
+    // The lane coordinate increases from the judgement line toward future notes on all three sides.
+    var _ax = real(side == 0), _ay = (side == 1) - (side == 2);
+    var _head = _ay * x - _ax * y;
+    var _tail = _head + visual_duration() * note_lane_speed(side);
+    var _across = _ax * x + _ay * y;
+    var _screen_end = side == 1 ? BASE_RES_W : 0;
+    var _screen_start = _screen_end - (side == 0 ? BASE_RES_H : BASE_RES_W);
+    if (!selectTolerance) {
+        _head = max(_head, _screen_start + (side == 0 ? objMain.targetLineBelow : objMain.targetLineBeside));
+    }
+    if (_tail < _head) return;
+
+    // HoldNScaling sizes the body independently of the Tap/Slide width clamp.
+    var _inner_w = ((40 / 9) * max(0.2, width * (side == NOTE_SIDE.FRONT ? 1 : 0.48)) - 4) * DYNAMITE_WORLD_PX
+                 + 254 * DYNAMITE_TEXEL;
+    var _far = min(_tail, _screen_end), _near = max(_head, _screen_start);
+    var _visible = _far - _near;
+    if (_visible > 0) {
+        var _x = _ax * _across + _ay * _far;
+        var _y = _ay * _across - _ax * _far;
+        if (_edges) {
+            var _rail = _inner_w / 2 + 0.02 * DYNAMITE_WORLD_PX;
+            var _offset = _rail + sprite_get_width(sprDynamiteHoldSide) * DYNAMITE_TEXEL / 2;
+            var _ys = _visible / sprite_get_height(sprDynamiteHoldSide);
+            draw_sprite_ext(sprDynamiteHoldSide, 0, _x - _ax * _offset, _y - _ay * _offset,
+                DYNAMITE_TEXEL, _ys, image_angle, image_blend, image_alpha);
+            draw_sprite_ext(sprDynamiteHoldSide, 0, _x + _ax * _offset, _y + _ay * _offset,
+                -DYNAMITE_TEXEL, _ys, image_angle, image_blend, image_alpha);
+        } else {
+            var _spr = stateType == NOTE_STATES.LAST ? sprDynamiteHoldLit : sprDynamiteHoldInner;
+            var _sw = sprite_get_width(_spr), _sh = sprite_get_height(_spr);
+            var _ys = 2 * DYNAMITE_TEXEL, _period = _sh * _ys;
+            // Inner is flipped vertically about the tail. Clipping must preserve that tile phase.
+            var _phase = (_tail - _far) mod _period;
+            _x -= _ax * _inner_w / 2;
+            _y -= _ay * _inner_w / 2;
+            for (var _d = 0; _d < _visible; _phase = 0) {
+                var _step = min(_period - _phase, _visible - _d);
+                _d += _step;
+                dynamite_draw_patch(_spr, 0, max(0, _sh - (_phase + _step) / _ys), _sw, _step / _ys,
+                    _x - _ay * _d, _y + _ax * _d, _inner_w / _sw, -_ys);
+            }
+        }
+    }
+    if (_edges) {
+        // A cap can be visible even when its centre is just outside the viewport.
+        var _margin = sprite_get_height(sprDynamiteHoldUp) * DYNAMITE_TEXEL / 2;
+        if (_tail >= _screen_start - _margin && _tail <= _screen_end + _margin)
+            dynamite_draw_strip(sprDynamiteHoldUp, _ax * _across + _ay * _tail, _ay * _across - _ax * _tail,
+                _inner_w + 38 * DYNAMITE_TEXEL, 19, 19);
+        if (_head >= _screen_start - _margin && _head <= _screen_end + _margin)
+            dynamite_draw_strip(sprDynamiteHoldDown, _ax * _across + _ay * _head, _ay * _across - _ax * _head,
+                _inner_w + 42 * DYNAMITE_TEXEL, 21, 21);
+    }
+}
+
+    function draw_dynamix_hold(_draw_edge) {
 		
 		// Get Position
 		
@@ -158,6 +226,16 @@ _prop_init(true);
 		}
 		gpu_pop_state();
 	}
+
+function draw_event(_draw_edge) {
+    if(!drawVisible) return;
+    if(global.style == STYLE.DYNAMITE) {
+        dynamite_draw_hold(_draw_edge);
+    }
+    else if(!subFading || !objMain.nowPlaying) {
+        draw_dynamix_hold(_draw_edge);
+    }
+}
 
 // Correction Value
 

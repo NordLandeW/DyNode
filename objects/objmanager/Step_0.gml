@@ -106,6 +106,8 @@ if(keycheck_down(vk_f8))
 
 if(keycheck_down(vk_f9))
 	theme_next();
+if(keycheck_down_ctrl(vk_f9))
+	style_next();
 
 if(keycheck_down(vk_escape)) {
 	if(!instance_exists(objEditor)) {

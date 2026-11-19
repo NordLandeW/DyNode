@@ -137,7 +137,7 @@ function sNoteProp(_initProp = undefined) constructor {
     }
 
     static get_pixel_width = function() {
-        var pWidth = width * 300 / (side == 0 ? 1:2) - 30 + _note_get_lrpadding_total(noteType);
+        var pWidth = note_biased_width(width, side) + _note_get_lrpadding_total(noteType);
         pWidth = max(pWidth, _note_get_sprite_orig_width(noteType));
         return pWidth;
     }

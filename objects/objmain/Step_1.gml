@@ -34,6 +34,8 @@ chartSideType = _metadata.sideType;
     }
     
     playbackSpeed = lerp_a(playbackSpeed, animTargetPlaybackSpeed, animSpeed);
+    var _targetSideScale = global.style == STYLE.DYNAMITE ? DYNAMITE_SIDE_SPEED_SCALE : 1;
+    sideSpeedScale = lerp_a(sideSpeedScale, _targetSideScale, animSpeed);
     
     var _timchange = keycheck(ord("D")) - keycheck(ord("A"));
     var _timscr = wheelcheck_up() - wheelcheck_down();
@@ -218,7 +220,8 @@ chartSideType = _metadata.sideType;
 #region NOTES ACTIVATE & DEACTIVATE
 
     if(editor_get_editmode() < 5) {
-        var _activeNotes = dyc_get_active_notes(objMain.nowTime, objMain.playbackSpeed);
+        // Query far enough for the slower lanes; note_check_and_activate filters each actual lane.
+        var _activeNotes = dyc_get_active_notes(nowTime, min(playbackSpeed, note_lane_speed(NOTE_SIDE.LEFT)));
         for(var i = 0; i < array_length(_activeNotes); i++) {
             var note = _activeNotes[i];
             note_check_and_activate(note);

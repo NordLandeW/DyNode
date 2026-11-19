@@ -81,9 +81,10 @@ depth = 0;
     /// @description Return struct with x and time.
     function mixer_get_next_x(side) {
     	var found = false, beginTime = 0, result = 0, accum = 0;
+        var _laneSpeed = note_lane_speed(side);
         for(var i=chartNotesArrayAt, l=dyc_get_note_count(); i<l; i++) {
             var _note = dyc_get_note_at_index(i);
-            if((_note.time - nowTime) * playbackSpeed / BASE_RES_W > MIXER_REACTION_RANGE)
+            if((_note.time - nowTime) * _laneSpeed / BASE_RES_W > MIXER_REACTION_RANGE)
                 break;
         	if(_note.side == side) {
         		if(!found) {
@@ -175,6 +176,7 @@ depth = 0;
     nowScore = 0;
     nowCombo = 0;
     playbackSpeed = 1.6;
+    sideSpeedScale = 1;
     adtimeSpeed = 50.0; // Use AD to Adjust Time ms per frame
     scrolltimeSpeed = 120.0; // Use mouse scroll to Adjust Time ms per frame
     
