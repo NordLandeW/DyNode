@@ -126,13 +126,14 @@ function CommandSide():CommandSignature("side", ["s"]) constructor {
         }
 
         with(objNote) {
-            if(stateType == NOTE_STATES.SELECTED) {
-                var origProp = get_prop();
+            // A Hold owns its side, even when only its tail is selected.
+            var selectedTail = noteType == NOTE_TYPE.HOLD && note_exists(sinst) && sinst.stateType == NOTE_STATES.SELECTED;
+            if(noteType != NOTE_TYPE.SUB && (stateType == NOTE_STATES.SELECTED || selectedTail)) {
                 if(argCount == 1)
                     change_side(setSide);
                 else
                     change_side(setSide, command_arg_to_boolean(args[1]));
-                operation_step_add(OPERATION_TYPE.MOVE, origProp, get_prop());
+                dyc_update_note(get_prop(), true);
             }
         }
 
