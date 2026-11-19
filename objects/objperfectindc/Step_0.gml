@@ -1,5 +1,7 @@
 /// @description Update perfect indic
 
+visible = global.style == STYLE.DYNAMIX;
+
 var dT = global.timeManager.get_delta();
 
 switch (animState) {

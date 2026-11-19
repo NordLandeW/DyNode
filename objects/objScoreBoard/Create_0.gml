@@ -48,3 +48,34 @@ function reset() {
     alpha = 0;
     scaleMul = 1.0;
 }
+
+lastDynamiteValue = -1;
+dynamiteText = undefined;
+dynamiteLabelX = 0;
+
+/// @description Draw an immediate AP counter on the pause strip in the original BPG face.
+function draw_dynamite_counter(_value, _isScore) {
+    if(lastDynamiteValue != _value) {
+        var _text = string(_value);
+        if(_isScore) {
+            var _padding = 7 - string_length(_text);
+            if(_padding > 0) _text = "[alpha,0.502]" + string_repeat("0", _padding) + "[/alpha]" + _text;
+        } else {
+            // At 80px the font advances 54px per digit, then 27px for the full-size space.
+            dynamiteLabelX = 256.7 + 54 * string_length(_text) + 27;
+        }
+        dynamiteText = scribble(_text, _isScore ? "dynamite_score" : "dynamite_combo")
+            .starting_format("mDynamiteTitle", c_white)
+            .align(_isScore ? fa_center : fa_left, fa_top)
+            .transform(54 / 30, 80 / 44);
+        lastDynamiteValue = _value;
+    }
+    // Scribble lays mixed sizes out around their centres; Unity uses a shared baseline.
+    var _baseline = 152;
+    dynamiteText.draw(_isScore ? 1511 : 256.7, _baseline - 80);
+    if(!_isScore) {
+        scribble("AP Combo", "dynamite_label").starting_format("mDynamiteTitle", c_white)
+            .align(fa_left, fa_top).transform(1.08, 48 / 44)
+            .draw(dynamiteLabelX, _baseline - 48);
+    }
+}
