@@ -166,7 +166,6 @@ depth = 0;
     chartNotesArrayActivated = [[], [], []];
     chartNotesArrayAt = 0;
     // Prepared in Draw Begin, shared by the shadow and foreground layers.
-    dynamiteNoteBound = 0;
     dynamiteFxReady = false;
 
 #endregion

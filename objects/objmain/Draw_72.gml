@@ -80,13 +80,27 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         }
     }
     else if(global.style == STYLE.DYNAMITE) {
-        // Illuminate the dimmed playfield before any HUD artwork is composited.
+        // Hold interiors sit on the dimmed background, below both the hit lights and HUD.
         var _playback = editor_get_editmode() == 5;
-        dynamiteNoteBound = _playback ? global.noteRenderer.prepare_notes() : 0;
-        dynamiteFxReady = global.noteRenderer.prepare_fx(_playback) > 0;
-        if(global.particleEffects == 1) dynamite_draw_shadows();
-
         var _trayMask = dynamite_begin_tray_mask();
+        global.noteRenderer.begin_dynamite_notes(_playback);
+        if(!_playback) {
+            var _holds = chartNotesArrayActivated[NOTE_TYPE.HOLD];
+            for(var i = 0; i < array_length(_holds); i++) _holds[i].draw_event(false);
+        }
+        if(is_array(objEditor.editorNoteAttaching)) {
+            for(var i = 0; i < array_length(objEditor.editorNoteAttaching); i++)
+                with(objEditor.editorNoteAttaching[i])
+                    if(attaching && noteType == NOTE_TYPE.HOLD) draw_event(false);
+        }
+        dynamiteFxReady = global.noteRenderer.prepare_fx(_playback) > 0;
+        if(global.particleEffects == 1) {
+            // Ordinary light can shine through a mixer tray. The lamp masks its own stroke.
+            if(_trayMask) gpu_set_stencil_enable(false);
+            dynamite_draw_shadows();
+            if(_trayMask) gpu_set_stencil_enable(true);
+        }
+
         // The original footer has a black backing 66 units tall on its 540-high canvas.
         draw_set_color_alpha(c_black, 127 / 255);
         draw_rectangle(0, _nh - 132, _nw, _nh, false);

@@ -19,6 +19,9 @@ function NoteRenderer() constructor {
     cacheBuff = buffer_create(vertexSize * 1024, buffer_fast, 1);
     vertBuff = vertex_create_buffer_from_buffer(cacheBuff, vertFormat);
 
+    // Keep this frame's playback geometry at the start of vertBuff across Draw Begin and Draw.
+    dynamiteNoteBytes = 0;
+    dynamiteFillVertices = 0;
     // Hold Particles timer.
     holdParticlesTimer = 0;
     tempAdditionSurface = -1;
@@ -124,8 +127,7 @@ function NoteRenderer() constructor {
     /// @description Draw one prepared Dynamite effect layer.
     /// @param {Real} pass DYNAMITE_FX_PASS selector.
     /// @param {Real} [size] Bytes already written by buffer_fx.
-    /// @param {Real} [byteOffset] Destination after any note vertices still needed for this draw.
-    static draw_fx = function(pass, size = undefined, byteOffset = 0) {
+    static draw_fx = function(pass, size = undefined) {
         if(is_undefined(size)) size = buffer_fx(pass);
         if(size <= 0) return;
         gpu_push_state();
@@ -133,7 +135,7 @@ function NoteRenderer() constructor {
         // The ordinary hit sheet and light add RGB without changing coverage.
         gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_one, bm_zero, bm_one);
         gpu_set_texfilter_ext(0, pass == DYNAMITE_FX_PASS.HIT_FRAME);
-        submit(size, sprite_get_texture(sprDynamiteHitAtlas, 0), byteOffset);
+        submit(size, sprite_get_texture(sprDynamiteHitAtlas, 0), dynamiteNoteBytes);
         gpu_pop_state();
     }
 
@@ -182,25 +184,40 @@ function NoteRenderer() constructor {
         vertex_submit_ext(vertBuff, pr_trianglelist, sprite_get_texture(sprDynamiteTap, 0), firstVertex, count);
     }
 
-    static render_dynamite = function(previousShader, drawFragments) {
-        var noteBytes = max(0, DyCore_render_playback_notes(buffer_get_address(cacheBuff), 2));
-        if(noteBytes > 0) upload(noteBytes, 0);
-        var vertices = noteBytes / vertexSize, fill = 0;
-        var fragments = drawFragments ? buffer_fx(DYNAMITE_FX_PASS.FRAGMENTS) : 0;
-        if(fragments > 0) {
-            // Native geometry is already ordered: Hold fill | rails, caps, Slide, Tap.
-            if(vertices > 0) fill = DyCore_dynamite_hold_fill_vertices();
-            if(fill > 0) draw_dynamite_note_range(previousShader, 0, fill);
-            shader_reset();
-            draw_fx(DYNAMITE_FX_PASS.FRAGMENTS, fragments, noteBytes);
-        }
-        if(vertices > fill) draw_dynamite_note_range(previousShader, fill, vertices - fill);
+    /// @description Upload the sorted note batch once and draw just its Hold interiors below the lights.
+    static begin_dynamite_notes = function(playback) {
+        dynamiteNoteBytes = 0;
+        dynamiteFillVertices = 0;
+        if(!playback || prepare_notes() < 0) return;
+        dynamiteNoteBytes = max(0, DyCore_render_playback_notes(buffer_get_address(cacheBuff), 2));
+        if(dynamiteNoteBytes == 0) return;
+        upload(dynamiteNoteBytes, 0);
+        dynamiteFillVertices = DyCore_dynamite_hold_fill_vertices();
+        if(dynamiteFillVertices == 0) return;
+
+        var previousShader = shader_current(), piano = global.themeAt == 2;
+        gpu_push_state();
+        gpu_set_tex_repeat(true);
+        if(piano) gpu_set_blendmode(bm_add);
+        draw_dynamite_note_range(piano ? shd_mono : previousShader, 0, dynamiteFillVertices);
+        if(previousShader == -1) shader_reset();
+        else shader_set(previousShader);
+        gpu_pop_state();
     }
 
-    static render = function(bound = undefined, drawFragments = false, shadowLayer = -1) {
+    static render_dynamite = function(previousShader, drawFragments) {
+        if(drawFragments) {
+            shader_reset();
+            draw_fx(DYNAMITE_FX_PASS.FRAGMENTS);
+        }
+        var count = dynamiteNoteBytes / vertexSize - dynamiteFillVertices;
+        if(count > 0) draw_dynamite_note_range(previousShader, dynamiteFillVertices, count);
+        dynamiteNoteBytes = 0;
+    }
+
+    static render = function(drawFragments = false, shadowLayer = -1) {
         var _dynamite = global.style == STYLE.DYNAMITE;
-        if(is_undefined(bound)) bound = prepare_notes();
-        if(bound < 0) {
+        if(!_dynamite && prepare_notes() < 0) {
             if(shadowLayer != -1) objMain.shadow_layer_draw(shadowLayer);
             return;
         }

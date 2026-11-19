@@ -160,13 +160,14 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 	}
 
 	if(_playback) {
-		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined, _dynamite && dynamiteFxReady, _shadowLayer);
+		global.noteRenderer.render(_dynamite && dynamiteFxReady, _shadowLayer);
 	}
 	else {
-		// Draw Holds
-		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
-			chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
-		if(_shadowLayer != -1) shadow_layer_draw(_shadowLayer);
+		if(!_dynamite) {
+			for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
+				chartNotesArrayActivated[2][i].draw_event(false);
+			if(_shadowLayer != -1) shadow_layer_draw(_shadowLayer);
+		}
 		if(_dynamite && dynamiteFxReady) global.noteRenderer.draw_fx(DYNAMITE_FX_PASS.FRAGMENTS);
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
 			chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
@@ -193,7 +194,7 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 					if(noteType < 2)
 						draw_event();
 					else if(noteType == 2) {
-						draw_event(false);
+						if(!_dynamite) draw_event(false);
 						draw_event(true);
 					}
 				}
