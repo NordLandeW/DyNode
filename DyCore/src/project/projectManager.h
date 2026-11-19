@@ -4,6 +4,7 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include "format/importOptions.h"
 #include "json.hpp"
 #include "project.h"
 
@@ -40,7 +41,8 @@ class ProjectManager {
     void setup_default_chart();
 
     void clear_project();
-    void load_project(const Project &proj);
+    void import_chart(Chart chart, bool importInfo, bool importTiming,
+                      ChartImportOptions options);
     void load_project_from_file(const char *filePath);
     int get_chart_count() const;
     void set_current_chart(int index);

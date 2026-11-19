@@ -6,10 +6,10 @@
 #include <json.hpp>
 #include <string>
 
-#include "gm.h"
 #include "dymImportCommon.h"
+#include "gm.h"
 #include "note.h"
-#include "project.h"
+#include "projectManager.h"
 #include "utils.h"
 
 using nlohmann::json;
@@ -48,8 +48,8 @@ string get_dy_remix() {
 }
 
 IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
-                                        bool importMetadata,
-                                        bool importTiming) {
+                                        bool importMetadata, bool importTiming,
+                                        ChartImportOptions options) {
     // Read file into buffer.
     std::ifstream stream(convert_char_to_path(filePath));
     if (!stream.is_open()) {
@@ -87,15 +87,14 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
         };
 
         // Read chart metadata.
-        ChartMetadata metaData;
+        Chart chart{};
+        auto& metaData = chart.metadata;
         metaData.sideType[0] = map_root["m_leftRegion"];
         metaData.sideType[1] = map_root["m_rightRegion"];
         string chartID = map_root["m_mapID"];
-        metaData.difficulty = difficulty_char_to_int(chartID.back());
+        if (!chartID.empty())
+            metaData.difficulty = difficulty_char_to_int(chartID.back());
         metaData.title = map_root["m_path"];
-
-        if (importMetadata)
-            chart_set_metadata(metaData);
 
         double barPerMin = json_to_double(map_root["m_barPerMin"]);
         double offset = json_to_double(map_root["m_timeOffset"]);
@@ -104,7 +103,10 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
         std::vector<DYMNotedata> notes;
 
         auto import_side_notes = [&](const json& side_root, int side) {
-            auto arrNode = side_root["m_notes"]["CMapNoteAsset"];
+            if (!side_root.contains("m_notes") ||
+                !side_root.at("m_notes").contains("CMapNoteAsset"))
+                return;
+            const auto& arrNode = side_root.at("m_notes").at("CMapNoteAsset");
             if (!arrNode.is_array())
                 return;
             for (auto noteNode : arrNode) {
@@ -151,18 +153,21 @@ IMPORT_DY_RESULT_STATES chart_import_dy(const char* filePath,
                       });
         }
 
-        import_timing_points(importTiming, hasTimingData, xmlTimings, offset,
-                             barPerMin);
+        if (importTiming)
+            collect_import_timing(chart.timingPoints, hasTimingData, xmlTimings,
+                                  offset, barPerMin);
         fix_imported_note_times(notes, xmlTimings, offset, barPerMin);
-        const auto noteIDTimeMap = build_note_id_time_map(notes);
-        add_imported_notes_to_project(notes, noteIDTimeMap);
-
-        // Save remix part.
-        lastRemix = doc["remix"];
+        collect_import_notes(chart.notes, notes);
+        auto remix = std::move(doc["remix"]);
+        options.resetTiming |= importTiming;
+        ProjectManager::inst().import_chart(std::move(chart), importMetadata,
+                                            importTiming, options);
+        lastRemix.swap(remix);
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing DY: " +
                             string(e.what()));
-        throw_error_event("DY import error: " + string(e.what()));
+        gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+                               "anno_chart_parse_error", {e.what()});
         return IMPORT_DY_RESULT_STATES::FAILURE;
     }
 

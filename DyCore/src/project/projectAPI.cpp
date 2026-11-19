@@ -1,6 +1,9 @@
+#include <cwctype>
+
 #include "api.h"
 #include "format/dy.h"
 #include "format/dyn.h"
+#include "format/osu.h"
 #include "format/xml.h"
 #include "gm.h"
 #include "project.h"
@@ -44,6 +47,39 @@ DYCORE_API const char* DyCore_get_notes_array_string() {
     static string notesArrayString;
     notesArrayString = get_notes_array_string();
     return notesArrayString.c_str();
+}
+
+// Parse the selected file completely before publishing the requested editor
+// changes.
+DYCORE_API double DyCore_import_chart_file(const char* path, double info,
+                                           double timing, double flags) {
+    try {
+        if (!path || !*path)
+            throw std::invalid_argument("File path is empty");
+        auto extension = convert_char_to_path(path).extension().wstring();
+        std::transform(
+            extension.begin(), extension.end(), extension.begin(),
+            [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); });
+        const int mode = static_cast<int>(flags);
+        ChartImportOptions options{(mode & 1) != 0, (mode & 2) != 0,
+                                   (mode & 4) != 0};
+        if (extension == L".xml")
+            return static_cast<double>(
+                chart_import_xml(path, info > 0, timing > 0, options));
+        if (extension == L".dy")
+            return static_cast<double>(
+                chart_import_dy(path, info > 0, timing > 0, options));
+        if (extension == L".dyn")
+            return chart_import_dyn(path, info > 0, timing > 0, options);
+        if (extension != L".osu")
+            throw std::invalid_argument("Unsupported chart format");
+        chart_import_osu(path, info > 0, options);
+        return 0;
+    } catch (const std::exception& e) {
+        gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+                               "anno_chart_parse_error", {e.what()});
+        return -1;
+    }
 }
 
 DYCORE_API double DyCore_chart_import_xml(const char* filePath,

@@ -41,6 +41,8 @@ class NotePoolManager {
 
     bool note_exists(const std::string& noteID) const;
     bool create_note(const Note& note);
+    // Generate fresh IDs and linked tails before changing the live indexes.
+    void import_notes(const std::vector<Note>& heads, bool replace);
     // Copy the note while holding a shared lock.
     Note get_note(const std::string& noteID) const;
     Note get_note(int index) const {

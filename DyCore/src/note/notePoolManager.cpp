@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <chrono>
+#include <cmath>
 #include <exception>
 #include <mutex>
 #include <shared_mutex>
@@ -234,6 +235,78 @@ bool NotePoolManager::create_note(const Note& note) {
         print_debug_message("Failed to create note: " + std::string(e.what()));
         return false;
     }
+}
+
+void NotePoolManager::import_notes(const std::vector<Note>& heads,
+                                   bool replace) {
+    auto lock = lock_exclusive();
+    decltype(noteMemoryList) memory(noteMemoryList.get_allocator());
+    decltype(noteInfoMap) index;
+    std::vector<nptr> notes, holds;
+    const size_t first = replace ? 0 : noteArray.size();
+    const size_t firstHold = replace ? 0 : holdArray.size();
+    notes.reserve(heads.size());
+    index.reserve(heads.size());
+    auto make = [&](const Note& source) {
+        auto ptr = std::allocate_shared<StoredNote>(
+            std::pmr::polymorphic_allocator<StoredNote>(&pool_res));
+        *ptr = source;
+        do {
+            ptr->noteID = generate_note_id();
+        } while (index.contains(ptr->noteID) ||
+                 (!replace && noteInfoMap.contains(ptr->noteID)));
+        auto it = memory.insert(memory.end(), ptr);
+        index.emplace(ptr->noteID, NoteMemoryInfo{it, ptr});
+        return ptr;
+    };
+    auto append = [&](const nptr& ptr) {
+        ptr->index = static_cast<int>(first + notes.size());
+        ptr->holdIndex = -1;
+        if (ptr->get_note_type() == NOTE_TYPE::HOLD) {
+            ptr->holdIndex = static_cast<int>(firstHold + holds.size());
+            holds.push_back(ptr);
+        }
+        notes.push_back(ptr);
+    };
+    for (const auto& n : heads) {
+        if (n.side < 0 || n.side > 2 || n.type < 0 ||
+            n.type > static_cast<int>(NOTE_TYPE::HOLD) ||
+            !std::isfinite(n.time) || !std::isfinite(n.time + n.lastTime) ||
+            !std::isfinite(n.position) || !std::isfinite(n.width))
+            throw std::invalid_argument("Invalid chart note");
+        auto head = make(n);
+        if (head->get_note_type() == NOTE_TYPE::HOLD) {
+            auto tail = make(n);
+            head->subNoteID = tail->noteID;
+            tail->subNoteID = head->noteID;
+            tail->type = static_cast<int>(NOTE_TYPE::SUB);
+            tail->beginTime = head->time;
+            tail->time += head->lastTime;
+            tail->lastTime = 0;
+            append(tail);
+        }
+        append(head);
+    }
+    if (replace) {
+        noteArray.swap(notes);
+        holdArray.swap(holds);
+        noteInfoMap.swap(index);
+        noteMemoryList.swap(memory);
+        get_note_activation_manager().clear();
+    } else {
+        // Reserve before publishing; list iterators survive splice and map node
+        // transfer.
+        noteArray.reserve(first + notes.size());
+        holdArray.reserve(firstHold + holds.size());
+        noteInfoMap.reserve(noteInfoMap.size() + index.size());
+        noteMemoryList.splice(noteMemoryList.end(), memory);
+        noteInfoMap.merge(index);
+        noteArray.insert(noteArray.end(), notes.begin(), notes.end());
+        holdArray.insert(holdArray.end(), holds.begin(), holds.end());
+    }
+    noteCount = static_cast<int>(noteInfoMap.size());
+    geometryRevision.fetch_add(1, std::memory_order_relaxed);
+    set_ooo();
 }
 
 Note NotePoolManager::get_note(const std::string& noteID) const {

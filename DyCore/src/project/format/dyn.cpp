@@ -7,7 +7,7 @@
 #include "compress.h"
 #include "gm.h"
 #include "note.h"
-#include "project.h"
+#include "projectManager.h"
 #include "timing.h"
 #include "utils.h"
 
@@ -21,7 +21,7 @@ json conversion_v0_to_v1(const json& input) {
     // Deal with projectObject.
     {
         print_debug_message("  Converting project object...");
-        output["version"] = origProjectObject["version"];
+        output["version"] = origProjectObject.at("version");
 
         // Add formatVersion.
         output["formatVersion"] = 1;
@@ -38,31 +38,31 @@ json conversion_v0_to_v1(const json& input) {
     }
     // Deal with chartObject.
     print_debug_message("  Converting chart object...");
-    json origChartObject = origProjectObject["charts"];
+    const json& origChartObject = origProjectObject.at("charts");
     json chartObject = json::object();
     {
         // Deal with chartMetadataObject.
         json chartMetadataObject = json::object();
-        chartMetadataObject["title"] = origChartObject["title"];
-        chartMetadataObject["sideType"] = origChartObject["sidetype"];
-        chartMetadataObject["difficulty"] = origChartObject["difficulty"];
+        chartMetadataObject["title"] = origChartObject.at("title");
+        chartMetadataObject["sideType"] = origChartObject.at("sidetype");
+        chartMetadataObject["difficulty"] = origChartObject.at("difficulty");
         chartMetadataObject["artist"] = "";
         chartMetadataObject["charter"] = "";
 
         // Deal with chartPathObject.
         json chartPathObject = json::object();
-        chartPathObject["music"] = origProjectObject["musicPath"];
-        chartPathObject["image"] = origProjectObject["backgroundPath"];
+        chartPathObject["music"] = origProjectObject.at("musicPath");
+        chartPathObject["image"] = origProjectObject.at("backgroundPath");
         chartPathObject["video"] = origProjectObject.contains("videoPath")
                                        ? origProjectObject["videoPath"]
                                        : "";
 
         // Deal with noteObjects list.
         json noteObjects = json::array();
-        for (const auto& note : origChartObject["notes"]) {
+        for (const auto& note : origChartObject.at("notes")) {
             json noteObject = note;
-            noteObject["type"] = note["noteType"];
-            noteObject["length"] = note["lastTime"];
+            noteObject["type"] = note.at("noteType");
+            noteObject["length"] = note.at("lastTime");
             noteObject.erase("lastTime");
             noteObject.erase("noteType");
             noteObjects.push_back(noteObject);
@@ -70,12 +70,12 @@ json conversion_v0_to_v1(const json& input) {
 
         // Deal with timingPointObjects list.
         json timingPointObjects = json::array();
-        for (const auto& timingPoint : origProjectObject["timingPoints"]) {
+        for (const auto& timingPoint : origProjectObject.at("timingPoints")) {
             json timingPointObject = json::object();
-            timingPointObject["offset"] = timingPoint["time"];
+            timingPointObject["offset"] = timingPoint.at("time");
             timingPointObject["bpm"] =
-                60000 / timingPoint["beatLength"].get<double>();
-            timingPointObject["meter"] = timingPoint["meter"];
+                60000 / timingPoint.at("beatLength").get<double>();
+            timingPointObject["meter"] = timingPoint.at("meter");
             timingPointObjects.push_back(timingPointObject);
         }
 
@@ -170,7 +170,8 @@ int project_import_dyn(const char* filePath, Project& project) {
 }
 
 // This function is for importing charts.
-int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
+int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming,
+                     ChartImportOptions options) {
     try {
         Project project;
         if (project_import_dyn(filePath, project) != 0) {
@@ -178,20 +179,8 @@ int chart_import_dyn(const char* filePath, bool importInfo, bool importTiming) {
         }
 
         // Import notes from the first chart.
-        const Chart& chart = project.charts.at(0);
-        for (const Note& note : chart.notes) {
-            create_note(note);
-        }
-
-        // Import chart information if requested.
-        if (importInfo) {
-            chart_set_metadata(chart.metadata);
-        }
-
-        // Import timing information if requested.
-        if (importTiming) {
-            get_timing_manager().append_timing_points(chart.timingPoints);
-        }
+        ProjectManager::inst().import_chart(std::move(project.charts.at(0)),
+                                            importInfo, importTiming, options);
     } catch (const std::exception& e) {
         gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
                                "dyn_chart_import_failed", {e.what()});

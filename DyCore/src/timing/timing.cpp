@@ -13,6 +13,13 @@ void TimingManager::clear() {
     mark_modified();
 }
 
+void TimingManager::replace_points(std::vector<TimingPoint> points) {
+    std::unique_lock lock(mutex);
+    timingPoints.swap(points);
+    outOfOrder = true;
+    mark_modified();
+}
+
 void TimingManager::add_timing_point(TimingPoint timingPoint) {
     std::unique_lock lock(mutex);
     timingPoints.push_back(timingPoint);
@@ -47,7 +54,6 @@ void TimingManager::get_timing_points(std::vector<TimingPoint>& outPoints) {
     read_sorted([&outPoints](const auto& points) { outPoints = points; });
 }
 
-const double TIMING_POINT_EPSILON = 1;
 bool TimingManager::has_timing_point_at(double time) {
     return read_sorted([time](const auto& points) {
         auto it = std::lower_bound(

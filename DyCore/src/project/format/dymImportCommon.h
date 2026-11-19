@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -23,19 +25,15 @@ struct DYMTimingData {
 };
 
 inline double imported_bar_to_time(double offset, double barPerMinute) {
+    if (!(barPerMinute > 0) || !std::isfinite(barPerMinute))
+        throw std::runtime_error("Invalid chart tempo");
     return (offset * 60000.0) / barPerMinute;
 }
 
-inline void import_timing_points(bool importTiming, bool hasTimingData,
-                                 const std::vector<DYMTimingData>& timings,
-                                 double offset, double barPerMin) {
-    if (!importTiming) {
-        return;
-    }
-
-    auto& timingMan = get_timing_manager();
-    timingMan.clear();
-
+inline void collect_import_timing(std::vector<TimingPoint>& points,
+                                  bool hasTimingData,
+                                  const std::vector<DYMTimingData>& timings,
+                                  double offset, double barPerMin) {
     if (hasTimingData) {
         double runningTime = imported_bar_to_time(-offset, barPerMin);
 
@@ -56,14 +54,12 @@ inline void import_timing_points(bool importTiming, bool hasTimingData,
             tp.meter = 4;
             tp.time = timingPointTime;
             tp.set_bpm(timings[i].barPerMinute * 4);
-            timingMan.add_timing_point(tp);
+            points.push_back(tp);
         }
     } else {
-        timingMan.add_timing_point({imported_bar_to_time(-offset, barPerMin),
-                                    60000.0 / (barPerMin * 4), 4});
+        points.push_back({imported_bar_to_time(-offset, barPerMin),
+                          60000.0 / (barPerMin * 4), 4});
     }
-
-    timingMan.sort();
 }
 
 inline void fix_imported_note_times(
@@ -108,9 +104,10 @@ inline std::unordered_map<std::string, double> build_note_id_time_map(
     return noteIDTimeMap;
 }
 
-inline void add_imported_notes_to_project(
-    const std::vector<DYMNotedata>& notes,
-    const std::unordered_map<std::string, double>& noteIDTimeMap) {
+inline void collect_import_notes(std::vector<Note>& heads,
+                                 const std::vector<DYMNotedata>& notes) {
+    const auto noteIDTimeMap = build_note_id_time_map(notes);
+    heads.reserve(notes.size());
     for (const auto& note : notes) {
         if (note.type == 3) {
             continue;
@@ -129,6 +126,6 @@ inline void add_imported_notes_to_project(
             newNote.lastTime = noteIDTimeMap.at(note.subid) - note.time;
         }
 
-        create_note(newNote);
+        heads.push_back(std::move(newNote));
     }
 }

@@ -9,6 +9,8 @@
 
 #include "utils.h"
 
+inline constexpr double TIMING_POINT_EPSILON = 1;
+
 struct TimingPoint {
     double time;
     double beatLength;
@@ -97,6 +99,7 @@ class TimingManager {
 
     // Clear all timing points.
     void clear();
+    void replace_points(std::vector<TimingPoint> points);
 
     // Add a single timing point.
     void add_timing_point(TimingPoint timingPoint);

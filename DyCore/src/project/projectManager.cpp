@@ -110,11 +110,8 @@ void ProjectManager::load_all_audio_data() {
     }).detach();
 }
 
-void ProjectManager::setup_default_chart() {
-    std::lock_guard<std::shared_mutex> lock(mtx);
-    ++projectGeneration;
-    ++chartMusicLoadRequestId;
-
+namespace {
+Project make_default_project() {
     Project defaultProject;
     defaultProject.charts.push_back(
         Chart{.metadata = {
@@ -122,35 +119,77 @@ void ProjectManager::setup_default_chart() {
                   .sideType = {"MIXER", "PAD"},
                   .difficulty = 3,
               }});
-    project = std::move(defaultProject);
+    return defaultProject;
+}
+}  // namespace
+
+void ProjectManager::setup_default_chart() {
+    std::lock_guard<std::shared_mutex> lock(mtx);
+    ++projectGeneration;
+    ++chartMusicLoadRequestId;
+    project = make_default_project();
     chartMetadataLastModifiedTime++;
 
     set_current_chart(0);
 }
 
 void ProjectManager::load_project_from_file(const char *filePath) {
-    clear_project();
-    std::lock_guard<std::shared_mutex> lock(mtx);
-    if (project_import_dyn(filePath, project) != 0) {
+    Project incoming;
+    if (project_import_dyn(filePath, incoming) != 0 ||
+        incoming.charts.empty()) {
         throw std::runtime_error("Failed to import DYN project file.");
     }
 
-    projectFilePath = convert_char_to_path(filePath);
-    projectDirPath = projectFilePath.parent_path();
+    auto path = convert_char_to_path(filePath);
+    auto directory = path.parent_path();
+    std::unique_lock lock(mtx);
+    auto& chart = incoming.charts.front();
+    auto timing = chart.timingPoints;
+    get_note_pool_manager().import_notes(chart.notes, true);
+    get_timing_manager().replace_points(std::move(timing));
+    project = std::move(incoming);
+    currentChartIndex = 0;
+    projectFilePath.swap(path);
+    projectDirPath.swap(directory);
+    ++projectGeneration;
+    ++chartMusicLoadRequestId;
+    ++chartMetadataLastModifiedTime;
+}
 
-    // TODO: (Future feature) Load audio data for all charts after loading the
-    // project.
-
-    // load_all_audio_data();
-
-    // Todo: (Future feature) Manually choose chart to start editing.
-    if (get_chart_count() > 0) {
-        set_current_chart(0);
-    } else {
-        throw std::runtime_error(
-            "This project does not contain any chart. The project file may be "
-            "corrupted.");
+void ProjectManager::import_chart(Chart chart, bool importInfo,
+                                  bool importTiming,
+                                  ChartImportOptions options) {
+    std::unique_lock lock(
+        mtx);  // Save snapshots see either side of this import.
+    auto& current = get_current_chart();
+    std::vector<TimingPoint> timing;
+    if (importTiming && !options.resetTiming) {
+        get_timing_manager().get_timing_points(timing);
+        timing.insert(timing.end(), chart.timingPoints.begin(),
+                      chart.timingPoints.end());
+    } else if (importTiming) {
+        timing = std::move(chart.timingPoints);
     }
+    Project replacement;
+    if (options.newProject)
+        replacement = make_default_project();
+    get_note_pool_manager().import_notes(chart.notes, options.clearNotes);
+    if (options.resetTiming || importTiming)
+        get_timing_manager().replace_points(std::move(timing));
+    if (options.newProject) {
+        if (importInfo)
+            replacement.charts.front().metadata = std::move(chart.metadata);
+        project = std::move(replacement);
+        currentChartIndex = 0;
+        projectFilePath.clear();
+        projectDirPath.clear();
+        ++projectGeneration;
+        ++chartMusicLoadRequestId;
+    } else if (importInfo) {
+        current.metadata = std::move(chart.metadata);
+    }
+    if (options.newProject || importInfo)
+        ++chartMetadataLastModifiedTime;
 }
 
 void ProjectManager::update_current_chart() {

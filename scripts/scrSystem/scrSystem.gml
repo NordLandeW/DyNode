@@ -10,8 +10,9 @@
 
 #region MAP FUNCTIONS
 
-function map_close(shuttingDown = false) {
-	DyCore_project_save_invalidate();
+function map_close(shuttingDown = false, _chartPublished = false) {
+	// A successful project switch already invalidated old saves under the import lock.
+	if(!_chartPublished) DyCore_project_save_invalidate();
 	// A late completion belongs to the closed project, not its replacement.
 	with(objManager) {
 		announcement_clear(pendingSaveAnnouncement);
@@ -30,7 +31,9 @@ function map_close(shuttingDown = false) {
 		surface_free_f(partSurf);
 		
 		DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false, false);
-		note_delete_all();
+		instance_destroy(objNote);
+		if(!_chartPublished) DyCore_clear_notes();
+		with(objEditor) preservePublishedTiming = _chartPublished;
 		instance_destroy(objScoreBoard);
 		instance_destroy(objPerfectIndc);
 		instance_destroy(objEditor);
@@ -53,7 +56,6 @@ function map_close(shuttingDown = false) {
 			FMODGMS_Chan_RemoveChannel(channel);
 		}
 
-		DyCore_clear_notes();
 		global.noteIDMan.clear();
 		global.activationMan.clear();
 
@@ -74,202 +76,85 @@ function map_close(shuttingDown = false) {
 	}
 }
 
-function map_reset() {
-	map_close();
+function map_reset(_chartPublished = false) {
+	map_close(false, _chartPublished);
 	instance_create_depth(0, 0, 0, objMain);
 }
 
-function map_load(_file = "") {
-	if(!is_string(_file)){
+function map_load(_file = "", _newProject = false) {
+	if(!is_string(_file)) {
 		announcement_error("map_load: File path is not a string.");
-		return;
+		return false;
 	}
-
 	var _direct = _file != "";
-	if(_file == "")
-	    _file = dyc_get_open_filename(i18n_get("fileformat_chart") + " (*.xml;*.dyn;*dy;*.osu)|*.xml;*.dyn;*dy;*.osu", "", 
-	        program_directory, "Load Dynamix Chart File 加载谱面文件");
-        
-    if(_file == "") return;
-    
-    if(!file_exists(_file)) {
-        announcement_error(i18n_get("anno_chart_not_exists"));
-        return;
-    }
-    
-    var _confirm = _direct? true:show_question_i18n("box_q_import_confirm");
-    if(!_confirm)
-    	return;
-    
-    var _clear = _direct? true:show_question_i18n("box_q_import_clear");
-    if(_clear)
-    	note_delete_all();
-    
-    var _timing_reset = _direct? true:show_question_i18n("box_q_import_timing_reset");
-    if(_timing_reset)
-    	timing_point_reset();
-    
-	try {
-		switch filename_ext(_file) {
-			case ".xml":
-			case ".dy":
-				if(map_import_dym(_file, _direct) != 0) return;
-				break;
-			case ".osu":
-				map_import_osu(_file);
-				break;
-			case ".dyn":
-				if(map_import_dyn(_file) != 0) return;
-				break;
-		}
-	} catch (e) {
-		announcement_error(i18n_get("anno_chart_parse_error", [string(e)]));
-		return;
+	if(!_direct) _file = dyc_get_open_filename(i18n_get("fileformat_chart") + " (*.xml;*.dyn;*.dy;*.osu)|*.xml;*.dyn;*.dy;*.osu", "", program_directory, "Load Dynamix Chart File 加载谱面文件");
+	if(_file == "") return false;
+	if(!file_exists(_file)) {
+		announcement_error("anno_chart_not_exists");
+		return false;
 	}
-    
-    // Notes information init & Remove extra sub notes.
-    note_sort_all(true);
-    
-    announcement_play("anno_import_chart_complete");
-}
-
-function map_import_dym(_file, _direct = false) {
-    var _str;
-	var _dy_format = false;
-	var _import_info, _import_tp;
-	if(!_direct) {
-		_import_info = show_question_i18n("box_q_import_info");
-		_import_tp = show_question_i18n("box_q_import_bpm");
+	var _ext = string_lower(filename_ext(_file));
+	if(!array_contains([".xml", ".dy", ".dyn", ".osu"], _ext)) {
+		announcement_warning("drop_unsupported_file");
+		return false;
+	}
+	if(!_direct && !show_question_i18n("box_q_import_confirm")) return false;
+	var _clear = _direct || show_question_i18n("box_q_import_clear");
+	var _reset = _direct || show_question_i18n("box_q_import_timing_reset");
+	var _info = false, _timing = false;
+	if(_ext == ".osu") {
+		_info = show_question_i18n("box_q_osu_import_objects");
+		_timing = true;
 	} else {
-		_import_info = true;
-		_import_tp = true;
+		var _autoInfo = _direct && _ext != ".dyn";
+		_info = _autoInfo || show_question_i18n("box_q_import_info");
+		_timing = _autoInfo || show_question_i18n("box_q_import_bpm");
+	}
+	var _flags = _clear | (_reset << 1) | (_newProject << 2);
+	var _result = DyCore_import_chart_file(_file, _info, _timing, _flags);
+	if(_result != 0) {
+		if(_result == 1) announcement_error("dym_import_failed");
+		if(_result == 2) announcement_warning("bad_dym_chart_format", 10000);
+		return false;
 	}
 
-	if(filename_ext(_file) == ".xml") {
-		return dyc_chart_import_xml(_file, _import_info, _import_tp);
+	// Destroy only the old views: DyCore has already published the complete new chart.
+	if(_newProject) map_reset(true);
+	else if(_clear) {
+		objMain.chartNotesArrayAt = 0;
+		instance_destroy(objNote);
 	}
-	else {
-		var result = dyc_chart_import_dy(_file, _import_info, _import_tp);
+	note_sort_all(true);
+	if(_ext == ".dy" && _info) map_load_remix();
+	switch(_ext) {
+		case ".xml": analytics_track_event("ChartImportXML", {result: 0}); break;
+		case ".dy": analytics_track_event("ChartImportDY", {result: 0}); break;
+		case ".osu": analytics_track_event("ChartImportOsu"); break;
+	}
+	announcement_play("anno_import_chart_complete");
+	return true;
+}
 
-		// Read background & image from .dy format.
-		if(_import_info && result == 0) {
-			var _remix = dyc_chart_import_dy_get_remix();
-			var _music = convert_mime_base64_to_file("audio", _remix.music, objMain.chartTitle);
-			if(_music != "")
-				music_load(_music);
-			var _image = convert_mime_base64_to_file("image", _remix.bg, objMain.chartTitle);
-			if(_image != "")
-				image_load(_image);
-			var _video = convert_mime_base64_to_file("video", _remix.bg, objMain.chartTitle);
-			if(_video != "")
-				video_load(_video);
+function map_load_remix() {
+	var _remix = dyc_chart_import_dy_get_remix();
+	if(!is_struct(_remix)) return;
+	var _prefix = map_get_alt_title();
+	try {
+		if(is_string(_remix[$ "music"])) {
+			var _music = convert_mime_base64_to_file("audio", _remix.music, _prefix);
+			if(_music != "") music_load(_music);
 		}
-		return result;
+		if(is_string(_remix[$ "bg"])) {
+			var _image = convert_mime_base64_to_file("image", _remix.bg, _prefix);
+			if(_image != "") image_load(_image);
+			else {
+				var _video = convert_mime_base64_to_file("video", _remix.bg, _prefix);
+				if(_video != "") video_load(_video);
+			}
+		}
+	} catch(e) {
+		announcement_warning(string(e));
 	}
-    
-}
-
-function map_import_osu(_file = "") {
-    if(_file == "")
-	    _file = dyc_get_open_filename("OSU Files (*.osu)|*.osu", "", 
-	        program_directory, "Load osu! Chart File 加载 osu! 谱面文件");
-        
-    if(_file == "") return;
-    
-    var _import_hitobj = show_question_i18n(i18n_get("box_q_osu_import_objects"));
-    var _delay_time = 0;
-    
-    var _buf = buffer_load(_file);
-    var _grid = SnapBufferReadCSV(_buf, 0);
-    buffer_delete(_buf);
-	
-    var _type = "";
-    var _h = array_length(_grid);
-    var _mode = 0;				// Osu Game Mode
-    
-    for(var i=0; i<_h; i++) {
-        if(string_last_pos("[", _grid[i][0]) != 0) {
-        	_type = _grid[i][0];
-        }
-            
-        else if(_grid[i][0] != ""){
-            switch _type {
-            	case "[General]":
-            		if(string_last_pos("Mode", _grid[i][0]) != 0)
-            			_mode = real(string_digits(_grid[i][0]));
-            		break;
-                case "[TimingPoints]":
-					if(array_length(_grid[i]) < 3) break;
-                    var _time = real(_grid[i][0]) + _delay_time;
-                    var _mspb = string_letters(_grid[i][1]) != ""?-1:real(_grid[i][1]);
-                    var _meter = real(_grid[i][2]);
-                    if(_mspb > 0)
-                        timing_point_add(_time, _mspb, _meter);
-                    break;
-                case "[HitObjects]":
-                	if(_import_hitobj) {
-						if(array_length(_grid[i]) < 6) break;
-                		var _ntime = real(_grid[i][2]) + _delay_time;
-                		var _ntype = real(_grid[i][3]);
-                		if(_ntime > 0) {
-	                		switch _mode {
-	                			case 0:
-	                			case 1:
-	                			case 2:
-	                				var _x = real(_grid[i][0]);
-	                				var _y = real(_grid[i][1]);
-									build_note({
-										noteType: NOTE_TYPE.NORMAL,
-										time: _ntime,
-										position: _x / 512 * 5,
-										width: 1.0,
-										side: NOTE_SIDE.FRONT,
-									});
-	                				break;
-	                			case 3: // Mania Mode
-	                				var _x = real(_grid[i][0]);
-	                				if(_ntype & 128) { // If is a Mania Hold
-	                					var _subtim = real(string_copy(_grid[i][5], 1, string_pos(":", _grid[i][5])-1)) + _delay_time;
-										build_note({
-											time: _ntime,
-											noteType: NOTE_TYPE.HOLD,
-											position: _x / 512 * 5,
-											width: 1.0,
-											lastTime: _subtim - _ntime,
-											side: NOTE_SIDE.FRONT,
-										})
-	                				} 
-	                				else
-	                					build_note({
-	                						noteType: NOTE_TYPE.NORMAL,
-	                						time: _ntime,
-	                						position: _x / 512 * 5,
-	                						width: 1.0,
-	                						side: NOTE_SIDE.FRONT,
-	                					});
-	                				break;
-	                		}
-                		}
-                	}
-                	break;
-				default:
-					break;
-            }
-        }
-    }
-    
-    timing_point_sort();
-    note_sort_all(true);
-    
-    announcement_play("anno_import_info_complete", 1000);
-	analytics_track_event("ChartImportOsu");
-}
-
-function map_import_dyn(_file) {
-	var _import_info = show_question_i18n("box_q_import_info");
-    var _import_tp = show_question_i18n("box_q_import_bpm");
-
-	return dyc_chart_import_dyn(_file, _import_info, _import_tp);
 }
 
 function map_set_title() {
@@ -509,8 +394,8 @@ function map_add_offset(_offset = "", record = false) {
 #region PROJECT FUNCTIONS
 
 function project_sideload(_file) {
+	if(!map_load(_file, true)) return false;
 	try {
-		map_load(_file);
 
 		if(string_lower(filename_ext(_file)) != ".dy") {
 			// Automatically detect image & music files.
@@ -559,8 +444,8 @@ function project_sideload(_file) {
 			}
 		}
 	} catch (e) {
-		announcement_error(i18n_get("anno_project_sideload_failed", [string(e)]));
-		return -1;
+		// The chart loaded; a missing optional companion must not undo it.
+		announcement_warning(string(e));
 	}
 
 	announcement_play("anno_project_sideload_complete");
@@ -593,18 +478,14 @@ function project_load(_file = "") {
 		return;
 	}
 
-	map_reset();
-
 	if(string_lower(filename_ext(_file)) != ".dyn") {
 		return project_sideload(_file);
 	}
     
 	var result = dyc_project_load(_file);
-	if(result < 0) {
-		show_debug_message("Project load failed. Go back to new project page.");
-		project_new(true);
-		return;
-	}
+	if(result < 0) return false;
+	map_reset(true);
+	note_sort_all(true);
 	show_debug_message("Project loaded.");
 	var chartMetadata = dyc_chart_get_metadata();
 	var projectMetadata = dyc_project_get_metadata();
@@ -633,12 +514,12 @@ function project_load(_file = "") {
 
 		objMain.animTargetTime = 0;
 		
-		if(variable_struct_exists(projectMetadata[$"stats"], "projectTime"))
+		if(is_struct(projectMetadata) && is_struct(projectMetadata[$ "stats"]) && variable_struct_exists(projectMetadata.stats, "projectTime"))
 			projectTime = projectMetadata[$"stats"][$ "projectTime"];
 		else
 			projectTime = 0;
 
-	    music_load(_path_deal(musicPath, _propath));
+	    if(musicPath != "") music_load(_path_deal(musicPath, _propath));
 	    if(backgroundPath != "")
 	    	background_load(_path_deal(backgroundPath, _propath));
 	    if(videoPath != "")
@@ -646,7 +527,7 @@ function project_load(_file = "") {
 	    
 	    projectPath = _file;
 	    
-	    if(variable_struct_exists(projectMetadata, "settings"))
+	    if(is_struct(projectMetadata) && is_struct(projectMetadata[$ "settings"]))
 	    	project_set_settings(projectMetadata[$ "settings"]);
     }
     

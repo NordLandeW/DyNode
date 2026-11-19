@@ -10,7 +10,7 @@
 #include "dymImportCommon.h"
 #include "gm.h"
 #include "note.h"
-#include "project.h"
+#include "projectManager.h"
 #include "timing.h"
 #include "utils.h"
 #include "xml.h"
@@ -42,7 +42,7 @@ int note_type_from_string(const string& type) {
 }
 
 struct XmlImportData {
-    ChartMetadata metaData;
+    ChartMetadata metaData{};
     double barPerMin = 0;
     double offset = 0;
     bool hasTimingData = false;
@@ -60,9 +60,8 @@ XmlImportData parse_standard_format_xml(pugi::xml_node map_root) {
             return;
 
         for (auto noteNode : arrNode.children("CMapNoteAsset")) {
-            if (!noteNode.child("m_time") || !noteNode.child("m_id")) {
-                continue;
-            }
+            if (!noteNode.child("m_time") || !noteNode.child("m_id"))
+                throw std::runtime_error("Missing XML note time or ID");
 
             DYMNotedata noteData;
             noteData.id = noteNode.child_value("m_id");
@@ -371,7 +370,8 @@ void append_timing_nodes_for_dym(pugi::xml_node root, bool isDym,
 
 IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
                                           bool importMetadata,
-                                          bool importTiming) {
+                                          bool importTiming,
+                                          ChartImportOptions options) {
     // Read file into buffer.
     std::ifstream stream(convert_char_to_path(filePath));
     if (!stream.is_open()) {
@@ -400,21 +400,23 @@ IMPORT_XML_RESULT_STATES chart_import_xml(const char* filePath,
                 "element");
         }
 
-        if (importMetadata) {
-            chart_set_metadata(importData.metaData);
-        }
-
-        import_timing_points(importTiming, importData.hasTimingData,
-                             importData.timings, importData.offset,
-                             importData.barPerMin);
+        Chart chart{};
+        chart.metadata = std::move(importData.metaData);
+        if (importTiming)
+            collect_import_timing(chart.timingPoints, importData.hasTimingData,
+                                  importData.timings, importData.offset,
+                                  importData.barPerMin);
         fix_imported_note_times(importData.notes, importData.timings,
                                 importData.offset, importData.barPerMin);
-        const auto noteIDTimeMap = build_note_id_time_map(importData.notes);
-        add_imported_notes_to_project(importData.notes, noteIDTimeMap);
+        collect_import_notes(chart.notes, importData.notes);
+        options.resetTiming |= importTiming;
+        ProjectManager::inst().import_chart(std::move(chart), importMetadata,
+                                            importTiming, options);
     } catch (const std::exception& e) {
         print_debug_message("Exception occurred while importing XML: " +
                             string(e.what()));
-        throw_error_event("XML import error: " + string(e.what()));
+        gamemaker_announcement(GM_ANNOUNCEMENT_TYPE::ANNO_ERROR,
+                               "anno_chart_parse_error", {e.what()});
         return IMPORT_XML_RESULT_STATES::FAILURE;
     }
 

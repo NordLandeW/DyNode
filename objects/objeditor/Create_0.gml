@@ -2,6 +2,7 @@
 // visible = false;
 
 depth = -10000;
+preservePublishedTiming = false;
 
 // Editors
 editorMode = 5;                             // 1 note 2 chain 3 hold 4 view 5 play 0 copy

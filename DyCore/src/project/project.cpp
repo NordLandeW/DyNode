@@ -310,13 +310,7 @@ void __async_save_project(SaveProjectParams params) {
 void load_project(const char *filePath) {
     TIMER_SCOPE("load_project");
 
-    try {
-        ProjectManager::inst().load_project_from_file(filePath);
-    } catch (const std::exception &) {
-        // If encounter any errors, reset to default chart.
-        ProjectManager::inst().setup_default_chart();
-        throw;
-    }
+    ProjectManager::inst().load_project_from_file(filePath);
 }
 
 SaveProjectParams prepare_project_save(const char *filePath,
@@ -487,19 +481,22 @@ void to_json(nlohmann::json &j, const Chart &chart) {
 void from_json(const nlohmann::json &j, Chart &chart) {
     j.at("metadata").get_to(chart.metadata);
     j.at("path").get_to(chart.path);
+    if (!j.at("notes").is_array() || !j.at("timingPoints").is_array())
+        throw std::invalid_argument("Expected chart note and timing lists");
     chart.notes.clear();
-    for (const auto &note : j["notes"]) {
-        Note n;
-        note["side"].get_to<int>(n.side);
-        note["type"].get_to<int>(n.type);
-        note["time"].get_to<double>(n.time);
-        note["length"].get_to<double>(n.lastTime);
-        note["width"].get_to<double>(n.width);
-        note["position"].get_to<double>(n.position);
+    for (const auto& note : j.at("notes")) {
+        Note n{};
+        note.at("side").get_to(n.side);
+        note.at("type").get_to(n.type);
+        note.at("time").get_to(n.time);
+        note.at("length").get_to(n.lastTime);
+        note.at("width").get_to(n.width);
+        note.at("position").get_to(n.position);
+        n.beginTime = n.time;
         chart.notes.push_back(n);
     }
     chart.timingPoints.clear();
-    for (const auto &tp : j["timingPoints"]) {
+    for (const auto& tp : j.at("timingPoints")) {
         TimingPoint tpObj;
         TimingPointImportView view(tpObj);
         from_json(tp, view);

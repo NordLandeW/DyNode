@@ -22,6 +22,8 @@ extern "C" double DyCore_save_project_request(const char*, double);
 extern "C" double DyCore_has_async_event();
 extern "C" const char* DyCore_get_async_event();
 extern "C" double DyCore_chart_import_dyn(const char*, double, double);
+extern "C" double DyCore_import_chart_file(const char*, double, double, double);
+extern "C" double DyCore_project_load(const char*);
 extern "C" double DyCore_chart_export_xml(const char*, double, double);
 
 namespace {
@@ -210,6 +212,98 @@ TEST_CASE("ChartImportExportReportsFileFailures") {
     __async_save_project(std::move(request));
     REQUIRE(DyCore_chart_import_dyn(
                 (fixture.dir / "valid.dyn").string().c_str(), 1, 1) == 0);
+}
+
+TEST_CASE("FailedImportPreservesLiveIdsAndSavedProject") {
+    SaveFixture fixture;
+    set_chart("original", 250);
+    auto& manager = ProjectManager::inst();
+    const auto generation = manager.get_project_generation();
+    const nlohmann::json before = manager.create_save_snapshot(generation);
+    const auto note = get_note_pool_manager().get_note("original");
+    const auto metadataVersion =
+        manager.get_chart_metadata_last_modified_time();
+    const auto copy = (fixture.dir / "copy.dyn").string();
+    std::ofstream(copy) << before;
+    auto request = prepare_project_save(copy.c_str(), 1);
+    const std::pair<const char*, const char*> examples[] = {
+        {"unfinished.xml",
+         R"(<DynamixMap MapID="m_map_wip_H" BarPerMinute="100"><Center><Note Type="HOLD" Index="1" SubIndex="2" Time="0" /></Center></DynamixMap>)"},
+        {"early.dy", R"({"DynamixMap":{}})"},
+        {"partial.dyn", "{"},
+        {"partial.osu",
+         "osu file format "
+         "v14\n[TimingPoints]\n0,500,4\n[HitObjects]\n0,0,100,1,0,0:0\n256,0,"
+         "unfinished"}};
+    for (auto [name, text] : examples) {
+        CAPTURE(name);
+        const auto path = (fixture.dir / name).string();
+        std::ofstream(path) << text;
+        CHECK(DyCore_import_chart_file(path.c_str(), 1, 1, 7) != 0);
+        if (std::string(name) == "partial.dyn")
+            CHECK(DyCore_project_load(path.c_str()) < 0);
+        REQUIRE(manager.get_project_generation() == generation);
+        CHECK(manager.get_chart_metadata_last_modified_time() ==
+              metadataVersion);
+        CHECK(nlohmann::json(manager.create_save_snapshot(generation)) ==
+              before);
+        REQUIRE(note_exists("original"));
+        CHECK(get_note_pool_manager().get_note("original").dump() ==
+              note.dump());
+    }
+    __async_save_project(std::move(request));
+    Project saved;
+    REQUIRE(project_import_dyn(copy.c_str(), saved) == 0);
+    CHECK(nlohmann::json(saved) == before);
+    CHECK(std::filesystem::exists(fixture.dir / "backups" / "copy.bak.0.dyn"));
+}
+
+TEST_CASE("ImportCommitsSelectedNotesTimingAndProjectGeneration") {
+    SaveFixture fixture;
+    set_chart("original", 0);
+    auto& manager = ProjectManager::inst();
+    auto generation = manager.get_project_generation();
+    const auto osu = (fixture.dir / "keys.OSU").string();
+    std::ofstream(osu) << "osu file format v14\n[General]\nMode: "
+                          "3\n[TimingPoints]\n0.5,700,4\n100,400,3\n150,-80,"
+                          "4\n[HitObjects]\n256,192,1000,128,0,1350:0:0:0:0:\n";
+    REQUIRE(DyCore_import_chart_file(osu.c_str(), 1, 1, 0) == 0);
+    CHECK(note_exists("original"));
+    auto snapshot = manager.create_save_snapshot(generation);
+    auto& chart = snapshot.charts.front();
+    REQUIRE(chart.timingPoints.size() == 2);
+    CHECK(chart.timingPoints.front().beatLength == 500);
+    CHECK(chart.timingPoints.back().meter == 3);
+    REQUIRE(chart.notes.size() == 2);
+    const auto head = chart.notes.back();
+    REQUIRE(head.get_note_type() == NOTE_TYPE::HOLD);
+    CHECK(head.position == 2.5);
+    REQUIRE(note_exists(head.subNoteID));
+    const auto tail = get_note_pool_manager().get_note(head.subNoteID);
+    CHECK(tail.time == 1350);
+    CHECK(tail.subNoteID == head.noteID);
+    const auto input = (fixture.dir / "copy.dyn").string();
+    chart.metadata.title = "replacement";
+    std::ofstream(input) << nlohmann::json(snapshot);
+    // Replace notes only, then reset timing and take the file metadata.
+    REQUIRE(DyCore_import_chart_file(input.c_str(), 0, 0, 1) == 0);
+    CHECK_FALSE(note_exists("original"));
+    CHECK(manager.create_save_snapshot(generation).charts[0].metadata.title ==
+          "original");
+    REQUIRE(DyCore_import_chart_file(input.c_str(), 1, 0, 2) == 0);
+    CHECK(manager.create_save_snapshot(generation).charts[0].notes.size() == 4);
+    CHECK(manager.get_chart_metadata().title == "replacement");
+    CHECK(get_timing_manager().count() == 0);
+    // A successful side-load no longer allows an old save to read this chart.
+    REQUIRE(DyCore_import_chart_file(osu.c_str(), 0, 1, 7) == 0);
+    CHECK_THROWS(manager.create_save_snapshot(generation));
+    CHECK(get_note_pool_manager().get_note_count() == 0);
+    CHECK(get_timing_manager().count() == 2);
+    REQUIRE(DyCore_project_load(input.c_str()) == 0);
+    CHECK(manager.get_project_path() == input);
+    manager.set_current_chart(0);
+    CHECK(nlohmann::json(manager.create_save_snapshot(
+              manager.get_project_generation())) == nlohmann::json(snapshot));
 }
 
 TEST_CASE("ProjectSaveShutdownDrainsAcceptedWorkersBeforeReleasingData") {
