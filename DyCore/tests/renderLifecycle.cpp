@@ -9,6 +9,7 @@
 
 #include "activation.h"
 #include "capacity.h"
+#include "dynamiteFx.h"
 #include "notePoolManager.h"
 #include "render.h"
 #include "vertex.h"
@@ -510,4 +511,201 @@ TEST_CASE("DynamiteBatchBoundsStayIndependentOfChartWidthAndCoverDenseOutput") {
         REQUIRE(std::memcmp(dense.data() + 6 * count + 24 * i,
                             single.data() + 6, 24 * sizeof(RenderVertex)) == 0);
     }
+}
+
+TEST_CASE("DynamiteEffectsSeparatePlaybackTimeFromEditorJudgments") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    auto& pool = get_note_pool_manager();
+    pool.clear_notes();
+    SpriteData atlas{};
+    atlas.name = "sprDynamiteHitAtlas";
+    atlas.size = {1020, 1020};
+    atlas.uv1 = {1, 1};
+    atlas.caculate_uv_values();
+    get_sprite_manager().add_sprite(atlas);
+    add_playback_note("front", 0, 0, 1000, 1);
+    add_playback_note("left", 1, 1, 1000, .5);
+    add_playback_note("hold", 2, 2, 2100, 1, 2000);
+    auto& fx = dynamite_fx();
+    auto sample = [&](double time, double clock, int setting, bool playback,
+                      int pass) {
+        auto& active = get_note_activation_manager();
+        active.set_range({time, 1.6, 1.44, true});
+        active.recalculate();
+        size_t bound = fx.prepare(time, clock, setting, 1, playback, true);
+        std::vector<RenderVertex> result;
+        for (int layer :
+             (pass == 0 ? std::vector<int>{0, 2} : std::vector<int>{1})) {
+            std::vector<char> buf(bound + 32, 'Z');
+            size_t used = fx.render(buf.data(), layer);
+            REQUIRE(used <= bound);
+            CHECK(std::all_of(buf.begin() + used, buf.end(),
+                              [](char c) { return c == 'Z'; }));
+            size_t first = result.size();
+            result.resize(first + used / sizeof(RenderVertex));
+            if (used)
+                std::memcpy(result.data() + first, buf.data(), used);
+        }
+        return result;
+    };
+    auto full = sample(1100, 2, 1, true, 0);
+    REQUIRE(full.size() == 12);
+    CHECK(full[0].color.a == 255);
+    CHECK(full[6].color.a < 127);
+    CHECK(fx.mixer_age(1) == 100);
+    CHECK(std::isinf(fx.mixer_age(2)));
+    auto low = sample(1100, 910, 2, true, 0);
+    REQUIRE(low.size() == 6);
+    CHECK(std::memcmp(full.data(), low.data(), 6 * sizeof(RenderVertex)) == 0);
+    CHECK(sample(1100, 5, 0, true, 0).empty());
+    CHECK(std::isinf(fx.mixer_age(1)));
+    CHECK(sample(1600, 1, 1, true, 0).empty());
+    auto back = sample(1100, 9999, 1, true, 0);
+    REQUIRE(back.size() == full.size());
+    CHECK(std::memcmp(back.data(), full.data(),
+                      full.size() * sizeof(RenderVertex)) == 0);
+    CHECK(sample(1550, 2, 1, true, 0).empty());
+    CHECK(sample(999, 3, 1, true, 0).empty());
+    CHECK(sample(3400, 3, 2, true, 1).size() == 6);
+    CHECK(sample(4100, 3, 1, true, 1).empty());
+    CHECK(sample(4100, 3, 1, true, 0).size() == 12);
+    CHECK(sample(1100, 100, 1, false, 0).empty());
+    fx.trigger_hit({0, 2.5, 1, 100}, 1000, true);
+    fx.trigger_hit({1, 2.5, 1, 100, true}, 1000, true);
+    auto shot = sample(0, 110, 1, false, 0);
+    REQUIRE(shot.size() == 12);
+    const auto scrub = sample(-3000, 110, 1, false, 0);
+    REQUIRE(scrub.size() == shot.size());
+    CHECK(std::memcmp(shot.data(), scrub.data(),
+                      shot.size() * sizeof(RenderVertex)) == 0);
+    CHECK(fx.mixer_age(1) == 10);
+    auto fading = sample(-3000, 560, 1, false, 0);
+    REQUIRE(fading.size() == 6);
+    CHECK(fading[0].color.a < shot[6].color.a);
+    CHECK(sample(0, 650, 1, false, 0).empty());
+    CHECK(std::isinf(fx.mixer_age(1)));
+    CHECK(sample(1100, 700, 1, false, 0).empty());
+    CHECK(std::isinf(fx.mixer_age(1)));
+}
+
+TEST_CASE(
+    "Dynamite judgment lights cap their span without shortening their beam") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    SpriteData atlas{};
+    atlas.name = "sprDynamiteHitAtlas";
+    atlas.size = {1020, 1020};
+    atlas.uv1 = {1, 1};
+    atlas.caculate_uv_values();
+    get_sprite_manager().add_sprite(atlas);
+    auto& pool = get_note_pool_manager();
+    auto& fx = dynamite_fx();
+    for (int side : {0, 1, 2}) {
+        for (double width : {1.0, 20.0}) {
+            pool.clear_notes();
+            add_playback_note("tap", 0, side, 1000, width);
+            for (bool playback : {true, false}) {
+                fx.reset();
+                if (!playback)
+                    fx.trigger_hit({side, 2.5, width, 1000}, 1000, true);
+                const auto bound = fx.prepare(1010, 1010, 1, 0, playback, true);
+                std::vector<RenderVertex> v(bound / sizeof(RenderVertex));
+                REQUIRE(v.size() >= 6);
+                REQUIRE(fx.render(reinterpret_cast<char*>(v.data()), 2) ==
+                        6 * sizeof(RenderVertex));
+                glm::vec2 low = v[0].position, high = low;
+                for (int i = 1; i < 6; ++i) {
+                    low = glm::min(low, v[i].position);
+                    high = glm::max(high, v[i].position);
+                }
+                const auto size = high - low;
+                CHECK(size[side == 0 ? 0 : 1] ==
+                      doctest::Approx(width == 20
+                                          ? 1920.0
+                                          : (side == 0 ? 680.4 : 326.592)));
+                CHECK(size[side == 0 ? 1 : 0] == doctest::Approx(654.885));
+            }
+        }
+    }
+}
+
+TEST_CASE(
+    "Dynamite keeps the newest frames and lights within independent budgets") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    auto& pool = get_note_pool_manager();
+    pool.clear_notes();
+    SpriteData atlas{};
+    atlas.name = "sprDynamiteHitAtlas";
+    atlas.size = {1020, 1020};
+    atlas.uv1 = {1, 1};
+    atlas.caculate_uv_values();
+    get_sprite_manager().add_sprite(atlas);
+    // A distinguishable oldest frame, then 499 newer coincident front hits.
+    add_playback_note("old", 0, 2, 1000, 1);
+    for (int i = 0; i < 499; ++i)
+        add_playback_note(std::to_string(i), 0, 0, 1001, 1);
+    add_playback_note(
+        "head", 2, 0, 1010, 1,
+        3000);  // hit and ongoing holding frame share the 500 slots
+    add_playback_note("tray", 1, 1, 1012, 1);
+    auto& fx = dynamite_fx();
+    auto sample = [&](double t, bool playback, bool playing) {
+        auto& active = get_note_activation_manager();
+        active.set_range({t, 1.6, 1.44, true});
+        active.recalculate();
+        const auto bound = fx.prepare(t, t, 1, 1, playback, playing);
+        std::array<std::vector<RenderVertex>, 3> out;
+        for (int pass = 0; pass < 3; ++pass) {
+            auto& v = out[pass];
+            v.resize(bound / sizeof(RenderVertex));
+            auto size = fx.render(reinterpret_cast<char*>(v.data()), pass);
+            REQUIRE(size <= bound);
+            v.resize(size / sizeof(RenderVertex));
+        }
+        return out;
+    };
+    const auto exact = sample(1001, true, false);
+    CHECK(exact[0].size() == 500 * 6);
+    CHECK(exact[2].size() == 500 * 6);
+    auto hasRight = [](const auto& v) {
+        return std::any_of(v.begin(), v.end(),
+                           [](const auto& p) { return p.position.x > 1600; });
+    };
+    CHECK(hasRight(exact[0]));
+    CHECK(hasRight(exact[2]));
+    for (bool playback : {true, false}) {
+        if (!playback) {
+            fx.trigger_hit({2, 2.5, 1, 1000}, 1000, true);
+            for (int i = 0; i < 499; ++i)
+                fx.trigger_hit({0, 2.5, 1, 1001}, 1001, true);
+            fx.trigger_hit({0, 2.5, 1, 1010}, 1010, true);
+            fx.trigger_hit({1, 2.5, 1, 1012, true}, 1012, true);
+        }
+        const auto v = sample(1012, playback, true);
+        CHECK(v[0].size() == 499 * 6);
+        CHECK(v[1].size() == 6);
+        CHECK_FALSE(hasRight(v[0]));
+        CHECK_FALSE(hasRight(v[2]));
+        CHECK(v[2].size() == 499 * 6);
+        CHECK(fx.mixer_age(1) == 0);
+    }
+    const auto rewind = sample(1001, true, false);
+    CHECK(rewind[0].size() == exact[0].size());
+    CHECK(hasRight(rewind[0]));
+    fx.trigger_hit({2, 2.5, 1, 1000}, 1000, true);
+    for (int i = 0; i < 500; ++i)
+        fx.trigger_hit({0, 2.5, 1, 1010}, 1010, true);
+    fx.trigger_hit({1, 2.5, 1, 1011, true}, 1011, true);
+    const auto paused = sample(1012, false, false);
+    CHECK(paused[0].empty());
+    CHECK(paused[1].empty());
+    CHECK(paused[2].size() == 499 * 6);
+    CHECK_FALSE(hasRight(paused[2]));
+    CHECK(fx.mixer_age(1) == 1);
+    const auto resumed = sample(1013, false, true);
+    CHECK(resumed[0].empty());
+    CHECK(resumed[1].size() == 6);
+    CHECK(resumed[2].size() == 499 * 6);
 }

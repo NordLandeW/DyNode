@@ -250,6 +250,23 @@ void NotePoolManager::read_all_notes(
     }
 }
 
+void NotePoolManager::read_recent_notes(
+    double first, double last,
+    const std::function<bool(const Note&)>& reader) const {
+    auto lock = lock_shared();
+    if (arrayOutOfOrder)
+        throw std::logic_error("Note time range requires a sorted chart");
+    NoteCallbackScope scope(this);
+    auto it =
+        std::upper_bound(noteArray.begin(), noteArray.end(), last,
+                         [](double t, const nptr& n) { return t < n->time; });
+    while (it != noteArray.begin()) {
+        const Note& note = **--it;
+        if (note.time < first || !reader(note))
+            break;
+    }
+}
+
 void NotePoolManager::execute_note_callback(
     Note& note, const std::function<void(Note&)>& executor) {
     const double origTime = note.time;

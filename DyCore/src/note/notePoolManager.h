@@ -53,6 +53,10 @@ class NotePoolManager {
     // Callbacks must not retain references or reenter locking APIs on this
     // manager. Such reentry throws std::logic_error before acquiring the lock.
     void read_all_notes(std::function<void(const Note &)> reader) const;
+    // Visit the closed interval newest first; return false to stop early.
+    void read_recent_notes(
+        double first, double last,
+        const std::function<bool(const Note &)> &reader) const;
     void access_note(const std::string &noteID,
                      std::function<void(Note &)> executor);
     // Synchronize linked HOLD/SUB fields after each callback, before visiting

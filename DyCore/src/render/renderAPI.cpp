@@ -1,6 +1,7 @@
 #include <json.hpp>
 
 #include "api.h"
+#include "dynamiteFx.h"
 #include "render.h"
 #include "utils.h"
 
@@ -62,6 +63,57 @@ DYCORE_API double DyCore_prepare_playback_notes(double nowTime,
             {nowTime, frontSpeed, sideSpeed, dynamite != 0}));
     } catch (const std::exception& e) {
         print_debug_message(std::string("Error preparing playback notes: ") +
+                            e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_prepare_dynamite_fx(double chartTime,
+                                             double editorClock, double setting,
+                                             double mixers, double playback,
+                                             double playing) {
+    try {
+        return static_cast<double>(dynamite_fx().prepare(
+            chartTime, editorClock, static_cast<int>(setting),
+            static_cast<int>(mixers), playback != 0, playing != 0));
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error preparing Dynamite effects: ") +
+                            e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_trigger_dynamite_hit(double side, double position,
+                                              double width, double editorClock,
+                                              double noteTime, double mixer,
+                                              double light) {
+    try {
+        dynamite_fx().trigger_hit(
+            {static_cast<int>(side), position, width, editorClock, mixer != 0},
+            noteTime, light != 0);
+        return 0;
+    } catch (const std::exception& e) {
+        print_debug_message(
+            std::string("Error triggering Dynamite judgment: ") + e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_dynamite_mixer_age(double side) {
+    try {
+        const double age = dynamite_fx().mixer_age(static_cast<int>(side));
+        return std::isfinite(age) ? age : -1;
+    } catch (const std::exception&) {
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_render_dynamite_fx(char* buffer, double pass) {
+    try {
+        return static_cast<double>(
+            dynamite_fx().render(buffer, static_cast<int>(pass)));
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error rendering Dynamite effects: ") +
                             e.what());
         return -1;
     }

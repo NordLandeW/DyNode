@@ -75,6 +75,7 @@ size_t get_sprite_max_bytes(const SpriteData& sprite);
 size_t get_sprite_max_bytes(const std::string& name);
 
 struct Note;
+double pos_to_horzPos(double pos, int side);
 glm::vec2 get_note_pos(const Note& note, double nowTime, double speed);
 double get_note_alpha(int side, glm::vec2 position);
 

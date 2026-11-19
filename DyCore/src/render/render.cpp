@@ -13,6 +13,7 @@
 #include "activation.h"
 #include "capacity.h"
 #include "dynamite.h"
+#include "dynamiteFx.h"
 #include "layout.h"
 #include "note.h"
 #include "notePoolManager.h"
@@ -395,6 +396,7 @@ class RenderWorkspace {
     std::vector<tf::Task> prepareTasks;
     std::vector<tf::Task> renderTasks;
     DynamiteBatch dynamite;
+    DynamiteFx fx;
     PlaybackFrame frame{};
     size_t activationRevision = 0;
     bool frameReady = false;
@@ -447,6 +449,10 @@ void set_render_worker_count_override(size_t workerCount) {
     renderWorkerCountOverride = workerCount;
 }
 
+DynamiteFx& dynamite_fx() {
+    return get_render_workspace().fx;
+}
+
 void initialize_note_rendering() {
     renderWorkspaceStopped = false;
     (void)get_render_workspace();
@@ -474,7 +480,7 @@ NoteRenderingStats get_note_rendering_stats() {
             w.chunks.capacity() * sizeof(RenderChunk) +
             (w.prepareTasks.capacity() + w.renderTasks.capacity()) *
                 sizeof(tf::Task) +
-            w.dynamite.capacity_bytes();
+            w.dynamite.capacity_bytes() + w.fx.capacity_bytes();
     }
     return stats;
 }
