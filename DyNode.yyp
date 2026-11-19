@@ -95,9 +95,9 @@
   ],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"credits_license.txt","CopyToMask":-1,"filePath":"datafiles","name":"credits_license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"Apache-2.0.txt","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"Apache-2.0.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"NotoSansCJKkr-Black.otf","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"NotoSansCJKkr-Black.otf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"SOURCEHANSANSCN-NORMAL.otf","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"SOURCEHANSANSCN-NORMAL.otf","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"Apache-2.0.txt","CopyToMask":3035426170322551022,"filePath":"datafiles/fonts","name":"Apache-2.0.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"inigo quilez 2d sdf license.txt","CopyToMask":-1,"filePath":"datafiles","name":"inigo quilez 2d sdf license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"en-US.json","CopyToMask":-1,"filePath":"datafiles/lang","name":"en-US.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"ja-JP.json","CopyToMask":-1,"filePath":"datafiles/lang","name":"ja-JP.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
