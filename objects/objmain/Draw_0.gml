@@ -107,8 +107,6 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 		dynamix_draw_mixer_lights();
 	}
 	else if(global.style == STYLE.DYNAMITE) {
-		dynamite_draw_footer();
-
 		dynamite_draw_judgment_hud();
 	}
 
@@ -146,9 +144,14 @@ var _dynamite = global.style == STYLE.DYNAMITE;
         shadow_layer_draw(shadowPongSurf);
     }
 
+    var _trayMask = false;
+    if(_dynamite) {
+        _trayMask = dynamite_begin_tray_mask();
+        dynamite_draw_footer();
+    }
+
 // Draw Notes
 
-    var _trayMask = _dynamite && dynamite_begin_note_mask();
 	var _piano = global.themeAt == 2 && editor_get_editmode() == 5;
     if(_piano) {
 		gpu_set_blendmode(bm_add);

@@ -578,8 +578,8 @@ function dynamix_draw_mixer_lights() {
 #macro DYNAMITE_TRAY_OUTER_DX (DYNAMITE_TRAY_DX + DYNAMITE_TRAY_HALF_STROKE)
 #macro DYNAMITE_TRAY_OUTER_DY (DYNAMITE_TRAY_DY + DYNAMITE_TRAY_HALF_STROKE)
 
-/// @description Exclude both the hollow tray and its stroke from subsequent note draws.
-function dynamite_begin_note_mask() {
+/// @description Clip subsequent HUD artwork and notes to the outside of each mixer's outer stroke.
+function dynamite_begin_tray_mask() {
     if(chartSideType[0] != "MIXER" && chartSideType[1] != "MIXER") return false;
 
     gpu_push_state();
@@ -658,32 +658,39 @@ function dynamite_draw_judgment_hud() {
         gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_zero, bm_one, bm_zero);
     }
 
-    for(var _side = NOTE_SIDE.FRONT; _side <= NOTE_SIDE.RIGHT; _side++) {
-        var _alpha = _playback ? 1 : lerp(0.5, 1, lazerAlpha[_side]);
-        if(_playback && nowPlaying && _side != NOTE_SIDE.FRONT) {
-            var _hint = sideHinterState[_side - 1];
+    var _frontTop = _frontY - _halfLine;
+    static _sideAlpha = [1, 1];
+    for(var i = 0; i < 2; i++) {
+        var _alpha = _playback ? 1 : lerp(0.5, 1, lazerAlpha[NOTE_SIDE.LEFT + i]);
+        if(_playback && nowPlaying) {
+            var _hint = sideHinterState[i];
             if(_hint >= 0 && _hint % 2 == 0) _alpha = 0.3;
         }
+        _sideAlpha[i] = _alpha;
         draw_set_color_alpha(c_white, _alpha);
-        if(_side == NOTE_SIDE.FRONT) {
-            draw_rectangle(0, _frontY - _halfLine, BASE_RES_W, _frontY + _halfLine, false);
-        }
-        else {
-            var _x = _side == NOTE_SIDE.LEFT ? targetLineBeside : BASE_RES_W - targetLineBeside;
-            draw_rectangle(_x - _halfLine, 0, _x + _halfLine, _frontY - _halfLine, false);
-            if(chartSideType[_side - 1] == "MIXER") {
-                var _y = mixerX[_side - 1];
-                var _dx = DYNAMITE_TRAY_DX, _dy = DYNAMITE_TRAY_DY;
-                var _l = _x - _dx, _r = _x + _dx, _t = _y - _dy, _b = _y + _dy;
-                // End the cut beneath the frame stroke so fractional positions cannot open a seam.
-                draw_set_alpha(0);
-                draw_rectangle(_l, _t, _r, _b, false);
-                draw_set_alpha(_alpha);
-                draw_rectangle(_l - _halfLine, _t - _halfLine, _r + _halfLine, _t + _halfLine, false);
-                draw_rectangle(_l - _halfLine, _b - _halfLine, _r + _halfLine, _b + _halfLine, false);
-                draw_rectangle(_l - _halfLine, _t + _halfLine, _l + _halfLine, _b - _halfLine, false);
-                draw_rectangle(_r - _halfLine, _t + _halfLine, _r + _halfLine, _b - _halfLine, false);
-            }
+        var _x = i == 0 ? targetLineBeside : BASE_RES_W - targetLineBeside;
+        draw_rectangle(_x - _halfLine, 0, _x + _halfLine, _frontTop, false);
+    }
+
+    // Share the edge so translucent lines meet without blending twice on the playfield.
+    draw_set_alpha(_playback ? 1 : lerp(0.5, 1, lazerAlpha[NOTE_SIDE.FRONT]));
+    draw_rectangle(0, _frontTop, BASE_RES_W, _frontY + _halfLine, false);
+
+    if(_mask) {
+        for(var i = 0; i < 2; i++) {
+            if(chartSideType[i] != "MIXER") continue;
+            var _x = i == 0 ? targetLineBeside : BASE_RES_W - targetLineBeside;
+            var _y = mixerX[i];
+            var _dx = DYNAMITE_TRAY_DX, _dy = DYNAMITE_TRAY_DY;
+            var _l = _x - _dx, _r = _x + _dx, _t = _y - _dy, _b = _y + _dy;
+            // End the cut beneath the frame stroke so fractional positions cannot open a seam.
+            draw_set_alpha(0);
+            draw_rectangle(_l, _t, _r, _b, false);
+            draw_set_alpha(_sideAlpha[i]);
+            draw_rectangle(_l - _halfLine, _t - _halfLine, _r + _halfLine, _t + _halfLine, false);
+            draw_rectangle(_l - _halfLine, _b - _halfLine, _r + _halfLine, _b + _halfLine, false);
+            draw_rectangle(_l - _halfLine, _t + _halfLine, _l + _halfLine, _b - _halfLine, false);
+            draw_rectangle(_r - _halfLine, _t + _halfLine, _r + _halfLine, _b - _halfLine, false);
         }
     }
     draw_set_alpha(1);

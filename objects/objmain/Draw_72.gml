@@ -86,6 +86,7 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
         dynamiteFxReady = global.noteRenderer.prepare_fx(_playback) > 0;
         if(global.particleEffects == 1) dynamite_draw_shadows();
 
+        var _trayMask = dynamite_begin_tray_mask();
         // The original footer has a black backing 66 units tall on its 540-high canvas.
         draw_set_color_alpha(c_black, 127 / 255);
         draw_rectangle(0, _nh - 132, _nw, _nh, false);
@@ -101,4 +102,5 @@ var _nw = BASE_RES_W, _nh = BASE_RES_H;
             draw_sprite_ext(sprDynamitePause, 0, _nw / 2, _bar_center - 4,
                 _scale, _scale, 0, c_white, standardAlpha);
         }
+        if(_trayMask) gpu_pop_state();
     }
