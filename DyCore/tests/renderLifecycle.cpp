@@ -93,12 +93,13 @@ void install_dynamite_sprites() {
 }
 
 void add_playback_note(const std::string& id, int type, int side, double time,
-                       double width, double duration = 0) {
+                       double width, double duration = 0,
+                       double position = 2.5) {
     Note note{};
     note.noteID = id;
     note.type = type;
     note.side = side;
-    note.position = 2.5;
+    note.position = position;
     note.time = time;
     note.width = width;
     note.lastTime = duration;
@@ -408,13 +409,13 @@ TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
         CHECK(v[60].mapping.x == -v[66].mapping.x);
         // Body extends to the opaque ridge on both rails; outer cap sizes stay
         // fixed.
-        CHECK(strip_width(0) == doctest::Approx(side == 0 ? 264.0 : 108.0));
+        CHECK(strip_width(0) == doctest::Approx(side == 0 ? 264.0 : 114.0));
         CHECK(strip_width(2) == doctest::Approx(21.6));
-        CHECK(strip_width(4) == doctest::Approx(side == 0 ? 292.8 : 136.8));
-        CHECK(strip_width(5) == doctest::Approx(side == 0 ? 296.4 : 140.4));
+        CHECK(strip_width(4) == doctest::Approx(side == 0 ? 292.8 : 142.8));
+        CHECK(strip_width(5) == doctest::Approx(side == 0 ? 296.4 : 146.4));
         CHECK(strip_width(10) + strip_width(11) ==
-              doctest::Approx(side == 0 ? 306.9 : 150.9));
-        CHECK(strip_width(12) == doctest::Approx(side == 0 ? 288.0 : 132.0));
+              doctest::Approx(side == 0 ? 306.9 : 156.9));
+        CHECK(strip_width(12) == doctest::Approx(side == 0 ? 288.0 : 138.0));
         const auto center = (v[72].position + v[77].position) * 0.5f;
         const glm::vec2 expected = side == 0
                                        ? glm::vec2(960, 783)
@@ -423,6 +424,43 @@ TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
         CHECK(v[0].color == glm::u8vec4(255));
         CHECK(playback_vertices(frame, 0).empty());
         CHECK(playback_vertices(frame, 1).empty());
+    }
+}
+
+TEST_CASE(
+    "Wide offscreen-centered notes keep their near edge on the playfield") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    install_dynamite_sprites();
+    auto& pool = get_note_pool_manager();
+    const PlaybackFrame frame{26202, 1.0, 0.9, true};
+    // A 500-wide note centered at 250 starts at chart coordinate zero.
+    // Its near edge stays visible even though its center is far offscreen.
+    for (int side : {0, 1, 2}) {
+        for (int type : {0, 1, 2}) {
+            CAPTURE(side);
+            CAPTURE(type);
+            pool.clear_notes();
+            add_playback_note("wide", type, side, frame.time + 240, 500, 180,
+                              250);
+            const auto vertices = playback_vertices(frame);
+            REQUIRE_FALSE(vertices.empty());
+            const bool front = side == 0;
+            double nearEdge =
+                front ? vertices[0].position.x : vertices[0].position.y;
+            for (const auto& vertex : vertices) {
+                if (front)
+                    nearEdge = std::min(nearEdge, double(vertex.position.x));
+                else
+                    nearEdge = std::max(nearEdge, double(vertex.position.y));
+            }
+            // At coordinate zero the untrimmed boundary is x=210 or y=915.
+            // Tap inset, Slide tip and Hold cap each have a fixed art margin.
+            const double inset[] = {6.0, -3.45, 1.8};
+            const double expected =
+                front ? 210.0 + inset[type] : 915.0 - inset[type];
+            CHECK(std::abs(nearEdge - expected) < 0.02);
+        }
     }
 }
 

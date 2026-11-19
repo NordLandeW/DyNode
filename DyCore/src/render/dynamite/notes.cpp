@@ -156,6 +156,7 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
             const auto& item = items[i];
             const auto& note = *item.note;
             const bool front = note.side == 0;
+            const double chartSpan = note.width * (front ? 300.0 : 150.0);
             const auto pos =
                 get_note_pos(note, frame.time, frame.speed(note.side));
             const Lane lane{
@@ -164,12 +165,9 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
                 {255, 255, 255,
                  static_cast<uint8_t>(get_note_alpha(note.side, pos) * 255)}};
             if (note.get_note_type() == NOTE_TYPE::HOLD) {
-                const double width =
-                    ((40.0 / 9) *
-                         std::max(0.2, note.width * (front ? 1.0 : 0.48)) -
-                     4.0) *
-                        DYNAMITE_WORLD_PX +
-                    sprites.inner.size.x * DYNAMITE_TEXEL;
+                const double width = std::max(60.0, chartSpan) -
+                                     4.0 * DYNAMITE_WORLD_PX +
+                                     sprites.inner.size.x * DYNAMITE_TEXEL;
                 char* edge = buffer + (bodies + item.edgeOffset) * QUAD_BYTES;
                 if (item.parts & BODY) {
                     const double farTravel =
@@ -220,9 +218,8 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
                 }
             } else {
                 const double width =
-                    std::max(1.0, note.width * (front ? 40.0 / 9 : 32.0 / 15) -
-                                      8.0 / 45) *
-                    DYNAMITE_WORLD_PX;
+                    std::max(DYNAMITE_WORLD_PX,
+                             chartSpan - (8.0 / 45) * DYNAMITE_WORLD_PX);
                 char* out =
                     buffer +
                     (bodies + edges + item.offset +

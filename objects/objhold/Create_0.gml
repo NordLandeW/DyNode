@@ -86,8 +86,7 @@ function dynamite_draw_hold(_edges) {
     if (_tail < _head) return;
 
     // HoldNScaling sizes the body independently of the Tap/Slide width clamp.
-    var _inner_w = ((40 / 9) * max(0.2, width * (side == NOTE_SIDE.FRONT ? 1 : 0.48)) - 4) * DYNAMITE_WORLD_PX
-                 + 254 * DYNAMITE_TEXEL;
+    var _inner_w = max(60, dynamite_chart_span()) - 4 * DYNAMITE_WORLD_PX + 254 * DYNAMITE_TEXEL;
     var _far = min(_tail, _screen_end), _near = max(_head, _screen_start);
     var _visible = _far - _near;
     if (_visible > 0) {

@@ -791,10 +791,13 @@ image_yscale = 1;
 #macro DYNAMITE_WORLD_PX (BASE_RES_H / 16)
 #macro DYNAMITE_TEXEL (DYNAMITE_WORLD_PX / 75)
 
-// ReadNotes sizes the Tap and Slide from the raw chart width.
+// Use the same chart scale as note_pos_to_x before applying sprite-specific sizing.
+function dynamite_chart_span() {
+    return width * (side == NOTE_SIDE.FRONT ? 300 : 150);
+}
+
 function dynamite_note_width() {
-    var _lane_scale = side == NOTE_SIDE.FRONT ? 40 / 9 : 32 / 15;
-    return max(1, width * _lane_scale - 8 / 45) * DYNAMITE_WORLD_PX;
+    return max(DYNAMITE_WORLD_PX, dynamite_chart_span() - (8 / 45) * DYNAMITE_WORLD_PX);
 }
 
 /// Draw a horizontal Unity slice about its centre. A negative span mirrors the entire slice.
