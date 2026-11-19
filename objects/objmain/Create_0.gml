@@ -716,15 +716,31 @@ function dynamite_draw_footer() {
     draw_set_halign(fa_center);
     draw_set_font(fDynamiteHeavy);
     draw_text(142, _lineY + 73, difficulty_num_to_name(chartDifficulty));
-    var _autoAlpha = standardAlpha * autoBadgeClearAlpha;
-    if(_autoAlpha > 0) {
-        var _autoX = BASE_RES_W - 228;
-        draw_sprite_ext(sprDynamiteBadges, 6, _autoX, _lineY + 68, 1, 1, 0, c_white, _autoAlpha);
-        draw_set_alpha(_autoAlpha);
-        draw_set_font(fDynamiteLight);
-        // The original Light atlas uses 48px glyphs; this label is 32px on the design canvas.
-        draw_text_transformed(_autoX + 100, _lineY + 69, "AUTO", 2 / 3, 2 / 3, 0);
-    }
+
+    draw_set_font(_oldFont);
+    draw_set_halign(_oldHAlign);
+    draw_set_valign(_oldVAlign);
+    draw_set_color_alpha(_oldColor, _oldAlpha);
+
+    if(!global.recordManager.recording) dynamite_draw_auto_badge(standardAlpha * autoBadgeClearAlpha);
+}
+
+/// @description Draw the AUTO frame and label together at the target's opacity.
+/// @param {Real} _alpha Badge opacity.
+function dynamite_draw_auto_badge(_alpha) {
+    if(_alpha <= 0) return;
+    var _autoX = BASE_RES_W - 228, _lineY = BASE_RES_H - targetLineBelow;
+    var _oldFont = draw_get_font();
+    var _oldHAlign = draw_get_halign(), _oldVAlign = draw_get_valign();
+    var _oldColor = draw_get_color(), _oldAlpha = draw_get_alpha();
+
+    draw_sprite_ext(sprDynamiteBadges, 6, _autoX, _lineY + 68, 1, 1, 0, c_white, _alpha);
+    draw_set_color_alpha(c_white, _alpha);
+    draw_set_halign(fa_center);
+    draw_set_valign(fa_top);
+    draw_set_font(fDynamiteLight);
+    // The original Light atlas uses 48px glyphs; this label is 32px on the design canvas.
+    draw_text_transformed(_autoX + 100, _lineY + 69, "AUTO", 2 / 3, 2 / 3, 0);
 
     draw_set_font(_oldFont);
     draw_set_halign(_oldHAlign);
