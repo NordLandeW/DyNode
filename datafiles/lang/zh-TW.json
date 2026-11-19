@@ -162,7 +162,7 @@
         "beatline_style_long": "等長",
         "beatline_style_monolong": "經典",
         "beatline_style": "拍線樣式",
-        "style": "風格",
+        "style": "已切換至風格",
         "expr_catch_error": "表達式執行錯誤。\n錯誤資訊：$0\n錯誤表達式：$1",
         "expr_local_scope": "你正在對選定的音符進行進階操作。",
         "expr_global_scope": "你正在對譜面的所有音符進行進階操作。",

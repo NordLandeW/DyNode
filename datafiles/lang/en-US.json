@@ -162,7 +162,7 @@
         "beatline_style_long": "Equal Length",
         "beatline_style_monolong": "Classic",
         "beatline_style": "Beatline Style",
-        "style": "Style",
+        "style": "Switched to style",
         "expr_catch_error": "Expression execution error.\nError: $0\nExpression: $1",
         "expr_local_scope": "Performing advanced operations on selected notes.",
         "expr_global_scope": "Performing advanced operations on all notes in the chart.",
