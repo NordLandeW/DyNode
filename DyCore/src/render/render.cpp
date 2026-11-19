@@ -12,8 +12,8 @@
 
 #include "activation.h"
 #include "capacity.h"
-#include "dynamite.h"
-#include "dynamiteFx.h"
+#include "dynamite/fx.h"
+#include "dynamite/notes.h"
 #include "layout.h"
 #include "note.h"
 #include "notePoolManager.h"
@@ -949,6 +949,10 @@ size_t render_playback_notes(char* vertexBuffer, int state) {
                                  w.workerCount, renderStats.taskSubmissions);
     }
     return render_dynamix_notes(vertexBuffer, w.frame, state);
+}
+
+size_t dynamite_hold_fill_vertices() {
+    return get_render_workspace().dynamite.hold_fill_vertices();
 }
 
 size_t get_vertex_buffer_bound() {

@@ -29,7 +29,7 @@ function map_close(shuttingDown = false) {
 		surface_free_f(shadowPongSurf);
 		surface_free_f(partSurf);
 		
-		DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false);
+		DyCore_prepare_dynamite_fx(0, 0, 0, 0, false, false, false);
 		note_delete_all();
 		instance_destroy(objScoreBoard);
 		instance_destroy(objPerfectIndc);

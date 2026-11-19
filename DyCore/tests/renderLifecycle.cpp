@@ -9,7 +9,7 @@
 
 #include "activation.h"
 #include "capacity.h"
-#include "dynamiteFx.h"
+#include "dynamite/fx.h"
 #include "notePoolManager.h"
 #include "render.h"
 #include "vertex.h"
@@ -354,6 +354,8 @@ TEST_CASE("DynamitePlaybackOrdersAndOrientsEveryLayerAcrossLanes") {
         add_playback_note("slide", 1, side, 200, 1.0);
         const auto v = playback_vertices(frame);
         REQUIRE(v.size() == 13 * 6);
+        // Only the two Inner quads draw behind judgment fragments.
+        CHECK(dynamite_hold_fill_vertices() == 2 * 6);
         const auto strip_width = [&](size_t q) {
             return glm::distance(v[6 * q].position, v[6 * q + 1].position);
         };
@@ -708,4 +710,151 @@ TEST_CASE(
     CHECK(resumed[0].empty());
     CHECK(resumed[1].size() == 6);
     CHECK(resumed[2].size() == 499 * 6);
+}
+
+TEST_CASE(
+    "Dynamite fragment emission stays on the same real-time grid at any "
+    "display rate") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    get_note_pool_manager().clear_notes();
+    SpriteData atlas{};
+    atlas.name = "sprDynamiteHitAtlas";
+    atlas.size = {1020, 1020};
+    atlas.uv1 = {1, 1};
+    atlas.caculate_uv_values();
+    get_sprite_manager().add_sprite(atlas);
+    auto run = [&](int fps) {
+        DynamiteParticles particles(341);
+        particles.queue_hit(1, 540, 1, 8, false, 8, 78);
+        auto advance = [&](double clock) {
+            particles.update_editor(clock, clock, true);
+        };
+        for (int i = 0; 1000.0 * i / fps < 100; ++i)
+            advance(1000.0 * i / fps);
+        advance(100);
+        const auto count = particles.count();
+        CHECK(count >= 20);
+        CHECK(count <= 30);  // Ten head sparks, five sustained ticks of 2..4.
+        std::vector<char> bytes(count * 6 * VERTEX_BYTES);
+        REQUIRE(particles.render(bytes.data()) == bytes.size());
+        return bytes;
+    };
+    const auto reference = run(60);
+    CHECK(run(24) == reference);
+    CHECK(run(30) == reference);
+    CHECK(run(165) == reference);
+}
+
+TEST_CASE(
+    "Dynamite bursts wait for a tick, obey lane and judgment budgets, then "
+    "decay independently") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    get_note_pool_manager().clear_notes();
+    get_note_activation_manager().recalculate();
+    DynamiteParticles p;
+    p.update_editor(0, 0, true);
+    p.queue_hit(0, 960, 1, 1, false);
+    p.queue_hit(1, 400, 1, 1, false);
+    p.queue_hit(2, 680, .1, 1, true);
+    p.update_editor(-1000, 16, true);
+    CHECK(p.count() == 0);
+    p.update_editor(2000, 17, true);
+    CHECK(p.count() == 20 + 10 + 12);
+    p.update_editor(-9000, 100, false);
+    CHECK(p.count() == 42);
+    p.update_editor(0, 417, true);
+    CHECK(p.count() == 0);
+    for (int i = 0; i < 200; i++)
+        p.queue_hit(0, 960, 1, 418, false);
+    p.update_editor(0, 440, true);
+    CHECK(p.count() == 100);  // One position, five admitted hits at one tick.
+    p.reset();
+    for (int i = 0; i < 100; i++)
+        p.queue_hit(0, 750 + i, 1, 0, false);
+    p.update_editor(0, 0, true);
+    CHECK(p.count() ==
+          280);  // 14 complete bursts of nominal count 19, actual count 20.
+    p.queue_hit(2, 610, 1, 100, false);
+    p.update_editor(0, 100, true);
+    CHECK(p.count() == 280);
+    p.update_editor(0, 501, true);
+    p.queue_hit(0, 960, 1000000, 502, false);
+    p.update_editor(0, 520, true);
+    CHECK(p.count() == 300);
+    p.reset();
+    for (int i = 0; i < 90; i++)
+        p.queue_hit(i % 3, 400 + i, 1, 0, false, 0, 5000);
+    p.update_editor(0, 0, true);
+    p.update_editor(100, 100, true);
+    CHECK(p.count() == 500);
+}
+
+TEST_CASE(
+    "Dynamite chart fragments reproduce paused, forward, rewound and edited "
+    "charts") {
+    RenderCleanup cleanup;
+    initialize_note_rendering();
+    SpriteData atlas{};
+    atlas.name = "sprDynamiteHitAtlas";
+    atlas.size = {1020, 1020};
+    atlas.uv1 = {1, 1};
+    atlas.caculate_uv_values();
+    get_sprite_manager().add_sprite(atlas);
+    auto& pool = get_note_pool_manager();
+    pool.clear_notes();
+    auto populate = [&](bool reverse) {
+        for (int k = 0; k < 48; ++k) {
+            int i = reverse ? 47 - k : k;
+            add_playback_note((reverse ? "other" : "id") + std::to_string(i), 2,
+                              i % 3, 8 + (i % 4), .6, 1975);
+        }
+        add_playback_note(reverse ? "newtap" : "tap", 0, 0, 1, 1);
+    };
+    populate(false);
+    DynamiteParticles particles;
+    auto at = [&](double t) {
+        particles.sample_chart(t);
+        CHECK(particles.count() <= 500);
+        std::vector<char> v(particles.count() * 6 * VERTEX_BYTES);
+        REQUIRE(particles.render(v.data()) == v.size());
+        return v;
+    };
+    CHECK(at(10).empty());
+    const auto target = at(1200);
+    CHECK(target.size() == 500 * 6 * VERTEX_BYTES);
+    CHECK(at(1200) == target);
+    CHECK(at(5000).empty());
+    CHECK(at(1200) == target);
+    at(0);
+    for (int i = 0; i < 197; ++i)
+        at(i * 1000.0 / 165);
+    CHECK(at(1200) == target);
+    // Re-importing the same geometry in another order with different IDs must
+    // preserve the field.
+    pool.clear_notes();
+    populate(true);
+    CHECK(at(1200) == target);
+    pool.clear_notes();
+    add_playback_note("only", 0, 0, 1000, 1);
+    const auto original = at(1200);
+    CHECK(original.size() == 20 * 6 * VERTEX_BYTES);
+    auto note = pool.get_note("only");
+    note.position += .5;
+    pool.set_note(note);
+    const auto moved = at(1200);
+    CHECK(moved.size() == original.size());
+    CHECK(moved != original);
+    CHECK_THROWS(pool.access_note("only", [](Note& n) {
+        n.width = .2;
+        throw std::runtime_error("test");
+    }));
+    CHECK(at(1200).size() == 10 * 6 * VERTEX_BYTES);
+    add_playback_note("hold", 2, 1, 500, 1, 900);
+    at(1200);
+    particles.update_editor(1200, 1, true);
+    CHECK(particles.count() == 0);
+    particles.update_editor(1250, 51, true);
+    CHECK(particles.count() == 0);
 }

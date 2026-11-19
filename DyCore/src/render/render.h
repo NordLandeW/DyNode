@@ -94,6 +94,7 @@ void shutdown_note_rendering();
 size_t prepare_note_rendering();
 size_t prepare_playback_notes(PlaybackFrame frame);
 size_t render_playback_notes(char* vertexBuffer, int state);
+size_t dynamite_hold_fill_vertices();
 
 struct NoteRenderingStats {
     size_t capacityGrowths = 0;

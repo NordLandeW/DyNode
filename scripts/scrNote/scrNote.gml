@@ -390,8 +390,15 @@ function note_hit(note, displayEffects) {
 		return false;
 	
 	if(global.style == STYLE.DYNAMITE) {
-		if(editor_get_editmode() != 5 && global.particleEffects != 0) {
-			var _mix = note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER";
+		var _playback = editor_get_editmode() == 5;
+		var _mix = note.side > 0 && objMain.chartSideType[note.side-1] == "MIXER";
+		if(!_playback && global.particleEffects != 0) {
+			if(global.particleEffects == 1 && !objMain.seekingParticles) {
+				var _tray = _mix && note.noteType == NOTE_TYPE.CHAIN;
+				var _center = _tray ? objMain.mixerX[note.side-1] : note_pos_to_x(note.position, note.side);
+				DyCore_emit_dynamite_particles(note.side, _center, note.width, objMain.fxClock,
+					_tray, note.time, note.noteType == NOTE_TYPE.HOLD ? note.lastTime : 0);
+			}
 			DyCore_trigger_dynamite_hit(note.side, note.position, note.width, objMain.fxClock,
 				note.time, _mix, global.particleEffects == 1);
 		}

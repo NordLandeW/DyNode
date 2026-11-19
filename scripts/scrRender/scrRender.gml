@@ -1,6 +1,6 @@
 
 // DyCore batch selectors; independent of composition order.
-enum DYNAMITE_FX_PASS { HIT_FRAME, HOLDING_FRAME, SHADOW }
+enum DYNAMITE_FX_PASS { HIT_FRAME, HOLDING_FRAME, SHADOW, FRAGMENTS }
 
 /// @description This singleton handles note rendering under playback mode.
 function NoteRenderer() constructor {
@@ -77,13 +77,15 @@ function NoteRenderer() constructor {
         }
     }
 
-    static submit = function(size, texture) {
-        if(size <= 0) return;
-
+    static upload = function(size, byteOffset) {
         buffer_set_used_size(cacheBuff, size);
-        vertex_update_buffer_from_buffer(vertBuff, 0, cacheBuff, 0, size);
+        vertex_update_buffer_from_buffer(vertBuff, byteOffset, cacheBuff, 0, size);
+    }
 
-        vertex_submit_ext(vertBuff, pr_trianglelist, texture, 0, size / vertexSize);
+    static submit = function(size, texture, byteOffset = 0) {
+        if(size <= 0) return;
+        upload(size, byteOffset);
+        vertex_submit_ext(vertBuff, pr_trianglelist, texture, byteOffset / vertexSize, size / vertexSize);
     }
 
     static render_state = function(state, texture) {
@@ -109,7 +111,7 @@ function NoteRenderer() constructor {
     /// @returns {Real} Maximum buffer size across the effect layers, in bytes.
     static prepare_fx = function(playback) {
         var mixers = (objMain.chartSideType[0] == "MIXER") | ((objMain.chartSideType[1] == "MIXER") << 1);
-        var bound = DyCore_prepare_dynamite_fx(objMain.nowTime, objMain.fxClock, global.particleEffects, mixers, playback, objMain.nowPlaying);
+        var bound = DyCore_prepare_dynamite_fx(objMain.nowTime, objMain.fxClock, global.particleEffects, mixers, playback, objMain.nowPlaying, objMain.seekingParticles);
         ensure_capacity(bound);
         return bound;
     }
@@ -122,7 +124,8 @@ function NoteRenderer() constructor {
     /// @description Draw one prepared Dynamite effect layer.
     /// @param {Real} pass DYNAMITE_FX_PASS selector.
     /// @param {Real} [size] Bytes already written by buffer_fx.
-    static draw_fx = function(pass, size = undefined) {
+    /// @param {Real} [byteOffset] Destination after any note vertices still needed for this draw.
+    static draw_fx = function(pass, size = undefined, byteOffset = 0) {
         if(is_undefined(size)) size = buffer_fx(pass);
         if(size <= 0) return;
         gpu_push_state();
@@ -130,7 +133,7 @@ function NoteRenderer() constructor {
         // The ordinary hit sheet and light add RGB without changing coverage.
         gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_one, bm_zero, bm_one);
         gpu_set_texfilter_ext(0, pass == DYNAMITE_FX_PASS.HIT_FRAME);
-        submit(size, sprite_get_texture(sprDynamiteHitAtlas, 0));
+        submit(size, sprite_get_texture(sprDynamiteHitAtlas, 0), byteOffset);
         gpu_pop_state();
     }
 
@@ -169,16 +172,31 @@ function NoteRenderer() constructor {
         render_state(2, texture);
     }
 
-    static render_dynamite = function(previousShader) {
+    static draw_dynamite_note_range = function(previousShader, firstVertex, count) {
         shader_set(shd_dynamite_notes);
         for(var i = 0; i < array_length(dynamiteSliceUniforms); i++)
             shader_set_uniform_f_array(dynamiteSliceUniforms[i], dynamiteSlice[i]);
         shader_set_uniform_f_array(uniformDynamiteWidths, dynamiteWidths);
         shader_set_uniform_f(uniformDynamiteMono, previousShader == shd_mono);
-        render_state(2, sprite_get_texture(sprDynamiteTap, 0));
+        vertex_submit_ext(vertBuff, pr_trianglelist, sprite_get_texture(sprDynamiteTap, 0), firstVertex, count);
     }
 
-    static render = function(bound = undefined) {
+    static render_dynamite = function(previousShader, drawFragments) {
+        var noteBytes = max(0, DyCore_render_playback_notes(buffer_get_address(cacheBuff), 2));
+        if(noteBytes > 0) upload(noteBytes, 0);
+        var vertices = noteBytes / vertexSize, fill = 0;
+        var fragments = drawFragments ? buffer_fx(DYNAMITE_FX_PASS.FRAGMENTS) : 0;
+        if(fragments > 0) {
+            // Native geometry is already ordered: Hold fill | rails, caps, Slide, Tap.
+            if(vertices > 0) fill = DyCore_dynamite_hold_fill_vertices();
+            if(fill > 0) draw_dynamite_note_range(previousShader, 0, fill);
+            shader_reset();
+            draw_fx(DYNAMITE_FX_PASS.FRAGMENTS, fragments, noteBytes);
+        }
+        if(vertices > fill) draw_dynamite_note_range(previousShader, fill, vertices - fill);
+    }
+
+    static render = function(bound = undefined, drawFragments = false) {
         var _dynamite = global.style == STYLE.DYNAMITE;
         if(is_undefined(bound)) bound = prepare_notes();
         if(bound < 0) return;
@@ -186,7 +204,7 @@ function NoteRenderer() constructor {
         gpu_push_state();
         gpu_set_tex_repeat(true);
         var previousShader = shader_current();
-        if(_dynamite) render_dynamite(previousShader);
+        if(_dynamite) render_dynamite(previousShader, drawFragments);
         else render_dynamix(previousShader);
         if(previousShader == -1) shader_reset();
         else shader_set(previousShader);

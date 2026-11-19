@@ -1,4 +1,4 @@
-#include "dynamite.h"
+#include "notes.h"
 
 #include <algorithm>
 #include <cmath>
@@ -96,6 +96,7 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
                              size_t workerCount, size_t& taskSubmissions) {
     PROFILE_STATIC_SCOPE("Render Dynamite Notes");
     items.clear();
+    fillVertices = 0;
     const auto& active = get_note_activation_manager().get_active_notes();
     if (active.empty())
         return 0;
@@ -251,5 +252,6 @@ size_t DynamiteBatch::render(char* buffer, const PlaybackFrame& frame,
     } else {
         draw(0, items.size());
     }
+    fillVertices = bodies * 6;
     return total;
 }

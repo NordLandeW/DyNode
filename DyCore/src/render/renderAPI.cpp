@@ -1,7 +1,7 @@
 #include <json.hpp>
 
 #include "api.h"
-#include "dynamiteFx.h"
+#include "dynamite/fx.h"
 #include "render.h"
 #include "utils.h"
 
@@ -25,6 +25,10 @@ DYCORE_API double DyCore_add_sprite_data(const char* spriteData) {
     data.drawSetting = setting;
     get_sprite_manager().add_sprite(data);
     return 0.0;
+}
+
+DYCORE_API double DyCore_dynamite_hold_fill_vertices() {
+    return static_cast<double>(dynamite_hold_fill_vertices());
 }
 
 DYCORE_API double DyCore_get_note_rendering_vertex_buffer_bound() {
@@ -71,11 +75,12 @@ DYCORE_API double DyCore_prepare_playback_notes(double nowTime,
 DYCORE_API double DyCore_prepare_dynamite_fx(double chartTime,
                                              double editorClock, double setting,
                                              double mixers, double playback,
-                                             double playing) {
+                                             double playing, double seeking) {
     try {
         return static_cast<double>(dynamite_fx().prepare(
             chartTime, editorClock, static_cast<int>(setting),
-            static_cast<int>(mixers), playback != 0, playing != 0));
+            static_cast<int>(mixers), playback != 0, playing != 0,
+            seeking != 0));
     } catch (const std::exception& e) {
         print_debug_message(std::string("Error preparing Dynamite effects: ") +
                             e.what());
@@ -95,6 +100,23 @@ DYCORE_API double DyCore_trigger_dynamite_hit(double side, double position,
     } catch (const std::exception& e) {
         print_debug_message(
             std::string("Error triggering Dynamite judgment: ") + e.what());
+        return -1;
+    }
+}
+
+DYCORE_API double DyCore_emit_dynamite_particles(double side, double center,
+                                                 double width, double clock,
+                                                 double mixer,
+                                                 double chartStart,
+                                                 double holdDuration) {
+    try {
+        dynamite_fx().particles.queue_hit(static_cast<int>(side), center, width,
+                                          clock, mixer != 0, chartStart,
+                                          holdDuration);
+        return 0;
+    } catch (const std::exception& e) {
+        print_debug_message(std::string("Error queuing Dynamite particles: ") +
+                            e.what());
         return -1;
     }
 }

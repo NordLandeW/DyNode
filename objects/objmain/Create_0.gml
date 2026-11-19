@@ -72,7 +72,9 @@ depth = 0;
     mixerNextX = array_create(2, note_pos_to_x(2.5, 1));
     mixerSpeed = 0.5;
     mixerMaxSpeed = 250; // px per frame
-    fxClock = 0; // Independent one-shot clock in editor mode (milliseconds).
+    fxClock = 0; // Real-time clock for one-shots and particle emission (milliseconds).
+    seekingParticles = false;
+    lastParticleChartTime = 0;
     mixerShadow = [];
     mixerShadow[0] = instance_create(0, 0, objShadowMIX);
     mixerShadow[1] = instance_create(0, 0, objShadowMIX);
@@ -393,6 +395,7 @@ function time_set(time, animated = true, inbound = -1) {
 	}
 		
 	animTargetTime = time;
+	if(nowPlaying && nowTime != time) seekingParticles = true;
 	if(!animated || nowPlaying)
 		nowTime = time;
 	if(nowPlaying)

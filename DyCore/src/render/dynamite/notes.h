@@ -18,6 +18,9 @@ class DynamiteBatch {
     static size_t vertex_buffer_bound(size_t notes, size_t holds);
     bool reserve(size_t notes);
     size_t capacity_bytes() const;
+    size_t hold_fill_vertices() const {
+        return fillVertices;
+    }
     size_t render(char* buffer, const PlaybackFrame& frame,
                   tf::Executor& executor, tf::Taskflow& tasks,
                   size_t workerCount, size_t& taskSubmissions);
@@ -29,5 +32,6 @@ class DynamiteBatch {
         double head, tail;
         unsigned parts;
     };
+    size_t fillVertices = 0;
     std::vector<Item> items;
 };

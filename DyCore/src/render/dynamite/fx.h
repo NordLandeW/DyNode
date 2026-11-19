@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+#include "particles.h"
+
 // Playback reconstructs judgments from the chart. Editor judgments are
 // one-shots owned by actual hit events, independent of the source note.
 class DynamiteFx {
@@ -14,9 +16,11 @@ class DynamiteFx {
         bool mixer = false;
     };
     void trigger_hit(Hit hit, double noteTime, bool light);
+    DynamiteParticles particles;
     void reset();
     size_t prepare(double chartTime, double editorClock, int setting,
-                   int mixers, bool playback, bool playing);
+                   int mixers, bool playback, bool playing,
+                   bool seeking = false);
     size_t render(char* output, int pass) const;
     double mixer_age(int side) const {
         return mixerAge.at(side - 1);

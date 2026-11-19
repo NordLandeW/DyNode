@@ -159,12 +159,13 @@ var _dynamite = global.style == STYLE.DYNAMITE;
 	}
 
 	if(_playback) {
-		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined);
+		global.noteRenderer.render(_dynamite ? dynamiteNoteBound : undefined, _dynamite && dynamiteFxReady);
 	}
 	else {
 		// Draw Holds
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
 			chartNotesArrayActivated[2][i].draw_event(false);	// Draw Hold
+		if(_dynamite && dynamiteFxReady) global.noteRenderer.draw_fx(DYNAMITE_FX_PASS.FRAGMENTS);
 		for(var i=0, _cl = array_length(chartNotesArrayActivated[2]); i<_cl; i++)
 			chartNotesArrayActivated[2][i].draw_event(true);	// Draw Edge
 		// Dynamite sorts Slide at 3 and Tap at 5.

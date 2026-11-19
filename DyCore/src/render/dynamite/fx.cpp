@@ -1,4 +1,4 @@
-#include "dynamiteFx.h"
+#include "fx.h"
 
 #include <algorithm>
 #include <cmath>
@@ -52,6 +52,7 @@ int light_alpha(double age) {
 }  // namespace
 
 void DynamiteFx::reset() {
+    particles.reset();
     editorHits.clear();
     for (auto& p : passes)
         p.clear();
@@ -64,7 +65,8 @@ void DynamiteFx::trigger_hit(Hit hit, double noteTime, bool light) {
 }
 
 size_t DynamiteFx::capacity_bytes() const {
-    return sizeof(EditorHit) * editorHits.capacity() +
+    return particles.capacity_bytes() +
+           sizeof(EditorHit) * editorHits.capacity() +
            sizeof(Quad) * (passes[0].capacity() + passes[1].capacity() +
                            passes[2].capacity());
 }
@@ -123,7 +125,7 @@ void DynamiteFx::holding_sample(Hit hit, double age) {
 }
 
 size_t DynamiteFx::prepare(double time, double clock, int setting, int mixers,
-                           bool playback, bool playing) {
+                           bool playback, bool playing, bool seeking) {
     const bool showFrames = playback || playing;
     const bool full = setting == 1;
     if (!full && setting != 2) {
@@ -228,11 +230,20 @@ size_t DynamiteFx::prepare(double time, double clock, int setting, int mixers,
         }
     }
     draw_holds_after(-noHit);
-    return std::max({passes[0].size(), passes[1].size(), passes[2].size()}) *
+    if (!full)
+        particles.reset();
+    else if (playback)
+        particles.sample_chart(time);
+    else
+        particles.update_editor(time, clock, playing && !seeking);
+    return std::max({passes[0].size(), passes[1].size(), passes[2].size(),
+                     particles.count()}) *
            QUAD_BYTES;
 }
 
 size_t DynamiteFx::render(char* out, int pass) const {
+    if (pass == 3)
+        return particles.render(out);
     const auto& quads = passes.at(pass);
     if (quads.empty())
         return 0;

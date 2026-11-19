@@ -1,6 +1,7 @@
 /// @description Reset Tags & Time Update & Activate notes
 
 fxClock += global.timeManager.get_delta() / 1000;
+seekingParticles = nowTime != lastParticleChartTime;
 
 // Pull metadata from DyCore.
 
@@ -184,6 +185,9 @@ chartSideType = _metadata.sideType;
             nowTime = animTargetTime; // Speeeed up
     }
     
+    // Resyncing audio for a rate change isn't a seek, but scrubbing must not replay crossed bursts.
+    seekingParticles = seekingParticles || _timchange != 0 || _timscr != 0 || topBarMousePressed || (nowPlaying && keycheck_down(vk_enter));
+    lastParticleChartTime = nowTime;
     if(musicResyncRequest) {
         time_music_sync();
         musicResyncRequest = false;
