@@ -88,7 +88,7 @@ function note_sort_request() {
 	objEditor.editorNoteSortRequest = true;
 }
 
-function build_note(prop, record = false, selecting = false, randomID = false) {
+function build_note(prop, record = false, selecting = false, randomID = false, initialAlpha = undefined) {
 	prop = SnapDeepCopy(prop);
 	var _isHold = prop.noteType == NOTE_TYPE.HOLD;
 	if(!variable_struct_exists(prop, "noteID") || prop.noteID == "")
@@ -126,6 +126,16 @@ function build_note(prop, record = false, selecting = false, randomID = false) {
 			break;
 		case NOTE_TYPE.SUB:
 			throw "Cannot directly create sub notes."
+	}
+
+	// Only hand off a visible preview; offscreen notes keep their normal entry behavior.
+	if(!is_undefined(initialAlpha) && editor_get_editmode() < 5 && note_check_and_activate(_newNote.noteID) == 1) {
+		var _placed = note_get_instance(_newNote.noteID);
+		_placed.state();
+		if(_placed.stateType != NOTE_STATES.OUT) {
+			if(_isHold) _placed._prop_hold_update(false);
+			_placed.placementAlpha = initialAlpha;
+		}
 	}
 
 	if(selecting && editor_get_editmode() < 5) {

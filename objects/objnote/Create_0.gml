@@ -88,6 +88,7 @@ image_yscale = 1;
     animTargetA = 1;
     animTargetLstA = lastAlpha;
     image_alpha = editor_mode_is_switching()?1:0;
+    placementAlpha = undefined;     // Preview opacity for the first draw of a placed note.
     
     // Particles Varaiables
 #macro PARTICLE_HOLD_DELAY (33)     // in ms
@@ -531,7 +532,7 @@ image_yscale = 1;
                             width: width,
                             lastTime: fixedLastTime,
                             side: side
-                        }, true, _toSelectState, true);
+                        }, true, _toSelectState, true, image_alpha);
                         if(_singlePaste) instance_destroy();
                         set_state(NOTE_STATES.ATTACH);
                 		return;
@@ -552,7 +553,7 @@ image_yscale = 1;
                         position: position,
                         width: width,
                         side: side
-                    }, true, _toSelectState, true);
+                    }, true, _toSelectState, true, image_alpha);
                 
                 // Only do covering check on editmode 1~3.
                 if(editor_get_editmode() <= 3 && editor_get_editmode() >= 1) {
@@ -619,7 +620,7 @@ image_yscale = 1;
                     width: width,
                     lastTime: sinst.time - time,
                     side: side
-                }, true, false, true);
+                }, true, false, true, image_alpha);
                 instance_destroy();
             }
         }

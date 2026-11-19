@@ -32,6 +32,11 @@
         var ap = [0, 0, 0];
         with(objNote) {
             if(noteType <= 2 && !attaching) {
+                // The release can spawn this instance before or after its first Step.
+                if(!is_undefined(placementAlpha)) {
+                    if(drawVisible && stateType != NOTE_STATES.OUT) image_alpha = placementAlpha;
+                    placementAlpha = undefined;
+                }
                 var _curArray = objMain.chartNotesArrayActivated[noteType];
                 _curArray[ap[noteType]] = id;
                 ap[noteType]++;
