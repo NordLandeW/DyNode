@@ -145,6 +145,7 @@ global._notoFont = font_add("fonts/notosanscjkkr-black.otf", 30, false, false, 3
 if(!font_exists(global._notoFont))
 	show_error("Font load failed.", true);
 font_enable_sdf(global._notoFont, true);
+global._sourceHanTitleFont = undefined; // Loaded on the first Dynamite title glyph missing from BPG.
 scribble_anim_cycle(0.2, 255, 255);
 
 // Window Init

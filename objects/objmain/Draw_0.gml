@@ -1,30 +1,13 @@
 /// @description Draw the Playview
 
 var _nw = BASE_RES_W, _nh = BASE_RES_H;
+var _playback = editor_get_editmode() == 5;
+var _dynamite = global.style == STYLE.DYNAMITE;
 
 // Draw Bottom
+	var _nx = resor_to_x(0.017), _yoffset = BASE_RES_H - targetLineBelow;
 	if(global.style == STYLE.DYNAMIX) {
-		var _nx = resor_to_x(0.017), _yoffset = BASE_RES_H - targetLineBelow;
-		// Draw Title
-		if(has_cjk(chartTitle)) {
-			draw_set_halign(fa_left); draw_set_valign(fa_middle);
-			
-			draw_set_font(global._notoFont);
-			// Shadow
-			draw_set_color_alpha(c_black, 0.4 * titleAlpha);
-			draw_text(_nx, 44 + _yoffset, chartTitle);
-			draw_set_color_alpha(c_white, 1 * titleAlpha);
-			draw_text(_nx, 37 + _yoffset, chartTitle);
-			draw_set_alpha(1.0);
-		}
-		else {
-			scribble(chartTitle).starting_format("mOrbitron", c_white)
-				.align(fa_left, fa_middle)
-				.blend(c_white, titleAlpha)
-				.scale(1.5, 1.5)
-				.msdf_shadow(c_black, 0.4, 0, 3)
-				.draw(_nx + 3, 42 + _yoffset - 5);
-		}
+		style_draw_chart_title(chartTitle, _nx + 3, 37 + _yoffset, titleAlpha);
 		
 		// Draw Difficulty
 		draw_sprite_ext(global.difficultySprite[chartDifficulty], 0, 

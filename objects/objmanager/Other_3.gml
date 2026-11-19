@@ -15,6 +15,10 @@ app_cleanup_step("recorder", function() { global.recordManager.cleanup(); });
 app_cleanup_step("chart", function() { map_close(true); });
 app_cleanup_step("video frame", function() { dyc_video_clear_frame(); });
 app_cleanup_step("note renderer", function() { global.noteRenderer.cleanup(); });
+app_cleanup_step("title font", function() {
+    if(!is_undefined(global._sourceHanTitleFont) && font_exists(global._sourceHanTitleFont))
+        font_delete(global._sourceHanTitleFont);
+});
 app_cleanup_step("DyCore", function() {
     if(DyCore_shutdown() < 0) show_debug_message("DyCore shutdown completed with errors.");
 });
