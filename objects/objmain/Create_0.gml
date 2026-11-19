@@ -196,7 +196,6 @@ depth = 0;
     showStats = 0;
     showBar = false;
     fadeOtherNotes = false;
-    bgBlured = false;
     
     statCount = undefined;
     stat_reset();
@@ -217,7 +216,6 @@ depth = 0;
     
     // Bottom
         bottomDim = 0.6;
-        bottomBgBlurIterations = 3;
     
     // Background
         bgDim = 0.65;
@@ -238,10 +236,6 @@ depth = 0;
         function _faint_hit() {
             bgFaintAlpha = 0.7;
         }
-        
-        // Kawase Blur
-
-		kawaseArr = kawase_create(BASE_RES_W, targetLineBelow, bottomBgBlurIterations);
 
 #endregion
 

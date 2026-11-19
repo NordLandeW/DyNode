@@ -23,7 +23,6 @@ function map_close(shuttingDown = false) {
 	global.isSaving = false;
 	with(objMain) {
 		dyc_video_free();
-		kawase_destroy(kawaseArr);
 		surface_free_f(shadowPingSurf);
 		surface_free_f(shadowPongSurf);
 		surface_free_f(partSurf);
