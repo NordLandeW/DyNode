@@ -1,14 +1,17 @@
 #include "notePoolManager.h"
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <exception>
 #include <mutex>
 #include <shared_mutex>
 #include <stdexcept>
+#include <string_view>
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/algorithm/sort.hpp>
 #include <taskflow/taskflow.hpp>
+#include <tuple>
 #include <vector>
 
 #include "note.h"
@@ -18,6 +21,46 @@
 #include "utils.h"
 
 namespace {
+auto note_geometry(const Note& n) {
+    // Bit comparisons also recognize an untouched non-finite chart value.
+    auto bits = [](double v) {
+        return std::bit_cast<uint64_t>(v == 0 ? 0.0 : v);
+    };
+    return std::tuple(
+        n.side, n.type, bits(n.time), bits(n.position), bits(n.width),
+        n.get_note_type() == NOTE_TYPE::HOLD ? bits(n.lastTime) : 0,
+        n.get_note_type() == NOTE_TYPE::SUB ? bits(n.beginTime) : 0);
+}
+
+std::string_view tail_key(const Note& n) {
+    if (n.get_note_type() == NOTE_TYPE::HOLD)
+        return n.subNoteID;
+    if (n.get_note_type() == NOTE_TYPE::SUB)
+        return n.noteID;
+    return {};
+}
+
+// Mutable callbacks may throw after changing a note or may leave it untouched.
+class TrackGeometryEdit {
+   public:
+    TrackGeometryEdit(const Note& note, std::atomic<uint64_t>& revision)
+        : note(note),
+          revision(revision),
+          before(note_geometry(note)),
+          beforeTail(tail_key(note)) {
+    }
+    ~TrackGeometryEdit() {
+        if (note_geometry(note) != before || tail_key(note) != beforeTail)
+            revision.fetch_add(1, std::memory_order_relaxed);
+    }
+
+   private:
+    const Note& note;
+    std::atomic<uint64_t>& revision;
+    decltype(note_geometry(note)) before;
+    std::string beforeTail;
+};
+
 class NoteCallbackScope {
    public:
     explicit NoteCallbackScope(const NotePoolManager* manager,
@@ -166,19 +209,20 @@ bool NotePoolManager::create_note(const Note& note) {
         return false;
     }
     try {
-        std::pmr::polymorphic_allocator<Note> alloc(&pool_res);
-        auto ptr = std::allocate_shared<Note>(alloc);
+        std::pmr::polymorphic_allocator<StoredNote> alloc(&pool_res);
+        auto ptr = std::allocate_shared<StoredNote>(alloc);
 
         *ptr = note;
 
         noteMemoryList.emplace_back(ptr);
-        noteInfoMap[note.noteID] = {--noteMemoryList.end(), ptr,
-                                    static_cast<int>(noteArray.size()),
-                                    note.get_note_type() == NOTE_TYPE::HOLD
-                                        ? static_cast<int>(holdArray.size())
-                                        : -1};
+        ptr->index = static_cast<int>(noteArray.size());
+        ptr->holdIndex = note.get_note_type() == NOTE_TYPE::HOLD
+                             ? static_cast<int>(holdArray.size())
+                             : -1;
+        noteInfoMap[note.noteID] = {--noteMemoryList.end(), ptr};
 
         noteArray.push_back(ptr);
+        geometryRevision.fetch_add(1, std::memory_order_relaxed);
         if (note.get_note_type() == NOTE_TYPE::HOLD)
             holdArray.push_back(ptr);
 
@@ -225,6 +269,7 @@ Note NotePoolManager::get_note_direct(int index) const {
 void NotePoolManager::set_note(const Note& note) {
     auto lock = lock_exclusive();
     auto note_ptr = get_note_pointer(note.noteID);
+    const TrackGeometryEdit edit(*note_ptr, geometryRevision);
     if (note_ptr->time != note.time)
         set_ooo();
     *note_ptr = note;
@@ -243,11 +288,54 @@ void NotePoolManager::read_all_notes(
     std::function<void(const Note&)> reader) const {
     auto lock = lock_shared();
     NoteCallbackScope scope(this);
-    for (const auto& note_ptr : noteArray) {
-        if (note_ptr) {
-            reader(*note_ptr);
+    for (const auto& note : noteArray)
+        if (note)
+            reader(*note);
+}
+
+uint64_t NotePoolManager::read_judgments_since(
+    uint64_t revision,
+    const std::function<void(const Note&, double)>& reader) const {
+    auto lock = lock_shared();
+    const auto current = geometryRevision.load(std::memory_order_relaxed);
+    if (revision == current)
+        return current;
+    NoteCallbackScope scope(this);
+    auto visit = [&](const Note& n) {
+        double end = n.time;
+        if (n.get_note_type() == NOTE_TYPE::HOLD) {
+            end += n.lastTime;
+            if (!n.subNoteID.empty()) {
+                auto it = noteInfoMap.find(n.subNoteID);
+                if (it != noteInfoMap.end()) {
+                    const auto& tail = *it->second.pointer;
+                    if (tail.get_note_type() == NOTE_TYPE::SUB &&
+                        std::isfinite(tail.time))
+                        end = tail.time;
+                }
+            }
         }
+        reader(n, end);
+    };
+    if (!arrayOutOfOrder) {
+        for (const auto& n : noteArray)
+            if (std::isfinite(n->time))
+                visit(*n);
+    } else {
+        // Standalone sampling may precede activation. Do not reorder a live
+        // editor pool.
+        std::vector<const Note*> sorted;
+        sorted.reserve(noteArray.size());
+        for (const auto& n : noteArray)
+            if (n && std::isfinite(n->time))
+                sorted.push_back(n.get());
+        std::sort(
+            sorted.begin(), sorted.end(),
+            [](const Note* a, const Note* b) { return a->time < b->time; });
+        for (const auto* n : sorted)
+            visit(*n);
     }
+    return current;
 }
 
 void NotePoolManager::read_recent_notes(
@@ -269,6 +357,7 @@ void NotePoolManager::read_recent_notes(
 
 void NotePoolManager::execute_note_callback(
     Note& note, const std::function<void(Note&)>& executor) {
+    const TrackGeometryEdit edit(note, geometryRevision);
     const double origTime = note.time;
     try {
         executor(note);
@@ -334,6 +423,7 @@ void NotePoolManager::sync_head_note_to_sub(const Note& note) {
         return;
     auto subNote = get_note_pointer(note.subNoteID);
     if (subNote) {
+        const TrackGeometryEdit edit(*subNote, geometryRevision);
         subNote->beginTime = note.time;
         subNote->position = note.position;
         subNote->width = note.width;
@@ -349,11 +439,14 @@ void NotePoolManager::sync_hold_note_length(const Note& note) {
     nptr subNote = get_note_pointer(note.subNoteID);
     if (holdNote->get_note_type() == NOTE_TYPE::SUB)
         std::swap(holdNote, subNote);
+    const TrackGeometryEdit edit(*holdNote, geometryRevision);
     holdNote->lastTime = subNote->time - holdNote->time;
 }
 
 void NotePoolManager::clear_notes() {
     auto lock = lock_exclusive();
+    if (noteCount)
+        geometryRevision.fetch_add(1, std::memory_order_relaxed);
     noteArray.clear();
     noteArray.shrink_to_fit();
     holdArray.clear();
@@ -382,7 +475,7 @@ int NotePoolManager::get_index(const std::string& noteID) {
     if (it == noteInfoMap.end()) {
         throw std::runtime_error("Note not found: " + noteID);
     }
-    return it->second.index;
+    return it->second.pointer->index;
 }
 
 bool NotePoolManager::release_note(std::string noteID) {
@@ -400,6 +493,7 @@ bool NotePoolManager::release_note(std::string noteID) {
 
     set_ooo();
     noteCount--;
+    geometryRevision.fetch_add(1, std::memory_order_relaxed);
     return true;
 }
 
@@ -427,9 +521,9 @@ void NotePoolManager::unset_ooo() {
 }
 
 void NotePoolManager::array_markdel_index(const NoteMemoryInfo& info) {
-    noteArray[info.index] = nullptr;
-    if (info.holdIndex >= 0) {
-        holdArray[info.holdIndex] = nullptr;
+    noteArray[info.pointer->index] = nullptr;
+    if (info.pointer->holdIndex >= 0) {
+        holdArray[info.pointer->holdIndex] = nullptr;
     }
     set_ooo();
 }
@@ -478,10 +572,10 @@ void NotePoolManager::array_sort() {
     single_array_pop(holdArray);
 
     for (size_t i = 0; i < noteArray.size(); ++i) {
-        noteInfoMap[noteArray[i]->noteID].index = i;
+        noteArray[i]->index = static_cast<int>(i);
     }
     for (size_t i = 0; i < holdArray.size(); ++i) {
-        noteInfoMap[holdArray[i]->noteID].holdIndex = i;
+        holdArray[i]->holdIndex = static_cast<int>(i);
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(end - start);
@@ -489,7 +583,7 @@ void NotePoolManager::array_sort() {
                         "ms");
 }
 
-NotePoolManager::nptr NotePoolManager::get_note_pointer(
+const NotePoolManager::nptr& NotePoolManager::get_note_pointer(
     const std::string& noteID) const {
     // Requires mtxNoteOps or an externally guaranteed stable read phase.
     auto it = noteInfoMap.find(noteID);
