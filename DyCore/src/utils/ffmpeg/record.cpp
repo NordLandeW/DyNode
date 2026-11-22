@@ -341,28 +341,37 @@ static bool open_ffmpeg_pipe_utf8(FILE*& out, const std::string& cmdUtf8) {
 #endif
 }
 
+void Recorder::start_writer() {
+    std::lock_guard lock(queue_mutex);
+    write_failed = false;
+    recording_active = true;
+    writer_thread = std::thread(&Recorder::writer_worker, this);
+}
+
 void Recorder::writer_worker() {
+    std::unique_lock lock(queue_mutex);
     for (;;) {
-        std::unique_lock<std::mutex> lock(queue_mutex);
         queue_cond.wait(
             lock, [this] { return !frame_queue.empty() || !recording_active; });
         if (frame_queue.empty())
             return;
 
-        if (!frame_queue.empty()) {
-            std::vector<char> frame_data = std::move(frame_queue.front());
-            frame_queue.pop();
-            lock.unlock();
-
-            if (ffmpeg_pipe) {
-                size_t written = fwrite(frame_data.data(), 1, frame_data.size(),
-                                        ffmpeg_pipe);
-                if (written != frame_data.size()) {
-                    print_debug_message(
-                        "Warning: Incomplete frame write to FFmpeg.");
-                }
-            }
+        // The deque-backed queue keeps this frame stable and charged to the
+        // budget while producers append. Only this worker removes frames.
+        const auto& frame = frame_queue.front();
+        lock.unlock();
+        const bool ok =
+            fwrite(frame.data(), 1, frame.size(), ffmpeg_pipe) == frame.size();
+        lock.lock();
+        frame_queue.pop();
+        if (!ok) {
+            write_failed = true;
+            while (!frame_queue.empty())
+                frame_queue.pop();
+            queue_cond.notify_all();
+            return;
         }
+        queue_cond.notify_all();
     }
 }
 
@@ -376,8 +385,7 @@ int Recorder::start_recording(const std::string& filename,
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
     }
-    recording_active = true;
-    writer_thread = std::thread(&Recorder::writer_worker, this);
+    start_writer();
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
 #else
@@ -405,8 +413,7 @@ int Recorder::start_recording(const std::wstring& filename,
         print_debug_message("Error: Failed to open pipe to FFmpeg.");
         return -1;
     }
-    recording_active = true;
-    writer_thread = std::thread(&Recorder::writer_worker, this);
+    start_writer();
     print_debug_message("FFmpeg instantiated successfully. Start recording.");
     return 0;
 #else
@@ -424,7 +431,9 @@ int Recorder::start_recording(const std::wstring& filename,
 
 int Recorder::push_frame(const void* frameData, int frameSize) {
 #ifdef _WIN32
+    std::unique_lock lock(queue_mutex);
     auto fail = [&](int code, const std::string& msg) -> int {
+        lock.unlock();
         print_debug_message("Error: " + msg + " Code: " + std::to_string(code));
         finish_recording();
         return code;
@@ -434,11 +443,13 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
         return fail(FFMPEG_PUSH_FRAME_INVALID_ARGUMENT,
                     "push_frame called with invalid parameters.");
     }
-    if (!recording_active) {
-        return fail(FFMPEG_PUSH_FRAME_NOT_RECORDING,
-                    "push_frame called when recording is not active.");
-    }
-    if (!ffmpeg_pipe) {
+    queue_cond.wait(lock, [this] {
+        return !recording_active || write_failed ||
+               frame_queue.size() < MAX_PENDING_FRAMES;
+    });
+    if (!recording_active)
+        return FFMPEG_PUSH_FRAME_NOT_RECORDING;
+    if (write_failed || !ffmpeg_pipe) {
         return fail(FFMPEG_PUSH_FRAME_PIPE_UNAVAILABLE,
                     "FFmpeg pipe is not available.");
     }
@@ -460,13 +471,9 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
     }
 
     try {
-        std::vector<char> frame_copy(static_cast<size_t>(frameSize));
-        memcpy(frame_copy.data(), frameData, static_cast<size_t>(frameSize));
-        {
-            std::lock_guard<std::mutex> lock(queue_mutex);
-            frame_queue.push(std::move(frame_copy));
-        }
-        queue_cond.notify_one();
+        const auto* bytes = static_cast<const char*>(frameData);
+        frame_queue.emplace(bytes, bytes + frameSize);
+        queue_cond.notify_all();
         return FFMPEG_PUSH_FRAME_OK;
     } catch (const std::exception& e) {
         return fail(
@@ -484,12 +491,12 @@ int Recorder::push_frame(const void* frameData, int frameSize) {
 #endif
 }
 
-void Recorder::finish_recording() {
+int Recorder::finish_recording() {
     {
         std::lock_guard lock(queue_mutex);
         recording_active = false;
     }
-    queue_cond.notify_one();
+    queue_cond.notify_all();
     if (writer_thread.joinable())
         writer_thread.join();
 #ifdef _WIN32
@@ -503,11 +510,12 @@ void Recorder::finish_recording() {
             g_ffmpeg_pi.hThread = NULL;
             g_ffmpeg_pi.hProcess = NULL;
         }
-        return;
+        return FFMPEG_PUSH_FRAME_OK;
     }
 
-    fflush(ffmpeg_pipe);
-    fclose(ffmpeg_pipe);
+    // fclose also flushes any final bytes buffered by stdio.
+    if (fclose(ffmpeg_pipe) != 0)
+        write_failed = true;
     ffmpeg_pipe = nullptr;
 
     if (g_ffmpeg_pi.hProcess) {
@@ -527,6 +535,8 @@ void Recorder::finish_recording() {
         "Not Implemented: finish_recording on non-Windows does not manage "
         "FFmpeg process.");
 #endif
+    return write_failed ? FFMPEG_PUSH_FRAME_PIPE_UNAVAILABLE
+                        : FFMPEG_PUSH_FRAME_OK;
 }
 
 bool Recorder::is_encoder_available(const std::string& encoder_name) {

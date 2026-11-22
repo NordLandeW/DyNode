@@ -61,8 +61,11 @@ class Recorder {
     std::queue<std::vector<char>> frame_queue;
     std::mutex queue_mutex;
     std::condition_variable queue_cond;
+    static constexpr size_t MAX_PENDING_FRAMES = 4;
     bool recording_active = false;
+    bool write_failed = false;
 
+    void start_writer();
     void writer_worker();
 
     std::string build_ffmpeg_cmd_utf8(std::string_view pixel_fmt,
@@ -90,7 +93,7 @@ class Recorder {
     // Returns 0 on success, or FFmpegPushFrameError on failure.
     int push_frame(const void* frameData, int frameSize);
     // Finish recording.
-    void finish_recording();
+    int finish_recording();
     std::string get_default_encoder();
 
     std::string get_using_decoder() {

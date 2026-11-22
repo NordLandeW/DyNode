@@ -34,8 +34,7 @@ DYCORE_API double DyCore_ffmpeg_push_frame(const char *data, double size) {
 DYCORE_API double DyCore_ffmpeg_finish_recording() {
     auto &recorder = get_recorder();
 
-    recorder.finish_recording();
-    return 0;
+    return recorder.finish_recording();
 }
 
 DYCORE_API const char *DyCore_ffmpeg_get_using_decoder() {

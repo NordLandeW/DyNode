@@ -137,9 +137,14 @@ function RecordManager() constructor {
             return;
         }
 
-        DyCore_ffmpeg_finish_recording();
+        var err = DyCore_ffmpeg_finish_recording();
         recording = false;
         post_recording();
+        if(err < 0) {
+            var errText = ffmpeg_push_frame_error_text(err);
+            announcement_task(i18n_get("recording_failed", ["[" + string(err) + "] " + errText]), 5000, "recording", ANNO_STATE.ERROR);
+            return;
+        }
         show_debug_message("-- Recording finished.");
         announcement_task(i18n_get("recording_complete", [targetFilePath]), 5000, "recording", ANNO_STATE.COMPLETE);
     }
