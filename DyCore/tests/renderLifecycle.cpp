@@ -713,13 +713,14 @@ TEST_CASE(
     atlas.uv1 = {1, 1};
     atlas.caculate_uv_values();
     get_sprite_manager().add_sprite(atlas);
-    // A distinguishable oldest frame, then 499 newer coincident front hits.
+    constexpr int budget = 150;
+    // A distinguishable oldest frame followed by coincident front hits.
     add_playback_note("old", 0, 2, 1000, 1);
-    for (int i = 0; i < 499; ++i)
+    for (int i = 0; i < budget - 1; ++i)
         add_playback_note(std::to_string(i), 0, 0, 1001, 1);
     add_playback_note(
         "head", 2, 0, 1010, 1,
-        3000);  // hit and ongoing holding frame share the 500 slots
+        3000);  // hit and ongoing holding frame share the frame budget
     add_playback_note("tray", 1, 1, 1012, 1);
     auto& fx = dynamite_fx();
     auto sample = [&](double t, bool playback, bool playing) {
@@ -738,8 +739,8 @@ TEST_CASE(
         return out;
     };
     const auto exact = sample(1001, true, false);
-    CHECK(exact[0].size() == 500 * 6);
-    CHECK(exact[2].size() == 500 * 6);
+    CHECK(exact[0].size() == budget * 6);
+    CHECK(exact[2].size() == budget * 6);
     auto hasRight = [](const auto& v) {
         return std::any_of(v.begin(), v.end(),
                            [](const auto& p) { return p.position.x > 1600; });
@@ -749,36 +750,36 @@ TEST_CASE(
     for (bool playback : {true, false}) {
         if (!playback) {
             fx.trigger_hit({2, 2.5, 1, 1000}, 1000, true);
-            for (int i = 0; i < 499; ++i)
+            for (int i = 0; i < budget - 1; ++i)
                 fx.trigger_hit({0, 2.5, 1, 1001}, 1001, true);
             fx.trigger_hit({0, 2.5, 1, 1010}, 1010, true);
             fx.trigger_hit({1, 2.5, 1, 1012, true}, 1012, true);
         }
         const auto v = sample(1012, playback, true);
-        CHECK(v[0].size() == 499 * 6);
+        CHECK(v[0].size() == (budget - 1) * 6);
         CHECK(v[1].size() == 6);
         CHECK_FALSE(hasRight(v[0]));
         CHECK_FALSE(hasRight(v[2]));
-        CHECK(v[2].size() == 499 * 6);
+        CHECK(v[2].size() == (budget - 1) * 6);
         CHECK(fx.mixer_age(1) == 0);
     }
     const auto rewind = sample(1001, true, false);
     CHECK(rewind[0].size() == exact[0].size());
     CHECK(hasRight(rewind[0]));
     fx.trigger_hit({2, 2.5, 1, 1000}, 1000, true);
-    for (int i = 0; i < 500; ++i)
+    for (int i = 0; i < budget; ++i)
         fx.trigger_hit({0, 2.5, 1, 1010}, 1010, true);
     fx.trigger_hit({1, 2.5, 1, 1011, true}, 1011, true);
     const auto paused = sample(1012, false, false);
     CHECK(paused[0].empty());
     CHECK(paused[1].empty());
-    CHECK(paused[2].size() == 499 * 6);
+    CHECK(paused[2].size() == (budget - 1) * 6);
     CHECK_FALSE(hasRight(paused[2]));
     CHECK(fx.mixer_age(1) == 1);
     const auto resumed = sample(1013, false, true);
     CHECK(resumed[0].empty());
     CHECK(resumed[1].size() == 6);
-    CHECK(resumed[2].size() == 499 * 6);
+    CHECK(resumed[2].size() == (budget - 1) * 6);
 }
 
 TEST_CASE(

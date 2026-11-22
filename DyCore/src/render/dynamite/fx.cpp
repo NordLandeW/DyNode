@@ -15,7 +15,7 @@ constexpr double FRAME_MS = 400, LIGHT_MS = 550;
 constexpr int LIGHT = 20, HOLDING = 21;
 // Row 384 is the last lit scanline of the 400-texel HEPLight frame.
 constexpr int LIGHT_ROWS = 385, LIGHT_CELL = 400;
-constexpr size_t FRAME_BUDGET = 500, SHADOW_BUDGET = 500;
+constexpr size_t FRAME_BUDGET = 150, SHADOW_BUDGET = 150;
 constexpr size_t QUAD_BYTES = VERTEX_BYTES * 6;
 constexpr double noHit = std::numeric_limits<double>::infinity();
 
