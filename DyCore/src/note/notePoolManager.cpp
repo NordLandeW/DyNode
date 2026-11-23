@@ -41,6 +41,14 @@ std::string_view tail_key(const Note& n) {
     return {};
 }
 
+void validate_import_head(const Note& n) {
+    if (n.side < 0 || n.side > 2 || n.type < 0 ||
+        n.type > static_cast<int>(NOTE_TYPE::HOLD) || !std::isfinite(n.time) ||
+        !std::isfinite(n.time + n.lastTime) || !std::isfinite(n.position) ||
+        !std::isfinite(n.width))
+        throw std::invalid_argument("Invalid chart note");
+}
+
 // Mutable callbacks may throw after changing a note or may leave it untouched.
 class TrackGeometryEdit {
    public:
@@ -237,43 +245,19 @@ bool NotePoolManager::create_note(const Note& note) {
     }
 }
 
-void NotePoolManager::import_notes(const std::vector<Note>& heads,
-                                   bool replace) {
-    auto lock = lock_exclusive();
-    decltype(noteMemoryList) memory(noteMemoryList.get_allocator());
-    decltype(noteInfoMap) index;
-    std::vector<nptr> notes, holds;
-    const size_t first = replace ? 0 : noteArray.size();
-    const size_t firstHold = replace ? 0 : holdArray.size();
-    notes.reserve(heads.size());
-    index.reserve(heads.size());
-    auto make = [&](const Note& source) {
-        auto ptr = std::allocate_shared<StoredNote>(
-            std::pmr::polymorphic_allocator<StoredNote>(&pool_res));
-        *ptr = source;
-        do {
-            ptr->noteID = generate_note_id();
-        } while (index.contains(ptr->noteID) ||
-                 (!replace && noteInfoMap.contains(ptr->noteID)));
-        auto it = memory.insert(memory.end(), ptr);
-        index.emplace(ptr->noteID, NoteMemoryInfo{it, ptr});
-        return ptr;
-    };
-    auto append = [&](const nptr& ptr) {
-        ptr->index = static_cast<int>(first + notes.size());
-        ptr->holdIndex = -1;
-        if (ptr->get_note_type() == NOTE_TYPE::HOLD) {
-            ptr->holdIndex = static_cast<int>(firstHold + holds.size());
-            holds.push_back(ptr);
-        }
-        notes.push_back(ptr);
-    };
-    for (const auto& n : heads) {
-        if (n.side < 0 || n.side > 2 || n.type < 0 ||
-            n.type > static_cast<int>(NOTE_TYPE::HOLD) ||
-            !std::isfinite(n.time) || !std::isfinite(n.time + n.lastTime) ||
-            !std::isfinite(n.position) || !std::isfinite(n.width))
-            throw std::invalid_argument("Invalid chart note");
+struct NotePoolManager::ImportBatch {
+    ImportBatch(NotePoolManager& pool, bool replace, size_t headCount)
+        : memory(pool.noteMemoryList.get_allocator()),
+          pool(pool),
+          replace(replace),
+          first(replace ? 0 : pool.noteArray.size()),
+          firstHold(replace ? 0 : pool.holdArray.size()) {
+        notes.reserve(headCount);
+        index.reserve(headCount);
+    }
+
+    void add_head(const Note& n) {
+        validate_import_head(n);
         auto head = make(n);
         if (head->get_note_type() == NOTE_TYPE::HOLD) {
             auto tail = make(n);
@@ -287,22 +271,65 @@ void NotePoolManager::import_notes(const std::vector<Note>& heads,
         }
         append(head);
     }
+
+    decltype(noteMemoryList) memory;
+    decltype(noteInfoMap) index;
+    std::vector<nptr> notes, holds;
+
+   private:
+    NotePoolManager& pool;
+    const bool replace;
+    const size_t first, firstHold;
+
+    nptr make(const Note& source) {
+        auto ptr = std::allocate_shared<StoredNote>(
+            std::pmr::polymorphic_allocator<StoredNote>(&pool.pool_res));
+        *ptr = source;
+        do {
+            ptr->noteID = generate_note_id();
+        } while (index.contains(ptr->noteID) ||
+                 (!replace && pool.noteInfoMap.contains(ptr->noteID)));
+        auto it = memory.insert(memory.end(), ptr);
+        index.emplace(ptr->noteID, NoteMemoryInfo{it, ptr});
+        return ptr;
+    }
+
+    void append(const nptr& ptr) {
+        ptr->index = static_cast<int>(first + notes.size());
+        ptr->holdIndex = -1;
+        if (ptr->get_note_type() == NOTE_TYPE::HOLD) {
+            ptr->holdIndex = static_cast<int>(firstHold + holds.size());
+            holds.push_back(ptr);
+        }
+        notes.push_back(ptr);
+    }
+};
+
+void NotePoolManager::import_notes(const std::vector<Note>& heads,
+                                   bool replace) {
+    auto lock = lock_exclusive();
+    ImportBatch batch(*this, replace, heads.size());
+    for (const auto& n : heads)
+        batch.add_head(n);
+
     if (replace) {
-        noteArray.swap(notes);
-        holdArray.swap(holds);
-        noteInfoMap.swap(index);
-        noteMemoryList.swap(memory);
+        noteArray.swap(batch.notes);
+        holdArray.swap(batch.holds);
+        noteInfoMap.swap(batch.index);
+        noteMemoryList.swap(batch.memory);
         get_note_activation_manager().clear();
     } else {
         // Reserve before publishing; list iterators survive splice and map node
         // transfer.
-        noteArray.reserve(first + notes.size());
-        holdArray.reserve(firstHold + holds.size());
-        noteInfoMap.reserve(noteInfoMap.size() + index.size());
-        noteMemoryList.splice(noteMemoryList.end(), memory);
-        noteInfoMap.merge(index);
-        noteArray.insert(noteArray.end(), notes.begin(), notes.end());
-        holdArray.insert(holdArray.end(), holds.begin(), holds.end());
+        noteArray.reserve(noteArray.size() + batch.notes.size());
+        holdArray.reserve(holdArray.size() + batch.holds.size());
+        noteInfoMap.reserve(noteInfoMap.size() + batch.index.size());
+        noteMemoryList.splice(noteMemoryList.end(), batch.memory);
+        noteInfoMap.merge(batch.index);
+        noteArray.insert(noteArray.end(), batch.notes.begin(),
+                         batch.notes.end());
+        holdArray.insert(holdArray.end(), batch.holds.begin(),
+                         batch.holds.end());
     }
     noteCount = static_cast<int>(noteInfoMap.size());
     geometryRevision.fetch_add(1, std::memory_order_relaxed);

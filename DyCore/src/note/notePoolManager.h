@@ -101,6 +101,7 @@ class NotePoolManager {
     std::vector<nptr> noteArray, holdArray;
 
    private:
+    struct ImportBatch;
     struct NoteMemoryInfo {
         std::pmr::list<nptr>::iterator iter;
         nptr pointer;
