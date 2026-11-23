@@ -49,6 +49,28 @@ int light_alpha(double age) {
         std::lround(127.0 / 255 *
                     std::lerp(a[i], a[i + 1], (u - t[i]) / (t[i + 1] - t[i]))));
 }
+
+// A single reverse cursor interleaves sustained ribbons with newer judgments.
+struct HoldCursor {
+    NoteActivationManager::ActiveLists::const_iterator begin, next;
+};
+
+HoldCursor hold_cursor(double time, bool playback) {
+    const auto& active = get_note_activation_manager();
+    if (playback) {
+        // Heads in the recent window already emitted their ribbons.
+        const auto& holds = active.get_lasting_holds();
+        return {holds.begin(),
+                std::lower_bound(
+                    holds.begin(), holds.end(), time - LIGHT_MS,
+                    [](const auto& h, double t) { return h.time < t; })};
+    }
+    const auto& holds = active.get_active_holds();
+    return {holds.begin(), std::upper_bound(holds.begin(), holds.end(), time,
+                                            [](double t, const auto& h) {
+                                                return t < h.time;
+                                            })};
+}
 }  // namespace
 
 void DynamiteFx::reset() {
@@ -124,6 +146,112 @@ void DynamiteFx::holding_sample(Hit hit, double age) {
                     glm::u8vec4(255)});
 }
 
+// One prepare call shares frame and light budgets across all judgment sources.
+struct DynamiteFx::Sampler {
+    DynamiteFx& fx;
+    NotePoolManager& pool;
+    double time;
+    int mixers;
+    bool showFrames, full;
+    size_t mixerLights = 0;
+
+    bool mixer(int side) const {
+        return side > 0 && (mixers & (1 << (side - 1)));
+    }
+
+    bool frame_room() const {
+        return showFrames &&
+               fx.passes[0].size() + fx.passes[1].size() < FRAME_BUDGET;
+    }
+
+    bool light_room() const {
+        return fx.passes[2].size() + mixerLights < SHADOW_BUDGET;
+    }
+
+    bool has_room() const {
+        return frame_room() || (full && light_room());
+    }
+
+    void sample_mixer(int side, double age) {
+        // One visible tray per side; older hits on the same tray add no extra
+        // light.
+        if (age * .0048 < 1 && std::isinf(fx.mixerAge[side - 1])) {
+            fx.mixerAge[side - 1] = age;
+            ++mixerLights;
+        }
+    }
+
+    bool sample_recent_note(const Note& n) {
+        if (n.side < 0 || n.side > 2)
+            return true;
+        const double age = time - n.time;
+        const bool light = full && light_room();
+        if (mixer(n.side)) {
+            if (light)
+                sample_mixer(n.side, age);
+        } else {
+            Hit hit{n.side, n.position, n.width, n.time};
+            fx.hit_sample(hit, age, frame_room(), light);
+            if (frame_room() && n.get_note_type() == NOTE_TYPE::HOLD &&
+                age < n.lastTime)
+                fx.holding_sample(hit, age);
+        }
+        return has_room();
+    }
+
+    void sample_playback_hits() {
+        fx.editorHits.clear();
+        if (pool.is_ooo())
+            pool.array_sort_request();
+        // A seek goes straight to the recent heads and actual SUB endpoints.
+        pool.read_recent_notes(time - LIGHT_MS, time, [this](const Note& n) {
+            return sample_recent_note(n);
+        });
+    }
+
+    void draw_holds_after(HoldCursor& hold, double oldest) {
+        while (frame_room() && hold.next != hold.begin &&
+               std::prev(hold.next)->time > oldest) {
+            const auto& id = (--hold.next)->id;
+            if (!pool.note_exists(id))
+                continue;
+            const auto& n = pool.get_note_unsafe(id);
+            if (n.side < 0 || n.side > 2 || mixer(n.side) || n.time > time ||
+                n.time + n.lastTime <= time)
+                continue;
+            fx.holding_sample({n.side, n.position, n.width, n.time},
+                              time - n.time);
+        }
+    }
+
+    void expire_editor_hits(double clock, bool playing) {
+        for (auto& e : fx.editorHits) {
+            const double age = clock - e.hit.time;
+            e.frame &= playing && age < FRAME_MS;
+            e.light &= full && age < LIGHT_MS;
+        }
+        std::erase_if(fx.editorHits, [&](const EditorHit& e) {
+            return (!e.frame && !e.light) || clock < e.hit.time ||
+                   mixer(e.hit.side) != e.hit.mixer;
+        });
+    }
+
+    void sample_editor_hits(double clock, HoldCursor& hold) {
+        for (auto it = fx.editorHits.rbegin();
+             it != fx.editorHits.rend() && has_room(); ++it) {
+            const auto& h = it->hit;
+            const double age = clock - h.time;
+            if (it->frame)
+                draw_holds_after(hold, it->noteTime);
+            const bool light = it->light && light_room();
+            if (!h.mixer)
+                fx.hit_sample(h, age, it->frame && frame_room(), light);
+            else if (light)
+                sample_mixer(h.side, age);
+        }
+    }
+};
+
 size_t DynamiteFx::prepare(double time, double clock, int setting, int mixers,
                            bool playback, bool playing, bool seeking) {
     const bool showFrames = playback || playing;
@@ -135,101 +263,16 @@ size_t DynamiteFx::prepare(double time, double clock, int setting, int mixers,
     mixerAge.fill(noHit);
     for (auto& p : passes)
         p.clear();
-    auto& pool = get_note_pool_manager();
-    auto mixer = [=](int side) {
-        return side > 0 && (mixers & (1 << (side - 1)));
-    };
-    // Read heads and actual SUB endpoints that have crossed the line. A seek
-    // goes straight to this window; no simulation or editor activation replay.
-    auto frame_room = [&] {
-        return showFrames && passes[0].size() + passes[1].size() < FRAME_BUDGET;
-    };
-    size_t mixerLights = 0;
-    auto light_room = [&] {
-        return passes[2].size() + mixerLights < SHADOW_BUDGET;
-    };
-    auto sample_mixer = [&](int side, double age) {
-        // One visible tray per side; older hits on the same tray add no extra
-        // light.
-        if (age * .0048 < 1 && std::isinf(mixerAge[side - 1])) {
-            mixerAge[side - 1] = age;
-            ++mixerLights;
-        }
-    };
-    if (playback) {
-        editorHits.clear();
-        if (pool.is_ooo())
-            pool.array_sort_request();
-        pool.read_recent_notes(time - LIGHT_MS, time, [&](const Note& n) {
-            if (n.side < 0 || n.side > 2)
-                return true;
-            const double age = time - n.time;
-            const bool light = full && light_room();
-            if (mixer(n.side)) {
-                if (light)
-                    sample_mixer(n.side, age);
-            } else {
-                Hit hit{n.side, n.position, n.width, n.time};
-                hit_sample(hit, age, frame_room(), light);
-                if (frame_room() && n.get_note_type() == NOTE_TYPE::HOLD &&
-                    age < n.lastTime)
-                    holding_sample(hit, age);
-            }
-            return frame_room() || (full && light_room());
-        });
-    }
-    // The sustained ribbon is a state of a live hold, not a judgment event.
-    // Playback already emitted ribbons for heads inside the sampling window.
-    const auto& active = get_note_activation_manager();
-    const auto& holds =
-        playback ? active.get_lasting_holds() : active.get_active_holds();
-    const auto byStart = [](const auto& h, double t) { return h.time < t; };
-    auto hold = playback ? std::lower_bound(holds.begin(), holds.end(),
-                                            time - LIGHT_MS, byStart)
-                         : std::upper_bound(holds.begin(), holds.end(), time,
-                                            [](double t, const auto& h) {
-                                                return t < h.time;
-                                            });
-    auto draw_holds_after = [&](double oldest) {
-        while (frame_room() && hold != holds.begin() &&
-               std::prev(hold)->time > oldest) {
-            const auto& id = (--hold)->id;
-            if (!pool.note_exists(id))
-                continue;
-            const auto& n = pool.get_note_unsafe(id);
-            if (n.side < 0 || n.side > 2 || mixer(n.side) || n.time > time ||
-                n.time + n.lastTime <= time)
-                continue;
-            holding_sample({n.side, n.position, n.width, n.time},
-                           time - n.time);
-        }
-    };
+    Sampler sampler{*this, get_note_pool_manager(), time, mixers, showFrames,
+                    full};
+    if (playback)
+        sampler.sample_playback_hits();
+    auto hold = hold_cursor(time, playback);
     if (!playback) {
-        for (auto& e : editorHits) {
-            const double age = clock - e.hit.time;
-            e.frame &= playing && age < FRAME_MS;
-            e.light &= full && age < LIGHT_MS;
-        }
-        std::erase_if(editorHits, [&](const EditorHit& e) {
-            return (!e.frame && !e.light) || clock < e.hit.time ||
-                   mixer(e.hit.side) != e.hit.mixer;
-        });
-        for (auto it = editorHits.rbegin();
-             it != editorHits.rend() &&
-             (frame_room() || (full && light_room()));
-             ++it) {
-            const auto& h = it->hit;
-            const double age = clock - h.time;
-            if (it->frame)
-                draw_holds_after(it->noteTime);
-            const bool light = it->light && light_room();
-            if (!h.mixer)
-                hit_sample(h, age, it->frame && frame_room(), light);
-            else if (light)
-                sample_mixer(h.side, age);
-        }
+        sampler.expire_editor_hits(clock, playing);
+        sampler.sample_editor_hits(clock, hold);
     }
-    draw_holds_after(-noHit);
+    sampler.draw_holds_after(hold, -noHit);
     if (!full)
         particles.reset();
     else if (playback)

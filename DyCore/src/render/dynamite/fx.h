@@ -28,6 +28,7 @@ class DynamiteFx {
     size_t capacity_bytes() const;
 
    private:
+    struct Sampler;
     struct Quad {
         int side, region;
         glm::vec2 origin, size;
