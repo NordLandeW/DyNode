@@ -160,6 +160,33 @@ void DynamiteParticles::expire(double clock) {
     }
 }
 
+void DynamiteParticles::consume_editor_bursts(int64_t tick, double clock,
+                                              bool playing) {
+    while (!pending.empty() && pending.front().tick <= tick) {
+        const auto& b = pending.front();
+        const double queued = b.tick / TICKS_PER_MS;
+        if (playing && clock - queued < 400)
+            burst(b, queued);
+        pending.pop_front();
+    }
+}
+
+void DynamiteParticles::sustain_editor_holds(int64_t tick, double birth,
+                                             double time, double clock) {
+    const double at =
+        wasPlaying && drawClock >= 0 && clock > drawClock &&
+                time >= lastChartTime
+            ? std::lerp(lastChartTime, time,
+                        std::clamp((birth - drawClock) / (clock - drawClock),
+                                   0.0, 1.0))
+            : time;
+    for (const auto& h : holds) {
+        if (tick >= h.firstTick && at < h.chartEnd &&
+            has_room(h.emitter.side, birth))
+            sustain(h.emitter, birth);
+    }
+}
+
 void DynamiteParticles::update_editor(double time, double clock, bool playing) {
     if (chart || clock < drawClock)
         reset();
@@ -170,33 +197,12 @@ void DynamiteParticles::update_editor(double time, double clock, bool playing) {
     int64_t first =
         lastTick < 0 || !wasPlaying ? now : std::max(lastTick + 1, now - 24);
     first = std::max(first, lastTick + 1);
-    const auto chart_at = [&](double birth) {
-        return wasPlaying && drawClock >= 0 && clock > drawClock &&
-                       time >= lastChartTime
-                   ? std::lerp(
-                         lastChartTime, time,
-                         std::clamp((birth - drawClock) / (clock - drawClock),
-                                    0.0, 1.0))
-                   : time;
-    };
     for (auto tick = first; tick <= now; ++tick) {
         const double birth = tick / TICKS_PER_MS;
         expire(birth);
-        while (!pending.empty() && pending.front().tick <= tick) {
-            const auto& b = pending.front();
-            const double queued = b.tick / TICKS_PER_MS;
-            if (playing && clock - queued < 400)
-                burst(b, queued);
-            pending.pop_front();
-        }
-        if (!playing)
-            continue;
-        const double at = chart_at(birth);
-        for (const auto& h : holds) {
-            if (tick >= h.firstTick && at < h.chartEnd &&
-                has_room(h.emitter.side, birth))
-                sustain(h.emitter, birth);
-        }
+        consume_editor_bursts(tick, clock, playing);
+        if (playing)
+            sustain_editor_holds(tick, birth, time, clock);
     }
     if (!playing) {
         pending.clear();

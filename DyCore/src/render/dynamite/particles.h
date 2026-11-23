@@ -58,6 +58,9 @@ class DynamiteParticles {
     void burst(const Burst& b, double birth);
     void sustain(const Emitter& e, double birth);
     void expire(double clock);
+    void consume_editor_bursts(int64_t tick, double clock, bool playing);
+    void sustain_editor_holds(int64_t tick, double birth, double time,
+                              double clock);
     std::array<std::deque<Particle>, 3> lanes;
     std::deque<Burst> pending;
     std::vector<Hold> holds;
