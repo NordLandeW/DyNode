@@ -20,9 +20,7 @@ void NoteActivationManager::recalculate() {
 
     auto& poolMan = get_note_pool_manager();
     poolMan.array_sort_request();
-    auto& noteArray = poolMan.noteArray;
 
-    // Check normal notes
     const double currentTime = frame.time;
     const double frontTravel = BASE_RES_H - JUDGE_LINE_BELOW_FROM_BOTTOM;
     const double sideTravel = BASE_RES_W / 2.0 - JUDGE_LINE_SIDE_FROM_EDGE;
@@ -32,30 +30,41 @@ void NoteActivationManager::recalculate() {
     const double sideEnd = currentTime + sideTravel / frame.sideSpeed;
     const double minEnd = currentTime + std::min(frontTravel / frame.frontSpeed,
                                                  sideTravel / frame.sideSpeed);
-    int lb = poolMan.get_index_lowerbound(currentTime);
-    int hb = poolMan.get_index_upperbound(std::max(frontEnd, sideEnd));
-    for (int i = lb; i < hb; i++) {
+    const int first = poolMan.get_index_lowerbound(currentTime);
+    collect_upcoming(poolMan, first, frontEnd, sideEnd);
+    collect_long_holds(poolMan, minEnd);
+    if (frame.dynamite)
+        collect_visual_tails(poolMan, first);
+    merge_candidates();
+    heads.clear();
+    extra.clear();
+}
+
+void NoteActivationManager::collect_upcoming(NotePoolManager& pool, int first,
+                                             double frontEnd, double sideEnd) {
+    const int last = pool.get_index_upperbound(std::max(frontEnd, sideEnd));
+    for (int i = first; i < last; i++) {
+        const auto& n = *pool.noteArray[i];
         // Use strict condition for LR side notes.
-        if (noteArray[i]->time >
-                (noteArray[i]->side == 0 ? frontEnd : sideEnd) ||
-            (frame.dynamite && noteArray[i]->side > 0 &&
-             noteArray[i]->time == sideEnd &&
-             noteArray[i]->get_note_type() != NOTE_TYPE::SUB))
+        if (n.time > (n.side == 0 ? frontEnd : sideEnd) ||
+            (frame.dynamite && n.side > 0 && n.time == sideEnd &&
+             n.get_note_type() != NOTE_TYPE::SUB))
             continue;
-        if (noteArray[i]->get_note_type() <= NOTE_TYPE::HOLD) {
-            const auto& n = *noteArray[i];
+        if (n.get_note_type() <= NOTE_TYPE::HOLD) {
             heads.push_back({n.time, n.noteID, i,
                              n.get_note_type() == NOTE_TYPE::HOLD, false});
         } else {
-            const auto& n = *noteArray[i];
             extra.push_back({n.beginTime, n.subNoteID, -1, true,
-                             n.beginTime < currentTime &&
-                                 (!frame.dynamite || n.time > currentTime)});
+                             n.beginTime < frame.time &&
+                                 (!frame.dynamite || n.time > frame.time)});
         }
     }
+}
 
-    // Check long holds.
-    for (const auto& note_ptr : poolMan.holdArray) {
+void NoteActivationManager::collect_long_holds(const NotePoolManager& pool,
+                                               double minEnd) {
+    const double currentTime = frame.time;
+    for (const auto& note_ptr : pool.holdArray) {
         const auto& note = *note_ptr;
         if (note.lastTime < minEnd - currentTime)
             break;
@@ -63,24 +72,28 @@ void NoteActivationManager::recalculate() {
             extra.push_back({note.time, note.noteID, note.index, true, true});
         }
     }
+}
 
+void NoteActivationManager::collect_visual_tails(NotePoolManager& pool,
+                                                 int firstUpcoming) {
     // A short HOLD can outlive its chart endpoint. Find those heads even after
     // a seek, without feeding a visual-only tail to the particle list.
-    if (frame.dynamite) {
-        const double minimum[] = {dynamite_min_duration(frame.frontSpeed, 0),
-                                  dynamite_min_duration(frame.sideSpeed, 1)};
-        const int first = poolMan.get_index_lowerbound(
-            currentTime - std::max(minimum[0], minimum[1]));
-        for (int i = first; i < lb; ++i) {
-            const auto& note = *noteArray[i];
-            if (note.get_note_type() == NOTE_TYPE::HOLD &&
-                note.time + note.lastTime <= currentTime &&
-                note.time + minimum[note.side != 0] > currentTime) {
-                extra.push_back({note.time, note.noteID, i, true, false});
-            }
+    const double currentTime = frame.time;
+    const double minimum[] = {dynamite_min_duration(frame.frontSpeed, 0),
+                              dynamite_min_duration(frame.sideSpeed, 1)};
+    const int first = pool.get_index_lowerbound(
+        currentTime - std::max(minimum[0], minimum[1]));
+    for (int i = first; i < firstUpcoming; ++i) {
+        const auto& note = *pool.noteArray[i];
+        if (note.get_note_type() == NOTE_TYPE::HOLD &&
+            note.time + note.lastTime <= currentTime &&
+            note.time + minimum[note.side != 0] > currentTime) {
+            extra.push_back({note.time, note.noteID, i, true, false});
         }
     }
+}
 
+void NoteActivationManager::merge_candidates() {
     // Heads already arrive in chronological order. Only ties and supplementary
     // HOLD sources need sorting; merge once for all three public lists.
     auto less = [](const Candidate& a, const Candidate& b) {
@@ -95,13 +108,6 @@ void NoteActivationManager::recalculate() {
         it = end;
     }
     std::sort(extra.begin(), extra.end(), less);
-    auto emit = [](ActiveLists& list, const Candidate& c) {
-        if (list.empty() || list.back().time != c.time ||
-            list.back().id != c.id)
-            list.push_back({c.time, std::string(c.id), c.index});
-        else if (c.index >= 0)
-            list.back().index = c.index;
-    };
     activeBytes = sizeof(int);
     auto head = heads.begin();
     auto other = extra.begin();
@@ -110,17 +116,26 @@ void NoteActivationManager::recalculate() {
                                                       !less(*other, *head))
                                  ? *head++
                                  : *other++;
-        const auto count = activeNotes.size();
-        emit(activeNotes, c);
-        if (activeNotes.size() != count)
-            activeBytes += c.id.size() + 1;
-        if (c.hold)
-            emit(activeHolds, c);
-        if (c.lasting)
-            emit(lastingHolds, c);
+        emit_candidate(c);
     }
-    heads.clear();
-    extra.clear();
+}
+
+void NoteActivationManager::emit_candidate(const Candidate& c) {
+    auto emit = [&c](ActiveLists& list) {
+        if (list.empty() || list.back().time != c.time ||
+            list.back().id != c.id)
+            list.push_back({c.time, std::string(c.id), c.index});
+        else if (c.index >= 0)
+            list.back().index = c.index;
+    };
+    const auto count = activeNotes.size();
+    emit(activeNotes);
+    if (activeNotes.size() != count)
+        activeBytes += c.id.size() + 1;
+    if (c.hold)
+        emit(activeHolds);
+    if (c.lasting)
+        emit(lastingHolds);
 }
 
 void NoteActivationManager::clear() {

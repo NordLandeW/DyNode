@@ -6,6 +6,8 @@
 #include "layout.h"
 #include "note.h"
 
+class NotePoolManager;
+
 class NoteActivationManager {
    public:
     // Own the ID. A physical index is only a lookup hint, never a note
@@ -30,6 +32,13 @@ class NoteActivationManager {
     size_t activeBytes = sizeof(int);
 
     ActiveLists activeNotes, activeHolds, lastingHolds;
+
+    void collect_upcoming(NotePoolManager& pool, int first, double frontEnd,
+                          double sideEnd);
+    void collect_long_holds(const NotePoolManager& pool, double minEnd);
+    void collect_visual_tails(NotePoolManager& pool, int firstUpcoming);
+    void merge_candidates();
+    void emit_candidate(const Candidate& candidate);
 
    public:
     // Set the range settings.
