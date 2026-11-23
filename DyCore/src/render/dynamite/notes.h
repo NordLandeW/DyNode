@@ -26,6 +26,8 @@ class DynamiteBatch {
                   size_t workerCount, size_t& taskSubmissions);
 
    private:
+    struct LayerPlan;
+    struct Painter;
     struct Item {
         const Note* note;
         size_t offset, edgeOffset;
