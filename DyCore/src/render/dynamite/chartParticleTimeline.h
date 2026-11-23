@@ -16,6 +16,7 @@ class ChartParticleTimeline {
     void visit(int64_t firstTick, int64_t lastTick, const Emit& emit) const;
 
    private:
+    struct Builder;
     struct Event {
         int64_t tick;
         double width;

@@ -43,10 +43,10 @@ uint64_t seed_for(const Source& n, uint64_t duplicate) {
 }
 }  // namespace
 
-bool ChartParticleTimeline::refresh() {
-    // Only equal chart times need a secondary content ordering. The note pool
-    // already owns a chronological index and the authoritative head/tail map.
-    ChartParticleTimeline next;
+// The pool visits judgments in time order. Only judgments at the same chart
+// time need sorting to make their emission and seeds deterministic.
+struct ChartParticleTimeline::Builder {
+    ChartParticleTimeline timeline;
     std::vector<Source> group;
     struct Admission {
         int64_t tick, amount;
@@ -55,81 +55,95 @@ bool ChartParticleTimeline::refresh() {
     std::vector<Admission> admitted;
     int64_t nominal = 0, tick = 0;
     double groupTime = -std::numeric_limits<double>::infinity();
-    auto flush = [&] {
+    bool validTick = false;
+
+    void flush_group() {
         std::sort(group.begin(), group.end());
         uint64_t duplicate = 0;
         for (size_t i = 0; i < group.size(); ++i) {
             const auto& n = group[i];
             duplicate = i && n == group[i - 1] ? duplicate + 1 : 0;
-            const bool hold = n.type == NOTE_TYPE::HOLD;
-            if (!hold && nominal > 250)
-                continue;
-            const double projected = pos_to_horzPos(n.position, n.side);
-            if (std::abs(projected) > std::numeric_limits<float>::max())
-                continue;
-            const float center = static_cast<float>(projected);
-            if (hold) {
-                int64_t end;
-                if (first_tick(n.end, end) && tick < end)
-                    next.holds.push_back(
-                        {{tick, n.width, seed_for(n, duplicate), n.side,
-                          center},
-                         end,
-                         end});
-                continue;
-            }
-            int coincident = 0;
-            for (auto b = next.bursts.rbegin();
-                 b != next.bursts.rend() && b->tick == tick; ++b)
-                if (b->side == n.side && b->center == center &&
-                    ++coincident == 5)
-                    break;
-            if (coincident == 5)
-                continue;
-            const int amount = dynamite_emission::burst_amount(
-                dynamite_emission::emission_width(n.side, n.width));
-            if (!admitted.empty() && admitted.back().tick == tick)
-                admitted.back().amount += static_cast<int64_t>(amount);
-            else
-                admitted.push_back({tick, amount});
-            nominal += amount;
-            next.bursts.push_back(
-                {tick, n.width, seed_for(n, duplicate), n.side, center});
+            append_source(n, duplicate);
         }
         group.clear();
-    };
-    bool validTick = false;
-    auto visit = [&](const Note& n, double end) {
-        const auto type = n.get_note_type();
-        if (n.time != groupTime) {
-            flush();
-            groupTime = n.time;
-            validTick = first_tick(n.time, tick);
-            if (validTick) {
-                auto live = admitted.begin();
-                while (live != admitted.end() &&
-                       static_cast<uint64_t>(tick) -
-                               static_cast<uint64_t>(live->tick) >
-                           30) {
-                    nominal -= live->amount;
-                    ++live;
-                }
-                admitted.erase(admitted.begin(), live);
-            }
+    }
+
+    void append_source(const Source& n, uint64_t duplicate) {
+        const bool hold = n.type == NOTE_TYPE::HOLD;
+        if (!hold && nominal > 250)
+            return;
+        const double projected = pos_to_horzPos(n.position, n.side);
+        if (std::abs(projected) > std::numeric_limits<float>::max())
+            return;
+        const float center = static_cast<float>(projected);
+        if (hold) {
+            int64_t end;
+            if (first_tick(n.end, end) && tick < end)
+                timeline.holds.push_back(
+                    {{tick, n.width, seed_for(n, duplicate), n.side, center},
+                     end,
+                     end});
+        } else {
+            append_burst(n, center, duplicate);
         }
+    }
+
+    void append_burst(const Source& n, float center, uint64_t duplicate) {
+        int coincident = 0;
+        for (auto b = timeline.bursts.rbegin();
+             b != timeline.bursts.rend() && b->tick == tick; ++b) {
+            if (b->side == n.side && b->center == center && ++coincident == 5)
+                return;
+        }
+        const int amount = dynamite_emission::burst_amount(
+            dynamite_emission::emission_width(n.side, n.width));
+        if (!admitted.empty() && admitted.back().tick == tick)
+            admitted.back().amount += static_cast<int64_t>(amount);
+        else
+            admitted.push_back({tick, amount});
+        nominal += amount;
+        timeline.bursts.push_back(
+            {tick, n.width, seed_for(n, duplicate), n.side, center});
+    }
+
+    void begin_group(double time) {
+        flush_group();
+        groupTime = time;
+        validTick = first_tick(time, tick);
+        if (!validTick)
+            return;
+        auto live = admitted.begin();
+        while (live != admitted.end() &&
+               static_cast<uint64_t>(tick) - static_cast<uint64_t>(live->tick) >
+                   30) {
+            nominal -= live->amount;
+            ++live;
+        }
+        admitted.erase(admitted.begin(), live);
+    }
+
+    void operator()(const Note& n, double end) {
+        const auto type = n.get_note_type();
+        if (n.time != groupTime)
+            begin_group(n.time);
         if (!validTick || (nominal > 250 && type != NOTE_TYPE::HOLD) ||
             n.side < 0 || n.side > 2 || !std::isfinite(n.width) ||
             !std::isfinite(n.position) || !std::isfinite(end) ||
             type < NOTE_TYPE::NORMAL || type > NOTE_TYPE::SUB)
             return;
         group.push_back({n.time, n.side, n.position, n.width, type, end});
-    };
+    }
+};
+
+bool ChartParticleTimeline::refresh() {
+    Builder builder;
     // Keep the unchanged-frame read allocation-free even with a large visitor.
-    const auto current =
-        get_note_pool_manager().read_judgments_since(revision, std::ref(visit));
+    const auto current = get_note_pool_manager().read_judgments_since(
+        revision, std::ref(builder));
     if (current == revision)
         return false;
-    flush();
+    builder.flush_group();
+    auto& next = builder.timeline;
     next.revision = current;
     next.index_holds(0, next.holds.size());
     *this = std::move(next);
