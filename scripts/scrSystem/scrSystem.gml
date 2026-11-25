@@ -688,15 +688,11 @@ function project_file_duplicate(_project, _propath) {
 		if(file_exists(_file)) {
 			if(!file_exists(_nfile))
 				file_copy(_file, _nfile);
-			else { // Compare file's binary size is more efficent.
-				var _f = file_bin_open(_file, 0);
-				var _nf = file_bin_open(_nfile, 0);
-				var _fs = file_bin_size(_f);
-				var _nfs = file_bin_size(_nf);
-				file_bin_close(_f);
-				file_bin_close(_nf);
-				if(_fs != _nfs) {
-					show_debug_message($"File sizes differ, creating a copy. {_file} -> {_nfile}");
+			else if(_file != _nfile) {
+				var _fs = DyCore_get_file_size(_file);
+				var _nfs = DyCore_get_file_size(_nfile);
+				if(_fs < 0 || _nfs < 0 || _fs != _nfs) {
+					show_debug_message($"Cannot reuse media file, creating a copy. {_file} -> {_nfile}");
 					_nfile = filename_path(_nfile)+filename_name_no_ext(_nfile)+"_"+random_id(4)+filename_ext(_nfile);
 					file_copy(_file, _nfile);
 				}

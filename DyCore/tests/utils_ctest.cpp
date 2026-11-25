@@ -11,6 +11,8 @@
 
 #include "utils.h"
 
+extern "C" double DyCore_get_file_size(const char* filePath);
+
 namespace {
 
 std::filesystem::path make_temp_file() {
@@ -44,6 +46,17 @@ std::chrono::system_clock::time_point parse_timestamp(
 }
 
 }  // namespace
+
+TEST_CASE("FileSizeDistinguishesNonemptyEmptyAndMissingFiles") {
+    const auto path = make_temp_file();
+    const auto name = path_to_utf8_string(path);
+    CHECK(DyCore_get_file_size(name.c_str()) == 16);
+    std::filesystem::resize_file(path, 0);
+    CHECK(DyCore_get_file_size(name.c_str()) == 0);
+    std::filesystem::remove(path);
+    CHECK(DyCore_get_file_size(name.c_str()) == -1);
+    CHECK_FALSE(std::filesystem::exists(path));
+}
 
 TEST_CASE("FileModificationTimeUsesPortableTimestampConversion") {
     namespace fs = std::filesystem;

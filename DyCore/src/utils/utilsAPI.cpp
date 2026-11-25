@@ -5,6 +5,19 @@
 #include "api.h"
 #include "gm.h"
 #include "utils.h"
+
+// Return the file's size in bytes, or -1 if its metadata is unavailable.
+DYCORE_API double DyCore_get_file_size(const char* filePath) {
+    if (!filePath || !*filePath)
+        return -1;
+    try {
+        return static_cast<double>(
+            fs::file_size(convert_char_to_path(filePath)));
+    } catch (const std::exception&) {
+        return -1;
+    }
+}
+
 // Copies a block of memory from a source address to a destination address.
 DYCORE_API double DyCore_buffer_copy(void* dst, void* src, double size) {
     memcpy(dst, src, (size_t)size);
